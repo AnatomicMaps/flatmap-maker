@@ -139,10 +139,10 @@ class BackgroundSource(object):
             'type': 'image',
             'url': '{}/images/{}'.format(base_url, background_image),
             'coordinates': [
-                [bounds[0], bounds[3]],
-                [bounds[2], bounds[3]],
-                [bounds[2], bounds[1]],
-                [bounds[0], bounds[1]]
+                [bounds[0], bounds[3]],  # top-left (nw)
+                [bounds[2], bounds[3]],  # top-right (ne)
+                [bounds[2], bounds[1]],  # bottom-right (se)
+                [bounds[0], bounds[1]]   # bottom-left (sw)
             ]
         }
 
@@ -158,7 +158,7 @@ class FeaturesSource(object):
             'version': '2',
             'minzoom': 0,
             'maxzoom': 14,
-            'bounds': bounds,
+            'bounds': bounds,   # southwest(lng, lat), northeast(lng, lat)
             'attribution': '© Auckland Bioengineering Institute',
             'generator': 'tippecanoe v1.34.0',
             'vector_layers': layer_dict['vector_layers'],

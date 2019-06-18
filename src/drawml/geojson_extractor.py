@@ -207,7 +207,6 @@ class GeoJsonExtractor(GeometryExtractor):
         bounds = super().bounds()
         top_left = point_to_lon_lat(transform_point(self._transform, (bounds[0], bounds[1])))
         bottom_right = point_to_lon_lat(transform_point(self._transform, (bounds[2], bounds[3])))
-        ## Need to check Y flip...
-        return [top_left[0], -top_left[1], bottom_right[0], -bottom_right[1]]
+        return [top_left[0], top_left[1], bottom_right[0], bottom_right[1]]
 
 #===============================================================================
