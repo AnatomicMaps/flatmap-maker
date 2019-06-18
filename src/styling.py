@@ -23,14 +23,17 @@ import json
 #===============================================================================
 
 PAINT_STYLES = {
-    'background-opacity': 0.4,
-    'fill-color': '#c0c0c0',
-    'fill-outline-color': '#f0f',
+    'background-opacity': 1,
+    'fill-color': '#fff',
     'fill-opacity': 0.7,
-    'border-stroke-color': '#0f0',
-    'border-stroke-width': 1,
-    'line-stroke-color': '#f00',
-    'line-stroke-width': 2,
+    'fill-outline-color': '#f0f',  ## ??
+    'fill-outline-width': 1,       ## ??
+    'border-stroke-color': '#00f',
+    'border-stroke-opacity': 0.2,
+    'border-stroke-width': 0.5,
+    'line-stroke-color': '#0f0',  ## opacity 0
+    'line-stroke-opacity': 0,
+    'line-stroke-width': 1,    ## Step by zoom level ??
 }
 
 #===============================================================================
@@ -79,7 +82,7 @@ class FeatureFillLayer(object):
                 'Polygon'
             ],
             'paint': {
-                'fill-color': fill_colour,
+                'fill-color': fill_colour,  ## Outline width ??
                 'fill-outline-color': PAINT_STYLES['fill-outline-color'],
                 'fill-opacity': PAINT_STYLES['fill-opacity']
             }
@@ -102,6 +105,7 @@ class FeatureBorderLayer(object):
             ],
             'paint': {
                 'line-color': PAINT_STYLES['border-stroke-color'],
+                'line-opacity': PAINT_STYLES['border-stroke-opacity'],
                 'line-width': PAINT_STYLES['border-stroke-width']
             }
         }
@@ -125,6 +129,7 @@ class FeatureLineLayer(object):
             ],
             'paint': {
                 'line-color': line_colour,
+                'line-opacity': PAINT_STYLES['line-stroke-opacity'],
                 'line-width': line_width
             }
         }
@@ -132,7 +137,7 @@ class FeatureLineLayer(object):
 #===============================================================================
 #===============================================================================
 
-class BackgroundSource(object):
+class ImageSource(object):
     @staticmethod
     def style(base_url, background_image, bounds):
         return {
@@ -148,7 +153,7 @@ class BackgroundSource(object):
 
 #===============================================================================
 
-class FeaturesSource(object):
+class VectorSource(object):
     @staticmethod
     def style(base_url, layer_dict, bounds):
         return {
@@ -172,8 +177,8 @@ class Sources(object):
     @staticmethod
     def style(base_url, background_id, background_image, features_id, layer_dict, bounds):
         return {
-            background_id: BackgroundSource.style(base_url, background_image, bounds),
-            features_id: FeaturesSource.style(base_url, layer_dict, bounds),
+            background_id: ImageSource.style(base_url, background_image, bounds),
+            features_id: VectorSource.style(base_url, layer_dict, bounds),
         }
 
 #===============================================================================
