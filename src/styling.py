@@ -192,16 +192,16 @@ class Layers(object):
 
 class Style(object):
     @staticmethod
-    def style(base_url, metadata_file, bounds, background_image=None):
-        metadata = json.load(open(metadata_file))
+    def style(base_url, metadata, background_image=None):
         layer_dict = json.loads(metadata['json'])
         background_id = 'background'
         features_id = 'features'
+        bounds = [float(x) for x in metadata['bounds'].split(',')]
         return {
             'version': 8,
             'sources': Sources.style(base_url, background_id, background_image, features_id, layer_dict, bounds),
             'zoom': 4,
-            'center': [0, 0],
+            'center': [float(x) for x in metadata['center'].split(',')],
             'layers': Layers.style(background_id, features_id, layer_dict)
         }
 

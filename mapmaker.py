@@ -27,6 +27,7 @@ import tempfile
 #===============================================================================
 
 from src.drawml import GeoJsonExtractor
+from src.mbtiles import TileDatabase
 from src.styling import Style
 
 #===============================================================================
@@ -67,6 +68,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     map_dir = os.path.join(maps_dir, args.map_id)
+    mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
+
 
     if not os.path.exists(map_dir):
         os.makedirs(map_dir)
@@ -112,32 +115,41 @@ if __name__ == '__main__':
     # Generate Mapbox vector tiles
 
     print('Running tippecanoe...')
-    tile_dir = os.path.join(map_dir, 'mvtiles')
-    if not os.path.exists(tile_dir):
-        os.makedirs(tile_dir)
-
-    subprocess.run(['tippecanoe',
-                    '--projection=EPSG:4326',
+    subprocess.run(['tippecanoe', '--projection=EPSG:4326', '--force',
+                    # No compression results in a smaller `mbtiles` file
+                    # and is also required to serve tile directories
                     '--no-tile-compression',
-                    '--force',  ## Set layer names...
-                    '--output-to-directory={}'.format(tile_dir)]
+                    '--output={}'.format(mbtiles_file),
+                    ]
                     + list(["-L{}".format(json.dumps(input)) for input in tippe_inputs])
                    )
+
+    # Set our map's actual bounds and centre (`tippecanoe` uses bounding box
+    # containing all features, which is not full map area)
+
+    bounds = map_extractor.bounds()
+    map_centre = [(bounds[0]+bounds[2])/2, (bounds[1]+bounds[3])/2]
+    map_bounds = [bounds[0], bounds[3], bounds[2], bounds[1]]   # southwest and northeast ccorners
+
+    tile_db = TileDatabase(mbtiles_file)
+    tile_db.execute("UPDATE metadata SET value='{}' WHERE name = 'center'"
+                    .format(','.join([str(x) for x in map_centre])))
+    tile_db.execute("UPDATE metadata SET value='{}' WHERE name = 'bounds'"
+                    .format(','.join([str(x) for x in map_bounds])))
+    tile_db.execute("COMMIT")
 
     # Create style file
 
     print('Creating style file...')
 
-    metadata_file = os.path.join(tile_dir, 'metadata.json')
-
 ## args.base_url
 ## args.background
     style_dict = Style.style('{}/{}'.format(base_url, args.map_id),
-                             metadata_file,
-                             map_extractor.bounds(),
-                             background_image)
+                             tile_db.metadata(),
+                             background_image)   ## args.background
 
-    with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
+
+    with open(os.path.join(map_dir, 'index.json'), 'w') as output_file:
         json.dump(style_dict, output_file)
 
     # Tidy up
