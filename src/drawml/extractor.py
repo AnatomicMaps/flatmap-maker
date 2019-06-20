@@ -98,7 +98,6 @@ class SlideToLayer(object):
         self._slide = slide
         self._slide_number = slide_number
         self._args = args
-        self._annotation = {}
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
         self._layer_id = None
@@ -113,11 +112,15 @@ class SlideToLayer(object):
         if self._layer_id is None:
             self._layer_id = 'layer{:02d}'.format(slide_number)
         self._description = 'Layer {:02d}'.format(slide_number)
-        self._shape_name_ids = []
+        self._annotations = {}
 
     @property
     def args(self):
         return self._args
+
+    @property
+    def annotations(self):
+        return self._annotations
 
     @property
     def description(self):
@@ -126,10 +129,6 @@ class SlideToLayer(object):
     @property
     def layer_id(self):
         return self._layer_id
-
-    @property
-    def shape_name_ids(self):
-        return self._shape_name_ids
 
     def process():
         # Override in sub-class
@@ -145,18 +144,15 @@ class SlideToLayer(object):
 
     def process_shape_list(self, shapes, *args):
         for shape in shapes:
-            shape.name_id = ''
-            shape.name_attributes = []
+            shape.feature_id = ''
             if shape.name.startswith('#'):
-                attribs = shape.name.split()
-                if len(attribs[0]) > 1:
-                    shape.name_id = shape.name.split()[0][1:]
-                    if shape.name_id in self._shape_name_ids:
-                        raise KeyError('Duplicate name ID {} in slide {}'
-                                       .format(shape.name_id, self._slide_number))
-                    self._shape_name_ids.append(shape.name_id)
-                    if len(attribs) > 1:
-                        shape.name_attributes = attribs[1:]
+                properties = shape.name.split()
+                if len(properties[0]) > 1:
+                    shape.feature_id = properties[0][1:]
+                    if shape.feature_id in self._annotations:
+                        raise KeyError('Duplicate feature ID {} in slide {}'
+                                       .format(shape.feature_id, self._slide_number))
+                    self._annotations[shape.feature_id] = ' '.join(properties[1:])
             if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or shape.shape_type == MSO_SHAPE_TYPE.PICTURE
