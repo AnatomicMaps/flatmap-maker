@@ -29,6 +29,8 @@ from beziers.cubicbezier import CubicBezier
 from beziers.point import Point as BezierPoint
 from beziers.quadraticbezier import QuadraticBezier
 
+import mercantile
+
 import numpy as np
 
 #===============================================================================
@@ -48,10 +50,7 @@ def transform_point(transform, point):
     return (pt[0, 0], pt[0, 1])
 
 def point_to_lon_lat(point):
-    b = 20037508.34
-    lon = point[0]
-    lat = point[1]
-    return (lon*180/b, math.atan(math.exp(lat*math.pi/b))*360/math.pi - 90)
+    return mercantile.lnglat(*point)
 
 def points_to_lon_lat(points):
     return [ point_to_lon_lat(pt) for pt in points ]
