@@ -214,6 +214,8 @@ class GeometryExtractor(object):
         if self._LayerMaker is not None:
             layer = self._LayerMaker(self, slide, slide_number, self._args)
             layer.process()
+            if layer.layer_id in self._layers:
+                raise KeyError('Duplicate layer id ({}) in slide {}'.format(layer.layer_id, slide_number))
             self._layers[layer.layer_id] = layer
             if save_output:
                 layer.save()
