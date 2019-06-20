@@ -27,7 +27,7 @@ import svgwrite
 
 #===============================================================================
 
-from .extractor import GeometryExtractor, ProcessSlide, Transform
+from .extractor import GeometryExtractor, SlideToLayer, Transform
 from .extractor import EMU_PER_DOT, ellipse_point
 from .formula import Geometry, radians
 from .presets import DML
@@ -50,7 +50,7 @@ def svg_transform(m):
 
 #===============================================================================
 
-class MakeSvgSlide(ProcessSlide):
+class MakeSvgLayer(SlideToLayer):
     def __init__(self, extractor, slide, slide_number, args):
         super().__init__(slide, slide_number, args)
         self._dwg = svgwrite.Drawing(filename=None,
@@ -58,7 +58,7 @@ class MakeSvgSlide(ProcessSlide):
         self._dwg.defs.add(self._dwg.style('.non-scaling-stroke { vector-effect: non-scaling-stroke; }'))
 
     def process(self):
-        self.process_shape_list(self.slide.shapes, self._dwg)
+        self.process_shape_list(self._slide.shapes, self._dwg)
 
     def get_output(self):
         return self._dwg.tostring()

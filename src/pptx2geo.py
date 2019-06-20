@@ -52,6 +52,6 @@ if __name__ == '__main__':
     elif args.format == 'svg':
         extractor = SvgExtractor(args.powerpoint, args)
 
-    extractor.slides_to_geometry(args.slide)
+    extractor.slides_to_layers(args.slide)
 
 #===============================================================================

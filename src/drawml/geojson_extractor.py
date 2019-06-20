@@ -36,7 +36,7 @@ import numpy as np
 #===============================================================================
 
 from .arc_to_bezier import cubic_beziers_from_arc, tuple2
-from .extractor import GeometryExtractor, ProcessSlide, Transform
+from .extractor import GeometryExtractor, SlideToLayer, Transform
 from .extractor import ellipse_point
 from .formula import Geometry, radians
 from .presets import DML
@@ -61,14 +61,14 @@ def transform_bezier_samples(transform, bz):
 
 #===============================================================================
 
-class MakeGeoJsonSlide(ProcessSlide):
+class MakeGeoJsonLayer(SlideToLayer):
     def __init__(self, extractor, slide, slide_number, args):
         super().__init__(slide, slide_number, args)
         self._transform = extractor.transform
 
     def process(self):
         self._features = []
-        self.process_shape_list(self.slide.shapes, self._transform)
+        self.process_shape_list(self._slide.shapes, self._transform)
         self._feature_collection = {
             'type': 'FeatureCollection',
             'id': self.layer_id,
@@ -192,7 +192,7 @@ class MakeGeoJsonSlide(ProcessSlide):
 class GeoJsonExtractor(GeometryExtractor):
     def __init__(self, pptx, args):
         super().__init__(pptx, args)
-        self._SlideMaker = MakeGeoJsonSlide
+        self._LayerMaker = MakeGeoJsonLayer
         self._transform = np.matrix([[WORLD_PER_EMU,              0, 0],
                                      [            0, -WORLD_PER_EMU, 0],
                                      [            0,              0, 1]])*np.matrix([[1, 0, -self._slide_size[0]/2.0],

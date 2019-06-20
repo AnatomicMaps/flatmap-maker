@@ -31,7 +31,6 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.spec import autoshape_types
 
-
 #===============================================================================
 
 # Internal PPT units are EMUs (English Metric Units)
@@ -94,7 +93,7 @@ class Transform(object):
 
 #===============================================================================
 
-class ProcessSlide(object):
+class SlideToLayer(object):
     def __init__(self, slide, slide_number, args):
         self._slide = slide
         self._slide_number = slide_number
@@ -131,10 +130,6 @@ class ProcessSlide(object):
     @property
     def shape_name_ids(self):
         return self._shape_name_ids
-
-    @property
-    def slide(self):
-        return self._slide
 
     def process():
         # Override in sub-class
@@ -182,15 +177,19 @@ class ProcessSlide(object):
 
 class GeometryExtractor(object):
     def __init__(self, pptx, args):
-        self._ppt = Presentation(pptx)
+        self._pptx = Presentation(pptx)
         self._args = args
-        self._slides = self._ppt.slides
-        self._slide_size = [self._ppt.slide_width, self._ppt.slide_height]
-        self._SlideMaker = None
-        self._slide_maker = None
+        self._slides = self._pptx.slides
+        self._slide_size = [self._pptx.slide_width, self._pptx.slide_height]
+        self._LayerMaker = None
+        self._layers = {}
 
     def __len__(self):
         return len(self._slides)
+
+    @property
+    def layers(self):
+        return self._layers
 
     @property
     def slide_maker(self):
@@ -206,26 +205,26 @@ class GeometryExtractor(object):
     def slide(self, slide_number):
         return self._slides[slide_number - 1]
 
-    def slide_to_geometry(self, slide_number, save_output=True):
+    def slide_to_layer(self, slide_number, save_output=True):
         slide = self.slide(slide_number)
         if self._args.debug_xml:
-            xml = open(os.path.join(self._args.output_dir, 'slide{:02d}.xml'.format(slide_number)), 'w')
+            xml = open(os.path.join(self._args.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
             xml.write(slide.element.xml)
             xml.close()
-        if self._SlideMaker is not None:
-            self._slide_maker = self._SlideMaker(self, slide, slide_number, self._args)
-            self._slide_maker.process()
+        if self._LayerMaker is not None:
+            layer = self._LayerMaker(self, slide, slide_number, self._args)
+            layer.process()
+            self._layers[layer.layer_id] = layer
             if save_output:
-                self._slide_maker.save()
-            else:
-                return self._slide_maker
+                layer.save()
+            return layer
 
-    def slides_to_geometry(self, slide_range):
+    def slides_to_layers(self, slide_range):
         if slide_range is None:
             slide_range = range(1, len(self._slides)+1)
         elif isinstance(slide_range, int):
             slide_range = [slide_range]
         for n in slide_range:
-            self.slide_to_geometry(n)
+            self.slide_to_layer(n)
 
 #===============================================================================

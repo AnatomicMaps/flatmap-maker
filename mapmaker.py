@@ -33,9 +33,9 @@ from src.styling import Style
 #===============================================================================
 
 def process_slide(extractor, slide_number, output_file, result_queue):
-    slide = extractor.slide_to_geometry(slide_number, False)
-    slide.save(output_file)
-    result_queue.put((output_file, slide.layer_id, slide.description))
+    layer = extractor.slide_to_layer(slide_number, False)
+    layer.save(output_file)
+    result_queue.put((output_file, layer.layer_id, layer.description))
 
 #===============================================================================
 
