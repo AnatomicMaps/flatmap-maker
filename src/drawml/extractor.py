@@ -99,8 +99,21 @@ class ProcessSlide(object):
         self._slide = slide
         self._slide_number = slide_number
         self._args = args
-        self._layer_id = 'slide{:02d}'.format(slide_number)
-        self._description = 'Slide {:02d}'.format(slide_number)
+        self._annotation = {}
+        # Find `layer-id` text boxes so we have a valid ID **before** using
+        # it when setting a shape's `path_id`.
+        self._layer_id = None
+        text_boxes = slide.element.findall('.//p:sp/p:nvSpPr/p:cNvSpPr[@txBox]/..',
+                                           {'p': 'http://schemas.openxmlformats.org/presentationml/2006/main'})
+        for text_box in text_boxes:
+            if text_box.cNvSpPr.txBox and text_box.cNvPr.name.startswith('.layer-id('):
+                if self._layer_id is not None:
+                    raise ValueError("A slide can only have a single 'layer-id()' text box")
+                layer_id = text_box.cNvPr.name[10:-1].strip()
+                self._layer_id = layer_id
+        if self._layer_id is None:
+            self._layer_id = 'layer{:02d}'.format(slide_number)
+        self._description = 'Layer {:02d}'.format(slide_number)
         self._shape_name_ids = []
 
     @property
@@ -157,10 +170,11 @@ class ProcessSlide(object):
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.process_group(shape, *args)
             elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX:
-                if shape.name_id == 'layer-id' and len(shape.name_attributes) > 0:
-                    self._layer_id = shape.name_attributes[0]
-                    if shape.text != '':
-                        self._description = shape.text
+                if (shape.name.startswith('.layer-id(')
+                  and shape.name.endswith(')')
+                  and shape.name[10:-1].strip() == self._layer_id
+                  and shape.text.strip() != ''):
+                    self._description = shape.text
             else:
                 print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
 
