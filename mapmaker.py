@@ -19,8 +19,6 @@
 #===============================================================================
 
 import json
-import multiprocessing
-import multiprocessing.connection
 import subprocess
 import tempfile
 
@@ -29,13 +27,6 @@ import tempfile
 from src.drawml import GeoJsonExtractor
 from src.mbtiles import TileDatabase
 from src.styling import Style
-
-#===============================================================================
-
-def process_slide(extractor, slide_number, output_file, result_queue):
-    layer = extractor.slide_to_layer(slide_number, False)
-    layer.save(output_file)
-    result_queue.put((output_file, layer.layer_id, layer.description))
 
 #===============================================================================
 
@@ -76,41 +67,29 @@ if __name__ == '__main__':
 
     print('Extracting layers...')
     filenames = []
-    processes = []
     map_extractor = GeoJsonExtractor(args.powerpoint, args)
-    result_queue = multiprocessing.Queue()
-    for s in range(2, len(map_extractor)+1):  # First slide is background layer
+
+    # Process slides, saving layer information
+
+    layers = {}
+    tippe_inputs = []
+    for slide_number in range(2, len(map_extractor)+1):  # First slide is background layer, so skip
         (fh, filename) = tempfile.mkstemp(suffix='.json')
         os.close(fh)
         filenames.append(filename)
-
-        # We extract slides in parallel...
-
-        process = multiprocessing.Process(target=process_slide, args=(map_extractor, s, filename, result_queue))
-        processes.append(process)
-        process.start()
-
-    # Get layer details from each process
-
-    num_processes = len(processes)
-    if num_processes == 0:
-        sys.exit('No map layers in Powerpoint...')
-
-    tippe_inputs = []
-    while num_processes:
-        (filename, layer_id, description) = result_queue.get()
-        print('Processed layer {}: {}'.format(layer_id, description))
+        layer = map_extractor.slide_to_layer(slide_number, False)
+        layer.save(filename)
         tippe_inputs.append({
             'file': filename,
-            'layer': layer_id,
-            'description': description
-            })
-        num_processes -= 1
+            'layer': layer.layer_id,
+            'description': layer.description
+        })
+        layers[layer.layer_id] = layer.annotations
 
-    # Wait for all processes to complete
+    print(layers)
 
-    for process in processes:
-        process.join()
+    if len(layers) == 0:
+        sys.exit('No map layers in Powerpoint...')
 
     # Generate Mapbox vector tiles
 
