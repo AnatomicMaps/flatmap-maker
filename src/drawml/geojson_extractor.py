@@ -49,11 +49,11 @@ def transform_point(transform, point):
     pt = transform.dot([point[0], point[1], 1.0])
     return (pt[0, 0], pt[0, 1])
 
-def point_to_lon_lat(point):
+def metres_to_lon_lat(point):
     return mercantile.lnglat(*point)
 
 def points_to_lon_lat(points):
-    return [ point_to_lon_lat(pt) for pt in points ]
+    return [ metres_to_lon_lat(pt) for pt in points ]
 
 def transform_bezier_samples(transform, bz):
     samples = 100
@@ -204,8 +204,8 @@ class GeoJsonExtractor(GeometryExtractor):
 
     def bounds(self):
         bounds = super().bounds()
-        top_left = point_to_lon_lat(transform_point(self._transform, (bounds[0], bounds[1])))
-        bottom_right = point_to_lon_lat(transform_point(self._transform, (bounds[2], bounds[3])))
+        top_left = metres_to_lon_lat(transform_point(self._transform, (bounds[0], bounds[1])))
+        bottom_right = metres_to_lon_lat(transform_point(self._transform, (bounds[2], bounds[3])))
         return [top_left[0], top_left[1], bottom_right[0], bottom_right[1]]
 
 #===============================================================================
