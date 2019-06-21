@@ -43,7 +43,7 @@ from .presets import DML
 
 #===============================================================================
 
-WORLD_PER_EMU = 0.1
+METRES_PER_EMU = 0.1
 
 def transform_point(transform, point):
     pt = transform.dot([point[0], point[1], 1.0])
@@ -190,11 +190,11 @@ class GeoJsonExtractor(GeometryExtractor):
     def __init__(self, pptx, args):
         super().__init__(pptx, args)
         self._LayerMaker = MakeGeoJsonLayer
-        self._transform = np.matrix([[WORLD_PER_EMU,              0, 0],
-                                     [            0, -WORLD_PER_EMU, 0],
-                                     [            0,              0, 1]])*np.matrix([[1, 0, -self._slide_size[0]/2.0],
-                                                                                     [0, 1, -self._slide_size[1]/2.0],
-                                                                                     [0, 0,                      1.0]])
+        self._transform = np.matrix([[METRES_PER_EMU,               0, 0],
+                                     [             0, -METRES_PER_EMU, 0],
+                                     [             0,               0, 1]])*np.matrix([[1, 0, -self._slide_size[0]/2.0],
+                                                                                       [0, 1, -self._slide_size[1]/2.0],
+                                                                                       [0, 0,                      1.0]])
     @property
     def transform(self):
         return self._transform
