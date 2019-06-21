@@ -41,8 +41,6 @@ if __name__ == '__main__':
                         help='only process this slide number (1-origin)')
     parser.add_argument('--version', action='version', version='0.2.1')
 
-
-    base_url = 'http://localhost:8000'
     maps_dir = '/Users/dave/build/mapmaker/mvt'
     background_image = 'background.jpeg'
 
@@ -91,6 +89,10 @@ if __name__ == '__main__':
     if len(layers) == 0:
         sys.exit('No map layers in Powerpoint...')
 
+    # Determining maximum zoom level...
+
+    max_zoom = 10
+
     # Generate Mapbox vector tiles
 
     print('Running tippecanoe...')
@@ -98,6 +100,7 @@ if __name__ == '__main__':
                     # No compression results in a smaller `mbtiles` file
                     # and is also required to serve tile directories
                     '--no-tile-compression',
+                    '--maximum-zoom={}'.format(max_zoom),
                     '--output={}'.format(mbtiles_file),
                     ]
                     + list(["-L{}".format(json.dumps(input)) for input in tippe_inputs])
@@ -115,20 +118,34 @@ if __name__ == '__main__':
                     .format(','.join([str(x) for x in map_centre])))
     tile_db.execute("UPDATE metadata SET value='{}' WHERE name = 'bounds'"
                     .format(','.join([str(x) for x in map_bounds])))
+    # Commit updates to the database
+
     tile_db.execute("COMMIT")
+
+
+    metadata = tile_db.metadata()
+
+    print('Creating style files...')
+
+    # Create `index.json` for building a map in the viewer
+
+    with open(os.path.join(map_dir, 'index.json'), 'w') as output_file:
+        json.dump({
+            'id': args.map_id,
+            'style': 'style.json',
+            'layers': list(layers.keys()),
+            'metadata': metadata
+        }, output_file)
 
     # Create style file
 
-    print('Creating style file...')
-
-## args.base_url
-## args.background
-    style_dict = Style.style('{}/{}'.format(base_url, args.map_id),
-                             tile_db.metadata(),
+    style_dict = Style.style(args.map_id,
+                             layers.keys(),
+                             metadata,
+                             max_zoom,
                              background_image)   ## args.background
 
-
-    with open(os.path.join(map_dir, 'index.json'), 'w') as output_file:
+    with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
         json.dump(style_dict, output_file)
 
     # Tidy up
