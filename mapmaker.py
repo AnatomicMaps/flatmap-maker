@@ -84,8 +84,6 @@ if __name__ == '__main__':
         })
         layers[layer.layer_id] = layer.annotations
 
-    print(layers)
-
     if len(layers) == 0:
         sys.exit('No map layers in Powerpoint...')
 
