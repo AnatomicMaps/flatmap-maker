@@ -118,6 +118,12 @@ if __name__ == '__main__':
                     .format(','.join([str(x) for x in map_centre])))
     tile_db.execute("UPDATE metadata SET value='{}' WHERE name = 'bounds'"
                     .format(','.join([str(x) for x in map_bounds])))
+
+    # Save path of the Powerpoint source
+
+    tile_db.execute("INSERT INTO metadata ('name', 'value') VALUES ('source', '{}')"
+                    .format(os.path.abspath(args.powerpoint)))
+
     # Commit updates to the database
 
     tile_db.execute("COMMIT")
