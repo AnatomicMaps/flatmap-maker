@@ -98,11 +98,8 @@ class MakeGeoJsonLayer(SlideToLayer):
             'id': shape.shape_id,
             'properties': {}
         }
-        if shape.name_id != '':
-            feature['properties']['feature-id'] = '{}/{}'.format(self.layer_id, shape.name_id)
-            feature['properties']['selectable'] = True
-        if len(shape.name_attributes):
-            feature['properties']['type'] = shape.name_attributes[0]
+        if shape.feature_id != '':
+            feature['properties']['feature-id'] = '{}/{}'.format(self.layer_id, shape.feature_id)
         geometry = {}
         coordinates = []
 
