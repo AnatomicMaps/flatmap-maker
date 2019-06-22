@@ -54,6 +54,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if not os.path.exists(args.powerpoint):
+        sys.exit('Missing Powerpoint file')
 
     if args.background_images:
         pdf_file = '{}.pdf'.format(os.path.splitext(args.powerpoint)[0])
