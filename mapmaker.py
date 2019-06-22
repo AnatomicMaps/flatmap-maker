@@ -27,6 +27,7 @@ import tempfile
 from src.drawml import GeoJsonExtractor
 from src.mbtiles import TileDatabase
 from src.styling import Style
+from src.tilemaker import make_background_images
 
 #===============================================================================
 
@@ -35,6 +36,8 @@ if __name__ == '__main__':
     import os, sys
 
     parser = argparse.ArgumentParser(description='Convert Powerpoint slides to a flatmap.')
+    parser.add_argument('--background-images', action='store_true',
+                        help="generate background images of map's layers")
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
     parser.add_argument('--slide', type=int, metavar='N',
@@ -42,14 +45,12 @@ if __name__ == '__main__':
     parser.add_argument('--version', action='version', version='0.2.1')
 
     maps_dir = '/Users/dave/build/mapmaker/mvt'
-    background_image = 'background.jpeg'
 
     parser.add_argument('map_id', metavar='MAP_ID',
                         help='a unique identifier for the map')
     parser.add_argument('powerpoint', metavar='POWERPOINT_FILE',
                         help='the name of a Powerpoint file')
 
-    ## --background
     ##
     ## specify range of slides...
     # --force option
@@ -58,6 +59,11 @@ if __name__ == '__main__':
 
     map_dir = os.path.join(maps_dir, args.map_id)
     mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
+
+    if args.background_images:
+        pdf_file = '{}.pdf'.format(os.path.splitext(args.powerpoint)[0])
+        if not os.path.exists(pdf_file):
+            sys.exit('PDF of Powerpoint required to generate background images')
 
 
     if not os.path.exists(map_dir):
@@ -69,7 +75,7 @@ if __name__ == '__main__':
 
     # Process slides, saving layer information
 
-    layers = {}
+    layers = []
     tippe_inputs = []
     for slide_number in range(2, len(map_extractor)+1):  # First slide is background layer, so skip
         (fh, filename) = tempfile.mkstemp(suffix='.json')
@@ -82,7 +88,7 @@ if __name__ == '__main__':
             'layer': layer.layer_id,
             'description': layer.description
         })
-        layers[layer.layer_id] = layer.annotations
+        layers.append(layer)
 
     if len(layers) == 0:
         sys.exit('No map layers in Powerpoint...')
@@ -131,26 +137,28 @@ if __name__ == '__main__':
 
     print('Creating style files...')
 
+    layer_ids = [l.layer_id for l in layers]
+
     # Create `index.json` for building a map in the viewer
 
     with open(os.path.join(map_dir, 'index.json'), 'w') as output_file:
         json.dump({
             'id': args.map_id,
             'style': 'style.json',
-            'layers': list(layers.keys()),
+            'layers': layer_ids,
             'metadata': metadata
         }, output_file)
 
     # Create style file
 
-    style_dict = Style.style(args.map_id,
-                             layers.keys(),
-                             metadata,
-                             max_zoom,
-                             background_image)   ## args.background
+    style_dict = Style.style(args.map_id, layer_ids, metadata, max_zoom)
 
     with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
         json.dump(style_dict, output_file)
+
+    if args.background_images:
+        print('Generating background images (may take a while...)')
+        make_background_images(layer_ids, map_dir, pdf_file)
 
     # Tidy up
 

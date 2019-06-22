@@ -59,12 +59,11 @@ class VectorSource(object):
 
 class Sources(object):
     @staticmethod
-    def style(map_id, layers, vector_layer_dict, bounds, max_zoom, background_image=None):
+    def style(map_id, layers, vector_layer_dict, bounds, max_zoom):
         sources = {
             'features': VectorSource.style(map_id, vector_layer_dict, bounds, max_zoom)
         }
-        if background_image is not None:
-            sources['background'] = ImageSource.style(map_id, background_image, bounds)
+        sources['background'] = ImageSource.style(map_id, 'background.png', bounds)
         for layer_id in layers:
             sources['{}-background'.format(layer_id)] = ImageSource.style(map_id, '{}.png'.format(layer_id), bounds)
         return sources
@@ -73,13 +72,13 @@ class Sources(object):
 
 class Style(object):
     @staticmethod
-    def style(map_id, layers, metadata, max_zoom, background_image=None):
+    def style(map_id, layers, metadata, max_zoom):
         vector_layer_dict = json.loads(metadata['json'])
         bounds = [float(x) for x in metadata['bounds'].split(',')]
         return {
             'version': 8,
-            'sources': Sources.style(map_id, layers, vector_layer_dict, bounds, max_zoom, background_image),
             'zoom': 4,
+            'sources': Sources.style(map_id, layers, vector_layer_dict, bounds, max_zoom),
             'center': [float(x) for x in metadata['center'].split(',')],
             'layers': []
         }
