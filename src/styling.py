@@ -77,8 +77,8 @@ class Style(object):
         bounds = [float(x) for x in metadata['bounds'].split(',')]
         return {
             'version': 8,
-            'zoom': 4,
             'sources': Sources.style(map_id, layers, vector_layer_dict, bounds, max_zoom),
+            'zoom': 0,
             'center': [float(x) for x in metadata['center'].split(',')],
             'layers': []
         }

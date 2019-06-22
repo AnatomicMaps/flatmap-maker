@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
     # Determining maximum zoom level...
 
-    max_zoom = 10
+    max_zoom = 7   ## Lower?? Depends on image tile sizes
 
     # Generate Mapbox vector tiles
 
