@@ -44,7 +44,8 @@ if __name__ == '__main__':
                         help='only process this slide number (1-origin)')
     parser.add_argument('--version', action='version', version='0.2.1')
 
-    maps_dir = '/Users/dave/build/mapmaker/mvt'
+    parser.add_argument('map_base', metavar='MAPS_DIR',
+                        help='base directory for generated flatmaps')
 
     parser.add_argument('map_id', metavar='MAP_ID',
                         help='a unique identifier for the map')
@@ -57,14 +58,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    map_dir = os.path.join(maps_dir, args.map_id)
-    mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
 
     if args.background_images:
         pdf_file = '{}.pdf'.format(os.path.splitext(args.powerpoint)[0])
         if not os.path.exists(pdf_file):
             sys.exit('PDF of Powerpoint required to generate background images')
 
+    map_dir = os.path.join(args.map_base, args.map_id)
 
     if not os.path.exists(map_dir):
         os.makedirs(map_dir)
@@ -100,6 +100,9 @@ if __name__ == '__main__':
     # Generate Mapbox vector tiles
 
     print('Running tippecanoe...')
+
+    mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
+
     subprocess.run(['tippecanoe', '--projection=EPSG:4326', '--force',
                     # No compression results in a smaller `mbtiles` file
                     # and is also required to serve tile directories
