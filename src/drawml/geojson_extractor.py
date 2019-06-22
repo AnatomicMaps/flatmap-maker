@@ -101,6 +101,7 @@ class MakeGeoJsonLayer(SlideToLayer):
         }
         if shape.feature_id != '':
             feature['properties']['feature-id'] = '{}/{}'.format(self.layer_id, shape.feature_id)
+            feature['properties']['models'] = shape.model_of
         geometry = {}
         coordinates = []
 

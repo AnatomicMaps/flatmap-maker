@@ -152,6 +152,11 @@ class SlideToLayer(object):
                     if shape.feature_id in self._annotations:
                         raise KeyError('Duplicate feature ID {} in slide {}'
                                        .format(shape.feature_id, self._slide_number))
+# TEMP
+                    for p in properties:
+                        if p.startswith('models(') and p[-1] == ')':
+                            shape.model_of = p[7:-1]
+# END TEMP
                     self._annotations[shape.feature_id] = ' '.join(properties[1:])
             if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
