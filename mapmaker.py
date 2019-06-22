@@ -40,8 +40,6 @@ if __name__ == '__main__':
                         help="generate background images of map's layers")
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
-    parser.add_argument('--slide', type=int, metavar='N',
-                        help='only process this slide number (1-origin)')
     parser.add_argument('--version', action='version', version='0.2.1')
 
     parser.add_argument('map_base', metavar='MAPS_DIR',
@@ -50,10 +48,8 @@ if __name__ == '__main__':
     parser.add_argument('map_id', metavar='MAP_ID',
                         help='a unique identifier for the map')
     parser.add_argument('powerpoint', metavar='POWERPOINT_FILE',
-                        help='the name of a Powerpoint file')
+                        help='Powerpoint file of flatmap')
 
-    ##
-    ## specify range of slides...
     # --force option
 
     args = parser.parse_args()
