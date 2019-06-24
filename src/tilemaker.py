@@ -68,7 +68,10 @@ class TileMaker(object):
 def make_image(pdf_file, image_file):
 #====================================
     print('Generating {}...'.format(image_file))
-    subprocess.run(['convert', '-density', '150', '-transparent', 'white', pdf_file, image_file])
+    subprocess.run(['convert',
+        '-density', '72',
+        '-transparent', 'white',
+        pdf_file, image_file])
 
 
 def make_background_images(layer_ids, map_dir, pdf_file):
