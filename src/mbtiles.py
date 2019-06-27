@@ -35,14 +35,15 @@ class ExtractionError(Exception):
 #===============================================================================
 
 class MBTiles(object):
-    def __init__(self, filepath, force=False, silent=False):
+    def __init__(self, filepath, create=False, force=False, silent=False):
         self._silent = silent
         if force and os.path.exists(filepath):
             os.remove(filepath)
         self._connnection = mb.mbtiles_connect(filepath, self._silent)
         self._cursor = self._connnection.cursor()
         mb.optimize_connection(self._cursor)
-        mb.mbtiles_setup(self._cursor)
+        if create:
+            mb.mbtiles_setup(self._cursor)
 
     def close(self, compress=False):
         if compress:
@@ -51,15 +52,25 @@ class MBTiles(object):
             mb.compression_finalize(self._cursor, self._connnection, self._silent)
         mb.optimize_database(self._connnection, self._silent)
 
-    def save_metadata(self, **metadata):
+    def execute(self, sql):
+        return self._cursor.execute(sql)
+
+    def add_metadata(self, **metadata):
         for name, value in metadata.items():
-            self._cursor.execute('insert into metadata (name, value) values (?, ?)',
-                                 (name, value))
+            self._cursor.execute('insert into metadata (name, value) values (?, ?);',
+                                                                         (name, value))
+
+    def update_metadata(self, **metadata):
+        for name, value in metadata.items():
+            self._cursor.execute('update metadata set value=? where name=?;',
+                                                     (value,        name))
+    def metadata(self):
+        return dict(self._connnection.execute('select name, value from metadata;').fetchall())
 
     def get_tile(self, zoom, x, y):
         rows = self._cursor.execute("""select tile_data from tiles
                                           where zoom_level=? and tile_column=? and tile_row=?;""",
-                                             (zoom, x, mb.flip_y(zoom, y)))
+                                                          (zoom,             x,             mb.flip_y(zoom, y)))
         data = rows.fetchone()
         if not data: raise ExtractionError()
         return Image.open(io.BytesIO(data[0]))

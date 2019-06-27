@@ -25,9 +25,9 @@ import tempfile
 #===============================================================================
 
 from src.drawml import GeoJsonExtractor
-from src.mbtiles import TileDatabase
+from src.mbtiles import MBTiles
 from src.styling import Style
-from src.tilemaker import make_background_images
+from src.tilemaker import make_background_tiles
 
 #===============================================================================
 
@@ -36,8 +36,8 @@ if __name__ == '__main__':
     import os, sys
 
     parser = argparse.ArgumentParser(description='Convert Powerpoint slides to a flatmap.')
-    parser.add_argument('--background-images', action='store_true',
-                        help="generate background images of map's layers")
+    parser.add_argument('--background-tiles', action='store_true',
+                        help="generate image tiles of map's layers")
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
     parser.add_argument('--version', action='version', version='0.2.1')
@@ -57,10 +57,10 @@ if __name__ == '__main__':
     if not os.path.exists(args.powerpoint):
         sys.exit('Missing Powerpoint file')
 
-    if args.background_images:
+    if args.background_tiles:
         pdf_file = '{}.pdf'.format(os.path.splitext(args.powerpoint)[0])
         if not os.path.exists(pdf_file):
-            sys.exit('PDF of Powerpoint required to generate background images')
+            sys.exit('PDF of Powerpoint required to generate background tiles')
 
     map_dir = os.path.join(args.map_base, args.map_id)
 
@@ -118,16 +118,11 @@ if __name__ == '__main__':
     map_centre = [(bounds[0]+bounds[2])/2, (bounds[1]+bounds[3])/2]
     map_bounds = [bounds[0], bounds[3], bounds[2], bounds[1]]   # southwest and northeast ccorners
 
-    tile_db = TileDatabase(mbtiles_file)
-    tile_db.execute("UPDATE metadata SET value='{}' WHERE name = 'center'"
-                    .format(','.join([str(x) for x in map_centre])))
-    tile_db.execute("UPDATE metadata SET value='{}' WHERE name = 'bounds'"
-                    .format(','.join([str(x) for x in map_bounds])))
-
+    tile_db = MBTiles(mbtiles_file)
+    tile_db.update_metadata(center=','.join([str(x) for x in map_centre]),
+                            bounds=','.join([str(x) for x in map_bounds]))
     # Save path of the Powerpoint source
-
-    tile_db.execute("INSERT INTO metadata ('name', 'value') VALUES ('source', '{}')"
-                    .format(os.path.abspath(args.powerpoint)))
+    tile_db.add_metadata(source=os.path.abspath(args.powerpoint))
 
     # Commit updates to the database
 
@@ -157,9 +152,9 @@ if __name__ == '__main__':
     with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
         json.dump(style_dict, output_file)
 
-    if args.background_images:
-        print('Generating background images (may take a while...)')
-        make_background_images(layer_ids, map_dir, pdf_file)
+    if args.background_tiles:
+        print('Generating background tiles (may take a while...)')
+        make_background_tiles(map_bounds, max_zoom, map_dir, pdf_file, layer_ids)
 
     # Tidy up
 

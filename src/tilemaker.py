@@ -34,7 +34,7 @@ from PIL import Image
 
 #===============================================================================
 
-from mbtiles import MBTiles, ExtractionError
+from .mbtiles import MBTiles, ExtractionError
 
 #===============================================================================
 
@@ -69,7 +69,7 @@ class Affine(object):
                                  [ 0,        0,                                       1 ]])
 
     def transform(self, x, y):
-        return self._matrix.dot([x, y, 1])[:2]
+        return (self._matrix@[x, y, 1])[:2]
 
 #===============================================================================
 
@@ -155,7 +155,7 @@ class TileMaker(object):
 
     def make_tiles(self, pdf_page, layer):
         page_tiler = PageTiler(pdf_page, self._image_rect)
-        mbtiles = MBTiles(os.path.join(self._map_dir, '{}.mbtiles'.format(layer)), True)
+        mbtiles = MBTiles(os.path.join(self._map_dir, '{}.mbtiles'.format(layer)), True, True)
 
         ## TODO: mbtiles.save_metadata(key=val, key=val)
 
@@ -166,7 +166,7 @@ class TileMaker(object):
             png = page_tiler.tile_as_png(tile.x - self._tile_start_coords[0],
                                          tile.y - self._tile_start_coords[1])
             if not_transparent(png):
-                if (count % 100) == 0:
+                if count and (count % 100) == 0:
                     print("  Tile number: {} at ({}, {})".format(count, tile.x, tile.y))
                 mbtiles.save_tile(zoom, tile.x, tile.y, png)
                 count += 1
@@ -195,41 +195,23 @@ class TileMaker(object):
                             except ExtractionError:
                                 pass
                     if not_transparent(overview_tile):
-                        if (count % 100) == 0:
+                        if count and (count % 100) == 0:
                             print("  Tile number: {} at ({}, {})".format(count, x, y))
                         mbtiles.save_tile(zoom, x, y, overview_tile)
                         count += 1
-            print("  {} tiles".format(count))
             self.make_overview_tiles(mbtiles, layer, zoom, half_start, half_end)
 
 #===============================================================================
 
-def make_image(pdf_file, image_file):
-#====================================
-    print('Generating {}...'.format(image_file))
-    subprocess.run(['convert',
-        '-density', '72',
-        '-transparent', 'white',
-        pdf_file, image_file])
+def make_background_tiles(map_bounds, max_zoom, map_dir, pdf_file, layer_ids):
+    tile_maker = TileMaker(map_bounds, map_dir, max_zoom)
 
+    pdf = fitz.open(pdf_file)
+    pages = list(pdf)
 
-def make_background_images(layer_ids, map_dir, pdf_file):
-#========================================================
-    map_image_dir = os.path.join(map_dir, 'images')
-    if not os.path.exists(map_image_dir):
-        os.makedirs(map_image_dir)
-
-    work_dir = tempfile.mkdtemp()
-
-    subprocess.run(['qpdf', '--split-pages', pdf_file, os.path.join(work_dir, 'slide%d.pdf')])
-
-    make_image(os.path.join(work_dir, 'slide01.pdf'),
-               os.path.join(map_image_dir, 'background.png'))
+    tile_maker.make_tiles(pages[0], 'background')
     for n, layer_id in enumerate(layer_ids):
-        make_image(os.path.join(work_dir, 'slide{:02d}.pdf'.format(n+2)),
-                   os.path.join(map_image_dir, '{}.png'.format(layer_id)))
-
-    shutil.rmtree(work_dir)
+        tile_maker.make_tiles(pages[n+1], layer_id)
 
 #===============================================================================
 
@@ -238,13 +220,8 @@ if __name__ == '__main__':
 
     map_extent = [-56.5938090006128, -85.53899259200053,
                    56.5938090006128,  85.53899259200054]
-    tm = TileMaker(map_extent, '../maps/demo', int(sys.argv[1]))
-
-    pdf = fitz.open('../map_sources/body_demo.pdf')
-    pages = list(pdf)
-
-    tm.make_tiles(pages[0], 'background')
-    #for n, page in enumerate(pdf):
-    #    print(n)
+    make_background_tiles(map_extent, int(sys.argv[1]),
+                          '../maps/demo', '../map_sources/body_demo.pdf',
+                          [])
 
 #===============================================================================

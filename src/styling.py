@@ -38,6 +38,20 @@ class ImageSource(object):
 
 #===============================================================================
 
+class RasterSource(object):
+    @staticmethod
+    def style(map_id, layer_id, bounds, max_zoom):
+        return {
+            'type': 'raster',
+            'tiles': ['/{}/tiles/{}/{{z}}/{{x}}/{{y}}'.format(map_id, layer_id)],
+            'format': 'png',
+            'minzoom': 0,
+            'maxzoom': max_zoom,
+            'bounds': bounds    # southwest(lng, lat), northeast(lng, lat)
+        }
+
+#===============================================================================
+
 class VectorSource(object):
     @staticmethod
     def style(map_id, vector_layer_dict, bounds, max_zoom):
@@ -63,9 +77,11 @@ class Sources(object):
         sources = {
             'features': VectorSource.style(map_id, vector_layer_dict, bounds, max_zoom)
         }
-        sources['background'] = ImageSource.style(map_id, 'background.png', bounds)
+        sources['background'] = RasterSource.style(map_id, 'background', bounds, max_zoom)
+                              # ImageSource.style(map_id, 'background.png', bounds)
         for layer_id in layers:
-            sources['{}-background'.format(layer_id)] = ImageSource.style(map_id, '{}.png'.format(layer_id), bounds)
+            sources['{}-background'.format(layer_id)] = RasterSource.style(map_id, layer_id, bounds, max_zoom)
+                                                      # ImageSource.style(map_id, '{}.png'.format(layer_id), bounds)
         return sources
 
 #===============================================================================
