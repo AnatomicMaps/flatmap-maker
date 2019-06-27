@@ -12,6 +12,7 @@ beziers = "*"
 svgwrite = "*"
 landez = "*"
 mercantile = "*"
+pymupdf = "*"
 
 [requires]
 python_version = "3.7"
