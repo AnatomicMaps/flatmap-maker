@@ -22,23 +22,53 @@ import io
 import math
 import os
 import shutil
+import sqlite3
 import subprocess
 import tempfile
 
 #===============================================================================
 
 import fitz
-import mercantile
+import mbutil as mb
+import mercantile as mt
 import numpy as np
 from PIL import Image
 
 #===============================================================================
 
 MAX_ZOOM  = 10
-
 TILE_SIZE = (256, 256)
-
 WHITE     = (255, 255, 255)
+
+#===============================================================================
+
+class MBTiles(object):   ## Into mbtiles.py...
+    def __init__(self, filepath, force=False, silent=False):
+        self._silent = silent
+        if force and os.path.exists(filepath):
+            os.remove(filepath)
+        self._connnection = mb.mbtiles_connect(filepath, self._silent)
+        self._cursor = self._connnection.cursor()
+        mb.optimize_connection(self._cursor)
+        mb.mbtiles_setup(self._cursor)
+
+    def close(self, compress=False):
+        if compress:
+            mb.compression_prepare(self._cursor, self._silent)
+            mb.compression_do(self._cursor, self._connnection, 256, self._silent)
+            mb.compression_finalize(self._cursor, self._connnection, self._silent)
+        mb.optimize_database(self._connnection, self._silent)
+
+    def save_metadata(self, **metadata):
+        for name, value in metadata.items():
+            self._cursor.execute('insert into metadata (name, value) values (?, ?)',
+                                 (name, value))
+
+    def save_tile(self, zoom, x, y, image):
+        self._cursor.execute("""insert into tiles (zoom_level, tile_column, tile_row, tile_data)
+                                           values (?, ?, ?, ?);""",
+                                                  (zoom, x, y, sqlite3.Binary(image))
+                            )
 
 #===============================================================================
 
@@ -51,6 +81,12 @@ def make_transparent(img, colour=WHITE):
     else:
         x[:, :, 3] = (255*(x[:,:,0:3] != tuple(colour)[0:3]).any(axis=2)).astype(np.uint8)
     return Image.fromarray(x)
+
+#===============================================================================
+
+def not_transparent(img):
+    x = np.asarray(img)
+    return np.any(x[:,:,3])
 
 #===============================================================================
 
@@ -85,8 +121,6 @@ class PageTiler(object):
         sx = self._page_rect.width/image_rect.width
         sy = self._page_rect.height/image_rect.height
         self._tile_to_image = Affine((sx, sy), (image_rect.x0, image_rect.y0), (0, 0))
-        print('TS0:', self._tile_to_image.transform(0, 0))
-        print('TS1:', self._tile_to_image.transform(*TILE_SIZE))
 
     def tile_as_png(self, tile_x, tile_y):
         (x0, y0) = self._tile_to_image.transform(TILE_SIZE[0]*tile_x,
@@ -102,40 +136,34 @@ class PageTiler(object):
         png_data = io.BytesIO(pixmap.getImageData('png'))
         image = Image.open(png_data)
 
-
         x_start = check_image_size(image.width, TILE_SIZE[0], x0, x1, (0, self._page_rect.x1), scaling[0])
         y_start = check_image_size(image.height, TILE_SIZE[1], y0, y1, (0, self._page_rect.y1), scaling[1])
-
-        if image.size != tuple(TILE_SIZE):
-            print(x_start, image.width)
-
-
-
-        return image
-
-            # check size as if outside page_rect then need to pad
-            # result as a PIL Image, 256x256
-            # Then make transparent and save...
-            #
-            #
-            # img as PNG bytearray saved to tile...
-#            img.writePNG('{}.png'.format(layers[n]))
+        if image.size == tuple(TILE_SIZE):
+            return make_transparent(image)
+        else:
+            # Pad out partial tiles
+            tile = Image.new('RGBA', TILE_SIZE, (255, 255, 255, 0))
+            tile.paste(image, (x_start, y_start))
+            return make_transparent(tile)
 
 #===============================================================================
 
 class TileMaker(object):
-    def __init__(self, extent, max_zoom=MAX_ZOOM):
+    def __init__(self, extent, map_dir, max_zoom=MAX_ZOOM):
+        self._map_dir = map_dir
         self._max_zoom = max_zoom
 
         # Get whole tiles that span the image's extent
-        self._tiles = list(mercantile.tiles(*extent, max_zoom))
+        self._tiles = list(mt.tiles(*extent, max_zoom))
         tile_0 = self._tiles[0]
         tile_N = self._tiles[-1]
         self._tile_start_coords = (tile_0.x, tile_0.y)
+        print('{} tiles at zoom {}: From ({}, {}) to ({}, {})'
+               .format(len(self._tiles), max_zoom, tile_0.x, tile_0.y, tile_N.x, tile_N.y))
 
         # Tiled area in world coordinates (metres)
-        bounds_0 = mercantile.xy_bounds(tile_0)
-        bounds_N = mercantile.xy_bounds(tile_N)
+        bounds_0 = mt.xy_bounds(tile_0)
+        bounds_N = mt.xy_bounds(tile_N)
         tile_world = fitz.Rect(bounds_0.left, bounds_0.top, bounds_N.right, bounds_N.bottom)
 
         # Tiled area in tile pixel coordinates
@@ -147,19 +175,37 @@ class TileMaker(object):
         world_to_tile = Affine((sx, -sy), (tile_world.x0, tile_world.y0), (0, 0))
 
         # Extent in world coordinates (metres)
-        sw = mercantile.xy(*extent[:2])
-        ne = mercantile.xy(*extent[2:])
+        sw = mt.xy(*extent[:2])
+        ne = mt.xy(*extent[2:])
 
         # Converted to tile pixel coordinates
         self._image_rect = fitz.Rect(world_to_tile.transform(sw[0], ne[1]),
                                      world_to_tile.transform(ne[0], sw[1]))
 
-    def make_tiles(self, pdf_page):
+    def make_tiles(self, pdf_page, layer):
         page_tiler = PageTiler(pdf_page, self._image_rect)
+        mbtiles = MBTiles(os.path.join(self._map_dir, '{}.mbtiles'.format(layer)), True)
+
+        ## TODO: mbtiles.save_metadata(key=val, key=val)
+
+        count = 0
+        zoom = self._max_zoom
+        print('Tiling zoom level {} for {}'.format(zoom, layer))
         for tile in self._tiles:
             png = page_tiler.tile_as_png(tile.x - self._tile_start_coords[0],
                                          tile.y - self._tile_start_coords[1])
-            #print(tile.x, tile.y, png.size)
+            if not_transparent(png):
+                if (count % 100) == 0:
+                    print("  Tile number: {} at ({}, {})".format(count, tile.x, tile.y))
+                output = io.BytesIO()
+                png.save(output, format='PNG')
+                mbtiles.save_tile(tile.z, tile.x, mb.flip_y(tile.z, tile.y), output.getvalue())
+                count += 1
+        while zoom > 0:
+            zoom -= 1
+            print('Tiling zoom level {} for {}'.format(zoom, layer))
+
+        mbtiles.close() #True)
 
 #===============================================================================
 
@@ -197,12 +243,12 @@ if __name__ == '__main__':
 
     map_extent = [-56.5938090006128, -85.53899259200053,
                    56.5938090006128,  85.53899259200054]
-    tm = TileMaker(map_extent, int(sys.argv[1]))
+    tm = TileMaker(map_extent, '../maps/demo', int(sys.argv[1]))
 
     pdf = fitz.open('../map_sources/body_demo.pdf')
     pages = list(pdf)
 
-    tm.make_tiles(pages[0])
+    tm.make_tiles(pages[0], 'background')
     #for n, page in enumerate(pdf):
     #    print(n)
 
