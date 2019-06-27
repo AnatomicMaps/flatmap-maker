@@ -105,6 +105,7 @@ if __name__ == '__main__':
                     # No compression results in a smaller `mbtiles` file
                     # and is also required to serve tile directories
                     '--no-tile-compression',
+                    '--buffer=100',
                     '--maximum-zoom={}'.format(max_zoom),
                     '--output={}'.format(mbtiles_file),
                     ]
