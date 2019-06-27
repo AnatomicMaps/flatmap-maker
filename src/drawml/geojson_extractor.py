@@ -47,8 +47,7 @@ METRES_PER_EMU = 1   ## This to become a command line parameter...
                        ## Or in a specification file...
 
 def transform_point(transform, point):
-    pt = transform.dot([point[0], point[1], 1.0])
-    return (pt[0, 0], pt[0, 1])
+    return (transform@[point[0], point[1], 1.0])[:2]
 
 def metres_to_lon_lat(point):
     return mercantile.lnglat(*point)
@@ -91,7 +90,7 @@ class MakeGeoJsonLayer(SlideToLayer):
             json.dump(self._feature_collection, output_file)
 
     def process_group(self, group, transform):
-        self.process_shape_list(group.shapes, transform*Transform(group).matrix())
+        self.process_shape_list(group.shapes, transform@Transform(group).matrix())
 
     def process_shape(self, shape, transform):
         feature = {
@@ -108,7 +107,7 @@ class MakeGeoJsonLayer(SlideToLayer):
         pptx_geometry = Geometry(shape)
         for path in pptx_geometry.path_list:
             bbox = (shape.width, shape.height) if path.w is None else (path.w, path.h)
-            T = transform*Transform(shape, bbox).matrix()
+            T = transform@Transform(shape, bbox).matrix()
 
             moved = False
             first_point = None
@@ -194,7 +193,7 @@ class GeoJsonExtractor(GeometryExtractor):
         self._LayerMaker = MakeGeoJsonLayer
         self._transform = np.array([[METRES_PER_EMU,               0, 0],
                                     [             0, -METRES_PER_EMU, 0],
-                                    [             0,               0, 1]])*np.array([[1, 0, -self._slide_size[0]/2.0],
+                                    [             0,               0, 1]])@np.array([[1, 0, -self._slide_size[0]/2.0],
                                                                                      [0, 1, -self._slide_size[1]/2.0],
                                                                                      [0, 0,                      1.0]])
     @property

@@ -85,8 +85,8 @@ class Transform(object):
         Flip = np.array([[Fx,  0, 0],
                          [ 0, Fy, 0],
                          [ 0,  0, 1]])
-        T_rf = np.linalg.inv(U)*R*Flip*U
-        self._T = T_rf*T_st
+        T_rf = np.linalg.inv(U)@R@Flip@U
+        self._T = T_rf@T_st
 
     def matrix(self):
         return self._T
