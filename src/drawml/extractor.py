@@ -73,19 +73,19 @@ class Transform(object):
         theta = xfrm.rot*PI/180.0
         Fx = -1 if xfrm.flipH else 1
         Fy = -1 if xfrm.flipV else 1
-        T_st = np.matrix([[Dx_/Dx,      0, Bx_ - (Dx_/Dx)*Bx] if Dx != 0 else [1, 0, Bx_],
-                          [     0, Dy_/Dy, By_ - (Dy_/Dy)*By] if Dy != 0 else [0, 1, By_],
-                          [     0,      0,                 1]])
-        U = np.matrix([[1, 0, -(Bx_ + Dx_/2.0)],
-                       [0, 1, -(By_ + Dy_/2.0)],
-                       [0, 0,                1]])
-        R = np.matrix([[cos(theta), -sin(theta), 0],
-                       [sin(theta),  cos(theta), 0],
-                       [0,                    0, 1]])
-        Flip = np.matrix([[Fx,  0, 0],
-                          [ 0, Fy, 0],
-                          [ 0,  0, 1]])
-        T_rf = U.I*R*Flip*U
+        T_st = np.array([[Dx_/Dx,      0, Bx_ - (Dx_/Dx)*Bx] if Dx != 0 else [1, 0, Bx_],
+                         [     0, Dy_/Dy, By_ - (Dy_/Dy)*By] if Dy != 0 else [0, 1, By_],
+                         [     0,      0,                 1]])
+        U = np.array([[1, 0, -(Bx_ + Dx_/2.0)],
+                      [0, 1, -(By_ + Dy_/2.0)],
+                      [0, 0,                1]])
+        R = np.array([[cos(theta), -sin(theta), 0],
+                      [sin(theta),  cos(theta), 0],
+                      [0,                    0, 1]])
+        Flip = np.array([[Fx,  0, 0],
+                         [ 0, Fy, 0],
+                         [ 0,  0, 1]])
+        T_rf = np.linalg.inv(U)*R*Flip*U
         self._T = T_rf*T_st
 
     def matrix(self):
