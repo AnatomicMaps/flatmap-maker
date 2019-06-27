@@ -10,9 +10,9 @@ python-pptx = "*"
 numpy = "*"
 beziers = "*"
 svgwrite = "*"
-landez = "*"
 mercantile = "*"
 pymupdf = "*"
+mbutil = {git = "https://github.com/mapbox/mbutil"}
 
 [requires]
 python_version = "3.7"

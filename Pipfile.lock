@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "706a95d3a7ae582205b12adb98d378b7e7f5c5af1d1aebf05fa4e53eb6c8d44b"
+            "sha256": "c6c1db2305b3f87fa6297c7f7a41e7e5ff39612ffeb784586da3dbf050444c00"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -24,40 +24,12 @@
             "index": "pypi",
             "version": "==0.0.1"
         },
-        "certifi": {
-            "hashes": [
-                "sha256:046832c04d4e752f37383b628bc601a7ea7211496b4638f6514d0e5b9acc4939",
-                "sha256:945e3ba63a0b9f577b1395204e13c3a231f9bc0223888be653286534e5873695"
-            ],
-            "version": "==2019.6.16"
-        },
-        "chardet": {
-            "hashes": [
-                "sha256:84ab92ed1c4d4f16916e05906b6b75a6c0fb5db821cc65e70cbd64a3e2a5eaae",
-                "sha256:fc323ffcaeaed0e0a02bf4d117757b98aed530d9ed4531e3e15460124c106691"
-            ],
-            "version": "==3.0.4"
-        },
         "click": {
             "hashes": [
                 "sha256:2335065e6395b9e67ca716de5f7526736bfa6ceead690adf616d925bdc622b13",
                 "sha256:5b94b49521f6456670fdb30cd82a4eca9412788a93fa6dd6df72c94d5a8ff2d7"
             ],
             "version": "==7.0"
-        },
-        "idna": {
-            "hashes": [
-                "sha256:c357b3f628cf53ae2c4c05627ecc484553142ca23264e593d327bcde5e9c3407",
-                "sha256:ea8b7f6188e6fa117537c3df7da9fc686d485087abf6ac197f9c46432f7e4a3c"
-            ],
-            "version": "==2.8"
-        },
-        "landez": {
-            "hashes": [
-                "sha256:a936b43d50322761cb04e3dc45d80764b0eea0df742d18f632ed163dc8e2b0c1"
-            ],
-            "index": "pypi",
-            "version": "==2.5.0"
         },
         "lxml": {
             "hashes": [
@@ -89,11 +61,8 @@
             "version": "==4.3.4"
         },
         "mbutil": {
-            "hashes": [
-                "sha256:78fca26f2497c4e20592792e2fe4abd5fd51e58a03a023a42a54274b7c13c419",
-                "sha256:ebbc67c966f71a45e6cc6e9e17a840efdc0aa56557abac71a58beb92f0572eaa"
-            ],
-            "version": "==0.3.0"
+            "git": "https://github.com/mapbox/mbutil",
+            "ref": "2fc4161f9be890a65d07f5e7b2ed0c8a0a123ed6"
         },
         "mercantile": {
             "hashes": [
@@ -205,13 +174,6 @@
             "index": "pypi",
             "version": "==0.6.18"
         },
-        "requests": {
-            "hashes": [
-                "sha256:11e007a8a2aa0323f5a921e9e6a2d7e4e67d9877e85773fba9ba6419025cbeb4",
-                "sha256:9cf5292fcd0f598c671cfc1e0d7d1a7f13bb8085e9a590f48c010551dc6c4b31"
-            ],
-            "version": "==2.22.0"
-        },
         "svgwrite": {
             "hashes": [
                 "sha256:6a46d2b4ed7565bcff05986c88bf3020724b5ecc7608448903616818dd2bdf95",
@@ -219,13 +181,6 @@
             ],
             "index": "pypi",
             "version": "==1.3.0"
-        },
-        "urllib3": {
-            "hashes": [
-                "sha256:b246607a25ac80bedac05c6f282e3cdaf3afb65420fd024ac94435cabe6e18d1",
-                "sha256:dbe59173209418ae49d485b87d1681aefa36252ee85884c31346debd19463232"
-            ],
-            "version": "==1.25.3"
         },
         "xlsxwriter": {
             "hashes": [
