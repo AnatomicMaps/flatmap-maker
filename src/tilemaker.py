@@ -22,14 +22,12 @@ import io
 import math
 import os
 import shutil
-import sqlite3
 import subprocess
 import tempfile
 
 #===============================================================================
 
 import fitz
-import mbutil as mb
 import mercantile as mt
 import numpy as np
 from PIL import Image
@@ -39,36 +37,10 @@ from PIL import Image
 MAX_ZOOM  = 10
 TILE_SIZE = (256, 256)
 WHITE     = (255, 255, 255)
+from mbtiles import MBTiles, ExtractionError
 
 #===============================================================================
 
-class MBTiles(object):   ## Into mbtiles.py...
-    def __init__(self, filepath, force=False, silent=False):
-        self._silent = silent
-        if force and os.path.exists(filepath):
-            os.remove(filepath)
-        self._connnection = mb.mbtiles_connect(filepath, self._silent)
-        self._cursor = self._connnection.cursor()
-        mb.optimize_connection(self._cursor)
-        mb.mbtiles_setup(self._cursor)
-
-    def close(self, compress=False):
-        if compress:
-            mb.compression_prepare(self._cursor, self._silent)
-            mb.compression_do(self._cursor, self._connnection, 256, self._silent)
-            mb.compression_finalize(self._cursor, self._connnection, self._silent)
-        mb.optimize_database(self._connnection, self._silent)
-
-    def save_metadata(self, **metadata):
-        for name, value in metadata.items():
-            self._cursor.execute('insert into metadata (name, value) values (?, ?)',
-                                 (name, value))
-
-    def save_tile(self, zoom, x, y, image):
-        self._cursor.execute("""insert into tiles (zoom_level, tile_column, tile_row, tile_data)
-                                           values (?, ?, ?, ?);""",
-                                                  (zoom, x, y, sqlite3.Binary(image))
-                            )
 
 #===============================================================================
 
@@ -158,8 +130,7 @@ class TileMaker(object):
         tile_0 = self._tiles[0]
         tile_N = self._tiles[-1]
         self._tile_start_coords = (tile_0.x, tile_0.y)
-        print('{} tiles at zoom {}: From ({}, {}) to ({}, {})'
-               .format(len(self._tiles), max_zoom, tile_0.x, tile_0.y, tile_N.x, tile_N.y))
+        self._tile_end_coords = (tile_N.x, tile_N.y)
 
         # Tiled area in world coordinates (metres)
         bounds_0 = mt.xy_bounds(tile_0)
@@ -197,15 +168,39 @@ class TileMaker(object):
             if not_transparent(png):
                 if (count % 100) == 0:
                     print("  Tile number: {} at ({}, {})".format(count, tile.x, tile.y))
-                output = io.BytesIO()
-                png.save(output, format='PNG')
-                mbtiles.save_tile(tile.z, tile.x, mb.flip_y(tile.z, tile.y), output.getvalue())
+                mbtiles.save_tile(zoom, tile.x, tile.y, png)
                 count += 1
-        while zoom > 0:
-            zoom -= 1
-            print('Tiling zoom level {} for {}'.format(zoom, layer))
+        print("  {} tiles".format(count))
 
+        self.make_overview_tiles(mbtiles, layer, zoom, self._tile_start_coords, self._tile_end_coords)
         mbtiles.close() #True)
+
+    def make_overview_tiles(self, mbtiles, layer, zoom, start_coords, end_coords):
+        if zoom > 0:
+            zoom -= 1
+            count = 0
+            print('Tiling zoom level {} for {}'.format(zoom, layer))
+            HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
+            half_start = (start_coords[0]//2, start_coords[1]//2)
+            half_end = (end_coords[0]//2, end_coords[1]//2)
+            for x in range(half_start[0], half_end[0] + 1):
+                for y in range(half_start[1], half_end[1] + 1):
+                    overview_tile = Image.new('RGBA', TILE_SIZE, (255, 255, 255, 0))
+                    for i in range(2):
+                        for j in range(2):
+                            try:
+                                tile = mbtiles.get_tile(zoom+1, 2*x+i, 2*y+j)
+                                half_tile = tile.resize((HALF_SIZE[0], HALF_SIZE[1]), Image.LANCZOS)
+                                overview_tile.paste(half_tile, (i*HALF_SIZE[0], j*HALF_SIZE[1]))
+                            except ExtractionError:
+                                pass
+                    if not_transparent(overview_tile):
+                        if (count % 100) == 0:
+                            print("  Tile number: {} at ({}, {})".format(count, x, y))
+                        mbtiles.save_tile(zoom, x, y, overview_tile)
+                        count += 1
+            print("  {} tiles".format(count))
+            self.make_overview_tiles(mbtiles, layer, zoom, half_start, half_end)
 
 #===============================================================================
 
