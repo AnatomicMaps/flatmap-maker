@@ -40,7 +40,7 @@ if __name__ == '__main__':
                         help="generate image tiles of map's layers")
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
-    parser.add_argument('--version', action='version', version='0.2.1')
+    parser.add_argument('--version', action='version', version='0.3.1')
 
     parser.add_argument('map_base', metavar='MAPS_DIR',
                         help='base directory for generated flatmaps')
