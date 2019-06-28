@@ -22,6 +22,10 @@ import json
 
 #===============================================================================
 
+ATTRIBUTION = '© <a href="https://www.auckland.ac.nz/en/abi.html">Auckland Bioengineering Institute</a>'
+
+#===============================================================================
+
 class ImageSource(object):
     @staticmethod
     def style(map_id, background_image, bounds):
@@ -63,7 +67,7 @@ class VectorSource(object):
             'minzoom': 0,
             'maxzoom': max_zoom,
             'bounds': bounds,   # southwest(lng, lat), northeast(lng, lat)
-            'attribution': '© Auckland Bioengineering Institute',
+            'attribution': ATTRIBUTION,
             'generator': 'tippecanoe v1.34.0',
             'vector_layers': vector_layer_dict['vector_layers'],
             'tilestats': vector_layer_dict['tilestats']
