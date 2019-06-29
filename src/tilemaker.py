@@ -153,11 +153,12 @@ class TileMaker(object):
         self._image_rect = fitz.Rect(world_to_tile.transform(sw[0], ne[1]),
                                      world_to_tile.transform(ne[0], sw[1]))
 
-    def make_tiles(self, pdf_page, layer):
+    def make_tiles(self, source_id, pdf_page, layer):
+    #================================================
         page_tiler = PageTiler(pdf_page, self._image_rect)
-        mbtiles = MBTiles(os.path.join(self._map_dir, '{}.mbtiles'.format(layer)), True, True)
 
-        ## TODO: mbtiles.save_metadata(key=val, key=val)
+        mbtiles = MBTiles(os.path.join(self._map_dir, '{}.mbtiles'.format(layer)), True, True)
+        mbtiles.add_metadata(id=layer, source=source_id)
 
         count = 0
         zoom = self._max_zoom
@@ -206,12 +207,14 @@ class TileMaker(object):
 def make_background_tiles(map_bounds, max_zoom, map_dir, pdf_file, layer_ids):
     tile_maker = TileMaker(map_bounds, map_dir, max_zoom)
 
-    pdf = fitz.open(pdf_file)
+    source_file = os.path.abspath(pdf_file)
+    pdf = fitz.open(source_file)
     pages = list(pdf)
 
-    tile_maker.make_tiles(pages[0], 'background')
+    tile_maker.make_tiles('{}#1'.format(source_file), pages[0], 'background')
     for n, layer_id in enumerate(layer_ids):
-        tile_maker.make_tiles(pages[n+1], layer_id)
+        print('Page:', n+2, layer_id)
+        tile_maker.make_tiles('{}#{}'.format(source_file, n+2), pages[n+1], layer_id)
 
 #===============================================================================
 
