@@ -104,6 +104,15 @@ if __name__ == '__main__':
     if len(layers) == 0:
         sys.exit('No map layers in Powerpoint...')
 
+    layer_ids = [layer['id'] for layer in layers]
+
+    # Get our map's actual bounds and centre
+
+    bounds = map_extractor.bounds()
+    map_centre = [(bounds[0]+bounds[2])/2, (bounds[1]+bounds[3])/2]
+    map_bounds = [bounds[0], bounds[3], bounds[2], bounds[1]]   # southwest and northeast ccorners
+
+    # The vector tiles' database
 
     mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
 
@@ -131,12 +140,9 @@ if __name__ == '__main__':
                         + list(["-L{}".format(json.dumps(input)) for input in tippe_inputs])
                        )
 
-        # Set our map's actual bounds and centre (`tippecanoe` uses bounding box
-        # containing all features, which is not full map area)
-
-        bounds = map_extractor.bounds()
-        map_centre = [(bounds[0]+bounds[2])/2, (bounds[1]+bounds[3])/2]
-        map_bounds = [bounds[0], bounds[3], bounds[2], bounds[1]]   # southwest and northeast ccorners
+        # `tippecanoe` uses the bounding box containing all features as the
+        # map bounds, which is not the same as the extracted bounds, so update
+        # the map's metadata
 
         tile_db = MBTiles(mbtiles_file)
 
@@ -165,7 +171,6 @@ if __name__ == '__main__':
 
         # Create style file
 
-        layer_ids = [layer['id'] for layer in layers]
         metadata = tile_db.metadata()
 
         style_dict = Style.style(args.map_id, layer_ids, metadata, max_zoom)
