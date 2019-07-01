@@ -172,6 +172,9 @@ if __name__ == '__main__':
         with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
+    # We are finished with the tile database, so close it
+    tile_db.close();
+
     if args.background_tiles:
         print('Generating background tiles (may take a while...)')
         make_background_tiles(map_bounds, max_zoom, map_dir, pdf_file, layer_ids)
