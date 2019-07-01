@@ -38,6 +38,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert Powerpoint slides to a flatmap.')
     parser.add_argument('--background-tiles', action='store_true',
                         help="generate image tiles of map's layers")
+    parser.add_argument('--no-vector-tiles', action='store_true',
+                        help="don't generate vector tiles database and style files")
+
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
     parser.add_argument('--version', action='version', version='0.3.1')
@@ -102,64 +105,72 @@ if __name__ == '__main__':
         sys.exit('No map layers in Powerpoint...')
 
 
-
-    # Generate Mapbox vector tiles
-
-    print('Running tippecanoe...')
-
     mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
 
-    subprocess.run(['tippecanoe', '--projection=EPSG:4326', '--force',
-                    # No compression results in a smaller `mbtiles` file
-                    # and is also required to serve tile directories
-                    '--no-tile-compression',
-                    '--buffer=100',
-                    '--maximum-zoom={}'.format(max_zoom),
-                    '--output={}'.format(mbtiles_file),
-                    ]
-                    + list(["-L{}".format(json.dumps(input)) for input in tippe_inputs])
-                   )
+    if args.no_vector_tiles:
+        tile_db = MBTiles(mbtiles_file)
 
-    # Set our map's actual bounds and centre (`tippecanoe` uses bounding box
-    # containing all features, which is not full map area)
+        # Update annotations in metadata
+        tile_db.update_metadata(annotations=json.dumps(annotations))
 
-    bounds = map_extractor.bounds()
-    map_centre = [(bounds[0]+bounds[2])/2, (bounds[1]+bounds[3])/2]
-    map_bounds = [bounds[0], bounds[3], bounds[2], bounds[1]]   # southwest and northeast ccorners
+         # Commit updates to the database
+        tile_db.execute("COMMIT")
 
-    tile_db = MBTiles(mbtiles_file)
+    else:
+        # Generate Mapbox vector tiles
+        print('Running tippecanoe...')
 
-    tile_db.update_metadata(center=','.join([str(x) for x in map_centre]),
-                            bounds=','.join([str(x) for x in map_bounds]))
-    # Save path of the Powerpoint source
-    tile_db.add_metadata(source=os.path.abspath(args.powerpoint))
+        subprocess.run(['tippecanoe', '--projection=EPSG:4326', '--force',
+                        # No compression results in a smaller `mbtiles` file
+                        # and is also required to serve tile directories
+                        '--no-tile-compression',
+                        '--buffer=100',
+                        '--maximum-zoom={}'.format(max_zoom),
+                        '--output={}'.format(mbtiles_file),
+                        ]
+                        + list(["-L{}".format(json.dumps(input)) for input in tippe_inputs])
+                       )
 
-    # Save annotations in metadata
-    tile_db.add_metadata(annotations=json.dumps(annotations))
+        # Set our map's actual bounds and centre (`tippecanoe` uses bounding box
+        # containing all features, which is not full map area)
 
-    # Commit updates to the database
-    tile_db.execute("COMMIT")
+        bounds = map_extractor.bounds()
+        map_centre = [(bounds[0]+bounds[2])/2, (bounds[1]+bounds[3])/2]
+        map_bounds = [bounds[0], bounds[3], bounds[2], bounds[1]]   # southwest and northeast ccorners
 
+        tile_db = MBTiles(mbtiles_file)
 
-    print('Creating style files...')
+        tile_db.update_metadata(center=','.join([str(x) for x in map_centre]),
+                                bounds=','.join([str(x) for x in map_bounds]))
+        # Save path of the Powerpoint source
+        tile_db.add_metadata(source=os.path.abspath(args.powerpoint))
 
-    # Create `index.json` for building a map in the viewer
-    with open(os.path.join(map_dir, 'index.json'), 'w') as output_file:
-        json.dump({
-            'id': args.map_id,
-            'style': 'style.json',
-            'layers': layers,
-            'maxzoom': max_zoom
-        }, output_file)
+        # Save annotations in metadata
+        tile_db.add_metadata(annotations=json.dumps(annotations))
 
-    # Create style file
+        # Commit updates to the database
+        tile_db.execute("COMMIT")
 
-    layer_ids = [layer['id'] for layer in layers]
-    metadata = tile_db.metadata()
+    if not args.no_vector_tiles:
+        print('Creating style files...')
 
-    style_dict = Style.style(args.map_id, layer_ids, metadata, max_zoom)
-    with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
-        json.dump(style_dict, output_file)
+        # Create `index.json` for building a map in the viewer
+        with open(os.path.join(map_dir, 'index.json'), 'w') as output_file:
+            json.dump({
+                'id': args.map_id,
+                'style': 'style.json',
+                'layers': layers,
+                'maxzoom': max_zoom
+            }, output_file)
+
+        # Create style file
+
+        layer_ids = [layer['id'] for layer in layers]
+        metadata = tile_db.metadata()
+
+        style_dict = Style.style(args.map_id, layer_ids, metadata, max_zoom)
+        with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
+            json.dump(style_dict, output_file)
 
     if args.background_tiles:
         print('Generating background tiles (may take a while...)')
