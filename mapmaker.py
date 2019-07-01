@@ -54,6 +54,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # Determining maximum zoom level...
+
+    max_zoom = 7   ## set from command line, default to 7 ??
+
+
     if not os.path.exists(args.powerpoint):
         sys.exit('Missing Powerpoint file')
 
@@ -96,9 +101,7 @@ if __name__ == '__main__':
     if len(layers) == 0:
         sys.exit('No map layers in Powerpoint...')
 
-    # Determining maximum zoom level...
 
-    max_zoom = 7   ## Lower?? Depends on image tile sizes
 
     # Generate Mapbox vector tiles
 
