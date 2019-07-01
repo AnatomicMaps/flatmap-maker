@@ -87,7 +87,10 @@ if __name__ == '__main__':
             'layer': layer.layer_id,
             'description': layer.description
         })
-        layers.append(layer)
+        layers.append({
+            'id': layer.layer_id,
+            'description': layer.description
+            })
         annotations.update(layer.annotations)
 
     if len(layers) == 0:
@@ -137,19 +140,18 @@ if __name__ == '__main__':
 
     print('Creating style files...')
 
-    layer_ids = [l.layer_id for l in layers]
-
     # Create `index.json` for building a map in the viewer
     with open(os.path.join(map_dir, 'index.json'), 'w') as output_file:
         json.dump({
             'id': args.map_id,
             'style': 'style.json',
-            'layers': layer_ids,
+            'layers': layers,
             'maxzoom': max_zoom
         }, output_file)
 
     # Create style file
 
+    layer_ids = [layer['id'] for layer in layers]
     metadata = tile_db.metadata()
 
     style_dict = Style.style(args.map_id, layer_ids, metadata, max_zoom)

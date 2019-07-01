@@ -111,7 +111,7 @@ class SlideToLayer(object):
                 self._layer_id = layer_id
         if self._layer_id is None:
             self._layer_id = 'layer{:02d}'.format(slide_number)
-        self._description = 'Layer {:02d}'.format(slide_number)
+        self._description = ''
         self._feature_ids = []
         self._annotations = {}
 
