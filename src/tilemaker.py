@@ -20,6 +20,7 @@
 
 import io
 import math
+import multiprocessing
 import os
 import shutil
 import subprocess
@@ -69,6 +70,7 @@ class Affine(object):
                                  [ 0,        0,                                       1 ]])
 
     def transform(self, x, y):
+    #=========================
         return (self._matrix@[x, y, 1])[:2]
 
 #===============================================================================
@@ -95,6 +97,7 @@ class PageTiler(object):
         self._tile_to_image = Affine((sx, sy), (image_rect.x0, image_rect.y0), (0, 0))
 
     def tile_as_png(self, tile_x, tile_y):
+    #=====================================
         (x0, y0) = self._tile_to_image.transform(TILE_SIZE[0]*tile_x,
                                                  TILE_SIZE[1]*tile_y)
         (x1, y1) = self._tile_to_image.transform(TILE_SIZE[0]*(tile_x + 1),
@@ -153,6 +156,9 @@ class TileMaker(object):
         self._image_rect = fitz.Rect(world_to_tile.transform(sw[0], ne[1]),
                                      world_to_tile.transform(ne[0], sw[1]))
 
+        self._processes = []
+
+
     def make_tiles(self, source_id, pdf_page, layer):
     #================================================
         page_tiler = PageTiler(pdf_page, self._image_rect)
@@ -177,6 +183,7 @@ class TileMaker(object):
         mbtiles.close() #True)
 
     def make_overview_tiles(self, mbtiles, layer, zoom, start_coords, end_coords):
+    #=============================================================================
         if zoom > 0:
             zoom -= 1
             count = 0
@@ -202,19 +209,35 @@ class TileMaker(object):
                         count += 1
             self.make_overview_tiles(mbtiles, layer, zoom, half_start, half_end)
 
+
+    def start_make_tiles_process(self, pdf_file, source_id, page_no, layer):
+    #======================================================================
+        print('Page {}: {}'.format(page_no+1, layer))
+
+        pdf = fitz.open(pdf_file)
+        pages = list(pdf)
+        pdf_page = pages[page_no]
+
+        process = multiprocessing.Process(target=self.make_tiles, args=(source_id, pdf_page, layer))
+        self._processes.append(process)
+        process.start()
+
+    def wait_for_processes(self):
+    #============================
+        for process in self._processes:
+            process.join()
+
 #===============================================================================
 
 def make_background_tiles(map_bounds, max_zoom, map_dir, pdf_file, layer_ids):
     tile_maker = TileMaker(map_bounds, map_dir, max_zoom)
-
     source_file = os.path.abspath(pdf_file)
-    pdf = fitz.open(source_file)
-    pages = list(pdf)
+    tile_maker.start_make_tiles_process(source_file, '{}#1'.format(source_file), 0, 'background')
 
-    tile_maker.make_tiles('{}#1'.format(source_file), pages[0], 'background')
     for n, layer_id in enumerate(layer_ids):
-        print('Page:', n+2, layer_id)
-        tile_maker.make_tiles('{}#{}'.format(source_file, n+2), pages[n+1], layer_id)
+        tile_maker.start_make_tiles_process(source_file, '{}#{}'.format(source_file, n+2), n+1, layer_id)
+
+    tile_maker.wait_for_processes()
 
 #===============================================================================
 
