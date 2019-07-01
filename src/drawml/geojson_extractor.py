@@ -95,12 +95,11 @@ class MakeGeoJsonLayer(SlideToLayer):
     def process_shape(self, shape, transform):
         feature = {
             'type': 'Feature',
-            'id': shape.shape_id,
-            'properties': {}
+            'id': shape.shape_id,          # Only unique within slide...
+            'properties': {
+                'id': shape.unique_id
+            }
         }
-        if shape.feature_id != '':
-            feature['properties']['feature-id'] = '{}/{}'.format(self.layer_id, shape.feature_id)
-            feature['properties']['models'] = shape.model_of
         geometry = {}
         coordinates = []
 

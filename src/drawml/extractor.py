@@ -112,6 +112,7 @@ class SlideToLayer(object):
         if self._layer_id is None:
             self._layer_id = 'layer{:02d}'.format(slide_number)
         self._description = 'Layer {:02d}'.format(slide_number)
+        self._feature_ids = []
         self._annotations = {}
 
     @property
@@ -130,6 +131,10 @@ class SlideToLayer(object):
     def layer_id(self):
         return self._layer_id
 
+    @property
+    def slide_id(self):
+        return self._slide.slide_id
+
     def process():
         # Override in sub-class
         pass
@@ -144,20 +149,19 @@ class SlideToLayer(object):
 
     def process_shape_list(self, shapes, *args):
         for shape in shapes:
-            shape.feature_id = ''
+            shape.unique_id = '{}-{}'.format(self.slide_id, shape.shape_id)
             if shape.name.startswith('#'):
                 properties = shape.name.split()
                 if len(properties[0]) > 1:
-                    shape.feature_id = properties[0][1:]
-                    if shape.feature_id in self._annotations:
+                    feature_id = properties[0][1:]
+                    if feature_id in self._feature_ids:
                         raise KeyError('Duplicate feature ID {} in slide {}'
-                                       .format(shape.feature_id, self._slide_number))
-# TEMP
-                    for p in properties:
-                        if p.startswith('models(') and p[-1] == ')':
-                            shape.model_of = p[7:-1]
-# END TEMP
-                    self._annotations[shape.feature_id] = ' '.join(properties[1:])
+                                       .format(feature_id, self._slide_number))
+                    self._feature_ids.append(feature_id)
+                    self._annotations[shape.unique_id] = {
+                        'layer': self.layer_id,
+                        'annotation': shape.name
+                    }
             if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or shape.shape_type == MSO_SHAPE_TYPE.PICTURE

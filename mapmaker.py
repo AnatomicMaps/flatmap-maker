@@ -73,6 +73,7 @@ if __name__ == '__main__':
 
     # Process slides, saving layer information
 
+    annotations = {}
     layers = []
     tippe_inputs = []
     for slide_number in range(2, len(map_extractor)+1):  # First slide is background layer, so skip
@@ -87,6 +88,7 @@ if __name__ == '__main__':
             'description': layer.description
         })
         layers.append(layer)
+        annotations.update(layer.annotations)
 
     if len(layers) == 0:
         sys.exit('No map layers in Powerpoint...')
@@ -120,36 +122,37 @@ if __name__ == '__main__':
     map_bounds = [bounds[0], bounds[3], bounds[2], bounds[1]]   # southwest and northeast ccorners
 
     tile_db = MBTiles(mbtiles_file)
+
     tile_db.update_metadata(center=','.join([str(x) for x in map_centre]),
                             bounds=','.join([str(x) for x in map_bounds]))
     # Save path of the Powerpoint source
     tile_db.add_metadata(source=os.path.abspath(args.powerpoint))
 
-    # Commit updates to the database
+    # Save annotations in metadata
+    tile_db.add_metadata(annotations=json.dumps(annotations))
 
+    # Commit updates to the database
     tile_db.execute("COMMIT")
 
-
-    metadata = tile_db.metadata()
 
     print('Creating style files...')
 
     layer_ids = [l.layer_id for l in layers]
 
     # Create `index.json` for building a map in the viewer
-
     with open(os.path.join(map_dir, 'index.json'), 'w') as output_file:
         json.dump({
             'id': args.map_id,
             'style': 'style.json',
             'layers': layer_ids,
-            'metadata': metadata
+            'maxzoom': max_zoom
         }, output_file)
 
     # Create style file
 
-    style_dict = Style.style(args.map_id, layer_ids, metadata, max_zoom)
+    metadata = tile_db.metadata()
 
+    style_dict = Style.style(args.map_id, layer_ids, metadata, max_zoom)
     with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
         json.dump(style_dict, output_file)
 
