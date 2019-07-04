@@ -63,7 +63,7 @@ def transform_bezier_samples(transform, bz):
 
 class MakeGeoJsonLayer(SlideToLayer):
     def __init__(self, extractor, slide, slide_number, args):
-        super().__init__(slide, slide_number, args)
+        super().__init__(extractor, slide, slide_number, args)
         self._transform = extractor.transform
 
     def process(self):

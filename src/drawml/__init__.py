@@ -18,8 +18,8 @@
 #
 #===============================================================================
 
+from .extractor import GeometryExtractor
 from .geojson_extractor import GeoJsonExtractor
-
 from .svg_extractor import SvgExtractor
 
 #===============================================================================

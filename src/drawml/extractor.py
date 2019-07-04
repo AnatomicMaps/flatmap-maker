@@ -94,7 +94,7 @@ class Transform(object):
 #===============================================================================
 
 class SlideToLayer(object):
-    def __init__(self, slide, slide_number, args):
+    def __init__(self, extractor, slide, slide_number, args):
         self._slide = slide
         self._slide_number = slide_number
         self._args = args
@@ -112,7 +112,7 @@ class SlideToLayer(object):
         if self._layer_id is None:
             self._layer_id = 'layer{:02d}'.format(slide_number)
         self._description = ''
-        self._feature_ids = []
+        self._feature_ids = {}
         self._annotations = {}
 
     @property
@@ -135,15 +135,21 @@ class SlideToLayer(object):
     def slide_id(self):
         return self._slide.slide_id
 
-    def process():
-        # Override in sub-class
-        pass
+    def process(self):
+        self.process_shape_list(self._slide.shapes)
 
     def get_output(self):
         # Override in sub-class
         pass
 
     def save(self, filename=None):
+        # Override in sub-class
+        pass
+
+    def process_group(self, group, *args):
+        self.process_shape_list(group.shapes, *args)
+
+    def process_shape(self, shape, *args):
         # Override in sub-class
         pass
 
@@ -154,14 +160,17 @@ class SlideToLayer(object):
                 properties = shape.name.split()
                 if len(properties[0]) > 1:
                     feature_id = properties[0][1:]
-                    if feature_id in self._feature_ids:
-                        raise KeyError('Duplicate feature ID {} in slide {}'
-                                       .format(feature_id, self._slide_number))
-                    self._feature_ids.append(feature_id)
-                    self._annotations[shape.unique_id] = {
+                    annotation = {
                         'layer': self.layer_id,
                         'annotation': shape.name
                     }
+                    if feature_id in self._feature_ids:
+                        annotation['error'] = 'duplicate-id'
+                        self._annotations[self._feature_ids[feature_id]]['error'] = 'duplicate-id'
+                    else:
+                        self._feature_ids[feature_id] = shape.unique_id
+                    self._annotations[shape.unique_id] = annotation
+
             if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or shape.shape_type == MSO_SHAPE_TYPE.PICTURE
@@ -186,7 +195,7 @@ class GeometryExtractor(object):
         self._args = args
         self._slides = self._pptx.slides
         self._slide_size = [self._pptx.slide_width, self._pptx.slide_height]
-        self._LayerMaker = None
+        self._LayerMaker = SlideToLayer
         self._layers = {}
 
     def __len__(self):

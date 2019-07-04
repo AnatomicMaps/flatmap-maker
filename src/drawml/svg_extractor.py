@@ -52,7 +52,7 @@ def svg_transform(m):
 
 class MakeSvgLayer(SlideToLayer):
     def __init__(self, extractor, slide, slide_number, args):
-        super().__init__(slide, slide_number, args)
+        super().__init__(extractor, slide, slide_number, args)
         self._dwg = svgwrite.Drawing(filename=None,
                                      size=svg_coords(extractor.slide_size[0], extractor.slide_size[1]))
         self._dwg.defs.add(self._dwg.style('.non-scaling-stroke { vector-effect: non-scaling-stroke; }'))
