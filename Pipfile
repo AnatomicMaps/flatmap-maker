@@ -14,6 +14,7 @@ mercantile = "*"
 pymupdf = "*"
 mbutil = {git = "https://github.com/mapbox/mbutil"}
 requests = "*"
+pyparsing = "*"
 
 [requires]
 python_version = "3.7"

@@ -117,7 +117,8 @@ if __name__ == '__main__':
         })
         layers.append({
             'id': layer.layer_id,
-            'description': layer.description
+            'description': layer.description,
+            'selectable': layer.selectable
             })
         annotations.update(layer.annotations)
 

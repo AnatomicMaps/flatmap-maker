@@ -33,6 +33,10 @@ from pptx.spec import autoshape_types
 
 #===============================================================================
 
+from ..parser import Parser
+
+#===============================================================================
+
 # Internal PPT units are EMUs (English Metric Units)
 
 EMU_PER_CM  = 360000
@@ -98,19 +102,27 @@ class SlideToLayer(object):
         self._slide = slide
         self._slide_number = slide_number
         self._args = args
+        self._errors = []
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
         self._layer_id = None
         text_boxes = slide.element.findall('.//p:sp/p:nvSpPr/p:cNvSpPr[@txBox]/..',
                                            {'p': 'http://schemas.openxmlformats.org/presentationml/2006/main'})
         for text_box in text_boxes:
-            if text_box.cNvSpPr.txBox and text_box.cNvPr.name.startswith('.layer-id('):
-                if self._layer_id is not None:
-                    raise ValueError("A slide can only have a single 'layer-id()' text box")
-                layer_id = text_box.cNvPr.name[10:-1].strip()
-                self._layer_id = layer_id
+            if text_box.cNvSpPr.txBox and text_box.cNvPr.name.startswith('.'):
+                directive = Parser.directive(text_box.cNvPr.name)
+                if not directive:
+                    self._errors.append('Slide {}: invalid layer directive: {}'
+                                        .format(slide_number, text_box.cNvPr.name))
+                elif self._layer_id is not None:
+                    self._errors.append('Slide {}: only have a single layer-id textbox allowed'
+                                        .format(slide_number))
+                else:
+                    self._layer_id = directive[1]
+                self._selectable = 'no-select' not in list(directive[2:])
         if self._layer_id is None:
-            self._layer_id = 'layer{:02d}'.format(slide_number)
+            self._layer_id = 'layer-{:02d}'.format(slide_number)
+            self._selectable = False
         self._description = ''
         self._feature_ids = {}
         self._annotations = {}
@@ -126,6 +138,14 @@ class SlideToLayer(object):
     @property
     def description(self):
         return self._description
+
+    @property
+    def selectable(self):
+        return self._selectable
+
+    @property
+    def errors(self):
+        return self._errors
 
     @property
     def layer_id(self):
@@ -157,8 +177,8 @@ class SlideToLayer(object):
         for shape in shapes:
             shape.unique_id = '{}-{}'.format(self.slide_id, shape.shape_id)
             if shape.name.startswith('#'):
-                properties = shape.name.split()
-                if len(properties[0]) > 1:
+                properties = Parser.annotation(shape.name)
+                if properties:
                     feature_id = properties[0][1:]
                     annotation = {
                         'layer': self.layer_id,
@@ -167,10 +187,11 @@ class SlideToLayer(object):
                     if feature_id in self._feature_ids:
                         annotation['error'] = 'duplicate-id'
                         self._annotations[self._feature_ids[feature_id]]['error'] = 'duplicate-id'
+                        self._errors.append('Slide {}: has a duplicate feature id ({})'
+                                            .format(self._slide_number, feature_id))
                     else:
                         self._feature_ids[feature_id] = shape.unique_id
                     self._annotations[shape.unique_id] = annotation
-
             if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or shape.shape_type == MSO_SHAPE_TYPE.PICTURE
