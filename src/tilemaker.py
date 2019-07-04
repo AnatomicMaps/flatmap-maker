@@ -210,11 +210,11 @@ class TileMaker(object):
             self.make_overview_tiles(mbtiles, layer, zoom, half_start, half_end)
 
 
-    def start_make_tiles_process(self, pdf_file, source_id, page_no, layer):
-    #======================================================================
+    def start_make_tiles_process(self, pdf_bytes, source_id, page_no, layer):
+    #========================================================================
         print('Page {}: {}'.format(page_no+1, layer))
 
-        pdf = fitz.open(pdf_file)
+        pdf = fitz.Document(stream=pdf_bytes, filetype='application/pdf')
         pages = list(pdf)
         pdf_page = pages[page_no]
 
@@ -229,13 +229,12 @@ class TileMaker(object):
 
 #===============================================================================
 
-def make_background_tiles(map_bounds, max_zoom, map_dir, pdf_file, layer_ids):
+def make_background_tiles(map_bounds, max_zoom, map_dir, pdf_source, pdf_bytes, layer_ids):
     tile_maker = TileMaker(map_bounds, map_dir, max_zoom)
-    source_file = os.path.abspath(pdf_file)
-    tile_maker.start_make_tiles_process(source_file, '{}#1'.format(source_file), 0, 'background')
+    tile_maker.start_make_tiles_process(pdf_bytes, '{}#1'.format(pdf_source), 0, 'background')
 
     for n, layer_id in enumerate(layer_ids):
-        tile_maker.start_make_tiles_process(source_file, '{}#{}'.format(source_file, n+2), n+1, layer_id)
+        tile_maker.start_make_tiles_process(pdf_bytes, '{}#{}'.format(pdf_source, n+2), n+1, layer_id)
 
     tile_maker.wait_for_processes()
 

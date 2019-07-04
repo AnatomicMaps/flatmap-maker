@@ -13,6 +13,7 @@ svgwrite = "*"
 mercantile = "*"
 pymupdf = "*"
 mbutil = {git = "https://github.com/mapbox/mbutil"}
+requests = "*"
 
 [requires]
 python_version = "3.7"

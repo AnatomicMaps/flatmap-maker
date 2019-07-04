@@ -18,11 +18,14 @@
 #
 #===============================================================================
 
+import io
 import json
 import subprocess
 import tempfile
 
 #===============================================================================
+
+import requests
 
 from src.drawml import GeoJsonExtractor
 from src.mbtiles import MBTiles
@@ -50,8 +53,8 @@ if __name__ == '__main__':
 
     parser.add_argument('map_id', metavar='MAP_ID',
                         help='a unique identifier for the map')
-    parser.add_argument('powerpoint', metavar='POWERPOINT_FILE',
-                        help='Powerpoint file of flatmap')
+    parser.add_argument('powerpoint', metavar='POWERPOINT',
+                        help='File or URL of Powerpoint slides')
 
     # --force option
 
@@ -62,13 +65,30 @@ if __name__ == '__main__':
     max_zoom = 7   ## set from command line, default to 7 ??
 
 
-    if not os.path.exists(args.powerpoint):
-        sys.exit('Missing Powerpoint file')
+    if args.powerpoint.startswith('http:') or args.powerpoint.startswith('https:'):
+        response = requests.get(args.powerpoint)
+        if response.status_code != requests.codes.ok:
+            sys.exit('Cannot retrieve remote Powerpoint file')
+        pptx_source = args.powerpoint
+        pptx_bytes = io.BytesIO(response.content)
+    else:
+        if not os.path.exists(args.powerpoint):
+            sys.exit('Missing Powerpoint file')
+        pptx_source = os.path.abspath(args.powerpoint)
+        pptx_bytes = open(pptx_source, 'rb')
 
     if args.background_tiles:
-        pdf_file = '{}.pdf'.format(os.path.splitext(args.powerpoint)[0])
-        if not os.path.exists(pdf_file):
-            sys.exit('PDF of Powerpoint required to generate background tiles')
+        pdf_source = '{}.pdf'.format(os.path.splitext(pptx_source)[0])
+        if pdf_source.startswith('http:') or pdf_source.startswith('https:'):
+            response = requests.get(pdf_source)
+            if response.status_code != requests.codes.ok:
+                sys.exit('Cannot retrieve PDF of Powerpoint (needed to generate background tiles)')
+            pdf_bytes = io.BytesIO(response.content)
+        else:
+            if not os.path.exists(pdf_source):
+                sys.exit('Missing PDF of Powerpoint (needed to generate background tiles)')
+            with open(pdf_source, 'rb') as f:
+                pdf_bytes = f.read()
 
     map_dir = os.path.join(args.map_base, args.map_id)
 
@@ -77,7 +97,7 @@ if __name__ == '__main__':
 
     print('Extracting layers...')
     filenames = []
-    map_extractor = GeoJsonExtractor(args.powerpoint, args)
+    map_extractor = GeoJsonExtractor(pptx_bytes, args)
 
     # Process slides, saving layer information
 
@@ -149,7 +169,7 @@ if __name__ == '__main__':
         tile_db.update_metadata(center=','.join([str(x) for x in map_centre]),
                                 bounds=','.join([str(x) for x in map_bounds]))
         # Save path of the Powerpoint source
-        tile_db.add_metadata(source=os.path.abspath(args.powerpoint))
+        tile_db.add_metadata(source=pptx_source)
 
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(annotations))
@@ -182,7 +202,7 @@ if __name__ == '__main__':
 
     if args.background_tiles:
         print('Generating background tiles (may take a while...)')
-        make_background_tiles(map_bounds, max_zoom, map_dir, pdf_file, layer_ids)
+        make_background_tiles(map_bounds, args.max_zoom, map_dir, pdf_source, pdf_bytes, layer_ids)
 
     # Tidy up
 
