@@ -41,6 +41,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert Powerpoint slides to a flatmap.')
     parser.add_argument('--background-tiles', action='store_true',
                         help="generate image tiles of map's layers")
+    parser.add_argument('--max-zoom', metavar='N', type=int, default=7,
+                        help='maximum zoom level (defaults to 7)')
     parser.add_argument('--no-vector-tiles', action='store_true',
                         help="don't generate vector tiles database and style files")
 
@@ -60,10 +62,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # Determining maximum zoom level...
-
-    max_zoom = 7   ## set from command line, default to 7 ??
-
+    if args.max_zoom < 1 or args.max_zoom > 15:
+        sys.exit('--max-zoom must be between 1 and 15')
 
     if args.powerpoint.startswith('http:') or args.powerpoint.startswith('https:'):
         response = requests.get(args.powerpoint)
@@ -154,7 +154,7 @@ if __name__ == '__main__':
                         # and is also required to serve tile directories
                         '--no-tile-compression',
                         '--buffer=100',
-                        '--maximum-zoom={}'.format(max_zoom),
+                        '--maximum-zoom={}'.format(args.max_zoom),
                         '--output={}'.format(mbtiles_file),
                         ]
                         + list(["-L{}".format(json.dumps(input)) for input in tippe_inputs])
@@ -186,14 +186,14 @@ if __name__ == '__main__':
                 'id': args.map_id,
                 'style': 'style.json',
                 'layers': layers,
-                'maxzoom': max_zoom
+                'maxzoom': args.max_zoom
             }, output_file)
 
         # Create style file
 
         metadata = tile_db.metadata()
 
-        style_dict = Style.style(args.map_id, layer_ids, metadata, max_zoom)
+        style_dict = Style.style(args.map_id, layer_ids, metadata, args.max_zoom)
         with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
