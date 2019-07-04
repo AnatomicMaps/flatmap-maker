@@ -64,8 +64,11 @@ class MBTiles(object):
         for name, value in metadata.items():
             self._cursor.execute('update metadata set value=? where name=?;',
                                                      (value,        name))
-    def metadata(self):
-        return dict(self._connnection.execute('select name, value from metadata;').fetchall())
+    def metadata(self, name=None):
+        if name is not None:
+            return self._cursor.execute('select value from metadata where name=?;', (name, )).fetchone()[0]
+        else:
+            return dict(self._connnection.execute('select name, value from metadata;').fetchall())
 
     def get_tile(self, zoom, x, y):
         rows = self._cursor.execute("""select tile_data from tiles
