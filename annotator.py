@@ -139,7 +139,10 @@ if __name__ == '__main__':
     map_uri = rdflib.URIRef(map_source)
     for object_id, properties in annotations.items():
         if 'error' in properties:
-            print('Error in layer {}: {}'.format(properties['layer'], properties['error']))
+            print('Error in {} layer: {}: {}'.format(properties['layer'],
+                                                     properties['error'],
+                                                     properties['annotation']))
+            continue
 
         annotation = Parser.annotation(properties['annotation'])
         feature_id = annotation[0]

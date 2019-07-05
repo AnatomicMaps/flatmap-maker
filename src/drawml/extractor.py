@@ -186,7 +186,6 @@ class SlideToLayer(object):
                     }
                     if feature_id in self._feature_ids:
                         annotation['error'] = 'duplicate-id'
-                        self._annotations[self._feature_ids[feature_id]]['error'] = 'duplicate-id'
                         self._errors.append('Slide {}: has a duplicate feature id ({})'
                                             .format(self._slide_number, feature_id))
                     else:
