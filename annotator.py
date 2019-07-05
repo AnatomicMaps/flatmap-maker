@@ -36,6 +36,15 @@ import src.namespaces as NS
 
 #===============================================================================
 
+class UrlMaker(object):
+    def __init__(self, base, layer):
+        self._base = '{}/{}'.format(base, layer)
+
+    def url(self, id):
+        return rdflib.URIRef('{}/{}'.format(self._base, id[1:]))
+
+#===============================================================================
+
 if __name__ == '__main__':
     import argparse
     import os, sys
@@ -157,11 +166,13 @@ if __name__ == '__main__':
                                                      properties['annotation']))
             continue
 
+        layer_urls = UrlMaker(map_source, properties['layer'])
         annotation = Parser.annotation(properties['annotation'])
+
         feature_id = annotation[0]
-        feature_class = None
-        feature_uri = rdflib.URIRef('{}/{}'.format(map_source, feature_id))
+        feature_uri = layer_urls.url(feature_id)
         graph.remove( (feature_uri, None, None) )
+        feature_class = None
 
         route = { 'source': '', 'via': [], 'target': '' }
 
@@ -187,23 +198,20 @@ if __name__ == '__main__':
                 elif feature_class != FLATMAP_NS['Edge']:
                     raise ValueError('Only edges can be routed: {}'.format(annotation))
                 if p[0] == 'source':
-                    route['source'] = p[1][1:]
+                    route['source'] = p[1]
                 elif p[0] == 'target':
-                    route['target'] = p[1][1:]
+                    route['target'] = p[1]
                 else:
-                    route['via'].append(p[1][1:])
+                    route['via'].append(p[1])
         if feature_class is None:
             feature_class = FLATMAP_NS['Node']  # Assume we have a Node
         elif feature_class == FLATMAP_NS['Edge']:
             if route['source']:
-                graph.add( (feature_uri, FLATMAP_NS['source'],
-                            rdflib.URIRef('{}/{}'.format(map_source, route['source']))) )
+                graph.add( (feature_uri, FLATMAP_NS['source'], layer_urls.url(route['source'])) )
             if route['target']:
-                graph.add( (feature_uri, FLATMAP_NS['target'],
-                            rdflib.URIRef('{}/{}'.format(map_source, route['target']))) )
+                graph.add( (feature_uri, FLATMAP_NS['target'], layer_urls.url(route['target'])) )
             for via in route['via']:
-                graph.add( (feature_uri, FLATMAP_NS['via'],
-                            rdflib.URIRef('{}/{}'.format(map_source, via))) )
+                graph.add( (feature_uri, FLATMAP_NS['via'], layer_urls.url(via)) )
 
         graph.add( (feature_uri, FLATMAP_NS['map'], map_uri) )
         graph.add( (feature_uri, rdflib.namespace.RDF['type'], feature_class) )
