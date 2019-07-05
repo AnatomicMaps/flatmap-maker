@@ -44,6 +44,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
+    parser.add_argument('--powerpoint', metavar='POWERPOINT',
+                        help='File or URL of Powerpoint slides')
     parser.add_argument('--update-knowledgebase', action='store_true',
                         help="directly update the SPARC knowledge base")
     parser.add_argument('--version', action='version', version='0.3.2')
@@ -62,11 +64,23 @@ if __name__ == '__main__':
 
     # MBTILES --> RDF
 
-    if False:  ## If option to scan Powerpoint...
-        if not os.path.exists(args.powerpoint):
-            sys.exit('Missing Powerpoint file')
+    mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
+    tile_db = MBTiles(mbtiles_file)
 
-        map_source = os.path.abspath(args.powerpoint)
+    if args.powerpoint:
+        if args.powerpoint.startswith('http:') or args.powerpoint.startswith('https:'):
+            response = requests.get(args.powerpoint)
+            if response.status_code != requests.codes.ok:
+                sys.exit('Cannot retrieve remote Powerpoint file')
+            pptx_source = args.powerpoint
+            pptx_bytes = io.BytesIO(response.content)
+        else:
+            if not os.path.exists(args.powerpoint):
+                sys.exit('Missing Powerpoint file')
+            pptx_source = os.path.abspath(args.powerpoint)
+            pptx_bytes = open(pptx_source, 'rb')
+
+        map_source = pptx_source
 
         ## Don't run if dir exists and not --force
         ## rmdir if exists and --force
@@ -76,7 +90,7 @@ if __name__ == '__main__':
             os.makedirs(map_dir)
 
         print('Extracting layers...')
-        map_extractor = GeometryExtractor(args.powerpoint, args)
+        map_extractor = GeometryExtractor(pptx_bytes, args)
 
         # Process slides, saving layer information
 
@@ -93,21 +107,18 @@ if __name__ == '__main__':
         if len(layers) == 0:
             sys.exit('No map layers in Powerpoint...')
 
-        # Update annotations in metadata
-        tile_db.update_metadata(annotations=json.dumps(annotations))
-
+        # Save path of the Powerpoint source
+        tile_db.add_metadata(source=pptx_source)
+        # Save annotations in metadata
+        tile_db.add_metadata(annotations=json.dumps(annotations))
         # Commit updates to the database
         tile_db.execute("COMMIT")
 
-        # We are finished with the tile database, so close it
-        tile_db.close();
-
     else:
-        mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
-        tile_db = MBTiles(mbtiles_file)
-        annotations = json.loads(tile_db.metadata('annotations'))
         map_source = tile_db.metadata('source')
-        tile_db.close();
+        annotations = json.loads(tile_db.metadata('annotations'))
+
+    tile_db.close();
 
     # RDF generation
 
