@@ -36,16 +36,11 @@ from rdflib.plugins.sparql.results.jsonresults import JSONResultSerializer
 
 #===============================================================================
 
-from .namespaces import SCICRUNCH_NS
-
-#===============================================================================
-
 class KnowledgeBase(rdflib.Graph, ContextDecorator):
     def __init__(self, kb_path, create=False):
         SPARC = rdflib.URIRef('SPARC')
         store = rdflib.plugin.get('SQLAlchemy', rdflib.store.Store)(identifier=SPARC)
         super().__init__(store, identifier=SPARC)
-        self.namespace_manager = SCICRUNCH_NS
         database = rdflib.Literal('sqlite:///{}'.format(kb_path))
         self.open(database, create=create)
 
