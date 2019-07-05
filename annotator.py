@@ -131,7 +131,9 @@ if __name__ == '__main__':
 
 #    graph.namespace_manager = NS.SCICRUNCH_NS
 #    namespaces_dict = NS.namespaces_dict()
-    ## Only really need rdf: obo: fma: FMA: RO: UBERON: ILX: flatmap:
+## Only really need rdf: obo: fma: FMA: RO: UBERON: ILX: flatmap:
+## See https://github.com/RDFLib/rdflib/issues/794
+#
     namespaces_dict = {
         'FMA': rdflib.namespace.Namespace('http://purl.org/sig/ont/fma/fma'),
         'ILX': rdflib.namespace.Namespace('http://uri.interlex.org/base/ilx_'),
