@@ -31,6 +31,7 @@ from src.drawml import GeometryExtractor
 from src.parser import Parser
 from src.mbtiles import MBTiles
 
+from src.knowledgebase import KnowledgeBase
 import src.namespaces as NS
 
 #===============================================================================
@@ -43,6 +44,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
+    parser.add_argument('--update-knowledgebase', action='store_true',
+                        help="directly update the SPARC knowledge base")
     parser.add_argument('--version', action='version', version='0.3.2')
 
     parser.add_argument('map_base', metavar='MAPS_DIR',
@@ -108,7 +111,13 @@ if __name__ == '__main__':
 
     # RDF generation
 
-    graph = rdflib.Graph()
+    if args.update_knowledgebase:
+        kb_path = os.path.join(args.map_base, 'KnowledgeBase.sqlite')
+        print(kb_path, (not os.path.exists(kb_path)))
+        graph = KnowledgeBase(kb_path, create=(not os.path.exists(kb_path)))
+    else:
+        graph = rdflib.Graph()
+
 #    graph.namespace_manager = NS.SCICRUNCH_NS
 #    namespaces_dict = NS.namespaces_dict()
     ## Only really need rdf: obo: fma: FMA: RO: UBERON: ILX: flatmap:
@@ -134,8 +143,10 @@ if __name__ == '__main__':
 
         annotation = Parser.annotation(properties['annotation'])
         feature_id = annotation[0]
-        feature_uri = rdflib.URIRef('{}/{}'.format(map_source, feature_id))
         feature_class = None
+        feature_uri = rdflib.URIRef('{}/{}'.format(map_source, feature_id))
+        graph.remove( (feature_uri, None, None) )
+
         route = { 'source': '', 'via': [], 'target': '' }
 
         for p in annotation[1:]:
@@ -185,5 +196,7 @@ if __name__ == '__main__':
         # Don't set `base=map_uri` until RDFLib 5.0 and then use `explicit_base=True`
         # See https://github.com/RDFLib/rdflib/issues/559
         turtle.write(graph.serialize(format='turtle').decode('utf-8'))
+
+    graph.close()
 
 #===============================================================================

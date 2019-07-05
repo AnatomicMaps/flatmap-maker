@@ -57,8 +57,8 @@ class MBTiles(object):
 
     def add_metadata(self, **metadata):
         for name, value in metadata.items():
-            self._cursor.execute('insert into metadata (name, value) values (?, ?);',
-                                                                         (name, value))
+            self._cursor.execute('replace into metadata(name, value) values (?, ?);',
+                                                                            (name, value))
 
     def update_metadata(self, **metadata):
         for name, value in metadata.items():
