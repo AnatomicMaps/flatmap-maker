@@ -15,6 +15,9 @@ pymupdf = "*"
 mbutil = {git = "https://github.com/mapbox/mbutil"}
 requests = "*"
 pyparsing = "*"
+pyyaml = "*"
+rdflib-sqlalchemy = "*"
+rdflib = "*"
 
 [requires]
 python_version = "3.7"

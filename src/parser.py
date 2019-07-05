@@ -42,12 +42,14 @@ class Parser(object):
     ## and that they are nodes...
     EDGE_SPEC = Group(Keyword('edge') + Suppress('(') + Group(delimitedList(FEATURE_ID)) + Suppress(')'))
 
+    FEATURE_CLASS = NODE_SPEC | EDGE_SPEC
+
     ROUTING = Keyword('source') | Keyword('target') | Keyword('via')
     ROUTING_SPEC = Group(ROUTING + Suppress('(') + FEATURE_ID + Suppress(')'))
 
-    PROPERTY_SPEC = MODELS_SPEC | NODE_SPEC | EDGE_SPEC | ROUTING_SPEC
+    PROPERTY_SPEC = ZeroOrMore(MODELS_SPEC | ROUTING_SPEC)
 
-    ANNOTATION = FEATURE_ID + ZeroOrMore(PROPERTY_SPEC)
+    ANNOTATION = FEATURE_ID + Optional(FEATURE_CLASS | PROPERTY_SPEC)
 
     @staticmethod
     def directive(s):
