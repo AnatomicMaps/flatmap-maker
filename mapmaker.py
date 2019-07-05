@@ -137,16 +137,9 @@ if __name__ == '__main__':
 
     mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
 
-    if args.no_vector_tiles:
-        tile_db = MBTiles(mbtiles_file)
+    tile_db = MBTiles(mbtiles_file)
 
-        # Update annotations in metadata
-        tile_db.update_metadata(annotations=json.dumps(annotations))
-
-         # Commit updates to the database
-        tile_db.execute("COMMIT")
-
-    else:
+    if not args.no_vector_tiles:
         # Generate Mapbox vector tiles
         print('Running tippecanoe...')
 
@@ -169,14 +162,13 @@ if __name__ == '__main__':
 
         tile_db.update_metadata(center=','.join([str(x) for x in map_centre]),
                                 bounds=','.join([str(x) for x in map_bounds]))
-        # Save path of the Powerpoint source
-        tile_db.add_metadata(source=pptx_source)
 
-        # Save annotations in metadata
-        tile_db.add_metadata(annotations=json.dumps(annotations))
-
-        # Commit updates to the database
-        tile_db.execute("COMMIT")
+    # Save path of the Powerpoint source
+    tile_db.add_metadata(source=pptx_source)
+    # Save annotations in metadata
+    tile_db.add_metadata(annotations=json.dumps(annotations))
+    # Commit updates to the database
+    tile_db.execute("COMMIT")
 
     if not args.no_vector_tiles:
         print('Creating style files...')
