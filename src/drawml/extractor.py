@@ -192,20 +192,24 @@ class SlideToLayer(object):
         for shape in shapes:
             shape.unique_id = '{}-{}'.format(self.slide_id, shape.shape_id)
             if shape.name.startswith('#'):
+                annotation = {
+                    'layer': self.layer_id,
+                    'annotation': shape.name
+                }
                 properties = Parser.annotation(shape.name)
                 if properties:
                     feature_id = properties[0][1:]
-                    annotation = {
-                        'layer': self.layer_id,
-                        'annotation': shape.name
-                    }
                     if feature_id in self._feature_ids:
                         annotation['error'] = 'duplicate-id'
-                        self._errors.append('Slide {}: has a duplicate feature id ({})'
+                        self._errors.append('Slide {} has a duplicate feature id: {}'
                                             .format(self._slide_number, feature_id))
                     else:
                         self._feature_ids[feature_id] = shape.unique_id
-                    self._annotations[shape.unique_id] = annotation
+                else:
+                    annotation['error'] = 'syntax'
+                    self._errors.append('Slide {} has annotation syntax error: {}'
+                                        .format(self._slide_number, shape.name))
+                self._annotations[shape.unique_id] = annotation
             if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or shape.shape_type == MSO_SHAPE_TYPE.PICTURE
