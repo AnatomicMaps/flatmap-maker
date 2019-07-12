@@ -235,7 +235,7 @@ if __name__ == '__main__':
 
         metadata = tile_db.metadata()
 
-        style_dict = Style.style(args.map_id, layer_ids, metadata, args.max_zoom)
+        style_dict = Style.style(layer_ids, metadata, args.max_zoom)
         with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 

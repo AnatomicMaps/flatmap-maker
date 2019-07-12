@@ -28,10 +28,10 @@ ATTRIBUTION = '© <a href="https://www.auckland.ac.nz/en/abi.html">Auckland Bioe
 
 class ImageSource(object):
     @staticmethod
-    def style(map_id, background_image, bounds):
+    def style(background_image, bounds):
         return {
             'type': 'image',
-            'url': '/{}/images/{}'.format(map_id, background_image),
+            'url': '/images/{}'.format(background_image),
             'coordinates': [
                 [bounds[0], bounds[3]],  # top-left (nw)
                 [bounds[2], bounds[3]],  # top-right (ne)
@@ -44,10 +44,10 @@ class ImageSource(object):
 
 class RasterSource(object):
     @staticmethod
-    def style(map_id, layer_id, bounds, max_zoom):
+    def style(layer_id, bounds, max_zoom):
         return {
             'type': 'raster',
-            'tiles': ['/{}/tiles/{}/{{z}}/{{x}}/{{y}}'.format(map_id, layer_id)],
+            'tiles': ['/tiles/{}/{{z}}/{{x}}/{{y}}'.format(layer_id)],
             'format': 'png',
             'minzoom': 0,
             'maxzoom': max_zoom,
@@ -58,10 +58,10 @@ class RasterSource(object):
 
 class VectorSource(object):
     @staticmethod
-    def style(map_id, vector_layer_dict, bounds, max_zoom):
+    def style(vector_layer_dict, bounds, max_zoom):
         return {
             'type': 'vector',
-            'tiles': ['/{}/mvtiles/{{z}}/{{x}}/{{y}}'.format(map_id)],
+            'tiles': ['/mvtiles/{z}/{x}/{y}'],
             'format': 'pbf',
             'version': '2',
             'minzoom': 0,
@@ -77,27 +77,24 @@ class VectorSource(object):
 
 class Sources(object):
     @staticmethod
-    def style(map_id, layers, vector_layer_dict, bounds, max_zoom):
+    def style(layers, vector_layer_dict, bounds, max_zoom):
         sources = {
-            'features': VectorSource.style(map_id, vector_layer_dict, bounds, max_zoom)
+            'features': VectorSource.style(vector_layer_dict, bounds, max_zoom)
         }
-        sources['background'] = RasterSource.style(map_id, 'background', bounds, max_zoom)
-                              # ImageSource.style(map_id, 'background.png', bounds)
         for layer_id in layers:
-            sources['{}-background'.format(layer_id)] = RasterSource.style(map_id, layer_id, bounds, max_zoom)
-                                                      # ImageSource.style(map_id, '{}.png'.format(layer_id), bounds)
+            sources['{}-image'.format(layer_id)] = RasterSource.style(layer_id, bounds, max_zoom)
         return sources
 
 #===============================================================================
 
 class Style(object):
     @staticmethod
-    def style(map_id, layers, metadata, max_zoom):
+    def style(layers, metadata, max_zoom):
         vector_layer_dict = json.loads(metadata['json'])
         bounds = [float(x) for x in metadata['bounds'].split(',')]
         return {
             'version': 8,
-            'sources': Sources.style(map_id, layers, vector_layer_dict, bounds, max_zoom),
+            'sources': Sources.style(layers, vector_layer_dict, bounds, max_zoom),
             'zoom': 0,
             'center': [float(x) for x in metadata['center'].split(',')],
             'layers': []
