@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from pyparsing import alphanums, Combine, delimitedList, Group, Keyword
+from pyparsing import alphanums, printables, Combine, delimitedList, Group, Keyword
 from pyparsing import Optional, ParseException, Suppress, Word, ZeroOrMore
 
 #===============================================================================
@@ -26,7 +26,17 @@ from pyparsing import Optional, ParseException, Suppress, Word, ZeroOrMore
 class Parser(object):
     IDENTIFIER = Word(alphanums, alphanums+':/_-.')
 
-    DIRECTIVE = '.layer-id' + Suppress('(') + IDENTIFIER + Suppress(')') + Optional('no-select')
+    TEXT = Word(printables + ' ', excludeChars='()')
+    DESCRIPTION = Group(Keyword('description') + Suppress('(') + TEXT + Suppress(')'))
+
+    TAXONOMY_ID = Combine(Keyword('NCBITaxon') + ':' + IDENTIFIER)
+    DESCRIBES = Group(Keyword('describes') + Suppress('(') + TAXONOMY_ID + Suppress(')'))
+
+    BACKGROUND_DIRECTIVE = Group(Keyword('background-for') + Suppress('(') + IDENTIFIER + Suppress(')'))
+    SELECT_DIRECTIVE = Group(Keyword('not-selectable') | Keyword('selected'))
+
+    DIRECTIVES = DESCRIPTION | DESCRIBES | SELECT_DIRECTIVE | BACKGROUND_DIRECTIVE
+    DIRECTIVE = '.layer-id' + Suppress('(') + IDENTIFIER + Suppress(')') + ZeroOrMore(DIRECTIVES)
 
     FEATURE_ID = Combine('#' + IDENTIFIER)
 
@@ -53,10 +63,21 @@ class Parser(object):
 
     @staticmethod
     def directive(s):
+        result = {}
         try:
-            return Parser.DIRECTIVE.parseString(s, parseAll=True)
+            parsed = Parser.DIRECTIVE.parseString(s, parseAll=True)
+            result['id'] = parsed[1]
+            result['selectable'] = True
+            for directive in parsed[2:]:
+                if directive[0] in ['describes', 'description', 'background-for']:
+                    result[directive[0]] = directive[1]
+                elif directive[0] == 'not-selectable':
+                    result['selectable'] = False
+                elif directive[0] == 'selected':
+                    result['selected'] = True
         except ParseException:
-            return tuple()
+            result['error'] = 'Syntax error in directive'
+        return result
 
     @staticmethod
     def annotation(s):

@@ -105,25 +105,26 @@ class SlideToLayer(object):
         self._errors = []
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
-        self._layer_id = None
-        text_boxes = slide.element.findall('.//p:sp/p:nvSpPr/p:cNvSpPr[@txBox]/..',
-                                           {'p': 'http://schemas.openxmlformats.org/presentationml/2006/main'})
-        for text_box in text_boxes:
-            if text_box.cNvSpPr.txBox and text_box.cNvPr.name.startswith('.'):
-                directive = Parser.directive(text_box.cNvPr.name)
-                if not directive:
+        if slide.has_notes_slide:
+            notes_slide = slide.notes_slide
+            notes_text = notes_slide.notes_text_frame.text
+            if notes_text.startswith('.'):
+                directive = Parser.directive(notes_text)
+                if 'error' in directive:
                     self._errors.append('Slide {}: invalid layer directive: {}'
-                                        .format(slide_number, text_box.cNvPr.name))
-                elif self._layer_id is not None:
-                    self._errors.append('Slide {}: only have a single layer-id textbox allowed'
-                                        .format(slide_number))
+                                        .format(slide_number, notes_text))
+                    self._layer_id = 'layer-{:02d}'.format(slide_number)
                 else:
-                    self._layer_id = directive[1]
-                self._selectable = 'no-select' not in list(directive[2:])
-        if self._layer_id is None:
+                    self._layer_id = directive.get('id')
+                self._description = directive.get('description', self._layer_id.capitalize())
+                self._describes = directive.get('describes', '')
+                self._background_for = directive.get('background-for', '')
+                self._selectable = self._background_for == '' and directive.get('selectable')
+                self._selected = directive.get('selected', False)
+        else:
             self._layer_id = 'layer-{:02d}'.format(slide_number)
+            self._description = 'Layer {}'.format(slide_number)
             self._selectable = False
-        self._description = ''
         self._feature_ids = {}
         self._annotations = {}
 
@@ -138,6 +139,18 @@ class SlideToLayer(object):
     @property
     def description(self):
         return self._description
+
+    @property
+    def describes(self):
+        return self._describes
+
+    @property
+    def background_for(self):
+        return self._background_for
+
+    @property
+    def selected(self):
+        return self._selected
 
     @property
     def selectable(self):
@@ -174,6 +187,8 @@ class SlideToLayer(object):
         pass
 
     def process_shape_list(self, shapes, *args):
+        if not self._selectable:
+            return
         for shape in shapes:
             shape.unique_id = '{}-{}'.format(self.slide_id, shape.shape_id)
             if shape.name.startswith('#'):
@@ -199,11 +214,7 @@ class SlideToLayer(object):
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.process_group(shape, *args)
             elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX:
-                if (shape.name.startswith('.layer-id(')
-                  and shape.name.endswith(')')
-                  and shape.name[10:-1].strip() == self._layer_id
-                  and shape.text.strip() != ''):
-                    self._description = shape.text
+                pass
             else:
                 print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
 

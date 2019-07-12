@@ -92,6 +92,8 @@ if __name__ == '__main__':
 
     map_dir = os.path.join(args.map_base, args.map_id)
 
+    map_describes = ''
+
     if not os.path.exists(map_dir):
         os.makedirs(map_dir)
 
@@ -102,30 +104,42 @@ if __name__ == '__main__':
     # Process slides, saving layer information
 
     annotations = {}
-    layers = []
+    map_layers = []
     tippe_inputs = []
-    for slide_number in range(2, len(map_extractor)+1):  # First slide is background layer, so skip
-        (fh, filename) = tempfile.mkstemp(suffix='.json')
-        os.close(fh)
-        filenames.append(filename)
+    for slide_number in range(1, len(map_extractor)+1):
         layer = map_extractor.slide_to_layer(slide_number, False)
-        layer.save(filename)
-        tippe_inputs.append({
-            'file': filename,
-            'layer': layer.layer_id,
-            'description': layer.description
-        })
-        layers.append({
+        for error in layer.errors:
+            print(error)
+
+        map_layer = {
             'id': layer.layer_id,
             'description': layer.description,
-            'selectable': layer.selectable
-            })
-        annotations.update(layer.annotations)
+            'selectable': layer.selectable,
+            'selected': layer.selected
+        }
+        if layer.background_for:
+            map_layer['background_for'] = layer.background_for
+        map_layers.append(map_layer)
 
-    if len(layers) == 0:
+        if layer.describes:
+            map_describes = layer.describes
+
+        if layer.selectable:
+            annotations.update(layer.annotations)
+            (fh, filename) = tempfile.mkstemp(suffix='.json')
+            os.close(fh)
+            filenames.append(filename)
+            layer.save(filename)
+            tippe_inputs.append({
+                'file': filename,
+                'layer': layer.layer_id,
+                'description': layer.description
+            })
+
+    if len(map_layers) == 0:
         sys.exit('No map layers in Powerpoint...')
 
-    layer_ids = [layer['id'] for layer in layers]
+    layer_ids = [layer['id'] for layer in map_layers]
 
     # Get our map's actual bounds and centre
 
@@ -164,7 +178,12 @@ if __name__ == '__main__':
                                 bounds=','.join([str(x) for x in map_bounds]))
 
     # Save path of the Powerpoint source
-    tile_db.add_metadata(source=pptx_source)
+    tile_db.add_metadata(source=pptx_source)   ## We don't always want this updated...
+                                               ## e.g. if rerunning after tile generation
+    # What the map describes
+    if map_describes:
+        tile_db.add_metadata(describes=map_describes)
+
     # Save annotations in metadata
     tile_db.add_metadata(annotations=json.dumps(annotations))
     # Commit updates to the database
@@ -173,14 +192,20 @@ if __name__ == '__main__':
     if not args.no_vector_tiles:
         print('Creating style files...')
 
+        map_index = {
+            'id': args.map_id,
+            'style': 'style.json',
+            'layers': map_layers,
+            'maxzoom': args.max_zoom
+        }
+
+        if map_describes:
+            map_index['describes'] = map_describes
+
         # Create `index.json` for building a map in the viewer
+
         with open(os.path.join(map_dir, 'index.json'), 'w') as output_file:
-            json.dump({
-                'id': args.map_id,
-                'style': 'style.json',
-                'layers': layers,
-                'maxzoom': args.max_zoom
-            }, output_file)
+            json.dump(map_index, output_file)
 
         # Create style file
 
