@@ -212,11 +212,11 @@ class TileMaker(object):
 
     def start_make_tiles_process(self, pdf_bytes, source_id, page_no, layer):
     #========================================================================
-        print('Page {}: {}'.format(page_no+1, layer))
+        print('Page {}: {}'.format(page_no, layer))
 
         pdf = fitz.Document(stream=pdf_bytes, filetype='application/pdf')
         pages = list(pdf)
-        pdf_page = pages[page_no]
+        pdf_page = pages[page_no - 1]
 
         process = multiprocessing.Process(target=self.make_tiles, args=(source_id, pdf_page, layer))
         self._processes.append(process)
@@ -229,12 +229,14 @@ class TileMaker(object):
 
 #===============================================================================
 
-def make_background_tiles(map_bounds, max_zoom, map_dir, pdf_source, pdf_bytes, layer_ids):
+def make_background_tiles(map_bounds, max_zoom, map_dir, pdf_source, pdf_bytes, layer_ids, slide=0):
     tile_maker = TileMaker(map_bounds, map_dir, max_zoom)
-    tile_maker.start_make_tiles_process(pdf_bytes, '{}#1'.format(pdf_source), 0, 'background')
-
     for n, layer_id in enumerate(layer_ids):
-        tile_maker.start_make_tiles_process(pdf_bytes, '{}#{}'.format(pdf_source, n+2), n+1, layer_id)
+        if slide > 0:   # There will be just a single layer
+            slide_no = slide
+        else:
+            slide_no = n + 1
+        tile_maker.start_make_tiles_process(pdf_bytes, '{}#{}'.format(pdf_source, slide_no), slide_no, layer_id)
 
     tile_maker.wait_for_processes()
 

@@ -45,6 +45,8 @@ if __name__ == '__main__':
                         help='maximum zoom level (defaults to 7)')
     parser.add_argument('--no-vector-tiles', action='store_true',
                         help="don't generate vector tiles database and style files")
+    parser.add_argument('--tile-slide', metavar='N', type=int, default=0,
+                        help='only generate image tiles for this slide (1-origin); implies --background-tiles and --no-vector-tiles')
 
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
@@ -64,6 +66,10 @@ if __name__ == '__main__':
 
     if args.max_zoom < 1 or args.max_zoom > 15:
         sys.exit('--max-zoom must be between 1 and 15')
+
+    if args.tile_slide > 0:
+        args.background_tiles = True
+        args.no_vector_tiles = True
 
     if args.powerpoint.startswith('http:') or args.powerpoint.startswith('https:'):
         response = requests.get(args.powerpoint)
@@ -107,6 +113,9 @@ if __name__ == '__main__':
     map_layers = []
     tippe_inputs = []
     for slide_number in range(1, len(map_extractor)+1):
+        if args.tile_slide > 0 and args.tile_slide != slide_number:
+            continue
+
         layer = map_extractor.slide_to_layer(slide_number, False)
         for error in layer.errors:
             print(error)
@@ -151,9 +160,12 @@ if __name__ == '__main__':
 
     mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
 
-    tile_db = MBTiles(mbtiles_file)
 
-    if not args.no_vector_tiles:
+    if args.no_vector_tiles:
+        if args.tile_slide == 0:
+            tile_db = MBTiles(mbtiles_file)
+
+    else:
         # Generate Mapbox vector tiles
         print('Running tippecanoe...')
 
@@ -177,17 +189,21 @@ if __name__ == '__main__':
         tile_db.update_metadata(center=','.join([str(x) for x in map_centre]),
                                 bounds=','.join([str(x) for x in map_bounds]))
 
-    # Save path of the Powerpoint source
-    tile_db.add_metadata(source=pptx_source)   ## We don't always want this updated...
-                                               ## e.g. if rerunning after tile generation
-    # What the map describes
-    if map_describes:
-        tile_db.add_metadata(describes=map_describes)
+        tile_db.execute("COMMIT")
 
-    # Save annotations in metadata
-    tile_db.add_metadata(annotations=json.dumps(annotations))
-    # Commit updates to the database
-    tile_db.execute("COMMIT")
+    if args.tile_slide == 0:
+        # Save path of the Powerpoint source
+        tile_db.add_metadata(source=pptx_source)   ## We don't always want this updated...
+                                                   ## e.g. if rerunning after tile generation
+        # What the map describes
+        if map_describes:
+            tile_db.add_metadata(describes=map_describes)
+
+        # Save annotations in metadata
+        tile_db.add_metadata(annotations=json.dumps(annotations))
+
+        # Commit updates to the database
+        tile_db.execute("COMMIT")
 
     if not args.no_vector_tiles:
         print('Creating style files...')
@@ -215,16 +231,18 @@ if __name__ == '__main__':
         with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
-    # We are finished with the tile database, so close it
-    tile_db.close();
+    if args.tile_slide == 0:
+        # We are finished with the tile database, so close it
+        tile_db.close();
 
     if args.background_tiles:
         print('Generating background tiles (may take a while...)')
-        make_background_tiles(map_bounds, args.max_zoom, map_dir, pdf_source, pdf_bytes, layer_ids)
+        make_background_tiles(map_bounds, args.max_zoom, map_dir,
+                              pdf_source, pdf_bytes, layer_ids, args.tile_slide)
 
     # Tidy up
-
     print('Cleaning up...')
+
     for filename in filenames:
         os.remove(filename)
 
