@@ -22,6 +22,7 @@ import io
 import json
 import subprocess
 import tempfile
+import datetime
 
 #===============================================================================
 
@@ -201,6 +202,9 @@ if __name__ == '__main__':
 
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(annotations))
+
+        # Save the maps creation time
+        tile_db.add_metadata(creation=datetime.datetime.utcnow().isoformat())
 
         # Commit updates to the database
         tile_db.execute("COMMIT")
