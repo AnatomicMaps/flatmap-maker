@@ -208,7 +208,7 @@ if __name__ == '__main__':
         tile_db.add_metadata(annotations=json.dumps(annotations))
 
         # Save the maps creation time
-        tile_db.add_metadata(creation=datetime.datetime.utcnow().isoformat())
+        tile_db.add_metadata(created=datetime.datetime.utcnow().isoformat())
 
         # Commit updates to the database
         tile_db.execute("COMMIT")
