@@ -146,6 +146,7 @@ if __name__ == '__main__':
     namespaces_dict = {
         'FMA': rdflib.namespace.Namespace('http://purl.org/sig/ont/fma/fma'),
         'ILX': rdflib.namespace.Namespace('http://uri.interlex.org/base/ilx_'),
+        'NCBITaxon': rdflib.namespace.Namespace('http://purl.obolibrary.org/obo/NCBITaxon_'),
         'RO': rdflib.namespace.Namespace('http://purl.obolibrary.org/obo/RO_'),
         'UBERON': rdflib.namespace.Namespace('http://purl.obolibrary.org/obo/UBERON_'),
         'fma': rdflib.namespace.Namespace('http://purl.org/sig/ont/fma/'),
