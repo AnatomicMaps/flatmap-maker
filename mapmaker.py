@@ -77,11 +77,13 @@ if __name__ == '__main__':
         if response.status_code != requests.codes.ok:
             sys.exit('Cannot retrieve remote Powerpoint file')
         pptx_source = args.powerpoint
+        pptx_modified = 0   ## Can we get timestamp from PMR metadata?? Or even i
         pptx_bytes = io.BytesIO(response.content)
     else:
         if not os.path.exists(args.powerpoint):
             sys.exit('Missing Powerpoint file')
         pptx_source = os.path.abspath(args.powerpoint)
+        pptx_modified = os.path.getmtime(pptx_source)
         pptx_bytes = open(pptx_source, 'rb')
 
     if args.background_tiles:
@@ -94,6 +96,8 @@ if __name__ == '__main__':
         else:
             if not os.path.exists(pdf_source):
                 sys.exit('Missing PDF of Powerpoint (needed to generate background tiles)')
+            if os.path.getmtime(pdf_source) < pptx_modified:
+                sys.exit('PDF of Powerpoint is too old...')
             with open(pdf_source, 'rb') as f:
                 pdf_bytes = f.read()
 
