@@ -42,8 +42,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert Powerpoint slides to a flatmap.')
     parser.add_argument('--background-tiles', action='store_true',
                         help="generate image tiles of map's layers")
-    parser.add_argument('--max-zoom', metavar='N', type=int, default=7,
-                        help='maximum zoom level (defaults to 7)')
+    parser.add_argument('--max-zoom', metavar='N', type=int, default=10,
+                        help='maximum zoom level (defaults to 10)')
     parser.add_argument('--no-vector-tiles', action='store_true',
                         help="don't generate vector tiles database and style files")
     parser.add_argument('--tile-slide', metavar='N', type=int, default=0,
