@@ -174,10 +174,10 @@ class TileMaker(object):
                                          tile.y - self._tile_start_coords[1])
             if not_transparent(png):
                 if count and (count % 100) == 0:
-                    print("  Tile number: {} at ({}, {})".format(count, tile.x, tile.y))
+                    print("  {} tile: {} at ({}, {})".format(layer, count, tile.x, tile.y))
                 mbtiles.save_tile(zoom, tile.x, tile.y, png)
                 count += 1
-        print("  {} tiles".format(count))
+        print("  {} {} tiles".format(layer, count))
 
         self.make_overview_tiles(mbtiles, layer, zoom, self._tile_start_coords, self._tile_end_coords)
         mbtiles.close() #True)
@@ -204,7 +204,7 @@ class TileMaker(object):
                                 pass
                     if not_transparent(overview_tile):
                         if count and (count % 100) == 0:
-                            print("  Tile number: {} at ({}, {})".format(count, x, y))
+                            print("  {} tile: {} at ({}, {})".format(layer, count, x, y))
                         mbtiles.save_tile(zoom, x, y, overview_tile)
                         count += 1
             self.make_overview_tiles(mbtiles, layer, zoom, half_start, half_end)
