@@ -140,7 +140,7 @@ if __name__ == '__main__':
             map_describes = layer.describes
 
         if layer.selectable:
-            annotations.update(layer.annotations)
+            annotations.update(layer.metadata)
             (fh, filename) = tempfile.mkstemp(suffix='.json')
             os.close(fh)
             filenames.append(filename)

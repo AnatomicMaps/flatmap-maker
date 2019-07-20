@@ -183,6 +183,7 @@ class MakeGeoJsonLayer(SlideToLayer):
 
         feature['geometry'] = geometry
         self._features.append(feature)
+        return feature
 
 #===============================================================================
 

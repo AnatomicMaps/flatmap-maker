@@ -131,15 +131,15 @@ class SlideToLayer(object):
             self._selected = False
             self._queryable_nodes = False
         self._feature_ids = {}
-        self._annotations = {}
+        self._metadata = {}
 
     @property
     def args(self):
         return self._args
 
     @property
-    def annotations(self):
-        return self._annotations
+    def metadata(self):
+        return self._metadata
 
     @property
     def description(self):
@@ -200,8 +200,21 @@ class SlideToLayer(object):
             return
         for shape in shapes:
             shape.unique_id = '{}-{}'.format(self.slide_id, shape.shape_id)
+            feature = None
+            if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
+             or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
+             or shape.shape_type == MSO_SHAPE_TYPE.PICTURE
+             or isinstance(shape, pptx.shapes.connector.Connector)):
+                feature = self.process_shape(shape, *args)
+            elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
+                self.process_group(shape, *args)
+            elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX:
+                pass
+            else:
+                print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
+
             if shape.name.startswith('#'):
-                annotation = {
+                metadata = {
                     'layer': self.layer_id,
                     'annotation': shape.name
                 }
@@ -209,27 +222,18 @@ class SlideToLayer(object):
                 if properties:
                     feature_id = properties[0][1:]
                     if feature_id in self._feature_ids:
-                        annotation['error'] = 'duplicate-id'
+                        metadata['error'] = 'duplicate-id'
                         self._errors.append('Slide {} has a duplicate feature id: {}'
                                             .format(self._slide_number, feature_id))
                     else:
                         self._feature_ids[feature_id] = shape.unique_id
                 else:
-                    annotation['error'] = 'syntax'
+                    metadata['error'] = 'syntax'
                     self._errors.append('Slide {} has annotation syntax error: {}'
                                         .format(self._slide_number, shape.name))
-                self._annotations[shape.unique_id] = annotation
-            if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
-             or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
-             or shape.shape_type == MSO_SHAPE_TYPE.PICTURE
-             or isinstance(shape, pptx.shapes.connector.Connector)):
-                self.process_shape(shape, *args)
-            elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
-                self.process_group(shape, *args)
-            elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX:
-                pass
-            else:
-                print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
+                if feature is not None:
+                    metadata['geometry'] = feature['geometry']['type']
+                self._metadata[shape.unique_id] = metadata
 
 #===============================================================================
 
