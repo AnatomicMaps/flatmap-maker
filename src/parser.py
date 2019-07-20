@@ -33,7 +33,7 @@ class Parser(object):
     DESCRIBES = Group(Keyword('describes') + Suppress('(') + TAXONOMY_ID + Suppress(')'))
 
     BACKGROUND_DIRECTIVE = Group(Keyword('background-for') + Suppress('(') + IDENTIFIER + Suppress(')'))
-    SELECT_DIRECTIVE = Group(Keyword('not-selectable') | Keyword('selected'))
+    SELECT_DIRECTIVE = Group(Keyword('not-selectable') | Keyword('selected') | Keyword('queryable-nodes'))
 
     DIRECTIVES = DESCRIPTION | DESCRIBES | SELECT_DIRECTIVE | BACKGROUND_DIRECTIVE
     DIRECTIVE = '.layer-id' + Suppress('(') + IDENTIFIER + Suppress(')') + ZeroOrMore(DIRECTIVES)
@@ -75,6 +75,8 @@ class Parser(object):
                     result['selectable'] = False
                 elif directive[0] == 'selected':
                     result['selected'] = True
+                elif directive[0] == 'queryable-nodes':
+                    result['queryable-nodes'] = True
         except ParseException:
             result['error'] = 'Syntax error in directive'
         return result

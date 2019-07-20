@@ -121,6 +121,7 @@ class SlideToLayer(object):
                 self._background_for = directive.get('background-for', '')
                 self._selectable = self._background_for == '' and directive.get('selectable')
                 self._selected = directive.get('selected', False)
+                self._queryable_nodes = directive.get('queryable-nodes', False)
         else:
             self._layer_id = 'layer-{:02d}'.format(slide_number)
             self._description = 'Layer {}'.format(slide_number)
@@ -128,6 +129,7 @@ class SlideToLayer(object):
             self._background_for = ''
             self._selectable = False
             self._selected = False
+            self._queryable_nodes = False
         self._feature_ids = {}
         self._annotations = {}
 
@@ -158,6 +160,10 @@ class SlideToLayer(object):
     @property
     def selectable(self):
         return self._selectable
+
+    @property
+    def queryable_nodes(self):
+        return self._queryable_nodes
 
     @property
     def errors(self):

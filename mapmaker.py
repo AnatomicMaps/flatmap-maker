@@ -129,7 +129,8 @@ if __name__ == '__main__':
             'id': layer.layer_id,
             'description': layer.description,
             'selectable': layer.selectable,
-            'selected': layer.selected
+            'selected': layer.selected,
+            'queryable-nodes': layer.queryable_nodes
         }
         if layer.background_for:
             map_layer['background_for'] = layer.background_for
