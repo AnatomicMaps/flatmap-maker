@@ -124,7 +124,10 @@ class SlideToLayer(object):
         else:
             self._layer_id = 'layer-{:02d}'.format(slide_number)
             self._description = 'Layer {}'.format(slide_number)
+            self._describes = ''
+            self._background_for = ''
             self._selectable = False
+            self._selected = False
         self._feature_ids = {}
         self._annotations = {}
 
