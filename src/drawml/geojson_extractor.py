@@ -173,16 +173,16 @@ class MakeGeoJsonLayer(SlideToLayer):
                 else:
                     print('Unknown path element: {}'.format(c.tag))
 
-            lat_lon = points_to_lon_lat(coordinates)
-            if closed:
-                geometry['type'] = 'Polygon'
-                geometry['coordinates'] = [ lat_lon ]
-            else:
-                geometry['type'] = 'LineString'
-                geometry['coordinates'] = lat_lon
+        lat_lon = points_to_lon_lat(coordinates)
+        if closed:
+            geometry['type'] = 'Polygon'
+            geometry['coordinates'] = [ lat_lon ]
+        else:
+            geometry['type'] = 'LineString'
+            geometry['coordinates'] = lat_lon
 
-            feature['geometry'] = geometry
-            self._features.append(feature)
+        feature['geometry'] = geometry
+        self._features.append(feature)
 
 #===============================================================================
 
