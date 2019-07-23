@@ -51,6 +51,8 @@ class Parser(object):
 
     MODELS_SPEC = Group(Keyword('models') + Suppress('(') + Group(delimitedList(ONTOLOGY_ID)) + Suppress(')'))
 
+    LABEL_SPEC = Group(Keyword('label') + Suppress('(') + TEXT + Suppress(')'))
+
     NEURAL_NODE = Keyword('N1') | Keyword('N2') | Keyword('N3') | Keyword('N4') | Keyword('N5')
     NODE_SPEC = Group(Keyword('node') + Suppress('(') + NEURAL_NODE + Suppress(')'))
 
@@ -63,7 +65,7 @@ class Parser(object):
     ROUTING = Keyword('source') | Keyword('target') | Keyword('via')
     ROUTING_SPEC = Group(ROUTING + Suppress('(') + FEATURE_ID + Suppress(')'))
 
-    PROPERTY_SPEC = ZeroOrMore(MODELS_SPEC | ROUTING_SPEC)
+    PROPERTY_SPEC = ZeroOrMore(MODELS_SPEC | ROUTING_SPEC | LABEL_SPEC)
 
     ANNOTATION = FEATURE_ID + Optional(FEATURE_CLASS | PROPERTY_SPEC)
 

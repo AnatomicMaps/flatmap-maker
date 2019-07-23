@@ -29,6 +29,7 @@ import datetime
 import requests
 
 from src.drawml import GeoJsonExtractor
+from src.labels import LabelData
 from src.mbtiles import MBTiles
 from src.rdf import update_RDF
 from src.styling import Style
@@ -111,6 +112,10 @@ if __name__ == '__main__':
 
     if not os.path.exists(map_dir):
         os.makedirs(map_dir)
+
+    # Label database
+
+    args.label_database = LabelData(os.path.join(args.map_base, 'labels.sqlite'))
 
     print('Extracting layers...')
     filenames = []
@@ -223,6 +228,8 @@ if __name__ == '__main__':
         tile_db.execute("COMMIT")
 
         update_RDF(args.map_base, args.map_id, map_source, annotations)
+
+    args.label_database.close()
 
     if not args.no_vector_tiles:
         print('Creating style files...')
