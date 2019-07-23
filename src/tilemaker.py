@@ -106,6 +106,11 @@ class PageTiler(object):
                                                  TILE_SIZE[1]*(tile_y + 1))
         scaling = ((TILE_SIZE[0] - 1)/(x1 - x0),   # Fitz includes RH edge pixel
                    (TILE_SIZE[1] - 1)/(y1 - y0))   # so scale to 1px smaller...
+
+        # We now clip to avoid a black line if region outside of page...
+        if x1 >= self._page_rect.width: x1 = self._page_rect.width - 1
+        if y1 >= self._page_rect.height: y1 = self._page_rect.height - 1
+
         pixmap = self._pdf_page.getPixmap(clip=fitz.Rect(x0, y0, x1, y1),
                                           matrix=fitz.Matrix(*scaling),
                                           alpha=True)
@@ -113,12 +118,12 @@ class PageTiler(object):
         png_data = io.BytesIO(pixmap.getImageData('png'))
         image = Image.open(png_data)
 
-        x_start = check_image_size(image.width, TILE_SIZE[0], x0, x1, (0, self._page_rect.x1), scaling[0])
-        y_start = check_image_size(image.height, TILE_SIZE[1], y0, y1, (0, self._page_rect.y1), scaling[1])
         if image.size == tuple(TILE_SIZE):
             return make_transparent(image)
         else:
             # Pad out partial tiles
+            x_start = check_image_size(image.width, TILE_SIZE[0], x0, x1, (0, self._page_rect.x1), scaling[0])
+            y_start = check_image_size(image.height, TILE_SIZE[1], y0, y1, (0, self._page_rect.y1), scaling[1])
             tile = Image.new('RGBA', TILE_SIZE, (255, 255, 255, 0))
             tile.paste(image, (x_start, y_start))
             return make_transparent(tile)
