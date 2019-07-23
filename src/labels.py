@@ -52,7 +52,6 @@ class LabelData(object):
         self._cursor.execute('SELECT label FROM labels WHERE entity=?', (entity,))
         row = self._cursor.fetchone()
         if row is not None:
-            print(entity, row[0])
             return row[0]
         label = entity
         if not entity.startswith('ILX:'):
