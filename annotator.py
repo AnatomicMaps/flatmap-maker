@@ -33,7 +33,7 @@ if __name__ == '__main__':
     import argparse
     import os, sys
 
-    parser = argparse.ArgumentParser(description='Convert Powerpoint slides to a flatmap.')
+    parser = argparse.ArgumentParser(description='Export annotation as Turtle RDF.')
 
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
@@ -51,7 +51,6 @@ if __name__ == '__main__':
                         help='base directory for generated flatmaps')
     parser.add_argument('map_id', metavar='MAP_ID',
                         help='a unique identifier for the map')
-    # Need to be able to process a remote (PMR) source...
 
     args = parser.parse_args()
 
