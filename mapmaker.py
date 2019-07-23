@@ -68,6 +68,7 @@ if __name__ == '__main__':
 
     if args.max_zoom < 1 or args.max_zoom > 15:
         sys.exit('--max-zoom must be between 1 and 15')
+    map_zoom = (2, args.max_zoom, 4)
 
     if args.tile_slide > 0:
         args.background_tiles = True
@@ -128,6 +129,9 @@ if __name__ == '__main__':
         for error in layer.errors:
             print(error)
 
+        if layer.zoom is not None:
+            map_zoom = layer.zoom
+
         map_layer = {
             'id': layer.layer_id,
             'description': layer.description,
@@ -183,7 +187,8 @@ if __name__ == '__main__':
                         # and is also required to serve tile directories
                         '--no-tile-compression',
                         '--buffer=100',
-                        '--maximum-zoom={}'.format(args.max_zoom),
+                        '--minimum-zoom={}'.format(map_zoom[0]),
+                        '--maximum-zoom={}'.format(map_zoom[1]),
                         '--output={}'.format(mbtiles_file),
                         ]
                         + list(["-L{}".format(json.dumps(input)) for input in tippe_inputs])
@@ -226,7 +231,9 @@ if __name__ == '__main__':
             'id': args.map_id,
             'style': 'style.json',
             'layers': map_layers,
-            'maxzoom': args.max_zoom
+            'min-zoom': map_zoom[0],
+            'max-zoom': map_zoom[1],
+            'zoom': map_zoom[2],
         }
 
         if map_describes:
@@ -241,7 +248,7 @@ if __name__ == '__main__':
 
         metadata = tile_db.metadata()
 
-        style_dict = Style.style(layer_ids, metadata, args.max_zoom)
+        style_dict = Style.style(layer_ids, metadata, map_zoom)
         with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
@@ -251,7 +258,7 @@ if __name__ == '__main__':
 
     if args.background_tiles:
         print('Generating background tiles (may take a while...)')
-        make_background_tiles(map_bounds, args.max_zoom, map_dir,
+        make_background_tiles(map_bounds, map_zoom, map_dir,
                               pdf_source, pdf_bytes, layer_ids, args.tile_slide)
 
     # Tidy up

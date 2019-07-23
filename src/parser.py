@@ -18,13 +18,14 @@
 #
 #===============================================================================
 
-from pyparsing import alphanums, printables, Combine, delimitedList, Group, Keyword
+from pyparsing import alphanums, nums, printables, Combine, delimitedList, Group, Keyword
 from pyparsing import Optional, ParseException, Suppress, Word, ZeroOrMore
 
 #===============================================================================
 
 class Parser(object):
     IDENTIFIER = Word(alphanums, alphanums+':/_-.')
+    INTEGER = Word(nums)
 
     TEXT = Word(printables + ' ', excludeChars='()')
     DESCRIPTION = Group(Keyword('description') + Suppress('(') + TEXT + Suppress(')'))
@@ -35,7 +36,12 @@ class Parser(object):
     BACKGROUND_DIRECTIVE = Group(Keyword('background-for') + Suppress('(') + IDENTIFIER + Suppress(')'))
     SELECT_DIRECTIVE = Group(Keyword('not-selectable') | Keyword('selected') | Keyword('queryable-nodes'))
 
-    DIRECTIVES = DESCRIPTION | DESCRIBES | SELECT_DIRECTIVE | BACKGROUND_DIRECTIVE
+    ZOOM_DIRECTIVE = Group(Keyword('zoom') + Suppress('(')
+                                             + Group(INTEGER + Suppress(',') + INTEGER + Suppress(',') + INTEGER)
+                                           + Suppress(')'))
+
+
+    DIRECTIVES = DESCRIPTION | DESCRIBES | SELECT_DIRECTIVE | BACKGROUND_DIRECTIVE | ZOOM_DIRECTIVE
     DIRECTIVE = '.layer-id' + Suppress('(') + IDENTIFIER + Suppress(')') + ZeroOrMore(DIRECTIVES)
 
     FEATURE_ID = Combine('#' + IDENTIFIER)
@@ -77,6 +83,9 @@ class Parser(object):
                     result['selected'] = True
                 elif directive[0] == 'queryable-nodes':
                     result['queryable-nodes'] = True
+                elif directive[0] == 'zoom':
+                    result['zoom'] = [int(z) for z in directive[1]]
+
         except ParseException:
             result['error'] = 'Syntax error in directive'
         return result

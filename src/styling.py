@@ -44,13 +44,13 @@ class ImageSource(object):
 
 class RasterSource(object):
     @staticmethod
-    def style(layer_id, bounds, max_zoom):
+    def style(layer_id, bounds, map_zoom):
         return {
             'type': 'raster',
             'tiles': ['/tiles/{}/{{z}}/{{x}}/{{y}}'.format(layer_id)],
             'format': 'png',
-            'minzoom': 0,
-            'maxzoom': max_zoom,
+            'minzoom': map_zoom[0],
+            'maxzoom': map_zoom[1],
             'bounds': bounds    # southwest(lng, lat), northeast(lng, lat)
         }
 
@@ -58,14 +58,14 @@ class RasterSource(object):
 
 class VectorSource(object):
     @staticmethod
-    def style(vector_layer_dict, bounds, max_zoom):
+    def style(vector_layer_dict, bounds, map_zoom):
         return {
             'type': 'vector',
             'tiles': ['/mvtiles/{z}/{x}/{y}'],
             'format': 'pbf',
             'version': '2',
-            'minzoom': 0,
-            'maxzoom': max_zoom,
+            'minzoom': map_zoom[0],
+            'maxzoom': map_zoom[1],
             'bounds': bounds,   # southwest(lng, lat), northeast(lng, lat)
             'attribution': ATTRIBUTION,
             'generator': 'tippecanoe v1.34.0',
@@ -77,25 +77,25 @@ class VectorSource(object):
 
 class Sources(object):
     @staticmethod
-    def style(layers, vector_layer_dict, bounds, max_zoom):
+    def style(layers, vector_layer_dict, bounds, map_zoom):
         sources = {
-            'features': VectorSource.style(vector_layer_dict, bounds, max_zoom)
+            'features': VectorSource.style(vector_layer_dict, bounds, map_zoom)
         }
         for layer_id in layers:
-            sources['{}-image'.format(layer_id)] = RasterSource.style(layer_id, bounds, max_zoom)
+            sources['{}-image'.format(layer_id)] = RasterSource.style(layer_id, bounds, map_zoom)
         return sources
 
 #===============================================================================
 
 class Style(object):
     @staticmethod
-    def style(layers, metadata, max_zoom):
+    def style(layers, metadata, map_zoom):
         vector_layer_dict = json.loads(metadata['json'])
         bounds = [float(x) for x in metadata['bounds'].split(',')]
         return {
             'version': 8,
-            'sources': Sources.style(layers, vector_layer_dict, bounds, max_zoom),
-            'zoom': 0,
+            'sources': Sources.style(layers, vector_layer_dict, bounds, map_zoom),
+            'zoom': map_zoom[2],
             'center': [float(x) for x in metadata['center'].split(',')],
             'layers': []
         }

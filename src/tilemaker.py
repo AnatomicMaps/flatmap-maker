@@ -39,7 +39,9 @@ from .mbtiles import MBTiles, ExtractionError
 
 #===============================================================================
 
+MIN_ZOOM  =  2
 MAX_ZOOM  = 10
+
 TILE_SIZE = (512, 512)
 WHITE     = (255, 255, 255)
 
@@ -124,12 +126,13 @@ class PageTiler(object):
 #===============================================================================
 
 class TileMaker(object):
-    def __init__(self, extent, map_dir, max_zoom=MAX_ZOOM):
+    def __init__(self, extent, map_dir, map_zoom=(MIN_ZOOM, MAX_ZOOM)):
         self._map_dir = map_dir
-        self._max_zoom = max_zoom
+        self._min_zoom = map_zoom[0]
+        self._max_zoom = map_zoom[1]
 
         # Get whole tiles that span the image's extent
-        self._tiles = list(mt.tiles(*extent, max_zoom))
+        self._tiles = list(mt.tiles(*extent, self._max_zoom))
         tile_0 = self._tiles[0]
         tile_N = self._tiles[-1]
         self._tile_start_coords = (tile_0.x, tile_0.y)
@@ -184,7 +187,7 @@ class TileMaker(object):
 
     def make_overview_tiles(self, mbtiles, layer, zoom, start_coords, end_coords):
     #=============================================================================
-        if zoom > 0:
+        if zoom > self._min_zoom:
             zoom -= 1
             count = 0
             print('Tiling zoom level {} for {}'.format(zoom, layer))
@@ -229,14 +232,13 @@ class TileMaker(object):
 
 #===============================================================================
 
-def make_background_tiles(map_bounds, max_zoom, map_dir, pdf_source, pdf_bytes, layer_ids, slide=0):
-    tile_maker = TileMaker(map_bounds, map_dir, max_zoom)
-    for n, layer_id in enumerate(layer_ids):
-        if slide > 0:   # There will be just a single layer
-            slide_no = slide
-        else:
-            slide_no = n + 1
-        tile_maker.start_make_tiles_process(pdf_bytes, '{}#{}'.format(pdf_source, slide_no), slide_no, layer_id)
+def make_background_tiles(map_bounds, map_zoom, map_dir, pdf_source, pdf_bytes, layer_ids, slide=0):
+    tile_maker = TileMaker(map_bounds, map_dir, map_zoom)
+    if slide > 0:   # There is just a single layer
+        tile_maker.start_make_tiles_process(pdf_bytes, '{}#{}'.format(pdf_source, slide), slide, layer_ids[0])
+    else:
+        for n, layer_id in enumerate(layer_ids):
+            tile_maker.start_make_tiles_process(pdf_bytes, '{}#{}'.format(pdf_source, n+1), n+1, layer_id)
 
     tile_maker.wait_for_processes()
 
