@@ -92,9 +92,15 @@ class Parser(object):
 
     @staticmethod
     def annotation(s):
+        id = None
+        properties = {}
         try:
-            return Parser.ANNOTATION.parseString(s, parseAll=True)
+            parsed = Parser.ANNOTATION.parseString(s, parseAll=True)
+            id = parsed[0][1:]
+            for prop in parsed[1:]:
+                properties[prop[0]] = prop[1]
         except ParseException:
-            return tuple()
+            properties['error'] = 'Syntax error in directive'
+        return (id, properties)
 
 #===============================================================================

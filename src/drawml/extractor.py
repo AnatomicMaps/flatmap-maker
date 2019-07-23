@@ -224,19 +224,18 @@ class SlideToLayer(object):
                     'layer': self.layer_id,
                     'annotation': shape.name
                 }
-                properties = Parser.annotation(shape.name)
-                if properties:
-                    feature_id = properties[0][1:]
+                (feature_id, properties) = Parser.annotation(shape.name)
+                if feature_id is not None:
                     if feature_id in self._feature_ids:
                         metadata['error'] = 'duplicate-id'
-                        self._errors.append('Slide {} has a duplicate feature id: {}'
-                                            .format(self._slide_number, feature_id))
+                        self._errors.append('Feature {} in slide {} has a duplicate feature id: {}'
+                                            .format(shape.unique_id, self._slide_number, shape.name))
                     else:
                         self._feature_ids[feature_id] = shape.unique_id
                 else:
                     metadata['error'] = 'syntax'
-                    self._errors.append('Slide {} has annotation syntax error: {}'
-                                        .format(self._slide_number, shape.name))
+                    self._errors.append('Feature {} in slide {} has annotation syntax error: {}'
+                                        .format(shape.unique_id, self._slide_number, shape.name))
                 if feature is not None:
                     metadata['geometry'] = feature['geometry']['type']
                 self._metadata[shape.unique_id] = metadata
