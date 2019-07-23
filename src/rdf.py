@@ -36,7 +36,7 @@ class UrlMaker(object):
         self._base = '{}/{}'.format(base, layer)
 
     def url(self, id):
-        return rdflib.URIRef('{}/{}'.format(self._base, id[1:]))
+        return rdflib.URIRef('{}/{}'.format(self._base, id))
 
 #===============================================================================
 

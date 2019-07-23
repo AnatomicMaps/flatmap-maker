@@ -44,7 +44,7 @@ class Parser(object):
     DIRECTIVES = DESCRIPTION | DESCRIBES | SELECT_DIRECTIVE | BACKGROUND_DIRECTIVE | ZOOM_DIRECTIVE
     DIRECTIVE = '.layer-id' + Suppress('(') + IDENTIFIER + Suppress(')') + ZeroOrMore(DIRECTIVES)
 
-    FEATURE_ID = Combine('#' + IDENTIFIER)
+    FEATURE_ID = Combine(Suppress('#') + IDENTIFIER)
 
     ONTOLOGY_SUFFIX = Keyword('FMA') | Keyword('ILX') | Keyword('UBERON')
     ONTOLOGY_ID = Combine(ONTOLOGY_SUFFIX + ':' + IDENTIFIER)
@@ -98,7 +98,7 @@ class Parser(object):
         properties = {}
         try:
             parsed = Parser.ANNOTATION.parseString(s, parseAll=True)
-            id = parsed[0][1:]
+            id = parsed[0]
             for prop in parsed[1:]:
                 properties[prop[0]] = prop[1]
         except ParseException:
