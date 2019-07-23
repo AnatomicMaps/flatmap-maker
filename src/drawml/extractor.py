@@ -236,8 +236,9 @@ class SlideToLayer(object):
                             models = properties.get('models', None)
                             if models is not None:
                                 label = self.options.label_database.get_label(models[0])
-                        if label is None:
+                        if label is not None:
                             feature['properties']['label'] = label
+                            metadata['label'] = label
                 else:
                     metadata['error'] = 'syntax'
                     self._errors.append('Feature {} in slide {} has annotation syntax error: {}'
