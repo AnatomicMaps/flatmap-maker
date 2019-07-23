@@ -30,6 +30,7 @@ import requests
 
 from src.drawml import GeoJsonExtractor
 from src.mbtiles import MBTiles
+from src.rdf import update_RDF
 from src.styling import Style
 from src.tilemaker import make_background_tiles
 
@@ -79,12 +80,14 @@ if __name__ == '__main__':
         pptx_source = args.powerpoint
         pptx_modified = 0   ## Can we get timestamp from PMR metadata?? Or even i
         pptx_bytes = io.BytesIO(response.content)
+        map_source = pptx_source
     else:
         if not os.path.exists(args.powerpoint):
             sys.exit('Missing Powerpoint file')
         pptx_source = os.path.abspath(args.powerpoint)
         pptx_modified = os.path.getmtime(pptx_source)
         pptx_bytes = open(pptx_source, 'rb')
+        map_source = 'file:/{}'.format(pptx_source)
 
     if args.background_tiles:
         pdf_source = '{}.pdf'.format(os.path.splitext(pptx_source)[0])
@@ -199,7 +202,7 @@ if __name__ == '__main__':
 
     if args.tile_slide == 0:
         # Save path of the Powerpoint source
-        tile_db.add_metadata(source=pptx_source)   ## We don't always want this updated...
+        tile_db.add_metadata(source=map_source)    ## We don't always want this updated...
                                                    ## e.g. if rerunning after tile generation
         # What the map describes
         if map_describes:
@@ -213,6 +216,8 @@ if __name__ == '__main__':
 
         # Commit updates to the database
         tile_db.execute("COMMIT")
+
+        update_RDF(args.map_base, args.map_id, map_source, annotations)
 
     if not args.no_vector_tiles:
         print('Creating style files...')
