@@ -107,7 +107,7 @@ if __name__ == '__main__':
                 'id': layer.layer_id,
                 'description': layer.description
                 })
-            annotations.update(layer.annotations)
+            annotations.update(layer.metadata)
 
         if len(layers) == 0:
             sys.exit('No map layers in Powerpoint...')
