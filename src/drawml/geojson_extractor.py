@@ -62,8 +62,8 @@ def transform_bezier_samples(transform, bz):
 #===============================================================================
 
 class MakeGeoJsonLayer(SlideToLayer):
-    def __init__(self, extractor, slide, slide_number, args):
-        super().__init__(extractor, slide, slide_number, args)
+    def __init__(self, extractor, slide, slide_number):
+        super().__init__(extractor, slide, slide_number)
         self._transform = extractor.transform
 
     def process(self):
@@ -85,7 +85,7 @@ class MakeGeoJsonLayer(SlideToLayer):
 
     def save(self, filename=None):
         if filename is None:
-            filename = os.path.join(self.args.output_dir, '{}.json'.format(self.layer_id))
+            filename = os.path.join(self.options.output_dir, '{}.json'.format(self.layer_id))
         with open(filename, 'w') as output_file:
             json.dump(self._feature_collection, output_file)
 
@@ -188,8 +188,8 @@ class MakeGeoJsonLayer(SlideToLayer):
 #===============================================================================
 
 class GeoJsonExtractor(GeometryExtractor):
-    def __init__(self, pptx, args):
-        super().__init__(pptx, args)
+    def __init__(self, pptx, options):
+        super().__init__(pptx, options)
         self._LayerMaker = MakeGeoJsonLayer
         self._transform = np.array([[METRES_PER_EMU,               0, 0],
                                     [             0, -METRES_PER_EMU, 0],

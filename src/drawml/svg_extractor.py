@@ -51,8 +51,8 @@ def svg_transform(m):
 #===============================================================================
 
 class MakeSvgLayer(SlideToLayer):
-    def __init__(self, extractor, slide, slide_number, args):
-        super().__init__(extractor, slide, slide_number, args)
+    def __init__(self, extractor, slide, slide_number):
+        super().__init__(extractor, slide, slide_number)
         self._dwg = svgwrite.Drawing(filename=None,
                                      size=svg_coords(extractor.slide_size[0], extractor.slide_size[1]))
         self._dwg.defs.add(self._dwg.style('.non-scaling-stroke { vector-effect: non-scaling-stroke; }'))
@@ -65,7 +65,7 @@ class MakeSvgLayer(SlideToLayer):
 
     def save(self, filename=None):
         if filename is None:
-            filename = os.path.join(self.args.output_dir, '{}.svg'.format(self.layer_id))
+            filename = os.path.join(self.options.output_dir, '{}.svg'.format(self.layer_id))
         self._dwg.saveas(filename)
 
     def process_group(self, group, svg_parent):
@@ -145,8 +145,8 @@ class MakeSvgLayer(SlideToLayer):
 #===============================================================================
 
 class SvgExtractor(GeometryExtractor):
-    def __init__(self, pptx, args):
-        super().__init__(pptx, args)
+    def __init__(self, pptx, options):
+        super().__init__(pptx, options)
         self._SlideMaker = MakeSvgSlide
 
     def bounds(self):

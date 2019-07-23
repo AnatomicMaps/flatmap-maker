@@ -98,10 +98,10 @@ class Transform(object):
 #===============================================================================
 
 class SlideToLayer(object):
-    def __init__(self, extractor, slide, slide_number, args):
+    def __init__(self, extractor, slide, slide_number):
+        self._extractor = extractor
         self._slide = slide
         self._slide_number = slide_number
-        self._args = args
         self._errors = []
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
@@ -136,8 +136,8 @@ class SlideToLayer(object):
         self._metadata = {}
 
     @property
-    def args(self):
-        return self._args
+    def options(self):
+        return self._extractor.options
 
     @property
     def metadata(self):
@@ -244,9 +244,9 @@ class SlideToLayer(object):
 #===============================================================================
 
 class GeometryExtractor(object):
-    def __init__(self, pptx, args):
+    def __init__(self, pptx, options):
         self._pptx = Presentation(pptx)
-        self._args = args
+        self._options = options
         self._slides = self._pptx.slides
         self._slide_size = [self._pptx.slide_width, self._pptx.slide_height]
         self._LayerMaker = SlideToLayer
@@ -258,6 +258,10 @@ class GeometryExtractor(object):
     @property
     def layers(self):
         return self._layers
+
+    @property
+    def options(self):
+        return self._options
 
     @property
     def slide_maker(self):
@@ -275,12 +279,12 @@ class GeometryExtractor(object):
 
     def slide_to_layer(self, slide_number, save_output=True):
         slide = self.slide(slide_number)
-        if self._args.debug_xml:
-            xml = open(os.path.join(self._args.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
+        if self._options.debug_xml:
+            xml = open(os.path.join(self._options.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
             xml.write(slide.element.xml)
             xml.close()
         if self._LayerMaker is not None:
-            layer = self._LayerMaker(self, slide, slide_number, self._args)
+            layer = self._LayerMaker(self, slide, slide_number)
             layer.process()
             print('Slide {}, layer {}'.format(slide_number, layer.layer_id))
             if layer.layer_id in self._layers:
