@@ -163,6 +163,10 @@ if __name__ == '__main__':
                 'description': layer.description
             })
 
+    # We are finished with the Powerpoint
+
+    pptx_bytes.close()
+
     if len(map_layers) == 0:
         sys.exit('No map layers in Powerpoint...')
 
