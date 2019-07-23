@@ -23,7 +23,7 @@ import os
 
 #===============================================================================
 
-from src.drawml import GeometryExtractor
+from src.drawml import GeometryExtractor, AnnotationWriter
 from src.mbtiles import MBTiles
 from src.rdf import update_RDF
 
@@ -37,9 +37,15 @@ if __name__ == '__main__':
 
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
+    parser.add_argument('--load-json', action='store_true',
+                        help='load annotations from JSON')
     parser.add_argument('--powerpoint', metavar='POWERPOINT',
                         help='File or URL of Powerpoint slides')
-    parser.add_argument('--version', action='version', version='0.3.2')
+    parser.add_argument('--save-json', action='store_true',
+                        help='also save annotations as JSON')
+    parser.add_argument('--update-powerpoint', metavar='OUTPUT',
+                        help='update annotation data in POWERPOINT and save as OUTPUT')
+    parser.add_argument('--version', action='version', version='0.4.0')
 
     parser.add_argument('map_base', metavar='MAPS_DIR',
                         help='base directory for generated flatmaps')
@@ -48,6 +54,15 @@ if __name__ == '__main__':
     # Need to be able to process a remote (PMR) source...
 
     args = parser.parse_args()
+
+    if args.load_json and args.save_json:
+        sys.exit('Cannot load and save JSON at the same time')
+
+    if args.update_powerpoint:
+        if not args.powerpoint:
+            sys.exit('use --powerpoint option to specify slides to update')
+        elif args.powerpoint.startswith('http:') or args.powerpoint.startswith('https:'):
+            sys.exit('can only update local Powerpoint files')
 
     map_dir = os.path.join(args.map_base, args.map_id)
 
@@ -105,13 +120,34 @@ if __name__ == '__main__':
         # Commit updates to the database
         tile_db.execute("COMMIT")
 
+        # We are finished with the Powerpoint
+
+        pptx_bytes.close()
+
+    elif args.load_json:
+        map_source = tile_db.metadata('source')
+        with open(os.path.join(map_dir, 'annotations.json'), 'r') as input:
+            annotations = json.load(input)
+        tile_db.update_metadata(annotations=json.dumps(annotations))
+
     else:
         map_source = tile_db.metadata('source')
         annotations = json.loads(tile_db.metadata('annotations'))
 
     tile_db.close();
 
+    # Save annotations as JSON
 
+    if args.save_json:
+        with open(os.path.join(map_dir, 'annotations.json'), 'w') as output:
+            json.dump(annotations, output)
+
+    if args.update_powerpoint:
+        annotation_writer = AnnotationWriter(pptx_source)
+        for id, metadata in annotations.items():
+            annotation_writer.update_annotation(id, metadata['annotation'])
+        annotation_writer.remove_unseen();
+        annotation_writer.save(args.update_powerpoint)
 
     update_RDF(args.map_base, args.map_id, map_source, annotations)
 
