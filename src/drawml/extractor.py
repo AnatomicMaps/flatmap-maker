@@ -27,9 +27,7 @@ import numpy as np
 
 import pptx.shapes.connector
 from pptx import Presentation
-from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.shapes import MSO_SHAPE_TYPE
-from pptx.spec import autoshape_types
 
 #===============================================================================
 

@@ -178,7 +178,6 @@ if __name__ == '__main__':
 
     mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
 
-
     if args.no_vector_tiles:
         if args.tile_slide == 0:
             tile_db = MBTiles(mbtiles_file)
