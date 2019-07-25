@@ -100,7 +100,10 @@ class Parser(object):
             parsed = Parser.ANNOTATION.parseString(s, parseAll=True)
             id = parsed[0]
             for prop in parsed[1:]:
-                properties[prop[0]] = prop[1]
+                if prop[0] not in properties:
+                    properties[prop[0]] = [prop[1]]
+                else:
+                    properties[prop[0]].append(prop[1])
         except ParseException:
             properties['error'] = 'Syntax error in directive'
         return (id, properties)

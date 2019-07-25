@@ -231,11 +231,11 @@ class SlideToLayer(object):
                     else:
                         self._feature_ids[feature_id] = shape.unique_id
                     if feature is not None:
-                        label = properties.get('label', None)
+                        label = properties.get('label', [None])[0]
                         if label is None:
                             models = properties.get('models', None)
                             if models is not None:
-                                label = self.options.label_database.get_label(models[0])
+                                label = self.options.label_database.get_label(models[0][0])
                         if label is not None:
                             feature['properties']['label'] = label
                             metadata['label'] = label
