@@ -91,6 +91,10 @@ if __name__ == '__main__':
         ## rmdir if exists and --force
         ##
 
+
+    if not args.update_powerpoint:
+        print('Extracting layers...')
+
         if not os.path.exists(map_dir):
             os.makedirs(map_dir)
 
