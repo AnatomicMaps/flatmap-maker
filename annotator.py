@@ -43,8 +43,8 @@ if __name__ == '__main__':
                         help='File or URL of Powerpoint slides')
     parser.add_argument('--save-json', action='store_true',
                         help='also save annotations as JSON')
-    parser.add_argument('--update-powerpoint', metavar='OUTPUT',
-                        help='update annotation data in POWERPOINT and save as OUTPUT')
+    parser.add_argument('--update',
+                        help='update annotation data in POWERPOINT')
     parser.add_argument('--version', action='version', version='0.4.0')
 
     parser.add_argument('map_base', metavar='MAPS_DIR',
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     if args.load_json and args.save_json:
         sys.exit('Cannot load and save JSON at the same time')
 
-    if args.update_powerpoint:
+    if args.update:
         if not args.powerpoint:
             sys.exit('use --powerpoint option to specify slides to update')
         elif args.powerpoint.startswith('http:') or args.powerpoint.startswith('https:'):
@@ -92,7 +92,7 @@ if __name__ == '__main__':
         ##
 
 
-    if not args.update_powerpoint:
+    if not args.update:
         print('Extracting layers...')
 
         if not os.path.exists(map_dir):
@@ -145,12 +145,12 @@ if __name__ == '__main__':
         with open(os.path.join(map_dir, 'annotations.json'), 'w') as output:
             json.dump(annotations, output)
 
-    if args.update_powerpoint:
+    if args.update:
         annotation_writer = AnnotationWriter(pptx_source)
         for id, metadata in annotations.items():
             annotation_writer.update_annotation(id, metadata['annotation'])
         annotation_writer.remove_unseen();
-        annotation_writer.save(args.update_powerpoint)
+        annotation_writer.save(args.powerpoint)
 
     update_RDF(args.map_base, args.map_id, map_source, annotations)
 
