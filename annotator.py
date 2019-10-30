@@ -98,7 +98,6 @@ if __name__ == '__main__':
         if not os.path.exists(map_dir):
             os.makedirs(map_dir)
 
-        print('Extracting layers...')
         map_extractor = GeometryExtractor(pptx_bytes, args)
 
         # Process slides, saving layer information
