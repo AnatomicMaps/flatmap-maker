@@ -43,7 +43,7 @@ if __name__ == '__main__':
                         help='File or URL of Powerpoint slides')
     parser.add_argument('--save-json', action='store_true',
                         help='also save annotations as JSON')
-    parser.add_argument('--update',
+    parser.add_argument('--update', action='store_true',
                         help='update annotation data in POWERPOINT')
     parser.add_argument('--version', action='version', version='0.4.0')
 
