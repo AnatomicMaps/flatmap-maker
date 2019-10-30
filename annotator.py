@@ -45,7 +45,7 @@ if __name__ == '__main__':
                         help='also save annotations as JSON')
     parser.add_argument('--update', action='store_true',
                         help='update annotation data in POWERPOINT')
-    parser.add_argument('--version', action='version', version='0.4.0')
+    parser.add_argument('--version', action='version', version='0.4.1')
 
     parser.add_argument('map_base', metavar='MAPS_DIR',
                         help='base directory for generated flatmaps')
