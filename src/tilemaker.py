@@ -52,9 +52,9 @@ WHITE     = (255, 255, 255)
 def make_transparent(img, colour=WHITE):
     x = np.asarray(img).copy()
     if colour == WHITE:
-        x[:, :, 3] = (255 * (x[:, :, :3] != 255).any(axis=2)).astype(np.uint8)
+        x[:, :, 3] = (255*((x[:, :, :3] != 255).any(axis=2) * (x[:, :, 3] != 0))).astype(np.uint8)
     else:
-        x[:, :, 3] = (255*(x[:,:,0:3] != tuple(colour)[0:3]).any(axis=2)).astype(np.uint8)
+        x[:, :, 3] = (255*((x[:,:,0:3] != tuple(colour)[0:3]).any(axis=2) * (x[:, :, 3] != 0))).astype(np.uint8)
     return Image.fromarray(x)
 
 #===============================================================================
