@@ -68,19 +68,19 @@ $ vi src/main.js
 # Create tiles (image and vector) from Powerpoint
 
 $ cd ~/Flatmaps/maker
-$ pipenv run python mapmaker.py --background-tiles --max-zoom 6 ../server/flatmaps/maps demo /mnt/c/Users/Dave/build/maps/demo.pptx
+$ pipenv run python mapmaker.py --background-tiles --max-zoom 6 ../server/flatmaps demo /mnt/c/Users/Dave/build/maps/demo.pptx
 
 
 # Annotations back into Powerpoint after web browser annotation
 
 $ cd ~/Flatmaps/maker
-$ pipenv run python annotator.py --powerpoint /mnt/c/Users/Dave/build/maps/demo.pptx --update ../server/flatmaps/maps demo
+$ pipenv run python annotator.py --powerpoint /mnt/c/Users/Dave/build/maps/demo.pptx --update ../server/flatmaps demo
 
 
 # Update map from Powerpoint without generating image tiles
 
 $ cd ~/Flatmaps/maker
-$ pipenv run python mapmaker.py ../server/flatmaps/maps demo /mnt/c/Users/Dave/build/maps/demo.pptx
+$ pipenv run python mapmaker.py ../server/flatmaps demo /mnt/c/Users/Dave/build/maps/demo.pptx
 
 
 # Run map server
