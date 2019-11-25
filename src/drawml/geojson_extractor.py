@@ -105,7 +105,7 @@ class MakeGeoJsonLayer(SlideToLayer):
 
         pptx_geometry = Geometry(shape)
         for path in pptx_geometry.path_list:
-            bbox = (shape.width, shape.height) if path.w is None else (path.w, path.h)
+            bbox = (shape.width, shape.height) if path.w is None or path.h is None else (path.w, path.h)
             T = transform@Transform(shape, bbox).matrix()
 
             moved = False
