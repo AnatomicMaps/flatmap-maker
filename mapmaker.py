@@ -187,6 +187,9 @@ if __name__ == '__main__':
             tile_db = MBTiles(mbtiles_file)
 
     else:
+        if len(tippe_inputs) == 0:
+            sys.exit('No selectable layers in Powerpoint...')
+
         # Generate Mapbox vector tiles
         print('Running tippecanoe...')
 
