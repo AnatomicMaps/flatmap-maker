@@ -51,6 +51,8 @@ if __name__ == '__main__':
     parser.add_argument('--tile-slide', metavar='N', type=int, default=0,
                         help='only generate image tiles for this slide (1-origin); implies --background-tiles and --no-vector-tiles')
 
+    parser.add_argument('--debug-json', action='store_true',
+                        help="don't delete GeoJSON files but instead list their names")
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
     parser.add_argument('--version', action='version', version='0.3.1')
@@ -278,6 +280,9 @@ if __name__ == '__main__':
     print('Cleaning up...')
 
     for filename in filenames:
-        os.remove(filename)
+        if args.debug_json:
+            print(filename)
+        else:
+            os.remove(filename)
 
 #===============================================================================
