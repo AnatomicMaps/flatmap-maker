@@ -98,12 +98,15 @@ if __name__ == '__main__':
         if pdf_source.startswith('http:') or pdf_source.startswith('https:'):
             response = requests.get(pdf_source)
             if response.status_code != requests.codes.ok:
+                pptx_bytes.close()
                 sys.exit('Cannot retrieve PDF of Powerpoint (needed to generate background tiles)')
             pdf_bytes = io.BytesIO(response.content)
         else:
             if not os.path.exists(pdf_source):
+                pptx_bytes.close()
                 sys.exit('Missing PDF of Powerpoint (needed to generate background tiles)')
             if os.path.getmtime(pdf_source) < pptx_modified:
+                pptx_bytes.close()
                 sys.exit('PDF of Powerpoint is too old...')
             with open(pdf_source, 'rb') as f:
                 pdf_bytes = f.read()
