@@ -230,7 +230,7 @@ if __name__ == '__main__':
     if args.tile_slide == 0:
         # Save path of the Powerpoint source
         tile_db.add_metadata(source=map_source)    ## We don't always want this updated...
-                                                   ## e.g. if rerunning after tile generation
+                                                   ## e.g. if re-running after tile generation
         # What the map describes
         if map_describes:
             tile_db.add_metadata(describes=map_describes)
