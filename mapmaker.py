@@ -234,6 +234,9 @@ if __name__ == '__main__':
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(annotations))
 
+        # Save command used to run mapmaker
+        tile_db.add_metadata(created_by=' '.join(sys.argv))
+
         # Save the maps creation time
         tile_db.add_metadata(created=datetime.datetime.utcnow().isoformat())
 
