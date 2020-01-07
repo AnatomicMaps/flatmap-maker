@@ -257,6 +257,10 @@ class MakeGeoJsonLayer(SlideToLayer):
         feature['properties']['bbox'] = ','.join([str(x) for x in bbox])
 
         self._features.append(feature)
+        self._map_features.append({
+          'id': shape.unique_id,
+          'type': geometry['type']
+        })
         return feature
 
 #===============================================================================

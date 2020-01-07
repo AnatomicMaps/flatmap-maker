@@ -131,6 +131,7 @@ class SlideToLayer(object):
             self._queryable_nodes = False
             self._zoom = None
         self._annotated_ids = {}
+        self._map_features = []
         self._metadata = {}
 
     @property
@@ -172,6 +173,10 @@ class SlideToLayer(object):
     @property
     def errors(self):
         return self._errors
+
+    @property
+    def map_features(self):
+        return self._map_features
 
     @property
     def layer_id(self):
