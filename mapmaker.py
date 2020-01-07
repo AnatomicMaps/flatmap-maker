@@ -18,6 +18,10 @@
 #
 #===============================================================================
 
+FLATMAP_VERSION = 1.0
+
+#===============================================================================
+
 import io
 import json
 import subprocess
@@ -258,6 +262,7 @@ if __name__ == '__main__':
             'max-zoom': map_zoom[1],
             'zoom': map_zoom[2],
             'bounds': map_bounds,
+            'version': FLATMAP_VERSION,
         }
 
         if map_describes:
