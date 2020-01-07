@@ -144,6 +144,7 @@ if __name__ == '__main__':
 
         map_layer = {
             'id': layer.layer_id,
+            'slide-id': layer.slide_id,
             'description': layer.description,
             'selectable': layer.selectable,
             'selected': layer.selected,
