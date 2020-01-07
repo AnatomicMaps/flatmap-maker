@@ -130,7 +130,7 @@ class SlideToLayer(object):
             self._selected = False
             self._queryable_nodes = False
             self._zoom = None
-        self._feature_ids = {}
+        self._annotated_ids = {}
         self._metadata = {}
 
     @property
@@ -222,19 +222,19 @@ class SlideToLayer(object):
                     'layer': self.layer_id,
                     'annotation': shape.name
                 }
-                (feature_id, properties) = Parser.annotation(shape.name)
-                if feature_id is not None:
-                    if feature_id in self._feature_ids:
+                (annotated_id, properties) = Parser.annotation(shape.name)
+                if annotated_id is not None:
+                    if annotated_id in self._annotated_ids:
                         metadata['error'] = 'duplicate-id'
                         self._errors.append('Feature {} in slide {} has a duplicate feature id: {}'
                                             .format(shape.unique_id, self._slide_number, shape.name))
                     else:
-                        self._feature_ids[feature_id] = shape.unique_id
+                        self._annotated_ids[annotated_id] = shape.unique_id
                     if feature is not None:
                         label = properties.get('label', [None])[0]
-                        if label is None:
-                            models = properties.get('models', None)
-                            if models is not None:
+                        models = properties.get('models', None)
+                        if models is not None:
+                            if label is None:
                                 label = self.options.label_database.get_label(models[0][0])
                         if label is not None:
                             feature['properties']['label'] = label
