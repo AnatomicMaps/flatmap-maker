@@ -84,7 +84,8 @@ def update_RDF(map_base, map_id, map_source, annotations, update_knowledgebase=F
 
         layer_urls = UrlMaker(map_source, metadata['layer'])
         annotation = metadata['annotation']
-        feature_id, properties = Parser.annotation(annotation)
+        properties = Parser.annotation(annotation)
+        feature_id = properties.get('id')
 
         feature_uri = layer_urls.url(feature_id)
         graph.remove( (feature_uri, None, None) )
@@ -95,20 +96,18 @@ def update_RDF(map_base, map_id, map_source, annotations, update_knowledgebase=F
         for key, value in properties.items():
             if key == 'models':
                 prop = namespaces_dict['RO']['0003301']
-                for o in value[0]:
-                    (prefix, local) = o.split(':', 1)
-                    graph.add( (feature_uri, prop, namespaces_dict[prefix][local]) )
+                (prefix, local) = value.split(':', 1)
+                graph.add( (feature_uri, prop, namespaces_dict[prefix][local]) )
             elif key == 'node':
                 feature_class = FLATMAP_NS['Node']
                 graph.add( (feature_uri, FLATMAP_NS['nodeClass'], FLATMAP_NS[value[0]]) )
             elif key == 'edge':
-                routing = value[0]
                 feature_class = FLATMAP_NS['Edge']
-                if len(routing) < 2:
+                if len(value) < 2:
                     raise ValueError('Edge must have a source and target: {}'.format(annotation))
-                route['source'] = routing[0]
-                route['target'] = routing[-1]
-                route['via'] = routing[1:-1]
+                route['source'] = value[0]
+                route['target'] = value[-1]
+                route['via'] = value[1:-1]
             elif key in ['source', 'via', 'target']:
                 if feature_class is None:
                     feature_class = FLATMAP_NS['Edge']
