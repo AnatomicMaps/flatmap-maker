@@ -81,10 +81,7 @@ oxml.register_element_cls("drawml:presetShape", PresetShape)
 #===============================================================================
 
 class Shapes(object):
-
     definitions_ = {}
-
-
 
     with open(os.path.join(os.path.dirname(__file__), 'presetShapeDefinitions.xml'), 'rb') as defs:
         for defn in PresetShapeDefinition.new(defs.read()):

@@ -107,20 +107,23 @@ class SlideToLayer(object):
             notes_slide = slide.notes_slide
             notes_text = notes_slide.notes_text_frame.text
             if notes_text.startswith('.'):
-                directive = Parser.directive(notes_text)
-                if 'error' in directive:
+                layer_directive = Parser.layer_directive(notes_text)
+                if 'error' in layer_directive:
                     self._errors.append('Slide {}: invalid layer directive: {}'
                                         .format(slide_number, notes_text))
                     self._layer_id = 'layer-{:02d}'.format(slide_number)
                 else:
-                    self._layer_id = directive.get('id')
-                self._description = directive.get('description', self._layer_id.capitalize())
-                self._describes = directive.get('describes', '')
-                self._background_for = directive.get('background-for', '')
-                self._selectable = self._background_for == '' and directive.get('selectable')
-                self._selected = directive.get('selected', False)
-                self._queryable_nodes = directive.get('queryable-nodes', False)
-                self._zoom = directive.get('zoom', None)
+                    self._layer_id = layer_directive.get('id')
+                self._description = layer_directive.get('description', self._layer_id.capitalize())
+                self._models = layer_directive.get('models', '')
+                self._background_for = layer_directive.get('background-for', '')
+                self._selectable = self._background_for == '' and not layer_directive.get('not-selectable')
+                self._selected = layer_directive.get('selected', False)
+                self._queryable_nodes = layer_directive.get('queryable-nodes', False)
+                self._zoom = layer_directive.get('zoom', None)
+            else:
+                # still need to initialise properties...
+                pass
         else:
             self._layer_id = 'layer-{:02d}'.format(slide_number)
             self._description = 'Layer {}'.format(slide_number)
@@ -135,8 +138,8 @@ class SlideToLayer(object):
         self._metadata = {}
 
     @property
-    def options(self):
-        return self._extractor.options
+    def settings(self):
+        return self._extractor.settings
 
     @property
     def metadata(self):
@@ -187,24 +190,25 @@ class SlideToLayer(object):
         return self._slide.slide_id
 
     def process(self):
+    #=================
         self.process_shape_list(self._slide.shapes)
 
-    def get_output(self):
-        # Override in sub-class
-        pass
-
     def save(self, filename=None):
+    #=============================
         # Override in sub-class
         pass
 
     def process_group(self, group, *args):
+    #=====================================
         self.process_shape_list(group.shapes, *args)
 
     def process_shape(self, shape, *args):
+    #=====================================
         # Override in sub-class
         pass
 
     def process_shape_list(self, shapes, *args):
+    #===========================================
         if not self._selectable:
             return
         for shape in shapes:
@@ -255,9 +259,9 @@ class SlideToLayer(object):
 #===============================================================================
 
 class GeometryExtractor(object):
-    def __init__(self, pptx, options):
+    def __init__(self, pptx, settings):
         self._pptx = Presentation(pptx)
-        self._options = options
+        self._settings = settings
         self._slides = self._pptx.slides
         self._slide_size = [self._pptx.slide_width, self._pptx.slide_height]
         self._LayerMaker = SlideToLayer
@@ -271,8 +275,8 @@ class GeometryExtractor(object):
         return self._layers
 
     @property
-    def options(self):
-        return self._options
+    def settings(self):
+        return self._settings
 
     @property
     def slide_maker(self):
@@ -290,8 +294,8 @@ class GeometryExtractor(object):
 
     def slide_to_layer(self, slide_number, save_output=True):
         slide = self.slide(slide_number)
-        if self._options.debug_xml:
-            xml = open(os.path.join(self._options.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
+        if self._settings.debug_xml:
+            xml = open(os.path.join(self._settings.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
             xml.write(slide.element.xml)
             xml.close()
         if self._LayerMaker is not None:

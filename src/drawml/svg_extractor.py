@@ -60,12 +60,9 @@ class MakeSvgLayer(SlideToLayer):
     def process(self):
         self.process_shape_list(self._slide.shapes, self._dwg)
 
-    def get_output(self):
-        return self._dwg.tostring()
-
     def save(self, filename=None):
         if filename is None:
-            filename = os.path.join(self.options.output_dir, '{}.svg'.format(self.layer_id))
+            filename = os.path.join(self.settings.output_dir, '{}.svg'.format(self.layer_id))
         self._dwg.saveas(filename)
 
     def process_group(self, group, svg_parent):
@@ -145,8 +142,8 @@ class MakeSvgLayer(SlideToLayer):
 #===============================================================================
 
 class SvgExtractor(GeometryExtractor):
-    def __init__(self, pptx, options):
-        super().__init__(pptx, options)
+    def __init__(self, pptx, settings):
+        super().__init__(pptx, settings)
         self._SlideMaker = MakeSvgSlide
 
     def bounds(self):

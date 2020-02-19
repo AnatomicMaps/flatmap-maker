@@ -83,7 +83,6 @@ PRESET_VARIABLES = {
 #===============================================================================
 
 class Evaluator(object):
-
     formulae = {
         "*/": lambda v, x, y, z: v(x) * v(y) / v(z),  # Multiply Divide Formula
         "+-": lambda v, x, y, z: v(x) + v(y) - v(z),  # Add Subtract Formula
