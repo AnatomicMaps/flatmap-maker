@@ -111,3 +111,18 @@ class Parser(object):
         return properties
 
 #===============================================================================
+
+if __name__ == '__main__':
+
+    def test(method, text):
+        parsed = method(text)
+        print('{} --> {}'.format(text, parsed))
+
+    test(Parser.layer_directive, '.id(LAYER) models(NCBITaxon:1)')
+    test(Parser.layer_directive, '.selected')
+    test(Parser.annotation, '.boundary')
+    test(Parser.annotation, '.id(FEATURE) models(UBERON:1)')
+    test(Parser.annotation, '.models(UBERON:1)')
+    test(Parser.annotation, '.edge(#n1, #n2)')
+
+#===============================================================================
