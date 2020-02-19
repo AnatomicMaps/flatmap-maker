@@ -10,7 +10,6 @@ python-pptx = "*"
 numpy = "*"
 beziers = "*"
 svgwrite = "*"
-mercantile = "*"
 pymupdf = "*"
 mbutil = {git = "https://github.com/mapbox/mbutil"}
 requests = "*"
@@ -18,6 +17,9 @@ pyparsing = "*"
 pyyaml = "*"
 rdflib-sqlalchemy = "*"
 rdflib = "*"
+shapely = "*"
+pyproj = "*"
+mercantile = "*"
 
 [requires]
 python_version = "3.7"
