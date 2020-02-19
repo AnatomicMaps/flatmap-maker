@@ -49,8 +49,12 @@ def main():
     parser = argparse.ArgumentParser(description='Convert Powerpoint slides to a flatmap.')
     parser.add_argument('--background-tiles', action='store_true',
                         help="generate image tiles of map's layers")
+    parser.add_argument('--initial-zoom', metavar='N', type=int, default=4,
+                        help='initial zoom level (defaults to 4)')
     parser.add_argument('--max-zoom', metavar='N', type=int, default=10,
                         help='maximum zoom level (defaults to 10)')
+    parser.add_argument('--min-zoom', metavar='N', type=int, default=2,
+                        help='minimum zoom level (defaults to 2)')
     parser.add_argument('--no-vector-tiles', action='store_true',
                         help="don't generate vector tiles database and style files")
     parser.add_argument('--tile-slide', metavar='N', type=int, default=0,
@@ -74,9 +78,14 @@ def main():
 
     args = parser.parse_args()
 
-    if args.max_zoom < 1 or args.max_zoom > 15:
-        sys.exit('--max-zoom must be between 1 and 15')
-    map_zoom = (2, args.max_zoom, 4)
+    if args.min_zoom < 0 or args.min_zoom > args.max_zoom:
+        sys.exit('--min-zoom must be between 0 and {}'.format(args.max_zoom))
+    if args.max_zoom < args.min_zoom or args.max_zoom > 15:
+        sys.exit('--max-zoom must be between {} and 15'.format(args.min_zoom))
+    if args.initial_zoom < args.min_zoom or args.initial_zoom > args.max_zoom:
+        sys.exit('--initial-zoom must be between {} and {}'.format(args.min_zoom, args.max_zoom))
+
+    map_zoom = (args.min_zoom, args.max_zoom, args.initial_zoom)
 
     if args.tile_slide > 0:
         args.background_tiles = True
