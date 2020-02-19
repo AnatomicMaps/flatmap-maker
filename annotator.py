@@ -17,6 +17,12 @@
 #  limitations under the License.
 #
 #===============================================================================
+"""
+python annotator.py --powerpoint  map_sources/PMR/Human_Body.pptx --update maps human
+python annotator.py --powerpoint  map_sources/PMR/Human_Body.pptx --update --load-json  maps humanV5
+python mapmaker.py    maps human   https://models.physiomeproject.org/workspace/585/rawfile/9504921f711b397977fe7e9822aa9f448b81ea33/Human_Body.pptx
+"""
+#===============================================================================
 
 import json
 import os
