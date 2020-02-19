@@ -38,6 +38,7 @@ from src.mbtiles import MBTiles
 from src.rdf import update_RDF
 from src.styling import Style
 from src.tilemaker import make_background_tiles
+from src.tilejson import tile_json
 
 #===============================================================================
 
@@ -280,6 +281,12 @@ def main():
         style_dict = Style.style(layer_ids, metadata, map_zoom)
         with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
+
+        # Create TileJSON file
+
+        json_source = tile_json(args.map_id, map_zoom, map_bounds)
+        with open(os.path.join(map_dir, 'tilejson.json'), 'w') as output_file:
+            json.dump(json_source, output_file)
 
     if args.tile_slide == 0:
         # We are finished with the tile database, so close it
