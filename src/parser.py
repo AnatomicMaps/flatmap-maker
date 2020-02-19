@@ -24,60 +24,59 @@ from pyparsing import Optional, ParseException, Suppress, Word, ZeroOrMore
 #===============================================================================
 
 class Parser(object):
-    IDENTIFIER = Word(alphanums, alphanums+':/_-.')
+    FREE_TEXT = Word(printables + ' ', excludeChars='()')
     INTEGER = Word(nums)
 
-    TEXT = Word(printables + ' ', excludeChars='()')
-    DESCRIPTION = Group(Keyword('description') + Suppress('(') + TEXT + Suppress(')'))
+    ID_TEXT = Word(alphanums, alphanums+':/_-.')
+    IDENTIFIER = Group(Keyword('id') + Suppress('(') + ID_TEXT + Suppress(')'))
 
-    TAXONOMY_ID = Combine(Keyword('NCBITaxon') + ':' + IDENTIFIER)
-    DESCRIBES = Group(Keyword('describes') + Suppress('(') + TAXONOMY_ID + Suppress(')'))
+    ONTOLOGY_SUFFIX = Keyword('FMA') | Keyword('ILX') | Keyword('NCBITaxon') | Keyword('UBERON')
+    ONTOLOGY_ID = Combine(ONTOLOGY_SUFFIX + ':' + ID_TEXT)
 
-    BACKGROUND_DIRECTIVE = Group(Keyword('background-for') + Suppress('(') + IDENTIFIER + Suppress(')'))
-    SELECT_DIRECTIVE = Group(Keyword('not-selectable') | Keyword('selected') | Keyword('queryable-nodes'))
+    MODELS = Group(Keyword('models') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
 
-    ZOOM_DIRECTIVE = Group(Keyword('zoom') + Suppress('(')
-                                             + Group(INTEGER + Suppress(',') + INTEGER + Suppress(',') + INTEGER)
-                                           + Suppress(')'))
+    BACKGROUND = Group(Keyword('background-for') + Suppress('(') + IDENTIFIER + Suppress(')'))
+    DESCRIPTION = Group(Keyword('description') + Suppress('(') + FREE_TEXT + Suppress(')'))
+    LABEL = Group(Keyword('label') + Suppress('(') + FREE_TEXT + Suppress(')'))
+    SELECTION = Group(Keyword('no-selection') | Keyword('selected') | Keyword('queryable'))
+    ZOOM = Group(Keyword('zoom') + Suppress('(')
+                                   + Group(INTEGER + Suppress(',') + INTEGER + Suppress(',') + INTEGER)
+                                 + Suppress(')'))
+
+    LAYER_DIRECTIVES = BACKGROUND | DESCRIPTION | IDENTIFIER | MODELS | SELECTION | ZOOM
+    LAYER_DIRECTIVE = '.' + ZeroOrMore(LAYER_DIRECTIVES)
 
 
-    DIRECTIVES = DESCRIPTION | DESCRIBES | SELECT_DIRECTIVE | BACKGROUND_DIRECTIVE | ZOOM_DIRECTIVE
-    DIRECTIVE = '.layer-id' + Suppress('(') + IDENTIFIER + Suppress(')') + ZeroOrMore(DIRECTIVES)
+    FEATURE_ID = Combine(Suppress('#') + ID_TEXT)
 
-    FEATURE_ID = Combine(Suppress('#') + IDENTIFIER)
+    NEURAL_CLASS = Keyword('N1') | Keyword('N2') | Keyword('N3') | Keyword('N4') | Keyword('N5')
+    NODE = Group(Keyword('node') + Suppress('(') + NEURAL_CLASS + Suppress(')'))
 
-    ONTOLOGY_SUFFIX = Keyword('FMA') | Keyword('ILX') | Keyword('UBERON')
-    ONTOLOGY_ID = Combine(ONTOLOGY_SUFFIX + ':' + IDENTIFIER)
+    EDGE = Group(Keyword('edge') + Suppress('(') + Group(delimitedList(FEATURE_ID)) + Suppress(')'))
 
-    MODELS_SPEC = Group(Keyword('models') + Suppress('(') + Group(delimitedList(ONTOLOGY_ID)) + Suppress(')'))
+    FEATURE_TYPE = NODE | EDGE
 
-    LABEL_SPEC = Group(Keyword('label') + Suppress('(') + TEXT + Suppress(')'))
-
-    NEURAL_NODE = Keyword('N1') | Keyword('N2') | Keyword('N3') | Keyword('N4') | Keyword('N5')
-    NODE_SPEC = Group(Keyword('node') + Suppress('(') + NEURAL_NODE + Suppress(')'))
+    ROUTING_TYPE = Keyword('source') | Keyword('target') | Keyword('via')
+    ROUTING = Group(ROUTING_TYPE + Suppress('(') + FEATURE_ID + Suppress(')'))
 
     ## Need to check at least two IDs...
     ## and that they are nodes...
-    EDGE_SPEC = Group(Keyword('edge') + Suppress('(') + Group(delimitedList(FEATURE_ID)) + Suppress(')'))
+    FEATURE_FLAGS = Group(Keyword('boundary') | Keyword('group') | Keyword('region'))
 
-    FEATURE_CLASS = NODE_SPEC | EDGE_SPEC
-
-    ROUTING = Keyword('source') | Keyword('target') | Keyword('via')
-    ROUTING_SPEC = Group(ROUTING + Suppress('(') + FEATURE_ID + Suppress(')'))
-
-    PROPERTY_SPEC = ZeroOrMore(MODELS_SPEC | ROUTING_SPEC | LABEL_SPEC)
-
-    ANNOTATION = FEATURE_ID + Optional(FEATURE_CLASS | PROPERTY_SPEC)
+    FEATURE_PROPERTIES = FEATURE_FLAGS | FEATURE_TYPE | IDENTIFIER  | LABEL | MODELS | ROUTING
+    ANNOTATION = '.' + ZeroOrMore(FEATURE_PROPERTIES)
 
     @staticmethod
-    def directive(s):
+    def layer_directive(s):
         result = {}
         try:
-            parsed = Parser.DIRECTIVE.parseString(s, parseAll=True)
-            result['id'] = parsed[1]
+            parsed = Parser.LAYER_DIRECTIVE.parseString(s, parseAll=True)
             result['selectable'] = True
-            for directive in parsed[2:]:
-                if directive[0] in ['describes', 'description', 'background-for']:
+            for directive in parsed[1:]:
+                if directive[0] in ['background-for',
+                                    'description',
+                                    'id',
+                                    'models']:
                     result[directive[0]] = directive[1]
                 elif directive[0] == 'not-selectable':
                     result['selectable'] = False
@@ -98,14 +97,17 @@ class Parser(object):
         properties = {}
         try:
             parsed = Parser.ANNOTATION.parseString(s, parseAll=True)
-            id = parsed[0]
             for prop in parsed[1:]:
-                if prop[0] not in properties:
-                    properties[prop[0]] = [prop[1]]
+                if prop[0] == 'boundary':
+                    properties['boundary'] = True
+                elif prop[0] == 'group':
+                    properties['group'] = True
+                elif prop[0] == 'region':
+                    properties['region'] = True
                 else:
-                    properties[prop[0]].append(prop[1])
+                    properties[prop[0]] = prop[1]
         except ParseException:
             properties['error'] = 'Syntax error in directive'
-        return (id, properties)
+        return properties
 
 #===============================================================================

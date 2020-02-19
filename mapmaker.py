@@ -117,7 +117,7 @@ def main():
 
     map_dir = os.path.join(args.map_base, args.map_id)
 
-    map_describes = ''
+    map_models = ''
 
     if not os.path.exists(map_dir):
         os.makedirs(map_dir)
@@ -159,8 +159,8 @@ def main():
             map_layer['background_for'] = layer.background_for
         map_layers.append(map_layer)
 
-        if layer.describes:
-            map_describes = layer.describes
+        if layer.models:
+            map_models = layer.models
 
         if layer.selectable:
             annotations.update(layer.metadata)
@@ -231,9 +231,9 @@ def main():
         # Save path of the Powerpoint source
         tile_db.add_metadata(source=map_source)    ## We don't always want this updated...
                                                    ## e.g. if re-running after tile generation
-        # What the map describes
-        if map_describes:
-            tile_db.add_metadata(describes=map_describes)
+        # What the map models
+        if map_models:
+            tile_db.add_metadata(describes=map_models)
 
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(annotations))
@@ -265,8 +265,8 @@ def main():
             'version': FLATMAP_VERSION,
         }
 
-        if map_describes:
-            map_index['describes'] = map_describes
+        if map_models:
+            map_index['describes'] = map_models
 
         # Create `index.json` for building a map in the viewer
 

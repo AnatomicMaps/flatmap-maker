@@ -95,6 +95,26 @@ class Transform(object):
 
 #===============================================================================
 
+class Feature(object):
+    def __init__(self, id, geometry, metadata):
+        self._id = id
+        self._geometry = geometry
+        self._metadata = metadata
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def geometry(self):
+        return self._geometry
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+#===============================================================================
+
 class SlideToLayer(object):
     def __init__(self, extractor, slide, slide_number):
         self._extractor = extractor
@@ -127,13 +147,13 @@ class SlideToLayer(object):
         else:
             self._layer_id = 'layer-{:02d}'.format(slide_number)
             self._description = 'Layer {}'.format(slide_number)
-            self._describes = ''
+            self._models = ''
             self._background_for = ''
             self._selectable = False
             self._selected = False
             self._queryable_nodes = False
             self._zoom = None
-        self._annotated_ids = {}
+        self._annotated_ids = []
         self._map_features = []
         self._metadata = {}
 
@@ -150,8 +170,8 @@ class SlideToLayer(object):
         return self._description
 
     @property
-    def describes(self):
-        return self._describes
+    def models(self):
+        return self._models
 
     @property
     def background_for(self):
@@ -210,51 +230,54 @@ class SlideToLayer(object):
     def process_shape_list(self, shapes, *args):
     #===========================================
         if not self._selectable:
-            return
+            return []
+        features = []
         for shape in shapes:
-            shape.unique_id = '{}-{}'.format(self.slide_id, shape.shape_id)
-            feature = None
+            metadata = self.process_shape_name(shape)
             if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or shape.shape_type == MSO_SHAPE_TYPE.PICTURE
              or isinstance(shape, pptx.shapes.connector.Connector)):
-                feature = self.process_shape(shape, *args)
+                geometry = self.process_shape(shape, *args)
+                features.append(Feature(shape.shape_id, geometry, metadata))
+
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.process_group(shape, *args)
+
             elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX:
                 pass
             else:
                 print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
+        return features
 
-            if shape.name.startswith('#'):
-                metadata = {
-                    'layer': self.layer_id,
-                    'annotation': shape.name
-                }
-                (annotated_id, properties) = Parser.annotation(shape.name)
-                if annotated_id is not None:
-                    if annotated_id in self._annotated_ids:
-                        metadata['error'] = 'duplicate-id'
-                        self._errors.append('Feature {} in slide {} has a duplicate feature id: {}'
-                                            .format(shape.unique_id, self._slide_number, shape.name))
+    def process_shape_name(self, shape):
+    #===================================
+        metadata = {}
+        if shape.name.startswith('.'):
+            metadata['layer'] = self.layer_id
+            metadata['annotation'] = shape.name
+
+            properties = Parser.annotation(shape.name)
+            if 'error' in properties:
+                metadata['error'] = 'syntax'
+                self._errors.append('Feature in slide {} has annotation syntax error: {}'
+                                    .format(self._slide_number, shape.name))
+            else:
+                for (key, value) in properties.items():
+                    if key == 'id':
+                        annotated_id = value
+                        if annotated_id in self._annotated_ids:
+                            metadata['error'] = 'duplicate-id'
+                            self._errors.append('Feature in slide {} has a duplicate id: {}'
+                                                .format(self._slide_number, shape.name))
+                        else:
+                            self._annotated_ids.append(annotated_id)
                     else:
-                        self._annotated_ids[annotated_id] = shape.unique_id
-                    if feature is not None:
-                        label = properties.get('label', [None])[0]
-                        models = properties.get('models', None)
-                        if models is not None:
-                            if label is None:
-                                label = self.options.label_database.get_label(models[0][0])
-                        if label is not None:
-                            feature['properties']['label'] = label
-                            metadata['label'] = label
-                else:
-                    metadata['error'] = 'syntax'
-                    self._errors.append('Feature {} in slide {} has annotation syntax error: {}'
-                                        .format(shape.unique_id, self._slide_number, shape.name))
-                if feature is not None:
-                    metadata['geometry'] = feature['geometry']['type']
-                self._metadata[shape.unique_id] = metadata
+                        metadata[key] = value
+                if 'models' in metadata and 'label' not in metadata:
+                    metadata['label'] = self.settings.label_database.get_label(metadata['models'])
+
+        return metadata
 
 #===============================================================================
 
