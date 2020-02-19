@@ -11,3 +11,4 @@ Welcome to Flatmap Maker's documentation!
    :caption: Contents:
 
    Annotation
+   DrawingML
