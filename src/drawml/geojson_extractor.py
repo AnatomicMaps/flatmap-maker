@@ -49,73 +49,6 @@ from .presets import DML
 METRES_PER_EMU = 0.1   ## This to become a command line parameter...
                        ## Or in a specification file...
 
-"""
-5.  Bounding Box
-
-   A GeoJSON object MAY have a member named "bbox" to include
-   information on the coordinate range for its Geometries, Features, or
-   FeatureCollections.  The value of the bbox member MUST be an array of
-   length 2*n where n is the number of dimensions represented in the
-   contained geometries, with all axes of the most southwesterly point
-   followed by all axes of the more northeasterly point.  The axes order
-   of a bbox follows the axes order of geometries.
-
-   The "bbox" values define shapes with edges that follow lines of
-   constant longitude, latitude, and elevation.
-
-   Example of a 2D bbox member on a Feature:
-
-   {
-       "type": "Feature",
-       "bbox": [-10.0, -10.0, 10.0, 10.0],
-       "geometry": {
-           "type": "Polygon",
-           "coordinates": [
-               [
-                   [-10.0, -10.0],
-                   [10.0, -10.0],
-                   [10.0, 10.0],
-                   [-10.0, -10.0]
-               ]
-           ]
-       }
-       //...
-   }
-
-   Example of a 2D bbox member on a FeatureCollection:
-
-   {
-       "type": "FeatureCollection",
-       "bbox": [100.0, 0.0, 105.0, 1.0],
-       "features": [
-       //...
-       ]
-   }
-
-   Example of a 3D bbox member with a depth of 100 meters:
-
-   {
-       "type": "FeatureCollection",
-       "bbox": [100.0, 0.0, -100.0, 105.0, 1.0, 0.0],
-       "features": [
-       //...
-       ]
-   }
-
-"""
-
-def lat_lon_bounds(coords):
-    bounds = []
-    for i in (0, 1):
-        sorted_coords = sorted(coords, key=lambda x:x[i])
-        bounds.append((sorted_coords[0][i], sorted_coords[-1][i]))
-    return [bounds[0][0], bounds[1][0], bounds[0][1], bounds[1][1]]
-
-def bounding_box(geometry):
-    if geometry['type'] == 'Polygon':
-        return lat_lon_bounds(geometry['coordinates'][0])
-    elif geometry['type'] == 'LineString':
-        return lat_lon_bounds(geometry['coordinates'])
 
 #===============================================================================
 
@@ -134,6 +67,7 @@ def transform_point(transform, point):
     return (transform@[point[0], point[1], 1.0])[:2]
 
 def transform_bezier_samples(transform, bz):
+#===========================================
     samples = 100
     return [transform_point(transform, (pt.x, pt.y)) for pt in bz.sample(samples)]
 
@@ -187,12 +121,10 @@ class MakeGeoJsonLayer(SlideToLayer):
             }
         }
 
-    def get_output(self):
-        return self._feature_collection
-
     def save(self, filename=None):
+    #=============================
         if filename is None:
-            filename = os.path.join(self.options.output_dir, '{}.json'.format(self.layer_id))
+            filename = os.path.join(self.settings.output_dir, '{}.json'.format(self.layer_id))
         with open(filename, 'w') as output_file:
             json.dump(self._geo_collection, output_file)
 
@@ -367,8 +299,8 @@ class MakeGeoJsonLayer(SlideToLayer):
 #===============================================================================
 
 class GeoJsonExtractor(GeometryExtractor):
-    def __init__(self, pptx, options):
-        super().__init__(pptx, options)
+    def __init__(self, pptx, settings):
+        super().__init__(pptx, settings)
         self._LayerMaker = MakeGeoJsonLayer
         self._transform = np.array([[METRES_PER_EMU,               0, 0],
                                     [             0, -METRES_PER_EMU, 0],
