@@ -135,21 +135,20 @@ class MakeGeoJsonLayer(SlideToLayer):
 
     def add_features(self, features):
     #================================
-        divided = False
+        divided_area = 0
         group_metadata = {}
         for feature in features:
             if feature.metadata.get('boundary', False):
-                divided = True
+                divided_area += feature.geometry.area
             elif feature.metadata.get('group', False):
                 group_metadata = feature.metadata
-        if not divided:
             map_features = features
         else:
             map_features = []
             boundaries = []
             dividers = []
             regions = []
-            tolerance = 1500
+            tolerance = 0.02*math.sqrt(divided_area)  # Scale with size of divided region
             for feature in features:
                 if feature.metadata.get('region', False):
                     regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.metadata))
