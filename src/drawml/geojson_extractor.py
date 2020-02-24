@@ -142,6 +142,7 @@ class MakeGeoJsonLayer(SlideToLayer):
                 divided_area += feature.geometry.area
             elif feature.metadata.get('group', False):
                 group_metadata = feature.metadata
+        if divided_area == 0:
             map_features = features
         else:
             map_features = []
