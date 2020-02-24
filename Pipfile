@@ -11,7 +11,6 @@ numpy = "*"
 beziers = "*"
 svgwrite = "*"
 pymupdf = "*"
-mbutil = {git = "https://github.com/mapbox/mbutil"}
 requests = "*"
 pyparsing = "*"
 pyyaml = "*"
@@ -20,6 +19,7 @@ rdflib = "*"
 shapely = "*"
 pyproj = "*"
 mercantile = "*"
+mbutil = "*"
 
 [requires]
 python_version = "3.7"

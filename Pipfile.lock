@@ -142,8 +142,12 @@
             "version": "==1.1.1"
         },
         "mbutil": {
-            "git": "https://github.com/mapbox/mbutil",
-            "ref": "2fc4161f9be890a65d07f5e7b2ed0c8a0a123ed6"
+            "hashes": [
+                "sha256:78fca26f2497c4e20592792e2fe4abd5fd51e58a03a023a42a54274b7c13c419",
+                "sha256:ebbc67c966f71a45e6cc6e9e17a840efdc0aa56557abac71a58beb92f0572eaa"
+            ],
+            "index": "pypi",
+            "version": "==0.3.0"
         },
         "mercantile": {
             "hashes": [
