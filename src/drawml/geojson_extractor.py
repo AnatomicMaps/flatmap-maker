@@ -52,13 +52,13 @@ METRES_PER_EMU = 0.1   ## This to become a command line parameter...
 
 #===============================================================================
 
-mercator_projection = pyproj.Transformer.from_proj(
-                        pyproj.Proj(init='epsg:3857'),
-                        pyproj.Proj(init='epsg:4326'))
+mercator_transformer = pyproj.Transformer.from_proj(
+                            pyproj.Proj(init='epsg:3857'),
+                            pyproj.Proj(init='epsg:4326'))
 
-def mercator_geometry(geometry):
-#===============================
-    return shapely.ops.transform(mercator_projection.transform, geometry)
+def mercator_transform(geometry):
+#================================
+    return shapely.ops.transform(mercator_transformer.transform, geometry)
 
 #===============================================================================
 
@@ -187,18 +187,18 @@ class MakeGeoJsonLayer(SlideToLayer):
 
             if feature.geometry is not None:
                 geometry = feature.geometry
-                mercator = mercator_geometry(geometry)
+                mercator_geometry = mercator_transform(geometry)
                 metadata = feature.metadata
                 geojson = {
                     'type': 'Feature',
                     'id': feature.id,   # Must be numeric for tipeecanoe
-                    'geometry': shapely.geometry.mapping(mercator),  ## Only now convert coordinates...,
+                    'geometry': shapely.geometry.mapping(mercator_geometry),
                     'properties': {
                         'id': unique_id,
+                        'bounds': mercator_geometry.bounds,
                         'area': geometry.area,
-                        'bounds': mercator.bounds,
-                        'length': geometry.length
                         # Also set 'centre' ??
+                        'length': geometry.length,
                     }
                 }
                 if metadata:
@@ -314,8 +314,8 @@ class GeoJsonExtractor(GeometryExtractor):
     def bounds(self):
     #================
         bounds = super().bounds()
-        top_left = mercator_projection.transform(*transform_point(self._transform, (bounds[0], bounds[1])))
-        bottom_right = mercator_projection.transform(*transform_point(self._transform, (bounds[2], bounds[3])))
+        top_left = mercator_transformer.transform(*transform_point(self._transform, (bounds[0], bounds[1])))
+        bottom_right = mercator_transformer.transform(*transform_point(self._transform, (bounds[2], bounds[3])))
         return [top_left[0], top_left[1], bottom_right[0], bottom_right[1]]
 
 #===============================================================================
