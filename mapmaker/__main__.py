@@ -32,13 +32,13 @@ import datetime
 
 import requests
 
-from src.drawml import GeoJsonExtractor
-from src.labels import LabelData
-from src.mbtiles import MBTiles
-from src.rdf import update_RDF
-from src.styling import Style
-from src.tilemaker import make_background_tiles
-from src.tilejson import tile_json
+from drawml import GeoJsonExtractor
+from labels import LabelData
+from mbtiles import MBTiles
+from rdf import update_RDF
+from styling import Style
+from tilemaker import make_background_tiles
+from tilejson import tile_json
 
 #===============================================================================
 

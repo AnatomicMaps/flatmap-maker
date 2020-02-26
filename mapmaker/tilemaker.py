@@ -35,7 +35,7 @@ from PIL import Image
 
 #===============================================================================
 
-from .mbtiles import MBTiles, ExtractionError
+from mbtiles import MBTiles, ExtractionError
 
 #===============================================================================
 

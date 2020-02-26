@@ -31,7 +31,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 #===============================================================================
 
-from ..parser import Parser
+from parser import Parser
 
 #===============================================================================
 
