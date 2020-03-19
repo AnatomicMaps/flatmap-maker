@@ -1,31 +1,87 @@
 ============================
-Annotating Powerpoint Slides
+Marking up PowerPoint Slides
 ============================
 
+Map generation is performed by a Python script which extracts and processes the shapes in a Powerpoint slide to first create a set of GeoJSON features and then (from the GeoJSON), Mapbox vector tiles. Shapes are marked up with statements which, together with a separate ``anatomical style`` file, are used to annotate and style generated features, as well as to control the generation process.
 
-Statements about objects on a slide
------------------------------------
 
-Statements about objects on a Powerpoint slide are made using the object's ``name`` field, which is set via Powerpoint's ``Selection Pane`` (the Selection Pane can be found in the ``Arrange`` menu of the ``Home`` tab).
+Shapes
+------
 
-Two different types of statements are recognised:
+Statements about shapes on a Powerpoint slide are made using the shapes's ``name`` field, which can be changed in PowerPoint's ``Selection Pane`` (the Selection Pane can be found under the ``Arrange`` menu of the ``Home`` tab). Statements are used to specify properties of a feature for map generation, for specifying RDF annotation, and for constructing additional features based on the geometry of a group of shapes.
 
-1) The ``name`` starts with a ``.`` (period) character.
+Statements are identified by the name field having a period (``.``) as the first character, and consist of a white-space separated list of ``directives``.
 
-    These are ``directive`` statements.
+Directives either have the form ``DIRECTIVE_NAME`` or ``DIRECTIVE_NAME(PARAMETER)``. Valid directives are:
 
-    Only one directive statement is currently recognised, ``.layer-id(ID)``, which if used, must be the name of a text box. This assigns an identifier to the slide (i.e. the map layer). The content of the text box becomes the layer's description. Identifiers must be unique over the entire map. Only a single ``layer-id`` can be set in a slide; if there isn't one then the layer's id is set to ``layer-NN``, where ``NN`` is the slide's number in the presentation.
+* ``class(CLASS)`` -- the class of the shape, used to find the anatomical style of the generated feature.
+* ``id(ID)`` -- a unique identifier for the shape. These are mainly for connection routing but also allow for more specific annotation than that determined by a shape's class.
+* ``style(STYLE)`` -- a property that can be used to modify the style of a feature.
 
-2) The ``name`` starts with a ``#`` (hash) character.
+.. * ``label(TEXT)`` -- use thioverride any label defined for the feature's anatomical entity.
+.. * ``layer(ANATOMICAL_ID)`` -- the map source layer the feature is part of. If a layer hasn't been specified then the feature is assigned to a layer called ``composite``.
+.. * ``node(N)`` specifies the object to be a ``pointmap``, with ``N`` (``1``, ``2`` or ``3``) giving the node's class.
+.. * ``edge(SOURCE_ID, TARGET_ID)`` specifies the object to be an ``edgemap``, with ``SOURCE_ID`` and ``TARGET_ID`` giving the identifiers of the respective source and target nodes.
 
-    These are ``annotation`` statements, used to generate RDF annotation.
 
-    An annotation statement always starts by specifying an identifier for the object, in the form ``#OBJECT_ID``, followed by an optional list of whitespace separated ``commands``. An object's id must be unique within the slide or map layer.
+Commands operate within a Powerpoint group and are for constructing and annotating features based on those contained in the group. Valid commands are:
 
-    Each command has the form ``NAME(PARAMETERS)``.
+* ``boundary`` -- signifies that the feature will be divided into regions by its sibling un-annotated shapes.
+* ``children`` -- the feature is not shown but instead its properties are applied to its siblings within the parent group, and for ``layer`` for all descendants of the group.
+* ``invisible``
+* ``group`` -- the feature is not shown but instead a new feature is constructed that is the unary union of all of the parent group's descendant features.
+* ``region`` -- the feature is not shown but instead its properties are applied to the enclosing geometric region obtained by sub-dividing a ``boundary`` feature.
 
-    The following annotation commands are recognised:
+.. source/target/via
 
-    * ``models(UBERON:ID)`` (or ``FMA:ID``)
-    * ``node(N)`` specifies the object to be a ``pointmap``, with ``N`` (``1``, ``2`` or ``3``) giving the node's class.
-    * ``edge(SOURCE_ID, TARGET_ID)`` specifies the object to be an ``edgemap``, with ``SOURCE_ID`` and ``TARGET_ID`` giving the identifiers of the respective source and target nodes. These identifiers may refer to nodes in other map layers, by prefixing them with ``LAYER_ID/``.
+.. These identifiers may refer to nodes in other map layers, by prefixing them with ``LAYER_ID/``.
+
+.. Do we allow a slide notes field to specify ``layer()``??
+
+
+Or layers from UBERON --> layer map?? ``layers.json``:
+
+.. code-block:: json
+
+    {
+        "layers": ["UBERON:1", "UBERON:99"]
+    }
+
+
+
+Anatomical style file
+---------------------
+
+* JSON
+
+.. code-block:: json
+
+    {
+        "classes": [
+            {
+                "class": "CLASS",
+                "entity": "ONTOLOGY_ID",
+                "label": "FALLBACK_LAYER_TEXT",
+                "layer": "LAYER_ID"
+            }
+        ],
+        "features": [
+            {
+                "id": "ID",
+                "entity": "ONTOLOGY_ID",
+                "label": "FALLBACK_LAYER_TEXT"
+            }
+        ]
+    }
+
+
+.. note:: An ``ANATOMICAL_ID`` has the form ``PREFIX:SUFFIX`` where ``PREFIX`` specifies an
+ ontology and ``SUFFIX`` is specific to the ontology. Valid values for ``PREFIX``
+ are ``ABI``, ``FMA``, ``ILX``, ``MA``, and ``UBERON``.
+
+
+Parser
+------
+
+.. automodule:: mapmaker.parser
+    :members:
