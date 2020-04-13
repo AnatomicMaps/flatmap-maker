@@ -60,10 +60,10 @@ def main():
     parser.add_argument('--tile-slide', metavar='N', type=int, default=0,
                         help='only generate image tiles for this slide (1-origin); implies --background-tiles and --no-vector-tiles')
 
-    parser.add_argument('--debug-json', action='store_true',
-                        help="don't delete GeoJSON files but instead list their names")
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
+    parser.add_argument('--save-geojson', action='store_true',
+                        help="Save GeoJSON files for each layer")
     parser.add_argument('--version', action='version', version='0.3.1')
 
     parser.add_argument('map_base', metavar='MAPS_DIR',
@@ -174,8 +174,7 @@ def main():
 
         if layer.selectable:
             annotations.update(layer.metadata)
-            (fh, filename) = tempfile.mkstemp(suffix='.json')
-            os.close(fh)
+            filename = os.path.join(map_dir, '{}.json'.format(layer.layer_id))
             filenames.append(filename)
             layer.save(filename)
             tippe_inputs.append({
@@ -310,7 +309,7 @@ def main():
     print('Cleaning up...')
 
     for filename in filenames:
-        if args.debug_json:
+        if args.save_geojson:
             print(filename)
         else:
             os.remove(filename)
