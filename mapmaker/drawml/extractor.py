@@ -115,7 +115,7 @@ class Feature(object):
 
 #===============================================================================
 
-class SlideToLayer(object):
+class Layer(object):
     def __init__(self, extractor, slide, slide_number):
         self._extractor = extractor
         self._slide = slide
@@ -281,13 +281,13 @@ class SlideToLayer(object):
 
 #===============================================================================
 
-class GeometryExtractor(object):
+class Extractor(object):
     def __init__(self, pptx, settings):
         self._pptx = Presentation(pptx)
         self._settings = settings
         self._slides = self._pptx.slides
         self._slide_size = [self._pptx.slide_width, self._pptx.slide_height]
-        self._LayerMaker = SlideToLayer
+        self._LayerClass = Layer
         self._layers = {}
 
     def __len__(self):
@@ -321,9 +321,9 @@ class GeometryExtractor(object):
             xml = open(os.path.join(self._settings.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
             xml.write(slide.element.xml)
             xml.close()
-        if self._LayerMaker is not None:
-            layer = self._LayerMaker(self, slide, slide_number)
             layer.process()
+        if self._LayerClass is not None:
+            layer = self._LayerClass(self, slide, slide_number)
             print('Slide {}, layer {}'.format(slide_number, layer.layer_id))
             if layer.layer_id in self._layers:
                 raise KeyError('Duplicate layer id ({}) in slide {}'.format(layer.layer_id, slide_number))

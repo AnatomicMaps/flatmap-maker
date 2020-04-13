@@ -27,7 +27,7 @@ import svgwrite
 
 #===============================================================================
 
-from .extractor import GeometryExtractor, SlideToLayer, Transform
+from .extractor import Extractor, Layer, Transform
 from .extractor import EMU_PER_DOT, ellipse_point
 from .formula import Geometry, radians
 from .presets import DML
@@ -50,7 +50,7 @@ def svg_transform(m):
 
 #===============================================================================
 
-class MakeSvgLayer(SlideToLayer):
+class SvgLayer(Layer):
     def __init__(self, extractor, slide, slide_number):
         super().__init__(extractor, slide, slide_number)
         self._dwg = svgwrite.Drawing(filename=None,
@@ -141,7 +141,7 @@ class MakeSvgLayer(SlideToLayer):
 
 #===============================================================================
 
-class SvgExtractor(GeometryExtractor):
+class SvgExtractor(Extractor):
     def __init__(self, pptx, settings):
         super().__init__(pptx, settings)
         self._SlideMaker = MakeSvgSlide

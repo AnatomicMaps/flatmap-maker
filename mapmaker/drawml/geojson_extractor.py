@@ -39,7 +39,7 @@ import shapely.prepared
 #===============================================================================
 
 from .arc_to_bezier import cubic_beziers_from_arc, tuple2
-from .extractor import Feature, GeometryExtractor, SlideToLayer, Transform
+from .extractor import Feature, Extractor, Layer, Transform
 from .extractor import ellipse_point
 from .formula import Geometry, radians
 from .presets import DML
@@ -98,7 +98,7 @@ def extend_line(geometry, delta):
 
 #===============================================================================
 
-class MakeGeoJsonLayer(SlideToLayer):
+class GeoJsonLayer(Layer):
     def __init__(self, extractor, slide, slide_number):
         super().__init__(extractor, slide, slide_number)
         self._geo_collection = {}
@@ -298,10 +298,10 @@ class MakeGeoJsonLayer(SlideToLayer):
 
 #===============================================================================
 
-class GeoJsonExtractor(GeometryExtractor):
+class GeoJsonExtractor(Extractor):
     def __init__(self, pptx, settings):
         super().__init__(pptx, settings)
-        self._LayerMaker = MakeGeoJsonLayer
+        self._LayerClass = GeoJsonLayer
         self._transform = np.array([[METRES_PER_EMU,               0, 0],
                                     [             0, -METRES_PER_EMU, 0],
                                     [             0,               0, 1]])@np.array([[1, 0, -self._slide_size[0]/2.0],
