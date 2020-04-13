@@ -95,7 +95,7 @@ class Style(object):
         return {
             'version': 8,
             'sources': Sources.style(layers, vector_layer_dict, bounds, map_zoom),
-            'glyphs': 'http://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+            'glyphs': 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
             'zoom': map_zoom[2],
             'center': [float(x) for x in metadata['center'].split(',')],
             'layers': []
