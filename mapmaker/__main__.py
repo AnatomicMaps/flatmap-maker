@@ -176,7 +176,7 @@ def main():
             map_models = layer.models
 
         if layer.selectable:
-            annotations.update(layer.metadata)
+            annotations.update(layer.annotations)
             filename = os.path.join(map_dir, '{}.json'.format(layer.layer_id))
             filenames.append(filename)
             layer.save(filename)
