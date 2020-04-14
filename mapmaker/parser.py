@@ -28,22 +28,32 @@ class Parser(object):
     INTEGER = Word(nums)
 
     ID_TEXT = Word(alphanums, alphanums+':/_-.')
-    IDENTIFIER = Group(Keyword('id') + Suppress('(') + ID_TEXT + Suppress(')'))
 
-    ONTOLOGY_SUFFIX = Keyword('FMA') | Keyword('ILX') | Keyword('NCBITaxon') | Keyword('UBERON')
+    ONTOLOGY_SUFFIX = (Keyword('FM')
+                     | Keyword('FMA')
+                     | Keyword('ILX')
+                     | Keyword('MA')
+                     | Keyword('NCBITaxon')
+                     | Keyword('UBERON')
+                     )
     ONTOLOGY_ID = Combine(ONTOLOGY_SUFFIX + ':' + ID_TEXT)
 
+    IDENTIFIER = Group(Keyword('id') + Suppress('(') + ID_TEXT + Suppress(')'))
+    LABEL = Group(Keyword('label') + Suppress('(') + FREE_TEXT + Suppress(')'))
+    LAYER = Group(Keyword('layer') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
     MODELS = Group(Keyword('models') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
+    STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
+
+    DETAILS = Group(Keyword('details') + Suppress('(') + Suppress(')'))  ## Zoom start, slide/layer ID
 
     BACKGROUND = Group(Keyword('background-for') + Suppress('(') + IDENTIFIER + Suppress(')'))
     DESCRIPTION = Group(Keyword('description') + Suppress('(') + FREE_TEXT + Suppress(')'))
-    LABEL = Group(Keyword('label') + Suppress('(') + FREE_TEXT + Suppress(')'))
-    SELECTION = Group(Keyword('no-selection') | Keyword('selected') | Keyword('queryable'))
+    SELECTION_FLAGS = Group(Keyword('not-selectable') | Keyword('selected') | Keyword('queryable'))
     ZOOM = Group(Keyword('zoom') + Suppress('(')
                                    + Group(INTEGER + Suppress(',') + INTEGER + Suppress(',') + INTEGER)
                                  + Suppress(')'))
 
-    LAYER_DIRECTIVES = BACKGROUND | DESCRIPTION | IDENTIFIER | MODELS | SELECTION | ZOOM
+    LAYER_DIRECTIVES = BACKGROUND | DESCRIPTION | IDENTIFIER | MODELS | SELECTION_FLAGS | ZOOM
     LAYER_DIRECTIVE = '.' + ZeroOrMore(LAYER_DIRECTIVES)
 
 
@@ -56,14 +66,18 @@ class Parser(object):
 
     FEATURE_TYPE = NODE | EDGE
 
+    PROPERTIES = IDENTIFIER  | LABEL | LAYER| STYLE | MODELS
+
     ROUTING_TYPE = Keyword('source') | Keyword('target') | Keyword('via')
-    ROUTING = Group(ROUTING_TYPE + Suppress('(') + FEATURE_ID + Suppress(')'))
+    ROUTING = Group(ROUTING_TYPE + Suppress('(') + Group(FEATURE_ID | ONTOLOGY_ID) + Suppress(')'))
 
-    ## Need to check at least two IDs...
-    ## and that they are nodes...
-    FEATURE_FLAGS = Group(Keyword('boundary') | Keyword('group') | Keyword('region'))
+    FEATURE_FLAGS = Group(Keyword('boundary')
+                        | Keyword('children')
+                        | Keyword('group')
+                        | Keyword('invisible')
+                        | Keyword('region'))
 
-    FEATURE_PROPERTIES = FEATURE_FLAGS | FEATURE_TYPE | IDENTIFIER  | LABEL | MODELS | ROUTING
+    FEATURE_PROPERTIES = FEATURE_FLAGS | FEATURE_TYPE | PROPERTIES | ROUTING
     ANNOTATION = '.' + ZeroOrMore(FEATURE_PROPERTIES)
 
     @staticmethod
@@ -73,19 +87,14 @@ class Parser(object):
             parsed = Parser.LAYER_DIRECTIVE.parseString(s, parseAll=True)
             result['selectable'] = True
             for directive in parsed[1:]:
-                if directive[0] in ['background-for',
-                                    'description',
-                                    'id',
-                                    'models']:
-                    result[directive[0]] = directive[1]
-                elif directive[0] == 'not-selectable':
+                if directive[0] == 'not-selectable':
                     result['selectable'] = False
-                elif directive[0] == 'selected':
-                    result['selected'] = True
-                elif directive[0] == 'queryable-nodes':
-                    result['queryable-nodes'] = True
+                elif Parser.SELECTION_FLAGS.matches(directive[0]):
+                    result[directive[0]] = True
                 elif directive[0] == 'zoom':
                     result['zoom'] = [int(z) for z in directive[1]]
+                else:
+                    result[directive[0]] = directive[1]
 
         except ParseException:
             result['error'] = 'Syntax error in directive'
@@ -98,12 +107,8 @@ class Parser(object):
         try:
             parsed = Parser.ANNOTATION.parseString(s, parseAll=True)
             for prop in parsed[1:]:
-                if prop[0] == 'boundary':
-                    properties['boundary'] = True
-                elif prop[0] == 'group':
-                    properties['group'] = True
-                elif prop[0] == 'region':
-                    properties['region'] = True
+                if Parser.FEATURE_FLAGS.matches(prop[0]):
+                    properties[prop[0]] = True
                 else:
                     properties[prop[0]] = prop[1]
         except ParseException:
@@ -122,7 +127,11 @@ if __name__ == '__main__':
     test(Parser.layer_directive, '.selected')
     test(Parser.annotation, '.boundary')
     test(Parser.annotation, '.id(FEATURE) models(UBERON:1)')
+    test(Parser.annotation, '.models(FM:1)')
+    test(Parser.annotation, '.models(FMA:1)')
     test(Parser.annotation, '.models(UBERON:1)')
+    test(Parser.annotation, '.models (N1)')
     test(Parser.annotation, '.edge(#n1, #n2)')
+    test(Parser.annotation, '.source(#n1) via(#n2) target(#n3)')
 
 #===============================================================================
