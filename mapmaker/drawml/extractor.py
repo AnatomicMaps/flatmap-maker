@@ -96,22 +96,27 @@ class Transform(object):
 #===============================================================================
 
 class Feature(object):
-    def __init__(self, id, geometry, metadata):
+    def __init__(self, id, geometry, properties, group=False):
         self._id = id
         self._geometry = geometry
-        self._metadata = metadata
+        self._properties = properties
+        self._group = group
 
     @property
     def id(self):
         return self._id
 
     @property
+    def is_group(self):
+        return self._group
+
+    @property
     def geometry(self):
         return self._geometry
 
     @property
-    def metadata(self):
-        return self._metadata
+    def properties(self):
+        return self._properties
 
 #===============================================================================
 
@@ -154,20 +159,25 @@ class Layer(object):
             self._queryable_nodes = False
             self._zoom = None
         self._annotated_ids = []
+        self._features = []
         self._map_features = []
-        self._metadata = {}
+        self._annotations = {}
 
     @property
     def settings(self):
         return self._extractor.settings
 
     @property
-    def metadata(self):
-        return self._metadata
+    def annotations(self):
+        return self._annotations
 
     @property
     def description(self):
         return self._description
+
+    @property
+    def features(self):
+        return self._features
 
     @property
     def models(self):
@@ -233,13 +243,15 @@ class Layer(object):
             return []
         features = []
         for shape in shapes:
-            metadata = self.process_shape_name(shape)
+            properties = self.get_properties_(shape)
             if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or shape.shape_type == MSO_SHAPE_TYPE.PICTURE
              or isinstance(shape, pptx.shapes.connector.Connector)):
                 geometry = self.process_shape(shape, *args)
-                features.append(Feature(shape.shape_id, geometry, metadata))
+                feature = Feature(shape.shape_id, geometry, properties)
+                features.append(feature)
+                self._features.append(feature)
 
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.process_group(shape, *args)
@@ -250,16 +262,14 @@ class Layer(object):
                 print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
         return features
 
-    def process_shape_name(self, shape):
-    #===================================
-        metadata = {}
+    def get_properties_(self, shape):
+    #================================
+        properties = {}
         if shape.name.startswith('.'):
-            metadata['layer'] = self.layer_id
-            metadata['annotation'] = shape.name
-
             properties = Parser.annotation(shape.name)
+            properties['annotation'] = shape.name
             if 'error' in properties:
-                metadata['error'] = 'syntax'
+                properties['error'] = 'syntax'
                 self._errors.append('Feature in slide {} has annotation syntax error: {}'
                                     .format(self._slide_number, shape.name))
             else:
@@ -267,17 +277,15 @@ class Layer(object):
                     if key == 'id':
                         annotated_id = value
                         if annotated_id in self._annotated_ids:
-                            metadata['error'] = 'duplicate-id'
+                            properties['error'] = 'duplicate-id'
                             self._errors.append('Feature in slide {} has a duplicate id: {}'
                                                 .format(self._slide_number, shape.name))
                         else:
                             self._annotated_ids.append(annotated_id)
                     else:
-                        metadata[key] = value
-                if 'models' in metadata and 'label' not in metadata:
-                    metadata['label'] = self.settings.label_database.get_label(metadata['models'])
+                        properties[key] = value
 
-        return metadata
+        return properties
 
 #===============================================================================
 

@@ -109,7 +109,10 @@ class GeoJsonLayer(Layer):
     def process(self):
     #=================
         self._geo_features = []
-        self.add_features(self.process_shape_list(self._slide.shapes, self._transform))
+
+        features = self.process_shape_list(self._slide.shapes, self._transform)
+        self.add_geo_features_(features)
+
         self._geo_collection = {
             'type': 'FeatureCollection',
             'id': self.layer_id,
@@ -131,64 +134,80 @@ class GeoJsonLayer(Layer):
     def process_group(self, group, transform):
     #=========================================
         features = self.process_shape_list(group.shapes, transform@Transform(group).matrix())
-        self.add_features(features)
+        return self.add_geo_features_(features)
 
-    def add_features(self, features):
-    #================================
+    def add_geo_features_(self, features):
+    #===============================================
         divided_area = 0
-        group_metadata = {}
+        child_properties = {'layer': self.layer_id}
+
+        group_features = []
+        output_group_feature = False
+        group_properties = {'layer': self.layer_id}
         for feature in features:
-            if feature.metadata.get('boundary', False):
+            if feature.properties.get('boundary', False):
                 divided_area += feature.geometry.area
-            elif feature.metadata.get('group', False):
-                group_metadata = feature.metadata
-        if divided_area == 0:
-            map_features = features
-        else:
-            map_features = []
+            elif feature.properties.get('children', False):
+                child_properties.update(feature.properties)
+            elif feature.properties.get('group', False):
+                group_properties.update(feature.properties)
+                output_group_feature = True
+            else:
+                group_features.append(feature)
+
+        if divided_area > 0:
+            group_features = []
             boundaries = []
             dividers = []
             regions = []
             tolerance = 0.02*math.sqrt(divided_area)  # Scale with size of divided region
             for feature in features:
-                if feature.metadata.get('region', False):
-                    regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.metadata))
+                if feature.properties.get('region', False):
+                    regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.properties))
                 elif (feature.geometry.geom_type == 'LineString'
-                 and (feature.metadata.get('annotation', '') == ''
-                   or feature.metadata.get('boundary', False))):
+                 and (feature.properties.get('annotation', '') == ''
+                   or feature.properties.get('boundary', False))):
                     longer_line = extend_line(feature.geometry, tolerance)
                     dividers.append(longer_line)
-                    map_features.append(feature)
+                    group_features.append(feature)
                 elif (feature.geometry.geom_type == 'Polygon'
-                 and (feature.metadata.get('annotation', '') == ''
-                   or feature.metadata.get('boundary', False))):
+                 and (feature.properties.get('annotation', '') == ''
+                   or feature.properties.get('boundary', False))):
                     dividers.append(feature.geometry.boundary)
-                    map_features.append(Feature(self._region_id, feature.geometry.boundary, {}))
-                    self._region_id += 1
-                    if feature.metadata.get('boundary', False):
-                        map_features.append(feature)
-                elif not feature.metadata.get('group', False):
-                    map_features.append(feature)
+                    # Only show divider if not flagged as invisible
+                    if not feature.properties.get('invisible', False):
+                        group_features.append(Feature(self._region_id,
+                                                      feature.geometry.boundary,
+                                                      {'layer': self.layer_id} ))
+                        self._region_id += 1
+                    if feature.properties.get('boundary', False):
+                        group_features.append(feature)
+                elif not feature.properties.get('group', False):
+                    group_features.append(feature)
             if dividers:
                 for polygon in shapely.ops.polygonize(shapely.ops.unary_union(dividers)):
                     prepared_polygon = shapely.prepared.prep(polygon)
                     region_id = None
+                    region_properties = child_properties.copy()
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_id = region.id
-                        region_metadata = region.metadata
+                        region_properties.update(region.properties)
                     if region_id is None:
                         region_id = self._region_id
                         self._region_id += 1
-                        region_metadata = {}
-                    map_features.append(Feature(region_id, polygon, region_metadata))
+                    group_features.append(Feature(region_id, polygon, region_properties))
 
-        for feature in map_features:
+        for feature in group_features:
             unique_id = '{}-{}'.format(self.slide_id, feature.id)
 
-            if feature.geometry is not None:
+            if feature.geometry is not None and not feature.is_group:
                 geometry = feature.geometry
                 mercator_geometry = mercator_transform(geometry)
-                metadata = feature.metadata
+                # Initial set of properties come from ``.group``
+                properties = child_properties.copy()
+                # And are overriden by feature specific ones
+                properties.update(feature.properties)
+
                 geojson = {
                     'type': 'Feature',
                     'id': feature.id,   # Must be numeric for tipeecanoe
@@ -201,13 +220,12 @@ class GeoJsonLayer(Layer):
                         'length': geometry.length,
                     }
                 }
-                if metadata:
-                    metadata['geometry'] = geojson['geometry']['type']
-                    if 'label' in metadata:
-                        geojson['properties']['label'] = metadata['label']
-                    if 'models' in metadata:
-                        geojson['properties']['models'] = metadata['models']
-                    self._metadata[unique_id] = metadata
+                if properties:
+                    for (key, value) in properties.items():
+                        if key not in ['boundary', 'children', 'group', 'layer', 'region']:
+                            geojson['properties'][key] = value
+                    properties['geometry'] = geojson['geometry']['type']
+                    self._annotations[unique_id] = properties
 
                 self._geo_features.append(geojson)
                 self._map_features.append({
