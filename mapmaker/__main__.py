@@ -126,6 +126,7 @@ def main():
                 pdf_bytes = f.read()
 
     map_dir = os.path.join(args.map_base, args.map_id)
+    args.output_dir = map_dir
 
     map_models = ''
 
@@ -149,7 +150,9 @@ def main():
         if args.tile_slide > 0 and args.tile_slide != slide_number:
             continue
 
-        layer = map_extractor.slide_to_layer(slide_number, False)
+        layer = map_extractor.slide_to_layer(slide_number,
+                                                save_output=False,
+                                                debug_xml=args.debug_xml)
         for error in layer.errors:
             print(error)
 

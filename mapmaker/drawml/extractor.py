@@ -323,9 +323,9 @@ class Extractor(object):
     def slide(self, slide_number):
         return self._slides[slide_number - 1]
 
-    def slide_to_layer(self, slide_number, save_output=True):
+    def slide_to_layer(self, slide_number, save_output=True, debug_xml=False):
         slide = self.slide(slide_number)
-        if self._settings.debug_xml:
+        if debug_xml:
             xml = open(os.path.join(self._settings.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
             xml.write(slide.element.xml)
             xml.close()
