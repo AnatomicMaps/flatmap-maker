@@ -261,7 +261,6 @@ def main():
 
         update_RDF(args.map_base, args.map_id, map_source, annotations)
 
-    args.label_database.close()
 
     if not args.no_vector_tiles:
         print('Creating style files...')
