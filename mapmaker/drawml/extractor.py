@@ -329,9 +329,9 @@ class Extractor(object):
             xml = open(os.path.join(self._settings.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
             xml.write(slide.element.xml)
             xml.close()
-            layer.process()
         if self._LayerClass is not None:
             layer = self._LayerClass(self, slide, slide_number)
+            layer.process()
             print('Slide {}, layer {}'.format(slide_number, layer.layer_id))
             if layer.layer_id in self._layers:
                 raise KeyError('Duplicate layer id ({}) in slide {}'.format(layer.layer_id, slide_number))
