@@ -233,6 +233,7 @@ class GeoJsonLayer(Layer):
                 # And are overriden by feature specific ones
                 properties.update(feature.properties)
 
+                area = geometry.area
                 geojson = {
                     'type': 'Feature',
                     'id': feature.id,   # Must be numeric for tipeecanoe
@@ -240,11 +241,17 @@ class GeoJsonLayer(Layer):
                     'properties': {
                         'id': unique_id,
                         'bounds': mercator_geometry.bounds,
-                        'area': geometry.area,
                         # Also set 'centre' ??
+                        'area': area,
                         'length': geometry.length,
                     }
                 }
+
+                if area > 0:
+                    geojson['properties']['scale'] = math.log(math.sqrt(map_area/area), 2)
+                else:
+                    geojson['properties']['scale'] = 10
+
                 if properties:
                     for (key, value) in properties.items():
                         if key not in ['boundary', 'children', 'group', 'layer', 'region']:
@@ -352,6 +359,13 @@ class GeoJsonExtractor(Extractor):
     @property
     def transform(self):
         return self.__transform
+
+    def map_area(self):
+    #==================
+        bounds = super().bounds()
+        top_left = transform_point(self.__transform, (bounds[0], bounds[1]))
+        bottom_right = transform_point(self.__transform, (bounds[2], bounds[3]))
+        return abs(bottom_right[0] - top_left[0]) * (top_left[1] - bottom_right[1])
 
     def bounds(self):
     #================
