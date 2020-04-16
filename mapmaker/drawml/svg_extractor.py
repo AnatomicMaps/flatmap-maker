@@ -53,20 +53,20 @@ def svg_transform(m):
 class SvgLayer(Layer):
     def __init__(self, extractor, slide, slide_number):
         super().__init__(extractor, slide, slide_number)
-        self._dwg = svgwrite.Drawing(filename=None,
+        self.__dwg = svgwrite.Drawing(filename=None,
                                      size=svg_coords(extractor.slide_size[0], extractor.slide_size[1]))
-        self._dwg.defs.add(self._dwg.style('.non-scaling-stroke { vector-effect: non-scaling-stroke; }'))
+        self.__dwg.defs.add(self.__dwg.style('.non-scaling-stroke { vector-effect: non-scaling-stroke; }'))
 
     def process(self):
-        self.process_shape_list(self._slide.shapes, self._dwg)
+        self.process_shape_list(self.__slide.shapes, self.__dwg)
 
     def save(self, filename=None):
         if filename is None:
             filename = os.path.join(self.settings.output_dir, '{}.svg'.format(self.layer_id))
-        self._dwg.saveas(filename)
+        self.__dwg.saveas(filename)
 
     def process_group(self, group, svg_parent):
-        svg_group = self._dwg.g(id=group.shape_id)
+        svg_group = self.__dwg.g(id=group.shape_id)
         svg_group.matrix(*svg_transform(Transform(group).matrix()))
         svg_parent.add(svg_group)
         self.process_shape_list(group.shapes, svg_group)
@@ -75,7 +75,7 @@ class SvgLayer(Layer):
         geometry = Geometry(shape)
         for path in geometry.path_list:
             bbox = (shape.width, shape.height) if path.w is None else (path.w, path.h)
-            svg_path = self._dwg.path(id=shape.shape_id, fill='none', stroke_width=3,
+            svg_path = self.__dwg.path(id=shape.shape_id, fill='none', stroke_width=3,
                                       class_='non-scaling-stroke')
             svg_path.matrix(*svg_transform(Transform(shape, bbox).matrix()))
             first_point = None
@@ -143,8 +143,7 @@ class SvgLayer(Layer):
 
 class SvgExtractor(Extractor):
     def __init__(self, pptx, settings):
-        super().__init__(pptx, settings)
-        self._SlideMaker = MakeSvgSlide
+        super().__init__(pptx, settings, SvgLayer)
 
     def bounds(self):
         return [svg_units(b) for b in super().bounds()]

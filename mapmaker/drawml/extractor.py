@@ -89,44 +89,44 @@ class Transform(object):
                          [ 0, Fy, 0],
                          [ 0,  0, 1]])
         T_rf = np.linalg.inv(U)@R@Flip@U
-        self._T = T_rf@T_st
+        self.__T = T_rf@T_st
 
     def matrix(self):
-        return self._T
+        return self.__T
 
 #===============================================================================
 
 class Feature(object):
     def __init__(self, id, geometry, properties, group=False):
-        self._id = id
-        self._geometry = geometry
-        self._properties = properties
-        self._group = group
+        self.__id = id
+        self.__geometry = geometry
+        self.__properties = properties
+        self.__group = group
 
     @property
     def id(self):
-        return self._id
+        return self.__id
 
     @property
     def is_group(self):
-        return self._group
+        return self.__group
 
     @property
     def geometry(self):
-        return self._geometry
+        return self.__geometry
 
     @property
     def properties(self):
-        return self._properties
+        return self.__properties
 
 #===============================================================================
 
 class Layer(object):
     def __init__(self, extractor, slide, slide_number):
-        self._extractor = extractor
         self._slide = slide
-        self._slide_number = slide_number
-        self._errors = []
+        self.__extractor = extractor
+        self.__slide_number = slide_number
+        self.__errors = []
         self.__anatomical_map = AnatomicalMap(extractor.settings.anatomical_map,
                                               extractor.settings.label_database)
         # Find `layer-id` text boxes so we have a valid ID **before** using
@@ -137,86 +137,90 @@ class Layer(object):
             if notes_text.startswith('.'):
                 layer_directive = Parser.layer_directive(notes_text)
                 if 'error' in layer_directive:
-                    self._errors.append('Slide {}: invalid layer directive: {}'
+                    self.__errors.append('Slide {}: invalid layer directive: {}'
                                         .format(slide_number, notes_text))
-                    self._layer_id = 'layer-{:02d}'.format(slide_number)
+                    self.__layer_id = 'layer-{:02d}'.format(slide_number)
                 else:
-                    self._layer_id = layer_directive.get('id')
-                self._description = layer_directive.get('description', self._layer_id.capitalize())
-                self._models = layer_directive.get('models', '')
-                self._background_for = layer_directive.get('background-for', '')
-                self._selectable = self._background_for == '' and not layer_directive.get('not-selectable')
-                self._selected = layer_directive.get('selected', False)
-                self._queryable_nodes = layer_directive.get('queryable-nodes', False)
-                self._zoom = layer_directive.get('zoom', None)
+                    self.__layer_id = layer_directive.get('id')
+                self.__description = layer_directive.get('description', self.__layer_id.capitalize())
+                self.__models = layer_directive.get('models', '')
+                self.__background_for = layer_directive.get('background-for', '')
+                self.__selectable = self.__background_for == '' and not layer_directive.get('not-selectable')
+                self.__selected = layer_directive.get('selected', False)
+                self.__queryable_nodes = layer_directive.get('queryable-nodes', False)
+                self.__zoom = layer_directive.get('zoom', None)
             else:
                 # still need to initialise properties...
                 pass
         else:
-            self._layer_id = 'layer-{:02d}'.format(slide_number)
-            self._description = 'Layer {}'.format(slide_number)
-            self._models = ''
-            self._background_for = ''
-            self._selectable = False
-            self._selected = False
-            self._queryable_nodes = False
-            self._zoom = None
-        self._annotated_ids = []
-        self._features = []
-        self._map_features = []
-        self._annotations = {}
+            self.__layer_id = 'layer-{:02d}'.format(slide_number)
+            self.__description = 'Layer {}'.format(slide_number)
+            self.__models = ''
+            self.__background_for = ''
+            self.__selectable = False
+            self.__selected = False
+            self.__queryable_nodes = False
+            self.__zoom = None
+        self.__annotated_ids = []
+        self.__features = []
+        self.__map_features = []
+        self.__annotations = {}
+
+    @property
+    def extractor(self):
+        return self.__extractor
 
     @property
     def settings(self):
-        return self._extractor.settings
+        return self.__extractor.settings
 
     @property
     def annotations(self):
-        return self._annotations
+        return self.__annotations
 
     @property
     def description(self):
-        return self._description
+        return self.__description
 
     @property
     def features(self):
-        return self._features
+        return self.__features
 
     @property
     def models(self):
-        return self._models
+        return self.__models
 
     @property
     def background_for(self):
-        return self._background_for
+        return self.__background_for
 
     @property
     def selected(self):
-        return self._selected
+        return self.__selected
 
     @property
     def selectable(self):
-        return self._selectable
+        return self.__selectable
 
     @property
     def queryable_nodes(self):
-        return self._queryable_nodes
+        return self.__queryable_nodes
 
     @property
     def zoom(self):
-        return self._zoom
+        return self.__zoom
 
     @property
     def errors(self):
-        return self._errors
+        return self.__errors
 
     @property
     def map_features(self):
-        return self._map_features
+        return self.__map_features
 
     @property
     def layer_id(self):
-        return self._layer_id
+        return self.__layer_id
 
     @property
     def slide_id(self):
@@ -242,7 +246,7 @@ class Layer(object):
 
     def process_shape_list(self, shapes, *args):
     #===========================================
-        if not self._selectable:
+        if not self.__selectable:
             return []
         features = []
         for shape in shapes:
@@ -254,7 +258,7 @@ class Layer(object):
                 geometry = self.process_shape(shape, *args)
                 feature = Feature(shape.shape_id, geometry, properties)
                 features.append(feature)
-                self._features.append(feature)
+                self.__features.append(feature)
 
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.process_group(shape, *args)
@@ -273,18 +277,18 @@ class Layer(object):
             properties['annotation'] = shape.name
             if 'error' in properties:
                 properties['error'] = 'syntax'
-                self._errors.append('Feature in slide {} has annotation syntax error: {}'
-                                    .format(self._slide_number, shape.name))
+                self.__errors.append('Feature in slide {} has annotation syntax error: {}'
+                                    .format(self.__slide_number, shape.name))
             else:
                 for (key, value) in properties.items():
                     if key == 'id':
                         annotated_id = value
-                        if annotated_id in self._annotated_ids:
+                        if annotated_id in self.__annotated_ids:
                             properties['error'] = 'duplicate-id'
-                            self._errors.append('Feature in slide {} has a duplicate id: {}'
-                                                .format(self._slide_number, shape.name))
+                            self.__errors.append('Feature in slide {} has a duplicate id: {}'
+                                                .format(self.__slide_number, shape.name))
                         else:
-                            self._annotated_ids.append(annotated_id)
+                            self.__annotated_ids.append(annotated_id)
                     else:
                         properties[key] = value
                 if 'class' in properties:
@@ -294,59 +298,60 @@ class Layer(object):
 #===============================================================================
 
 class Extractor(object):
-    def __init__(self, pptx, settings):
-        self._pptx = Presentation(pptx)
-        self._settings = settings
-        self._slides = self._pptx.slides
-        self._slide_size = [self._pptx.slide_width, self._pptx.slide_height]
-        self._LayerClass = Layer
-        self._layers = {}
+    def __init__(self, pptx, settings, layer_class=Layer):
+        self.__LayerClass = layer_class
+        self.__pptx = Presentation(pptx)
+        self.__settings = settings
+        self.__slides = self.__pptx.slides
+        self.__slide_size = [self.__pptx.slide_width, self.__pptx.slide_height]
+        self.__layers = {}
 
     def __len__(self):
-        return len(self._slides)
+        return len(self.__slides)
 
     @property
     def layers(self):
-        return self._layers
+        return self.__layers
 
     @property
     def settings(self):
-        return self._settings
+        return self.__settings
 
     @property
     def slide_maker(self):
-        return self._slide_maker
+        return self.__slide_maker
 
     @property
     def slide_size(self):
-        return self._slide_size
+        return self.__slide_size
 
     def bounds(self):
-        return [0, 0, self._slide_size[0], self._slide_size[1]]
+        return [0, 0, self.__slide_size[0], self.__slide_size[1]]
 
     def slide(self, slide_number):
-        return self._slides[slide_number - 1]
+        return self.__slides[slide_number - 1]
 
     def slide_to_layer(self, slide_number, save_output=True, debug_xml=False):
         slide = self.slide(slide_number)
         if debug_xml:
-            xml = open(os.path.join(self._settings.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
+            xml = open(os.path.join(self.__settings.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
             xml.write(slide.element.xml)
             xml.close()
-        if self._LayerClass is not None:
-            layer = self._LayerClass(self, slide, slide_number)
+        if self.__LayerClass is not None:
+            layer = self.__LayerClass(self, slide, slide_number)
             layer.process()
             print('Slide {}, layer {}'.format(slide_number, layer.layer_id))
-            if layer.layer_id in self._layers:
+
+            if layer.layer_id in self.__layers:
                 raise KeyError('Duplicate layer id ({}) in slide {}'.format(layer.layer_id, slide_number))
-            self._layers[layer.layer_id] = layer
+            self.__layers[layer.layer_id] = layer
             if save_output:
                 layer.save()
             return layer
 
     def slides_to_layers(self, slide_range):
         if slide_range is None:
-            slide_range = range(1, len(self._slides)+1)
+            slide_range = range(1, len(self.__slides)+1)
         elif isinstance(slide_range, int):
             slide_range = [slide_range]
         for n in slide_range:

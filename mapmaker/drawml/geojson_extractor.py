@@ -101,23 +101,23 @@ def extend_line(geometry, delta):
 class GeoJsonLayer(Layer):
     def __init__(self, extractor, slide, slide_number):
         super().__init__(extractor, slide, slide_number)
-        self._geo_collection = {}
-        self._geo_features = []
-        self._region_id = 10000
-        self._transform = extractor.transform
+        self.__geo_collection = {}
+        self.__geo_features = []
+        self.__region_id = 10000
+        self.__transform = extractor.transform
 
     def process(self):
     #=================
-        self._geo_features = []
+        self.__geo_features = []
 
-        features = self.process_shape_list(self._slide.shapes, self._transform)
+        features = self.process_shape_list(self._slide.shapes, self.__transform)
         self.add_geo_features_(features)
 
-        self._geo_collection = {
+        self.__geo_collection = {
             'type': 'FeatureCollection',
             'id': self.layer_id,
             'creator': 'mapmaker',        # Add version
-            'features': self._geo_features,
+            'features': self.__geo_features,
             'properties': {
                 'id': self.layer_id,
                 'description': self.description
@@ -129,7 +129,7 @@ class GeoJsonLayer(Layer):
         if filename is None:
             filename = os.path.join(self.settings.output_dir, '{}.json'.format(self.layer_id))
         with open(filename, 'w') as output_file:
-            json.dump(self._geo_collection, output_file)
+            json.dump(self.__geo_collection, output_file)
 
     def process_group(self, group, transform):
     #=========================================
@@ -176,10 +176,10 @@ class GeoJsonLayer(Layer):
                     dividers.append(feature.geometry.boundary)
                     # Only show divider if not flagged as invisible
                     if not feature.properties.get('invisible', False):
-                        group_features.append(Feature(self._region_id,
+                        group_features.append(Feature(self.__region_id,
                                                       feature.geometry.boundary,
                                                       {'layer': self.layer_id} ))
-                        self._region_id += 1
+                        self.__region_id += 1
                     if feature.properties.get('boundary', False):
                         group_features.append(feature)
                 elif not feature.properties.get('group', False):
@@ -193,8 +193,8 @@ class GeoJsonLayer(Layer):
                         region_id = region.id
                         region_properties.update(region.properties)
                     if region_id is None:
-                        region_id = self._region_id
-                        self._region_id += 1
+                        region_id = self.__region_id
+                        self.__region_id += 1
                     group_features.append(Feature(region_id, polygon, region_properties))
 
         for feature in group_features:
@@ -225,10 +225,10 @@ class GeoJsonLayer(Layer):
                         if key not in ['boundary', 'children', 'group', 'layer', 'region']:
                             geojson['properties'][key] = value
                     properties['geometry'] = geojson['geometry']['type']
-                    self._annotations[unique_id] = properties
+                    self.annotations[unique_id] = properties
 
-                self._geo_features.append(geojson)
-                self._map_features.append({
+                self.__geo_features.append(geojson)
+                self.map_features.append({
                     'id': unique_id,
                     'type': geojson['geometry']['type']
                 })
@@ -318,22 +318,21 @@ class GeoJsonLayer(Layer):
 
 class GeoJsonExtractor(Extractor):
     def __init__(self, pptx, settings):
-        super().__init__(pptx, settings)
-        self._LayerClass = GeoJsonLayer
-        self._transform = np.array([[METRES_PER_EMU,               0, 0],
+        super().__init__(pptx, settings, GeoJsonLayer)
+        self.__transform = np.array([[METRES_PER_EMU,               0, 0],
                                     [             0, -METRES_PER_EMU, 0],
-                                    [             0,               0, 1]])@np.array([[1, 0, -self._slide_size[0]/2.0],
-                                                                                     [0, 1, -self._slide_size[1]/2.0],
+                                    [             0,               0, 1]])@np.array([[1, 0, -self.slide_size[0]/2.0],
+                                                                                     [0, 1, -self.slide_size[1]/2.0],
                                                                                      [0, 0,                      1.0]])
     @property
     def transform(self):
-        return self._transform
+        return self.__transform
 
     def bounds(self):
     #================
         bounds = super().bounds()
-        top_left = mercator_transformer.transform(*transform_point(self._transform, (bounds[0], bounds[1])))
-        bottom_right = mercator_transformer.transform(*transform_point(self._transform, (bounds[2], bounds[3])))
+        top_left = mercator_transformer.transform(*transform_point(self.__transform, (bounds[0], bounds[1])))
+        bottom_right = mercator_transformer.transform(*transform_point(self.__transform, (bounds[2], bounds[3])))
         return [top_left[0], top_left[1], bottom_right[0], bottom_right[1]]
 
 #===============================================================================
