@@ -81,7 +81,7 @@ def extend_(p0, p1, delta):
     dy = p1[1] - p0[1]
     l = math.sqrt(dx*dx + dy*dy)
     scale = (delta + l)/l
-    return (p0[0] + scale*dx, p0[1] + scale*dy)
+    return (p1[0] + scale*dx, p1[1] + scale*dy)
 
 def extend_line(geometry, delta):
 #================================
