@@ -55,6 +55,24 @@ A PowerPoint slide supports hierarchical grouping of shapes and groups. The grou
 Anatomical mapping file
 -----------------------
 
+Initial version
+~~~~~~~~~~~~~~~
+
+* CSV file:
+
+    - Has a header row which must include columns ``Power point identifier``, ``Preferred ID``, and ``UBERON``.
+    - A shape's ``class`` is used as the key into the ``Power point identifier`` column to obtain a preferred anatomical identifier for the shape.
+    - If no ``Preferred ID`` is defined then the UBERON identifier is used.
+    - The shape's label is set from its anatomical identifier by looking up the appropriate ontology; if none is assigned then the label is set to the shape's class.
+
+* No anatomical based styling:
+
+    - the map's background is tiled images derived from a PDF of the Powerpoint slide.
+
+
+Future
+~~~~~~
+
 * A JSON file:
 
 .. code-block:: json
