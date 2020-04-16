@@ -33,7 +33,6 @@ import datetime
 import requests
 
 from drawml import GeoJsonExtractor
-from labels import LabelData
 from mbtiles import MBTiles
 from rdf import update_RDF
 from styling import Style
@@ -60,6 +59,9 @@ def main():
     parser.add_argument('--tile-slide', metavar='N', type=int, default=0,
                         help='only generate image tiles for this slide (1-origin); implies --background-tiles and --no-vector-tiles')
 
+    parser.add_argument('--anatomical_map', required=True,
+                        help='CSV file for mapping shape class to anatomical entity')
+
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")
     parser.add_argument('--save-geojson', action='store_true',
@@ -68,7 +70,6 @@ def main():
 
     parser.add_argument('map_base', metavar='MAPS_DIR',
                         help='base directory for generated flatmaps')
-
     parser.add_argument('map_id', metavar='MAP_ID',
                         help='a unique identifier for the map')
     parser.add_argument('powerpoint', metavar='POWERPOINT',
@@ -128,14 +129,14 @@ def main():
     map_dir = os.path.join(args.map_base, args.map_id)
     args.output_dir = map_dir
 
+    args.label_database = os.path.join(args.map_base, 'labels.sqlite')
+
     map_models = ''
 
     if not os.path.exists(map_dir):
         os.makedirs(map_dir)
 
-    # Label database
 
-    args.label_database = LabelData(os.path.join(args.map_base, 'labels.sqlite'))
 
     print('Extracting layers...')
     filenames = []

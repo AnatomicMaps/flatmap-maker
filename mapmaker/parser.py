@@ -38,6 +38,7 @@ class Parser(object):
                      )
     ONTOLOGY_ID = Combine(ONTOLOGY_SUFFIX + ':' + ID_TEXT)
 
+    CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
     IDENTIFIER = Group(Keyword('id') + Suppress('(') + ID_TEXT + Suppress(')'))
     LABEL = Group(Keyword('label') + Suppress('(') + FREE_TEXT + Suppress(')'))
     LAYER = Group(Keyword('layer') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))

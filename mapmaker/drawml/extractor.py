@@ -31,6 +31,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 #===============================================================================
 
+from labels import AnatomicalMap
 from parser import Parser
 
 #===============================================================================
@@ -126,6 +127,8 @@ class Layer(object):
         self._slide = slide
         self._slide_number = slide_number
         self._errors = []
+        self.__anatomical_map = AnatomicalMap(extractor.settings.anatomical_map,
+                                              extractor.settings.label_database)
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
         if slide.has_notes_slide:
@@ -284,7 +287,8 @@ class Layer(object):
                             self._annotated_ids.append(annotated_id)
                     else:
                         properties[key] = value
-
+                if 'class' in properties:
+                    properties.update(self.__anatomical_map.properties(properties['class']))
         return properties
 
 #===============================================================================
