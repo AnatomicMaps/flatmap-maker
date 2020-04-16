@@ -90,6 +90,8 @@ class Sources(object):
 class Style(object):
     @staticmethod
     def style(layers, metadata, map_zoom):
+        if 'json' not in metadata:
+            raise ValueError('Invalid metadata for tiles -- no geometry?')
         vector_layer_dict = json.loads(metadata['json'])
         bounds = [float(x) for x in metadata['bounds'].split(',')]
         return {
