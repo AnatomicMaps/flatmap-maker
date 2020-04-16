@@ -144,9 +144,25 @@ class GeoJsonLayer(Layer):
         group_features = []
         output_group_feature = False
         group_properties = {'layer': self.layer_id}
+
+        # We first find our boundary polygon(s)
+        boundary = None
+        boundary_class = None
+        boundary_lines = []
+        boundary_polygons = []
+
         for feature in features:
             if feature.properties.get('boundary', False):
-                divided_area += feature.geometry.area
+                if feature.geometry.geom_type == 'Polygon':
+                    boundary_polygons.append(feature.geometry)
+                elif feature.geometry.geom_type == 'LineString':
+                    boundary_lines.append(extend_line(feature.geometry, 0.02*feature.geometry.length))
+                cls = feature.properties.get('class')
+                if cls is not None:
+                    if cls != boundary_class:
+                        boundary_class = cls
+                    else:
+                        raise ValueError('Class of boundary has changed...')
             elif feature.properties.get('children', False):
                 child_properties.update(feature.properties)
             elif feature.properties.get('group', False):
@@ -155,12 +171,16 @@ class GeoJsonLayer(Layer):
             else:
                 group_features.append(feature)
 
-        if divided_area > 0:
+        if len(boundary_lines):
+            for boundary in shapely.ops.polygonize(shapely.ops.unary_union(boundary_lines)):
+                boundary_polygons.append(boundary)
+        if len(boundary_polygons):
+            boundary = shapely.ops.unary_union(boundary_polygons)
+        if boundary is not None:
+            dividers = [ boundary ]
             group_features = []
-            boundaries = []
-            dividers = []
             regions = []
-            tolerance = 0.02*math.sqrt(divided_area)  # Scale with size of divided region
+            tolerance = 0.02*math.sqrt(boundary.area)  # Scale with size of divided region
             for feature in features:
                 if feature.properties.get('region', False):
                     regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.properties))
@@ -169,11 +189,11 @@ class GeoJsonLayer(Layer):
                    or feature.properties.get('boundary', False))):
                     longer_line = extend_line(feature.geometry, tolerance)
                     dividers.append(longer_line)
-                    group_features.append(feature)
+                    if not feature.properties.get('invisible', False):
+                        group_features.append(feature)
                 elif (feature.geometry.geom_type == 'Polygon'
                  and (feature.properties.get('annotation', '') == ''
                    or feature.properties.get('boundary', False))):
-                    dividers.append(feature.geometry.boundary)
                     # Only show divider if not flagged as invisible
                     if not feature.properties.get('invisible', False):
                         group_features.append(Feature(self.__region_id,
@@ -183,7 +203,8 @@ class GeoJsonLayer(Layer):
                     if feature.properties.get('boundary', False):
                         group_features.append(feature)
                 elif not feature.properties.get('group', False):
-                    group_features.append(feature)
+                    if not feature.properties.get('invisible', False):
+                        group_features.append(feature)
             if dividers:
                 for polygon in shapely.ops.polygonize(shapely.ops.unary_union(dividers)):
                     prepared_polygon = shapely.prepared.prep(polygon)
@@ -196,6 +217,10 @@ class GeoJsonLayer(Layer):
                         region_id = self.__region_id
                         self.__region_id += 1
                     group_features.append(Feature(region_id, polygon, region_properties))
+        else:
+            for feature in features:
+                if feature.properties.get('region', False):
+                    raise ValueError('Region dividers must have a boundary')
 
         for feature in group_features:
             unique_id = '{}-{}'.format(self.slide_id, feature.id)
