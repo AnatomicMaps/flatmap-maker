@@ -56,29 +56,24 @@ class Parser(object):
     LAYER_DIRECTIVES = BACKGROUND | DESCRIPTION | IDENTIFIER | MODELS | SELECTION_FLAGS | ZOOM
     LAYER_DIRECTIVE = '.' + ZeroOrMore(LAYER_DIRECTIVES)
 
-
     FEATURE_ID = Combine(Suppress('#') + ID_TEXT)
-
     NEURAL_CLASS = Keyword('N1') | Keyword('N2') | Keyword('N3') | Keyword('N4') | Keyword('N5')
     NODE = Group(Keyword('node') + Suppress('(') + NEURAL_CLASS + Suppress(')'))
-
     EDGE = Group(Keyword('edge') + Suppress('(') + Group(delimitedList(FEATURE_ID)) + Suppress(')'))
+    SHAPE_TYPE = NODE | EDGE
 
-    FEATURE_TYPE = NODE | EDGE
-
-    PROPERTIES = IDENTIFIER  | LABEL | LAYER| STYLE | MODELS
+    PROPERTIES = CLASS | IDENTIFIER | STYLE
 
     ROUTING_TYPE = Keyword('source') | Keyword('target') | Keyword('via')
     ROUTING = Group(ROUTING_TYPE + Suppress('(') + Group(FEATURE_ID | ONTOLOGY_ID) + Suppress(')'))
 
-    FEATURE_FLAGS = Group(Keyword('boundary')
+    SHAPE_FLAGS = Group(Keyword('boundary')
                         | Keyword('children')
                         | Keyword('group')
                         | Keyword('invisible')
                         | Keyword('region'))
 
-    FEATURE_PROPERTIES = FEATURE_FLAGS | FEATURE_TYPE | PROPERTIES | ROUTING
-    ANNOTATION = '.' + ZeroOrMore(FEATURE_PROPERTIES)
+    SHAPE_MARKUP = '.' + ZeroOrMore(SHAPE_FLAGS | SHAPE_TYPE | PROPERTIES | ROUTING)
 
     @staticmethod
     def layer_directive(s):
@@ -101,13 +96,13 @@ class Parser(object):
         return result
 
     @staticmethod
-    def annotation(s):
+    def shape_properties(s):
         id = None
         properties = {}
         try:
-            parsed = Parser.ANNOTATION.parseString(s, parseAll=True)
+            parsed = Parser.SHAPE_MARKUP.parseString(s, parseAll=True)
             for prop in parsed[1:]:
-                if Parser.FEATURE_FLAGS.matches(prop[0]):
+                if Parser.SHAPE_FLAGS.matches(prop[0]):
                     properties[prop[0]] = True
                 else:
                     properties[prop[0]] = prop[1]
@@ -125,13 +120,13 @@ if __name__ == '__main__':
 
     test(Parser.layer_directive, '.id(LAYER) models(NCBITaxon:1)')
     test(Parser.layer_directive, '.selected')
-    test(Parser.annotation, '.boundary')
-    test(Parser.annotation, '.id(FEATURE) models(UBERON:1)')
-    test(Parser.annotation, '.models(FM:1)')
-    test(Parser.annotation, '.models(FMA:1)')
-    test(Parser.annotation, '.models(UBERON:1)')
-    test(Parser.annotation, '.models (N1)')
-    test(Parser.annotation, '.edge(#n1, #n2)')
-    test(Parser.annotation, '.source(#n1) via(#n2) target(#n3)')
+    test(Parser.shape_properties, '.boundary')
+    test(Parser.shape_properties, '.id(FEATURE) models(UBERON:1)')
+    test(Parser.shape_properties, '.models(FM:1)')
+    test(Parser.shape_properties, '.models(FMA:1)')
+    test(Parser.shape_properties, '.models(UBERON:1)')
+    test(Parser.shape_properties, '.models (N1)')
+    test(Parser.shape_properties, '.edge(#n1, #n2)')
+    test(Parser.shape_properties, '.source(#n1) via(#n2) target(#n3)')
 
 #===============================================================================

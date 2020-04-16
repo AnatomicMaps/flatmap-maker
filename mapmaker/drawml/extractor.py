@@ -266,7 +266,7 @@ class Layer(object):
     #================================
         properties = {}
         if shape.name.startswith('.'):
-            properties = Parser.annotation(shape.name)
+            properties = Parser.shape_properties(shape.name)
             properties['annotation'] = shape.name
             if 'error' in properties:
                 properties['error'] = 'syntax'
