@@ -243,8 +243,8 @@ class GeoJsonLayer(Layer):
                     'geometry': shapely.geometry.mapping(mercator_geometry),
                     'properties': {
                         'id': unique_id,
-                        'bounds': mercator_geometry.bounds,
                         # Also set 'centre' ??
+                        'bounds': list(mercator_geometry.bounds),
                         'area': area,
                         'length': geometry.length,
                     }
