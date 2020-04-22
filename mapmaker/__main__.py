@@ -22,15 +22,17 @@ FLATMAP_VERSION = 1.1
 
 #===============================================================================
 
+import datetime
 import io
 import json
 import subprocess
 import tempfile
-import datetime
 
 #===============================================================================
 
 import requests
+
+#===============================================================================
 
 from drawml import GeoJsonExtractor
 ##from layermapping import LayerMapping
