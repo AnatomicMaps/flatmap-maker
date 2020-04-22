@@ -175,7 +175,7 @@ class GeoJsonLayer(Layer):
             for boundary in shapely.ops.polygonize(shapely.ops.unary_union(boundary_lines)):
                 boundary_polygons.append(boundary)
         if len(boundary_polygons):
-            boundary = shapely.ops.unary_union(boundary_polygons)
+            boundary = shapely.ops.unary_union(boundary_polygons).boundary
         if boundary is not None:
             dividers = [ boundary ]
             group_features = []
@@ -194,6 +194,7 @@ class GeoJsonLayer(Layer):
                 elif (feature.geometry.geom_type == 'Polygon'
                  and (feature.properties.get('annotation', '') == ''
                    or feature.properties.get('boundary', False))):
+                    dividers.append(feature.geometry.boundary)
                     # Only show divider if not flagged as invisible
                     if not feature.properties.get('invisible', False):
                         group_features.append(Feature(self.__region_id,
