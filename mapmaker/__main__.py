@@ -48,33 +48,38 @@ def main():
     import os, sys
 
     parser = argparse.ArgumentParser(description='Convert Powerpoint slides to a flatmap.')
-    parser.add_argument('--background-tiles', action='store_true',
-                        help="generate image tiles of map's layers")
-    parser.add_argument('--initial-zoom', metavar='N', type=int, default=4,
-                        help='initial zoom level (defaults to 4)')
-    parser.add_argument('--max-zoom', metavar='N', type=int, default=10,
-                        help='maximum zoom level (defaults to 10)')
-    parser.add_argument('--min-zoom', metavar='N', type=int, default=2,
-                        help='minimum zoom level (defaults to 2)')
-    parser.add_argument('--no-vector-tiles', action='store_true',
+
+    parser.add_argument('-b', '--background-tiles', action='store_true',
+                        help="generate image tiles of map's layers (may take a while...)")
+    parser.add_argument('-n', '--no-vector-tiles', action='store_true',
                         help="don't generate vector tiles database and style files")
-    parser.add_argument('--tile-slide', metavar='N', type=int, default=0,
+    parser.add_argument('-t', '--tile', dest='tile_slide', metavar='N', type=int, default=0,
                         help='only generate image tiles for this slide (1-origin); implies --background-tiles and --no-vector-tiles')
 
-    parser.add_argument('--anatomical_map', required=True,
-                        help='Excel spreadsheet file for mapping shape classes to anatomical entities')
+    parser.add_argument('-z', '--initial-zoom', metavar='N', type=int, default=4,
+                        help='initial zoom level (defaults to 4)')
+    parser.add_argument('--max', dest='max_zoom', metavar='N', type=int, default=10,
+                        help='maximum zoom level (defaults to 10)')
+    parser.add_argument('--min', dest='min_zoom', metavar='N', type=int, default=2,
+                        help='minimum zoom level (defaults to 2)')
 
-    parser.add_argument('--debug-xml', action='store_true',
+
+    parser.add_argument('-d', '--debug', dest='debug_xml', action='store_true',
                         help="save a slide's DrawML for debugging")
-    parser.add_argument('--save-geojson', action='store_true',
+    parser.add_argument('-s', '--save-geojson', action='store_true',
                         help="Save GeoJSON files for each layer")
-    parser.add_argument('--version', action='version', version='0.3.1')
 
-    parser.add_argument('map_base', metavar='MAPS_DIR',
+    parser.add_argument('-v', '--version', action='version', version='0.3.1')
+
+    required = parser.add_argument_group('required arguments')
+
+    required.add_argument('--map-dir', dest='map_base', metavar='MAP_DIR', required=True,
                         help='base directory for generated flatmaps')
-    parser.add_argument('map_id', metavar='MAP_ID',
+    required.add_argument('--id', dest='map_id', metavar='MAP_ID', required=True,
                         help='a unique identifier for the map')
-    parser.add_argument('powerpoint', metavar='POWERPOINT',
+    required.add_argument('--anatomical-map', required=True,
+                        help='Excel spreadsheet file for mapping shape classes to anatomical entities')
+    required.add_argument('--slides', dest='powerpoint', metavar='POWERPOINT', required=True,
                         help='File or URL of Powerpoint slides')
 
     # --force option
