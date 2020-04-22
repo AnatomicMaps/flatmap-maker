@@ -183,7 +183,7 @@ def main():
             layer.save(filename)
             tippe_inputs.append({
                 'file': filename,
-                'layer': layer.layer_id,
+                'layer': 'features',   ## Have `feature-layer(NAME)` as slide annotation??
                 'description': layer.description
             })
 
