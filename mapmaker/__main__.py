@@ -60,7 +60,7 @@ def main():
                         help='only generate image tiles for this slide (1-origin); implies --background-tiles and --no-vector-tiles')
 
     parser.add_argument('--anatomical_map', required=True,
-                        help='CSV file for mapping shape class to anatomical entity')
+                        help='Excel spreadsheet file for mapping shape classes to anatomical entities')
 
     parser.add_argument('--debug-xml', action='store_true',
                         help="save a slide's DrawML for debugging")

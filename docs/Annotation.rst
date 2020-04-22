@@ -58,9 +58,9 @@ Anatomical mapping file
 Initial version
 ~~~~~~~~~~~~~~~
 
-* CSV file:
+* Excel spreadsheet:
 
-    - Has a header row which must include columns ``Power point identifier``, ``Preferred ID``, and ``UBERON``.
+    - All worksheets of a workbook are read. If the first row of a worksheet has cells containing ``Power point identifier``, ``Preferred ID``, and ``UBERON ID`` then mapping data is taken from subsequent rows otherwise the worksheet is ignored.
     - A shape's ``class`` is used as the key into the ``Power point identifier`` column to obtain a preferred anatomical identifier for the shape.
     - If no ``Preferred ID`` is defined then the UBERON identifier is used.
     - The shape's label is set from its anatomical identifier by looking up the appropriate ontology; if none is assigned then the label is set to the shape's class.
