@@ -271,7 +271,6 @@ def main():
 
         map_index = {
             'id': args.map_id,
-            'style': 'style.json',
             'min-zoom': map_zoom[0],
             'max-zoom': map_zoom[1],
             'bounds': map_bounds,
