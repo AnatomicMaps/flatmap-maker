@@ -21,6 +21,7 @@
 import json
 import math
 import os
+import warnings
 
 #===============================================================================
 
@@ -32,6 +33,7 @@ from beziers.quadraticbezier import QuadraticBezier
 import numpy as np
 
 import pyproj
+
 import shapely.geometry
 import shapely.ops
 import shapely.prepared
@@ -52,9 +54,16 @@ METRES_PER_EMU = 0.1   ## This to become a command line parameter...
 
 #===============================================================================
 
+# Ignore FutureWarning messages from ``pyproj.Proj``.
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 mercator_transformer = pyproj.Transformer.from_proj(
                             pyproj.Proj(init='epsg:3857'),
                             pyproj.Proj(init='epsg:4326'))
+
+warnings.simplefilter(action='default', category=FutureWarning)
+
 
 def mercator_transform(geometry):
 #================================
