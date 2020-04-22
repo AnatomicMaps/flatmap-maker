@@ -33,8 +33,10 @@ import datetime
 import requests
 
 from drawml import GeoJsonExtractor
+##from layermapping import LayerMapping
 from mbtiles import MBTiles
-from rdf import update_RDF
+##from ontologies import OntologyData
+##from rdf import update_RDF
 from styling import Style
 from tilemaker import make_background_tiles
 from tilejson import tile_json
@@ -136,7 +138,10 @@ def main():
     if not os.path.exists(map_dir):
         os.makedirs(map_dir)
 
+#*    # Labels and relationships between anatomical entities
 
+#*    args.ontology_data = OntologyData()
+#*    args.layer_mapping = LayerMapping('./layers.json', 'features')
 
     print('Extracting layers...')
     filenames = []
@@ -263,8 +268,9 @@ def main():
         # Commit updates to the database
         tile_db.execute("COMMIT")
 
-        update_RDF(args.map_base, args.map_id, map_source, annotations)
 
+#*        ## TODO: set ``layer.properties`` for annotations...
+#*        ##update_RDF(args.map_base, args.map_id, map_source, annotations)
 
     if not args.no_vector_tiles:
         print('Creating style files...')
