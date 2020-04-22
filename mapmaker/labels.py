@@ -113,5 +113,4 @@ class AnatomicalMap(object):
             props['label'] = self.__label_data.get_label(props['models'])
         else:
             props['label'] = cls
-        print(cls, props)
         return props
