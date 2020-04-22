@@ -310,6 +310,10 @@ def main():
         make_background_tiles(map_bounds, map_zoom, map_dir,
                               pdf_source, pdf_bytes, layer_ids, args.tile_slide)
 
+    # Show what the map is about
+    if map_models:
+        print('Generated map for {}'.format(map_models))
+
     # Tidy up
     print('Cleaning up...')
 
