@@ -138,6 +138,7 @@ class GeoJsonLayer(Layer):
 
     def add_geo_features_(self, features):
     #===============================================
+        map_area = self.extractor.map_area()
         divided_area = 0
         child_properties = {'layer': self.layer_id}
 
