@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-FLATMAP_VERSION = 1.0
+FLATMAP_VERSION = 1.1
 
 #===============================================================================
 
@@ -248,6 +248,9 @@ def main():
         if map_models:
             tile_db.add_metadata(describes=map_models)
 
+        # Save layer details in metadata
+        tile_db.add_metadata(layers=json.dumps(map_layers))
+
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(annotations))
 
@@ -269,7 +272,6 @@ def main():
         map_index = {
             'id': args.map_id,
             'style': 'style.json',
-            'layers': map_layers,
             'min-zoom': map_zoom[0],
             'max-zoom': map_zoom[1],
             'zoom': map_zoom[2],
