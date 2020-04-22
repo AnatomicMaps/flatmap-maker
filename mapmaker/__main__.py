@@ -274,7 +274,6 @@ def main():
             'style': 'style.json',
             'min-zoom': map_zoom[0],
             'max-zoom': map_zoom[1],
-            'zoom': map_zoom[2],
             'bounds': map_bounds,
             'version': FLATMAP_VERSION,
         }
