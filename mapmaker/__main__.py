@@ -70,6 +70,8 @@ def main():
                         help="save a slide's DrawML for debugging")
     parser.add_argument('-s', '--save-geojson', action='store_true',
                         help="Save GeoJSON files for each layer")
+    parser.add_argument('-u', '--upload', metavar='USER@SERVER',
+                        help='Upload generated map to server')
 
     parser.add_argument('-v', '--version', action='version', version='0.3.1')
 
@@ -324,6 +326,12 @@ def main():
     # Show what the map is about
     if map_models:
         print('Generated map for {}'.format(map_models))
+
+    # Upload map to server
+    if args.upload:
+        cmd_stream = os.popen('tar -C {} -c -z {} | ssh {} "tar -C /flatmaps -x -z"'
+                             .format(args.map_base, args.map_id, args.upload))
+        print('Uploaded map...', cmd_stream.read())
 
     # Tidy up
     print('Cleaning up...')
