@@ -268,6 +268,7 @@ class GeoJsonLayer(Layer):
                     for (key, value) in properties.items():
                         if key not in ['boundary', 'children', 'group', 'layer', 'region']:
                             geojson['properties'][key] = value
+                    properties['bounds'] = geojson['properties']['bounds']
                     properties['geometry'] = geojson['geometry']['type']
                     self.annotations[unique_id] = properties
 
