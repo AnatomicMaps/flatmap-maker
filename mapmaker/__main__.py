@@ -152,8 +152,10 @@ def main():
 #*    args.ontology_data = OntologyData()
 #*    args.layer_mapping = LayerMapping('./layers.json', 'features')
 
-    print('Extracting layers...')
     filenames = []
+    upload_files = ['index.mbtiles']
+
+    print('Extracting layers...')
     map_extractor = GeoJsonExtractor(pptx_bytes, args)
 
     # Process slides, saving layer information
@@ -314,23 +316,25 @@ def main():
         with open(os.path.join(map_dir, 'tilejson.json'), 'w') as output_file:
             json.dump(json_source, output_file)
 
+    upload_files.extend(['index.json', 'style.json', 'tilejson.json'])
+
     if args.tile_slide == 0:
         # We are finished with the tile database, so close it
         tile_db.close();
 
     if args.background_tiles:
         print('Generating background tiles (may take a while...)')
-        make_background_tiles(map_bounds, map_zoom, map_dir,
-                              pdf_source, pdf_bytes, layer_ids, args.tile_slide)
+        upload_files.extend(make_background_tiles(map_bounds, map_zoom, map_dir,
+                              pdf_source, pdf_bytes, layer_ids, args.tile_slide))
 
     # Show what the map is about
     if map_models:
         print('Generated map for {}'.format(map_models))
 
-    # Upload map to server
     if args.upload:
+        upload = ' '.join([ '{}/{}'.format(args.map_id, f) for f in upload_files ])
         cmd_stream = os.popen('tar -C {} -c -z {} | ssh {} "tar -C /flatmaps -x -z"'
-                             .format(args.map_base, args.map_id, args.upload))
+                             .format(args.map_base, upload, args.upload))
         print('Uploaded map...', cmd_stream.read())
 
     # Tidy up

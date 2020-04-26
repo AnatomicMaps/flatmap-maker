@@ -136,6 +136,10 @@ class TileMaker(object):
         self._min_zoom = map_zoom[0]
         self._max_zoom = map_zoom[1]
 
+        # We need a manager to share the list of database names between processes
+        self._manager = multiprocessing.Manager()
+        self._database_names = self._manager.list()
+
         # Get whole tiles that span the image's extent
         self._tiles = list(mt.tiles(*extent, self._max_zoom))
         tile_0 = self._tiles[0]
@@ -166,12 +170,17 @@ class TileMaker(object):
 
         self._processes = []
 
+    @property
+    def database_names(self):
+        return self._database_names
 
     def make_tiles(self, source_id, pdf_page, layer):
     #================================================
         page_tiler = PageTiler(pdf_page, self._image_rect)
 
-        mbtiles = MBTiles(os.path.join(self._map_dir, '{}.mbtiles'.format(layer)), True, True)
+        database_name = '{}.mbtiles'.format(layer)
+        self._database_names.append(database_name)
+        mbtiles = MBTiles(os.path.join(self._map_dir, database_name), True, True)
         mbtiles.add_metadata(id=layer, source=source_id)
 
         count = 0
@@ -246,6 +255,7 @@ def make_background_tiles(map_bounds, map_zoom, map_dir, pdf_source, pdf_bytes, 
             tile_maker.start_make_tiles_process(pdf_bytes, '{}#{}'.format(pdf_source, n+1), n+1, layer_id)
 
     tile_maker.wait_for_processes()
+    return tile_maker.database_names
 
 #===============================================================================
 
