@@ -69,7 +69,7 @@ def main():
     parser.add_argument('-d', '--debug', dest='debug_xml', action='store_true',
                         help="save a slide's DrawML for debugging")
     parser.add_argument('-s', '--save-geojson', action='store_true',
-                        help="Save GeoJSON files for each layer")
+                        help='Save GeoJSON files for each layer')
     parser.add_argument('-u', '--upload', metavar='USER@SERVER',
                         help='Upload generated map to server')
 
