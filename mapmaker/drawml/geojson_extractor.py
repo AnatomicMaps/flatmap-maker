@@ -249,6 +249,9 @@ class GeoJsonLayer(Layer):
                 geojson = {
                     'type': 'Feature',
                     'id': feature.id,   # Must be numeric for tipeecanoe
+                    'tippecanoe' : {
+                        'layer' : properties['layer']
+                    },
                     'geometry': shapely.geometry.mapping(mercator_geometry),
                     'properties': {
                         'id': unique_id,
