@@ -135,12 +135,13 @@ class Presentation(object):
         self.add_shapes_(slide.shapes)
         self.end_shapes_(slide)
 
-        xml = open('clean_slide.xml', 'w')
-        xml.write(self._clean_slide.element.xml)
-        xml.close()
         # Add `p:extLst` to new `cSld` element  ### ????
         new_csld_element = self._clean_slide.element.xpath(XPATH_SLIDE_cSld)[0]
         new_csld_element.append(slide.element.xpath(XPATH_SLIDE_extLst)[0])
+
+#        xml = open('clean_slide.xml', 'w')
+#        xml.write(self._clean_slide.element.xml)
+#        xml.close()
 
     def start_shapes_(self):
         self._current_group = self._clean_slide
