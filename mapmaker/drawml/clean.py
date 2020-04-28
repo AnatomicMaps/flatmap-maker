@@ -29,6 +29,8 @@ import pptx
 from pptx.enum.shapes import MSO_CONNECTOR
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
+from tqdm import tqdm
+
 #===============================================================================
 
 LAYOUT_BLANK_SLIDE = 6
@@ -81,6 +83,7 @@ def connector_type(name):
 
 class Presentation(object):
     def __init__(self, source_file):
+        print('Opening presentation...')
         self._source_file = source_file
         self._source = pptx.Presentation(source_file)
 
@@ -91,6 +94,7 @@ class Presentation(object):
         self._current_group = None
         self._group_stack = []
         self._clean_slide = None
+        self._progress_bar = None
 
     def clean(self, output_file):
         for slide in self._source.slides:
@@ -108,6 +112,7 @@ class Presentation(object):
         self._prs.save(output)
         output.seek(0)
 
+        print('Copying themes...')
         # First copy the contents of the saved presentation, apart
         # from its themes, to create a new PPTX file
         with ZipFile(output_file, 'w') as clean_pptx:
@@ -123,6 +128,7 @@ class Presentation(object):
                         clean_pptx.writestr(info, source_prs.read(info))
 
     def add_slide(self, slide):
+        print('Cleaning slide...')
         self._clean_slide = self._prs.slides.add_slide(self._blank_layout)
         self._clean_slide.shapes.turbo_add_enabled = True
         if slide.has_notes_slide:
@@ -131,8 +137,8 @@ class Presentation(object):
                 clean_notes_slide = self._clean_slide.notes_slide
                 clean_notes_slide.notes_text_frame.text = clean_markup(notes)
 
-        self.start_shapes_()
-        self.add_shapes_(slide.shapes)
+        self.start_shapes_(len(slide.shapes))
+        self.add_shapes_(slide.shapes, slide=True)
         self.end_shapes_(slide)
 
         # Add `p:extLst` to new `cSld` element  ### ????
@@ -143,7 +149,11 @@ class Presentation(object):
 #        xml.write(self._clean_slide.element.xml)
 #        xml.close()
 
-    def start_shapes_(self):
+    def start_shapes_(self, total_shapes):
+        print('Cleaning shapes...')
+        self._progress_bar = tqdm(total=total_shapes,
+            unit='shp', ncols=40,
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         self._current_group = self._clean_slide
         self._group_stack = []
 
@@ -152,8 +162,9 @@ class Presentation(object):
         clean_shapes_element = self._clean_slide.shapes.element
         clean_shapes_element.replace(clean_shapes_element.xpath(XPATH_GROUP_SPPR)[0],
                                      slide.shapes.element.xpath(XPATH_GROUP_SPPR)[0])
+        self._progress_bar.close()
 
-    def add_shapes_(self, shapes):
+    def add_shapes_(self, shapes, slide=False):
         for shape in shapes:
             if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
@@ -173,6 +184,8 @@ class Presentation(object):
 
             else:
                 print('Unknown shape type {}, "{}"...'.format(str(shape.shape_type), shape.name))
+            if slide:
+                self._progress_bar.update(1)
 
     def append_shape_(self, shape):
         # We add a new shape and then replace

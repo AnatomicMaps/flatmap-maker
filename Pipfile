@@ -23,6 +23,7 @@ pyproj = "*"
 mercantile = "*"
 mbutil = "*"
 openpyxl = "*"
+tqdm = "*"
 
 [requires]
 python_version = "3.7"
