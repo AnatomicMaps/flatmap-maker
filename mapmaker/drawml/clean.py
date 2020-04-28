@@ -18,7 +18,12 @@
 #
 #===============================================================================
 
+import io
 from copy import deepcopy
+from zipfile import ZipFile
+
+#===============================================================================
+
 import pptx
 
 from pptx.enum.shapes import MSO_CONNECTOR
@@ -99,7 +104,23 @@ class Presentation(object):
         # Add `p:extLst` to new presentation
         self._prs.element.append(self._source.element.xpath(XPATH_PRS_extLst)[0])
 
-        self._prs.save(output_file)
+        output = io.BytesIO()
+        self._prs.save(output)
+        output.seek(0)
+
+        # First copy the contents of the saved presentation, apart
+        # from its themes, to create a new PPTX file
+        with ZipFile(output_file, 'w') as clean_pptx:
+            with ZipFile(output, 'r') as saved_prs:
+                for info in saved_prs.infolist():
+                    if not info.filename.startswith('ppt/theme/'):
+                        clean_pptx.writestr(info, saved_prs.read(info))
+
+            # Finally copy the original themes to the new presentation
+            with ZipFile(self._source_file, 'r') as source_prs:
+                for info in source_prs.infolist():
+                    if info.filename.startswith('ppt/theme/'):
+                        clean_pptx.writestr(info, source_prs.read(info))
 
     def add_slide(self, slide):
         self._clean_slide = self._prs.slides.add_slide(self._blank_layout)
