@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+from copy import deepcopy
 import pptx
 
 from pptx.enum.shapes import MSO_CONNECTOR
@@ -29,12 +30,15 @@ LAYOUT_BLANK_SLIDE = 6
 
 #===============================================================================
 
-XPATH_GROUP_SPPR  = './p:grpSpPr'
+XPATH_GROUP_SPPR        = './p:grpSpPr'
 
-XPATH_SHAPE_BY_ID = './p:sp/p:nvSpPr/p:cNvPr[@id={}]'
-XPATH_CXN_BY_ID   = './p:cxnSp/p:nvCxnSpPr/p:cNvPr[@id={}]'
+XPATH_SHAPE_BY_ID_GROUP = './p:sp/p:nvSpPr/p:cNvPr[@id={}]'
+XPATH_SHAPE_BY_ID_SHAPE = './p:nvSpPr/p:cNvPr[@id={}]'
 
-XPATH_CXN_TYPE    = './p:spPr/a:prstGeom[@prst]'
+XPATH_CXN_BY_ID_GROUP   = './p:cxnSp/p:nvCxnSpPr/p:cNvPr[@id={}]'
+XPATH_CXN_BY_ID_SHAPE   = './p:nvCxnSpPr/p:cNvPr[@id={}]'
+
+XPATH_CXN_TYPE          = './p:spPr/a:prstGeom[@prst]'
 
 #===============================================================================
 
@@ -132,17 +136,24 @@ class CleanPresentation(object):
             new_shape = self._current_group.shapes.add_connector(connector_type(cxn_name),
                                                                  shape.begin_x, shape.begin_y,
                                                                  shape.end_x, shape.end_y)
-            new_id_element = self._current_group.shapes.element.xpath(
-                XPATH_CXN_BY_ID.format(new_shape.shape_id))[0]
+            new_id_element_xpath = XPATH_CXN_BY_ID_GROUP.format(new_shape.shape_id)
+            old_id_element_xpath = XPATH_CXN_BY_ID_SHAPE.format(shape.shape_id)
         else:
             new_shape = self._current_group.shapes.add_shape(shape.shape_type,
                                                              shape.left, shape.top,
                                                              shape.width, shape.height)
-            new_id_element = self._current_group.shapes.element.xpath(
-                XPATH_SHAPE_BY_ID.format(new_shape.shape_id))[0]
+            new_id_element_xpath = XPATH_SHAPE_BY_ID_GROUP.format(new_shape.shape_id)
+            old_id_element_xpath = XPATH_SHAPE_BY_ID_SHAPE.format(shape.shape_id)
+
+        new_id_element = self._current_group.shapes.element.xpath(new_id_element_xpath)[0]
+        new_element = new_id_element.getparent().getparent()
+
+        shape_element = deepcopy(shape.element)
+        shape_id_element = shape_element.xpath(old_id_element_xpath)[0]
+        shape_id_element.set('id', str(new_shape.shape_id))
         self._current_group.shapes.element.replace(
-            new_id_element.getparent().getparent(),
-            shape.element
+            new_element,
+            shape_element
             )
 
     def start_group_(self):
