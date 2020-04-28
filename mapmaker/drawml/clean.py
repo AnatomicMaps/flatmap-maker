@@ -124,6 +124,7 @@ class Presentation(object):
 
     def add_slide(self, slide):
         self._clean_slide = self._prs.slides.add_slide(self._blank_layout)
+        self._clean_slide.shapes.turbo_add_enabled = True
         if slide.has_notes_slide:
             notes = slide.notes_slide.notes_text_frame.text
             if valid_notes(notes):
@@ -203,6 +204,7 @@ class Presentation(object):
     def start_group_(self):
         self._group_stack.append(self._current_group)
         self._current_group = self._current_group.shapes.add_group_shape()
+        self._current_group.shapes.turbo_add_enabled = True
 
     def end_group_(self, group):
         self._current_group.name = group.name
