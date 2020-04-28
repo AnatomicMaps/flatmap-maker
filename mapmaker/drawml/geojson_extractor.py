@@ -157,6 +157,7 @@ class GeoJsonLayer(Layer):
 
         # We first find our boundary polygon(s)
         boundary = None
+        boundary_area = 0
         boundary_class = None
         boundary_lines = []
         boundary_polygons = []
@@ -186,11 +187,13 @@ class GeoJsonLayer(Layer):
                 boundary_polygons.append(boundary)
         if len(boundary_polygons):
             boundary = shapely.ops.unary_union(boundary_polygons).boundary
+            boundary_area = sum([b.area for b in boundary_polygons])
+
         if boundary is not None:
             dividers = [ boundary ]
             group_features = []
             regions = []
-            tolerance = 0.02*math.sqrt(boundary.area)  # Scale with size of divided region
+            tolerance = 0.02*math.sqrt(boundary_area)  # Scale with size of divided region
             for feature in features:
                 if feature.properties.get('region', False):
                     regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.properties))
