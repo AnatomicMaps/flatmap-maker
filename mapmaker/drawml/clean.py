@@ -40,6 +40,11 @@ XPATH_CXN_BY_ID_SHAPE   = './p:nvCxnSpPr/p:cNvPr[@id={}]'
 
 XPATH_CXN_TYPE          = './p:spPr/a:prstGeom[@prst]'
 
+XPATH_SLIDE_cSld        = './p:cSld'
+XPATH_SLIDE_extLst      = './p:cSld/p:extLst'
+
+XPATH_PRS_extLst        = './p:extLst'
+
 #===============================================================================
 
 def valid_name(name):
@@ -79,6 +84,10 @@ class CleanPresentation(object):
     def save(self, output_file):
         if len(self._group_stack):
             raise ValueError('Unclosed group...')
+
+        # Add `p:extLst` to new presentation
+        self._prs.element.append(self._source.element.xpath(XPATH_PRS_extLst)[0])
+
         self._prs.save(output_file)
 
     def add_slide(self, slide):
@@ -96,6 +105,9 @@ class CleanPresentation(object):
         xml = open('clean_slide.xml', 'w')
         xml.write(self._clean_slide.element.xml)
         xml.close()
+        # Add `p:extLst` to new `cSld` element  ### ????
+        new_csld_element = self._clean_slide.element.xpath(XPATH_SLIDE_cSld)[0]
+        new_csld_element.append(slide.element.xpath(XPATH_SLIDE_extLst)[0])
 
     def start_shapes_(self):
         self._current_group = self._clean_slide
