@@ -48,8 +48,11 @@ XPATH_PRS_extLst        = './p:extLst'
 #===============================================================================
 
 def valid_name(name):
+    if name.startswith('.'):
+        for directive in name[1:].split():
+            if directive in ['group', 'invisible', 'region']:
+                return False
     return True
-    # False if name and parse to region, group, etc.
 
 #===============================================================================
 
