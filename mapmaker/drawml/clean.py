@@ -230,15 +230,21 @@ class Presentation(object):
 
 #===============================================================================
 
-def clean(source, target):
-#=========================
+def clean_presentation(source, target):
+#======================================
     presentation = Presentation(source)
     presentation.clean(target)
 
 #===============================================================================
 
 if __name__ == '__main__':
-    clean('map_sources/Rat_flatmap_annotation_test_Dave.pptx',
-          'map_sources/cleaned.pptx')
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Clean Powerpoint slides for generating flatmap image tiles.')
+    parser.add_argument('source_ppt', help='Powerpoint file to clean')
+    parser.add_argument('cleaned_ppt', help='Cleaned Powerpoint to create')
+    args = parser.parse_args()
+
+    clean_presentation(args.source_ppt, args.cleaned_ppt)
 
 #===============================================================================
