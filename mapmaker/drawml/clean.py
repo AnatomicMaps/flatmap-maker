@@ -74,15 +74,23 @@ def connector_type(name):
 
 #===============================================================================
 
-class CleanPresentation(object):
-    def __init__(self, width, height):
+class Presentation(object):
+    def __init__(self, source_file):
+        self._source_file = source_file
+        self._source = pptx.Presentation(source_file)
+
         self._prs = pptx.Presentation()
-        self._prs.slide_width = width
-        self._prs.slide_height = height
+        self._prs.slide_width = self._source.slide_width
+        self._prs.slide_height = self._source.slide_height
         self._blank_layout = self._prs.slide_layouts[LAYOUT_BLANK_SLIDE]
         self._current_group = None
         self._group_stack = []
         self._clean_slide = None
+
+    def clean(self, output_file):
+        for slide in self._source.slides:
+            self.add_slide(slide)
+        self.save(output_file)
 
     def save(self, output_file):
         if len(self._group_stack):
@@ -182,18 +190,6 @@ class CleanPresentation(object):
         clean_shapes_element.replace(clean_shapes_element.xpath(XPATH_GROUP_SPPR)[0],
                                      group.shapes.element.xpath(XPATH_GROUP_SPPR)[0])
         self._current_group = self._group_stack.pop()
-
-#===============================================================================
-
-class Presentation(object):
-    def __init__(self, source_file):
-        self._prs = pptx.Presentation(source_file)
-
-    def clean(self, output_file):
-        cleaned = CleanPresentation(self._prs.slide_width, self._prs.slide_height)
-        for slide in self._prs.slides:
-            cleaned.add_slide(slide)
-        cleaned.save(output_file)
 
 #===============================================================================
 
