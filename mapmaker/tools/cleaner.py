@@ -39,13 +39,16 @@ LAYOUT_BLANK_SLIDE = 6
 
 XPATH_GROUP_SPPR        = './p:grpSpPr'
 
-XPATH_SHAPE_BY_ID_GROUP = './p:sp/p:nvSpPr/p:cNvPr[@id={}]'
-XPATH_SHAPE_BY_ID_SHAPE = './p:nvSpPr/p:cNvPr[@id={}]'
+XPATH_AUTOSHAPE_BY_ID_GROUP  = './p:sp/p:nvSpPr/p:cNvPr[@id={}]'
+XPATH_AUTOSHAPE_BY_ID_SHAPE  = './p:nvSpPr/p:cNvPr[@id={}]'
 
-XPATH_CXN_BY_ID_GROUP   = './p:cxnSp/p:nvCxnSpPr/p:cNvPr[@id={}]'
-XPATH_CXN_BY_ID_SHAPE   = './p:nvCxnSpPr/p:cNvPr[@id={}]'
+XPATH_PICTURE_BY_ID_GROUP    = './p:pic/p:nvPicPr/p:cNvPr[@id={}]'
+XPATH_PICTURE_BY_ID_SHAPE    = './p:nvPicPr/p:cNvPr[@id={}]'
 
-XPATH_CXN_TYPE          = './p:spPr/a:prstGeom[@prst]'
+XPATH_CONNECTION_BY_ID_GROUP = './p:cxnSp/p:nvCxnSpPr/p:cNvPr[@id={}]'
+XPATH_CONNECTION_BY_ID_SHAPE = './p:nvCxnSpPr/p:cNvPr[@id={}]'
+
+XPATH_CONNECTION_TYPE        = './p:spPr/a:prstGeom[@prst]'
 
 XPATH_SLIDE_cSld        = './p:cSld'
 XPATH_SLIDE_extLst      = './p:cSld/p:extLst'
@@ -87,9 +90,14 @@ class Presentation(object):
         self._source_file = source_file
         self._source = pptx.Presentation(source_file)
 
+#        xml = open('dirty_prs.xml', 'w')
+#        xml.write(self._source.element.xml)
+#        xml.close()
+
         self._prs = pptx.Presentation()
         self._prs.slide_width = self._source.slide_width
         self._prs.slide_height = self._source.slide_height
+        ##self._prs.slide_masters = self._source.slide_masters
         self._blank_layout = self._prs.slide_layouts[LAYOUT_BLANK_SLIDE]
         self._current_group = None
         self._group_stack = []
@@ -107,6 +115,10 @@ class Presentation(object):
 
         # Add `p:extLst` to new presentation
         self._prs.element.append(self._source.element.xpath(XPATH_PRS_extLst)[0])
+
+#        xml = open('clean_prs.xml', 'w')
+#        xml.write(self._prs.element.xml)
+#        xml.close()
 
         output = io.BytesIO()
         self._prs.save(output)
@@ -128,6 +140,9 @@ class Presentation(object):
                         clean_pptx.writestr(info, source_prs.read(info))
 
     def add_slide(self, slide):
+#        xml = open('dirty_slide.xml', 'w')
+#        xml.write(slide.element.xml)
+#        xml.close()
         print('Cleaning slide...')
         self._clean_slide = self._prs.slides.add_slide(self._blank_layout)
         self._clean_slide.shapes.turbo_add_enabled = True
@@ -191,18 +206,28 @@ class Presentation(object):
         # We add a new shape and then replace
         # its xml element with the shape being appended
         if isinstance(shape, pptx.shapes.connector.Connector):
-            cxn_name = shape.element.xpath(XPATH_CXN_TYPE)[0].get('prst')
+            cxn_name = shape.element.xpath(XPATH_CONNECTION_TYPE)[0].get('prst')
             new_shape = self._current_group.shapes.add_connector(connector_type(cxn_name),
                                                                  shape.begin_x, shape.begin_y,
                                                                  shape.end_x, shape.end_y)
-            new_id_element_xpath = XPATH_CXN_BY_ID_GROUP.format(new_shape.shape_id)
-            old_id_element_xpath = XPATH_CXN_BY_ID_SHAPE.format(shape.shape_id)
+            new_id_element_xpath = XPATH_CONNECTION_BY_ID_GROUP.format(new_shape.shape_id)
+            old_id_element_xpath = XPATH_CONNECTION_BY_ID_SHAPE.format(shape.shape_id)
+        elif isinstance(shape, pptx.shapes.picture.Picture):
+            new_shape = self._current_group.shapes.add_picture(io.BytesIO(shape.image.blob),
+                                                               shape.left, shape.top,
+                                                               shape.width, shape.height)
+            new_id_element_xpath = XPATH_PICTURE_BY_ID_GROUP.format(new_shape.shape_id)
+            old_id_element_xpath = XPATH_PICTURE_BY_ID_SHAPE.format(shape.shape_id)
         else:
             new_shape = self._current_group.shapes.add_shape(shape.shape_type,
                                                              shape.left, shape.top,
                                                              shape.width, shape.height)
-            new_id_element_xpath = XPATH_SHAPE_BY_ID_GROUP.format(new_shape.shape_id)
-            old_id_element_xpath = XPATH_SHAPE_BY_ID_SHAPE.format(shape.shape_id)
+            new_id_element_xpath = XPATH_AUTOSHAPE_BY_ID_GROUP.format(new_shape.shape_id)
+            if isinstance(shape, pptx.shapes.autoshape.Shape):
+                old_id_element_xpath = XPATH_AUTOSHAPE_BY_ID_SHAPE.format(shape.shape_id)
+            else:
+                print('Unexpected shape type: {}'.format(type(shape)))
+                import pdb; pdb.set_trace()
 
         new_id_element = self._current_group.shapes.element.xpath(new_id_element_xpath)[0]
         new_element = new_id_element.getparent().getparent()
@@ -210,6 +235,11 @@ class Presentation(object):
         shape_element = deepcopy(shape.element)
         shape_id_element = shape_element.xpath(old_id_element_xpath)[0]
         shape_id_element.set('id', str(new_shape.shape_id))
+
+        #print('')
+        #print('Parent:', new_element.xml)
+        #print(' Shape:', shape_element.xml)
+
         self._current_group.shapes.element.replace(
             new_element,
             shape_element
