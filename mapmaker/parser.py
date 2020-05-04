@@ -69,10 +69,11 @@ class Parser(object):
     ROUTING = Group(ROUTING_TYPE + Suppress('(') + Group(FEATURE_ID | ONTOLOGY_ID) + Suppress(')'))
 
     SHAPE_FLAGS = Group(Keyword('boundary')
-                        | Keyword('children')
-                        | Keyword('group')
-                        | Keyword('invisible')
-                        | Keyword('region'))
+                      | Keyword('children')
+                      | Keyword('group')
+                      | Keyword('invisible')
+                      | Keyword('open')
+                      | Keyword('region'))
 
     SHAPE_MARKUP = '.' + ZeroOrMore(SHAPE_FLAGS | SHAPE_TYPE | PROPERTIES | ROUTING)
 

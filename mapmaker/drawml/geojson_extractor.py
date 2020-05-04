@@ -50,6 +50,10 @@ from .presets import DML
 
 #===============================================================================
 
+AUTO_CLOSE_RATIO = 0.3
+
+#===============================================================================
+
 METRES_PER_EMU = 0.1   ## This to become a command line parameter...
                        ## Or in a specification file...
 
@@ -387,8 +391,18 @@ class GeoJsonLayer(Layer):
                     print('Unknown path element: {}'.format(c.tag))
 
 
-        return (shapely.geometry.Polygon(coordinates) if closed
-           else shapely.geometry.LineString(coordinates))
+        if closed:
+            return shapely.geometry.Polygon(coordinates)
+        else:
+            geometry = shapely.geometry.LineString(coordinates)
+            if not properties.get('open', False):
+                # Return a polygon if distance between endpoints < 0.3*(line length)
+                delta_ends = shapely.geometry.Point(coordinates[0]).distance(
+                                shapely.geometry.Point(coordinates[-1]))
+                if delta_ends < AUTO_CLOSE_RATIO*geometry.length:
+                    coordinates.append(coordinates[0])
+                    return shapely.geometry.Polygon(coordinates)
+            return geometry
 
 #===============================================================================
 
