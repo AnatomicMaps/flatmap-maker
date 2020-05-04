@@ -19,7 +19,6 @@
 #===============================================================================
 
 from .extractor import Extractor
-from .writer import AnnotationWriter
 from .geojson_extractor import GeoJsonExtractor
 from .svg_extractor import SvgExtractor
 
