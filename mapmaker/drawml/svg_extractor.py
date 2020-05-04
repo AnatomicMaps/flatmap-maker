@@ -71,7 +71,7 @@ class SvgLayer(Layer):
         svg_parent.add(svg_group)
         self.process_shape_list(group.shapes, svg_group)
 
-    def process_shape(self, shape, svg_parent):
+    def process_shape(self, shape, properties, svg_parent):
         geometry = Geometry(shape)
         for path in geometry.path_list:
             bbox = (shape.width, shape.height) if path.w is None else (path.w, path.h)

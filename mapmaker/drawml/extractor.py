@@ -240,8 +240,8 @@ class Layer(object):
     #=====================================
         self.process_shape_list(group.shapes, *args)
 
-    def process_shape(self, shape, *args):
-    #=====================================
+    def process_shape(self, shape, properties, *args):
+    #=================================================
         # Override in sub-class
         pass
 
@@ -256,7 +256,7 @@ class Layer(object):
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or shape.shape_type == MSO_SHAPE_TYPE.PICTURE
              or isinstance(shape, pptx.shapes.connector.Connector)):
-                geometry = self.process_shape(shape, *args)
+                geometry = self.process_shape(shape, properties, *args)
                 feature = Feature(shape.shape_id, geometry, properties)
                 features.append(feature)
                 self.__features.append(feature)

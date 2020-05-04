@@ -285,8 +285,9 @@ class GeoJsonLayer(Layer):
                 })
 
 
-    def process_shape(self, shape, transform):
-    #=========================================
+
+    def process_shape(self, shape, properties, transform):
+    #=====================================================
     ##
     ## Returns shape's geometry as `shapely` object.
     ##
