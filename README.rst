@@ -39,6 +39,9 @@ Command line help::
       -b, --background-tiles
                             generate image tiles of map's layers (may take a
                             while...)
+      --anatomical-map ANATOMICAL_MAP
+                            Excel spreadsheet file for mapping shape classes to
+                            anatomical entities
       -n, --no-vector-tiles
                             don't generate vector tiles database and style files
       -t N, --tile N        only generate image tiles for this slide (1-origin);
@@ -49,14 +52,13 @@ Command line help::
       --min N               minimum zoom level (defaults to 2)
       -d, --debug           save a slide's DrawML for debugging
       -s, --save-geojson    Save GeoJSON files for each layer
+      -u USER@SERVER, --upload USER@SERVER
+                            Upload generated map to server
       -v, --version         show program's version number and exit
 
     required arguments:
       --map-dir MAP_DIR     base directory for generated flatmaps
       --id MAP_ID           a unique identifier for the map
-      --anatomical-map ANATOMICAL_MAP
-                            Excel spreadsheet file for mapping shape classes to
-                            anatomical entities
       --slides POWERPOINT   File or URL of Powerpoint slides
 
 
