@@ -127,8 +127,12 @@ class Layer(object):
         self.__extractor = extractor
         self.__slide_number = slide_number
         self.__errors = []
-        self.__anatomical_map = AnatomicalMap(extractor.settings.anatomical_map,
-                                              extractor.settings.label_database)
+        if extractor.settings.anatomical_map:
+            self.__anatomical_map = AnatomicalMap(extractor.settings.anatomical_map,
+                                                  extractor.settings.label_database)
+        else:
+            self.__anatomical_map = None
+
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
         if slide.has_notes_slide:
@@ -304,7 +308,10 @@ class Layer(object):
                     else:
                         properties[key] = value
                 if 'class' in properties:
-                    properties.update(self.__anatomical_map.properties(properties['class']))
+                    if self.__anatomical_map is not None:
+                        properties.update(self.__anatomical_map.properties(properties['class']))
+                    else:
+                        properties['label'] = properties['class']
         return properties
 
 #===============================================================================

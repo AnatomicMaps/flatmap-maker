@@ -53,6 +53,9 @@ def main():
 
     parser.add_argument('-b', '--background-tiles', action='store_true',
                         help="generate image tiles of map's layers (may take a while...)")
+    parser.add_argument('--anatomical-map',
+                        help='Excel spreadsheet file for mapping shape classes to anatomical entities')
+
     parser.add_argument('-n', '--no-vector-tiles', action='store_true',
                         help="don't generate vector tiles database and style files")
     parser.add_argument('-t', '--tile', dest='tile_slide', metavar='N', type=int, default=0,
@@ -81,8 +84,6 @@ def main():
                         help='base directory for generated flatmaps')
     required.add_argument('--id', dest='map_id', metavar='MAP_ID', required=True,
                         help='a unique identifier for the map')
-    required.add_argument('--anatomical-map', required=True,
-                        help='Excel spreadsheet file for mapping shape classes to anatomical entities')
     required.add_argument('--slides', dest='powerpoint', metavar='POWERPOINT', required=True,
                         help='File or URL of Powerpoint slides')
 
