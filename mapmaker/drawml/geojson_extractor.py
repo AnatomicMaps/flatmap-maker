@@ -211,18 +211,18 @@ class GeoJsonLayer(Layer):
                    or feature.properties.get('boundary', False))):
                     longer_line = extend_line(feature.geometry, tolerance)
                     dividers.append(longer_line)
-                    if not feature.properties.get('invisible', False):
-                        group_features.append(feature)
+                    #if not feature.properties.get('invisible', False):
+                    #    group_features.append(feature)
                 elif (feature.geometry.geom_type == 'Polygon'
                  and (feature.properties.get('annotation', '') == ''
                    or feature.properties.get('boundary', False))):
                     dividers.append(feature.geometry.boundary)
                     # Only show divider if not flagged as invisible
-                    if not feature.properties.get('invisible', False):
-                        group_features.append(Feature(self.__region_id,
-                                                      feature.geometry.boundary,
-                                                      {'layer': self.layer_id} ))
-                        self.__region_id += 1
+                    #if not feature.properties.get('invisible', False):
+                    #    group_features.append(Feature(self.__region_id,
+                    #                                  feature.geometry.boundary,
+                    #                                  {'layer': self.layer_id} ))
+                    #    self.__region_id += 1
                     if feature.properties.get('boundary', False):
                         group_features.append(feature)
                 elif not feature.properties.get('group', False):
