@@ -40,6 +40,8 @@ import shapely.prepared
 
 #===============================================================================
 
+from parser import Parser
+
 from .arc_to_bezier import cubic_beziers_from_arc, tuple2
 from .extractor import Feature, Extractor, Layer, Transform
 from .extractor import ellipse_point
@@ -294,7 +296,7 @@ class GeoJsonLayer(Layer):
 
                 if properties:
                     for (key, value) in properties.items():
-                        if key not in ['boundary', 'children', 'group', 'layer', 'region']:
+                        if not Parser.ignore_property(key):
                             geojson['properties'][key] = value
                     properties['bounds'] = geojson['properties']['bounds']
                     properties['geometry'] = geojson['geometry']['type']

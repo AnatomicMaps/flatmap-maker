@@ -111,6 +111,10 @@ class Parser(object):
             properties['error'] = 'Syntax error in directive'
         return properties
 
+    @staticmethod
+    def ignore_property(name):
+        return Parser.SHAPE_FLAGS.matches(name)
+
 #===============================================================================
 
 if __name__ == '__main__':
