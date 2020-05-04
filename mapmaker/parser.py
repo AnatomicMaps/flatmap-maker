@@ -75,7 +75,9 @@ class Parser(object):
                       | Keyword('open')
                       | Keyword('region'))
 
-    SHAPE_MARKUP = '.' + ZeroOrMore(SHAPE_FLAGS | SHAPE_TYPE | PROPERTIES | ROUTING)
+    FEATURE_FLAGS = Group(Keyword('organ'))
+
+    SHAPE_MARKUP = '.' + ZeroOrMore(FEATURE_FLAGS | PROPERTIES | ROUTING | SHAPE_FLAGS | SHAPE_TYPE)
 
     @staticmethod
     def layer_directive(s):
@@ -104,7 +106,8 @@ class Parser(object):
         try:
             parsed = Parser.SHAPE_MARKUP.parseString(s, parseAll=True)
             for prop in parsed[1:]:
-                if Parser.SHAPE_FLAGS.matches(prop[0]):
+                if (Parser.FEATURE_FLAGS.matches(prop[0])
+                 or Parser.SHAPE_FLAGS.matches(prop[0])):
                     properties[prop[0]] = True
                 else:
                     properties[prop[0]] = prop[1]
