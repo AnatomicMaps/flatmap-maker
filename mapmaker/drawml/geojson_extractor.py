@@ -152,8 +152,11 @@ class GeoJsonLayer(Layer):
         child_properties = {'layer': self.layer_id}
 
         group_features = []
-        output_group_feature = False
-        group_properties = {'layer': self.layer_id}
+        output_grouped_feature = False
+        grouped_properties = {
+            'group': True,
+            'layer': self.layer_id,
+        }
 
         # We first find our boundary polygon(s)
         boundary = None
@@ -177,8 +180,8 @@ class GeoJsonLayer(Layer):
             elif feature.properties.get('children', False):
                 child_properties.update(feature.properties)
             elif feature.properties.get('group', False):
-                group_properties.update(feature.properties)
-                output_group_feature = True
+                grouped_properties.update(feature.properties)
+                output_grouped_feature = True
             else:
                 group_features.append(feature)
 
@@ -237,17 +240,36 @@ class GeoJsonLayer(Layer):
                 if feature.properties.get('region', False):
                     raise ValueError('Region dividers must have a boundary')
 
+        # Construct a MultiPolygon containing all of the group's polygons
+        # This is only output to the map when we have a ``group`` command.
+        if output_grouped_feature:
+            grouped_lines = [feature.geometry for feature in group_features
+                          if feature.geometry.geom_type == 'LineString']
+            if len(grouped_lines):
+                grouped_feature = Feature(self.__region_id,
+                                          shapely.geometry.MultiLineString(grouped_lines),
+                                          grouped_properties)
+                group_features.append(grouped_feature)
+                self.__region_id += 1
+            grouped_polygons = [feature.geometry for feature in group_features
+                             if feature.geometry.geom_type == 'Polygon']
+            if len(grouped_polygons):
+                grouped_feature = Feature(self.__region_id,
+                                          shapely.geometry.MultiPolygon(grouped_polygons),
+                                          grouped_properties)
+                group_features.append(grouped_feature)
+                self.__region_id += 1
+
         for feature in group_features:
             unique_id = '{}-{}'.format(self.slide_id, feature.id)
-
-            if feature.geometry is not None and not feature.is_group:
-                geometry = feature.geometry
-                mercator_geometry = mercator_transform(geometry)
+            if feature.geometry is not None:
                 # Initial set of properties come from ``.group``
                 properties = child_properties.copy()
                 # And are overriden by feature specific ones
                 properties.update(feature.properties)
 
+                geometry = feature.geometry
+                mercator_geometry = mercator_transform(geometry)
                 area = geometry.area
                 geojson = {
                     'type': 'Feature',
