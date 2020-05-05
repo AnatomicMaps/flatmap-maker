@@ -70,13 +70,14 @@ class Parser(object):
 
     SHAPE_FLAGS = Group(Keyword('boundary')
                       | Keyword('children')
-                      | Keyword('group')
                       | Keyword('hole')
                       | Keyword('invisible')
                       | Keyword('open')
                       | Keyword('region'))
 
-    FEATURE_FLAGS = Group(Keyword('organ'))
+    FEATURE_FLAGS = Group(Keyword('group')
+                      |   Keyword('organ')
+                      )
 
     SHAPE_MARKUP = '.' + ZeroOrMore(FEATURE_FLAGS | PROPERTIES | ROUTING | SHAPE_FLAGS | SHAPE_TYPE)
 
