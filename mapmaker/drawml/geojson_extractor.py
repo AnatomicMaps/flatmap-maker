@@ -172,7 +172,7 @@ class GeoJsonLayer(Layer):
         boundary_class = None
         boundary_lines = []
         boundary_polygons = []
-        polygon_holes = []
+        interior_features = []
 
         for feature in features:
             if feature.is_a('boundary'):
@@ -189,10 +189,7 @@ class GeoJsonLayer(Layer):
             elif feature.is_a('group'):
                 grouped_properties.update(feature.properties)
                 output_grouped_feature = True
-            elif feature.properties.get('hole', False):
-                if feature.geometry.geom_type == 'Polygon':
-                    polygon_holes.append(feature.geometry)
-            else:
+            elif feature.has('class') or not feature.is_a('interior'):
                 group_features.append(feature)
 
         if len(boundary_lines):
@@ -248,16 +245,11 @@ class GeoJsonLayer(Layer):
                 if feature.is_a('region'):
                     raise ValueError('Region dividers must have a boundary')
 
-        if polygon_holes:
+        if interior_features:
+            interior_polygons = shapely.geometry.MultiPolygon([feature.geometry for feature in interior_features])
             for feature in group_features:
-                if feature.geometry.geom_type == 'Polygon':
-                    prepared_polygon = shapely.prepared.prep(feature.geometry)
-                    holes = list(filter(lambda p: prepared_polygon.contains(p), polygon_holes))
-                    if holes:
-                        feature.geometry = shapely.geometry.Polygon(
-                            feature.geometry.exterior.coords,
-                            [hole.exterior.coords for hole in holes]
-                            )
+                if not feature.is_a('interior') and feature.geometry.geom_type == 'Polygon':
+                    feature.geometry = feature.geometry.difference(interior_polygons)
 
         # Construct a MultiPolygon containing all of the group's polygons
         # This is only output to the map when we have a ``group`` command.
