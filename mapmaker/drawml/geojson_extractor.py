@@ -52,6 +52,8 @@ from .presets import DML
 
 AUTO_CLOSE_RATIO = 0.3
 
+LINE_END_EXTENSION = 10
+
 #===============================================================================
 
 METRES_PER_EMU = 0.1   ## This to become a command line parameter...
@@ -206,13 +208,13 @@ class GeoJsonLayer(Layer):
             dividers = [ boundary ]
             group_features = []
             regions = []
-            tolerance = 0.02*math.sqrt(boundary_area)  # Scale with size of divided region
+            end_extension = LINE_END_EXTENSION
             for feature in features:
                 if feature.is_a('region'):
                     regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.properties))
                 elif (feature.geometry.geom_type == 'LineString'
-                    longer_line = extend_line(feature.geometry, tolerance)
                   and (feature.is_a('boundary') or not feature.has('annotation'))):
+                    longer_line = extend_line(feature.geometry, end_extension)
                     dividers.append(longer_line)
                     #if not feature.is_a('invisible'):
                     #    group_features.append(feature)
