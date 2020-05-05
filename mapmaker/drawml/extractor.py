@@ -103,6 +103,9 @@ class Feature(object):
         self.__properties = properties
         self.__group = group
 
+    def __str__(self):
+        return 'Feature: {}'.format(self.__properties)
+
     @property
     def id(self):
         return self.__id
@@ -115,9 +118,22 @@ class Feature(object):
     def geometry(self):
         return self.__geometry
 
+    @geometry.setter
+    def geometry(self, geometry):
+        self.__geometry = geometry
+
     @property
     def properties(self):
         return self.__properties
+
+    def has(self, property):
+        return self.__properties.get(property, '') != ''
+
+    def is_a(self, property):
+        return self.__properties.get(property, False)
+
+    def property(self, property, default=None):
+        return self.__properties.get(property, default)
 
 #===============================================================================
 
