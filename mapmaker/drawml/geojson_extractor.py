@@ -173,12 +173,12 @@ class GeoJsonLayer(Layer):
         polygon_holes = []
 
         for feature in features:
-            if feature.properties.get('boundary', False):
+            if feature.is_a('boundary'):
                 if feature.geometry.geom_type == 'Polygon':
                     boundary_polygons.append(feature.geometry)
                 elif feature.geometry.geom_type == 'LineString':
                     boundary_lines.append(extend_line(feature.geometry, 0.02*feature.geometry.length))
-                cls = feature.properties.get('class')
+                cls = feature.property('class')
                 if cls is not None:
                     if cls != boundary_class:
                         boundary_class = cls
@@ -186,7 +186,7 @@ class GeoJsonLayer(Layer):
                         raise ValueError('Class of boundary has changed...')
             elif feature.properties.get('children', False):
                 child_properties.update(feature.properties)
-            elif feature.properties.get('group', False):
+            elif feature.is_a('group'):
                 grouped_properties.update(feature.properties)
                 output_grouped_feature = True
             elif feature.properties.get('hole', False):
@@ -208,29 +208,27 @@ class GeoJsonLayer(Layer):
             regions = []
             tolerance = 0.02*math.sqrt(boundary_area)  # Scale with size of divided region
             for feature in features:
-                if feature.properties.get('region', False):
+                if feature.is_a('region'):
                     regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.properties))
                 elif (feature.geometry.geom_type == 'LineString'
-                 and (feature.properties.get('annotation', '') == ''
-                   or feature.properties.get('boundary', False))):
                     longer_line = extend_line(feature.geometry, tolerance)
+                  and (feature.is_a('boundary') or not feature.has('annotation'))):
                     dividers.append(longer_line)
-                    #if not feature.properties.get('invisible', False):
+                    #if not feature.is_a('invisible'):
                     #    group_features.append(feature)
                 elif (feature.geometry.geom_type == 'Polygon'
-                 and (feature.properties.get('annotation', '') == ''
-                   or feature.properties.get('boundary', False))):
+                  and (feature.is_a('boundary') or not feature.has('annotation'))):
                     dividers.append(feature.geometry.boundary)
                     # Only show divider if not flagged as invisible
-                    #if not feature.properties.get('invisible', False):
+                    #if not feature.is_a('invisible'):
                     #    group_features.append(Feature(self.__region_id,
                     #                                  feature.geometry.boundary,
                     #                                  {'layer': self.layer_id} ))
                     #    self.__region_id += 1
-                    if feature.properties.get('boundary', False):
+                    if feature.is_a('boundary'):
                         group_features.append(feature)
-                elif not feature.properties.get('group', False):
-                    if not feature.properties.get('invisible', False):
+                elif not feature.is_a('group'):
+                    if not feature.is_a('invisible'):
                         group_features.append(feature)
             if dividers:
                 for polygon in shapely.ops.polygonize(shapely.ops.unary_union(dividers)):
@@ -247,7 +245,7 @@ class GeoJsonLayer(Layer):
                     group_features.append(Feature(region_id, polygon, region_properties))
         else:
             for feature in features:
-                if feature.properties.get('region', False):
+                if feature.is_a('region'):
                     raise ValueError('Region dividers must have a boundary')
 
         if polygon_holes:
