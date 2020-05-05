@@ -170,6 +170,7 @@ class GeoJsonLayer(Layer):
         boundary_class = None
         boundary_lines = []
         boundary_polygons = []
+        polygon_holes = []
 
         for feature in features:
             if feature.properties.get('boundary', False):
@@ -188,6 +189,9 @@ class GeoJsonLayer(Layer):
             elif feature.properties.get('group', False):
                 grouped_properties.update(feature.properties)
                 output_grouped_feature = True
+            elif feature.properties.get('hole', False):
+                if feature.geometry.geom_type == 'Polygon':
+                    polygon_holes.append(feature.geometry)
             else:
                 group_features.append(feature)
 
@@ -245,6 +249,17 @@ class GeoJsonLayer(Layer):
             for feature in features:
                 if feature.properties.get('region', False):
                     raise ValueError('Region dividers must have a boundary')
+
+        if polygon_holes:
+            for feature in group_features:
+                if feature.geometry.geom_type == 'Polygon':
+                    prepared_polygon = shapely.prepared.prep(feature.geometry)
+                    holes = list(filter(lambda p: prepared_polygon.contains(p), polygon_holes))
+                    if holes:
+                        feature.geometry = shapely.geometry.Polygon(
+                            feature.geometry.exterior.coords,
+                            [hole.exterior.coords for hole in holes]
+                            )
 
         # Construct a MultiPolygon containing all of the group's polygons
         # This is only output to the map when we have a ``group`` command.
