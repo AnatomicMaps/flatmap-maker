@@ -157,7 +157,7 @@ class GeoJsonLayer(Layer):
     #=====================================
         map_area = self.extractor.map_area()
         divided_area = 0
-        child_properties = {'layer': self.layer_id}
+        base_properties = {'layer': self.layer_id}
 
         group_features = []
         output_grouped_feature = False
@@ -186,8 +186,6 @@ class GeoJsonLayer(Layer):
                         boundary_class = cls
                     else:
                         raise ValueError('Class of boundary has changed...')
-            elif feature.properties.get('children', False):
-                child_properties.update(feature.properties)
             elif feature.is_a('group'):
                 grouped_properties.update(feature.properties)
                 output_grouped_feature = True
@@ -236,7 +234,7 @@ class GeoJsonLayer(Layer):
                 for polygon in shapely.ops.polygonize(shapely.ops.unary_union(dividers)):
                     prepared_polygon = shapely.prepared.prep(polygon)
                     region_id = None
-                    region_properties = child_properties.copy()
+                    region_properties = base_properties.copy()
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_id = region.id
                         region_properties.update(region.properties)
@@ -285,7 +283,7 @@ class GeoJsonLayer(Layer):
             unique_id = '{}-{}'.format(self.slide_id, feature.id)
             if feature.geometry is not None:
                 # Initial set of properties come from ``.group``
-                properties = child_properties.copy()
+                properties = base_properties.copy()
                 # And are overriden by feature specific ones
                 properties.update(feature.properties)
 
