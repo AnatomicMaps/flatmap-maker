@@ -174,12 +174,13 @@ class GeoJsonLayer(Layer):
         boundary_polygons = []
         interior_features = []
 
-        for feature in features:
+        single_features = [ feature for feature in features if not feature.has_children ]
+        for feature in single_features:
             if feature.is_a('boundary'):
-                if feature.geometry.geom_type == 'Polygon':
+                if feature.geom_type == 'Polygon':
                     boundary_polygons.append(feature.geometry)
-                elif feature.geometry.geom_type == 'LineString':
-                    boundary_lines.append(extend_line(feature.geometry, 0.02*feature.geometry.length))
+                elif feature.geom_type == 'LineString':
+                    boundary_lines.append(extend_line(feature.geometry, LINE_END_EXTENSION))
                 cls = feature.property('class')
                 if cls is not None:
                     if cls != boundary_class:
@@ -195,33 +196,34 @@ class GeoJsonLayer(Layer):
             for boundary in shapely.ops.polygonize(shapely.ops.unary_union(boundary_lines)):
                 boundary_polygons.append(boundary)
         if len(boundary_polygons):
-            boundary = shapely.ops.unary_union(boundary_polygons).boundary
-            boundary_area = sum([b.area for b in boundary_polygons])
+            boundary_polygon = shapely.geometry.MultiPolygon(boundary_polygons)
+            boundary_area = boundary_polygon.area
+            boundary = boundary_polygon.boundary
 
         if boundary is not None:
             dividers = [ boundary ]
             group_features = []
             regions = []
             end_extension = LINE_END_EXTENSION
-            for feature in features:
+            for feature in single_features:
                 if feature.is_a('region'):
                     regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.properties))
-                elif (feature.geometry.geom_type == 'LineString'
-                  and (feature.is_a('boundary') or not feature.has('annotation'))):
-                    longer_line = extend_line(feature.geometry, end_extension)
-                    dividers.append(longer_line)
-                    #if not feature.is_a('invisible'):
-                    #    group_features.append(feature)
-                elif (feature.geometry.geom_type == 'Polygon'
-                  and (feature.is_a('boundary') or not feature.has('annotation'))):
-                    dividers.append(feature.geometry.boundary)
+                elif feature.geom_type == 'LineString':
+                    if feature.is_a('boundary') or not feature.has('annotation'):
+                        longer_line = extend_line(feature.geometry, end_extension)
+                        dividers.append(longer_line)
+                    if not feature.is_a('invisible'):
+                        group_features.append(feature)
+                elif feature.geom_type == 'Polygon':
+                    if not feature.has('annotation'):
+                        dividers.append(feature.geometry.boundary)
                     # Only show divider if not flagged as invisible
                     #if not feature.is_a('invisible'):
                     #    group_features.append(Feature(self.__region_id,
                     #                                  feature.geometry.boundary,
                     #                                  {'layer': self.layer_id} ))
                     #    self.__region_id += 1
-                    if feature.is_a('boundary'):
+                    if feature.is_a('boundary') and not feature.is_a('invisible'):
                         group_features.append(feature)
                 elif not feature.is_a('group'):
                     if not feature.is_a('invisible'):
