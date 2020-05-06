@@ -172,7 +172,6 @@ class GeoJsonLayer(Layer):
         boundary_class = None
         boundary_lines = []
         boundary_polygons = []
-        interior_features = []
 
         single_features = [ feature for feature in features if not feature.has_children ]
         for feature in single_features:
@@ -191,6 +190,11 @@ class GeoJsonLayer(Layer):
                 grouped_properties.update(feature.properties)
             elif feature.has('class') or not feature.is_a('interior'):
                 group_features.append(feature)
+
+        interior_features = []
+        for feature in features:
+            if feature.is_a('interior') and not feature.is_a('boundary'):
+                interior_features.append(feature)
 
         if len(boundary_lines):
             for boundary in shapely.ops.polygonize(shapely.ops.unary_union(boundary_lines)):
@@ -245,10 +249,16 @@ class GeoJsonLayer(Layer):
                     raise ValueError('Region dividers must have a boundary')
 
         if interior_features:
-            interior_polygons = shapely.geometry.MultiPolygon([feature.geometry for feature in interior_features])
+            interior_polygons = []
+            for feature in interior_features:
+                if feature.geom_type == 'Polygon':
+                    interior_polygons.append(feature.geometry)
+                elif feature.geom_type == 'MultiPolygon':
+                    interior_polygons.extend(list(feature.geometry))
+            interior_polygon = shapely.ops.unary_union(interior_polygons)
             for feature in group_features:
-                if not feature.is_a('interior') and feature.geometry.geom_type == 'Polygon':
-                    feature.geometry = feature.geometry.difference(interior_polygons)
+                if not feature.is_a('interior') and feature.geom_type in ['Polygon', 'MultiPolygon']:
+                    feature.geometry = feature.geometry.buffer(0).difference(interior_polygon)
 
         # Construct a MultiPolygon containing all of the group's polygons
         grouped_features = [ feature for feature in features if feature.has_children ]
