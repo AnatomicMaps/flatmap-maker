@@ -52,7 +52,7 @@ from .presets import DML
 
 AUTO_CLOSE_RATIO = 0.3
 
-LINE_END_EXTENSION = 10
+LINE_END_EXTENSION = 200
 
 #===============================================================================
 
