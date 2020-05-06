@@ -182,7 +182,6 @@ class Layer(object):
             self.__queryable_nodes = False
             self.__zoom = None
         self.__annotated_ids = []
-        self.__features = []
         self.__map_features = []
 #*        self.__ontology_data = self.settings.ontology_data
         self.__annotations = {}
@@ -202,10 +201,6 @@ class Layer(object):
     @property
     def description(self):
         return self.__description
-
-    @property
-    def features(self):
-        return self.__features
 
     @property
     def models(self):
@@ -278,7 +273,6 @@ class Layer(object):
                 geometry = self.process_shape(shape, properties, *args)
                 feature = Feature(shape.shape_id, geometry, properties)
                 features.append(feature)
-                self.__features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.process_group(shape, *args)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
