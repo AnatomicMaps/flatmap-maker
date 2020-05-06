@@ -97,11 +97,11 @@ class Transform(object):
 #===============================================================================
 
 class Feature(object):
-    def __init__(self, id, geometry, properties, group=False):
+    def __init__(self, id, geometry, properties, has_children=False):
         self.__id = id
         self.__geometry = geometry
         self.__properties = properties
-        self.__group = group
+        self.__has_children = has_children
 
     def __str__(self):
         return '{}: {}'.format(self.__geometry.geom_type, self.__properties)
@@ -111,8 +111,8 @@ class Feature(object):
         return self.__id
 
     @property
-    def is_group(self):
-        return self.__group
+    def has_children(self):
+        return self.__has_children
 
     @property
     def geometry(self):
@@ -274,7 +274,9 @@ class Layer(object):
                 feature = Feature(shape.shape_id, geometry, properties)
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
-                self.process_group(shape, *args)
+                grouped_feature = self.process_group(shape, *args)
+                if grouped_feature is not None:
+                    features.append(grouped_feature)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
                or shape.shape_type == MSO_SHAPE_TYPE.PICTURE):
                 pass

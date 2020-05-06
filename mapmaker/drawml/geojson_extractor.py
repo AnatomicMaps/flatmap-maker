@@ -160,9 +160,9 @@ class GeoJsonLayer(Layer):
         base_properties = {'layer': self.layer_id}
 
         group_features = []
-        output_grouped_feature = False
         grouped_properties = {
             'group': True,
+            'interior': True,
             'layer': self.layer_id,
         }
 
@@ -252,24 +252,34 @@ class GeoJsonLayer(Layer):
                     feature.geometry = feature.geometry.difference(interior_polygons)
 
         # Construct a MultiPolygon containing all of the group's polygons
-        # This is only output to the map when we have a ``group`` command.
-        if output_grouped_feature:
-            grouped_lines = [feature.geometry for feature in group_features
-                          if feature.geometry.geom_type == 'LineString']
-            if len(grouped_lines):
-                grouped_feature = Feature(self.__region_id,
-                                          shapely.geometry.MultiLineString(grouped_lines),
-                                          grouped_properties)
-                group_features.append(grouped_feature)
-                self.__region_id += 1
-            grouped_polygons = [feature.geometry for feature in group_features
-                             if feature.geometry.geom_type == 'Polygon']
-            if len(grouped_polygons):
-                grouped_feature = Feature(self.__region_id,
-                                          shapely.geometry.MultiPolygon(grouped_polygons),
-                                          grouped_properties)
-                group_features.append(grouped_feature)
-                self.__region_id += 1
+        grouped_features = [ feature for feature in features if feature.has_children ]
+        grouped_features.extend( group_features)
+
+        grouped_lines = []
+        for feature in grouped_features:
+            if feature.geom_type == 'LineString':
+                grouped_lines.append(feature.geometry)
+            elif feature.geom_type == 'MultiLineString':
+                grouped_lines.extend(list(feature.geometry))
+        if len(grouped_lines):
+            grouped_feature = Feature(self.__region_id,
+                                      shapely.geometry.MultiLineString(grouped_lines),
+                                      grouped_properties, True)
+            group_features.append(grouped_feature)
+            self.__region_id += 1
+
+        grouped_polygons = []
+        for feature in grouped_features:
+            if feature.geom_type == 'Polygon':
+                grouped_polygons.append(feature.geometry)
+            elif feature.geom_type == 'MultiPolygon':
+                grouped_polygons.extend(list(feature.geometry))
+        if len(grouped_polygons):
+            grouped_feature = Feature(self.__region_id,
+                                      shapely.geometry.MultiPolygon(grouped_polygons),
+                                      grouped_properties, True)
+            group_features.append(grouped_feature)
+            self.__region_id += 1
 
         for feature in group_features:
             unique_id = '{}-{}'.format(self.slide_id, feature.id)
@@ -317,6 +327,7 @@ class GeoJsonLayer(Layer):
                     'type': geojson['geometry']['type']
                 })
 
+        return grouped_feature
 
 
     def process_shape(self, shape, properties, transform):
