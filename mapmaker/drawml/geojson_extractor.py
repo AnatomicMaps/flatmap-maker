@@ -188,7 +188,6 @@ class GeoJsonLayer(Layer):
                         raise ValueError('Class of boundary has changed...')
             elif feature.is_a('group'):
                 grouped_properties.update(feature.properties)
-                output_grouped_feature = True
             elif feature.has('class') or not feature.is_a('interior'):
                 group_features.append(feature)
 
