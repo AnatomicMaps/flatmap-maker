@@ -123,6 +123,10 @@ class Feature(object):
         self.__geometry = geometry
 
     @property
+    def geom_type(self):
+        return self.__geometry.geom_type
+
+    @property
     def properties(self):
         return self.__properties
 
