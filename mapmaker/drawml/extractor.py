@@ -104,7 +104,7 @@ class Feature(object):
         self.__group = group
 
     def __str__(self):
-        return 'Feature: {}'.format(self.__properties)
+        return '{}: {}'.format(self.__geometry.geom_type, self.__properties)
 
     @property
     def id(self):
