@@ -236,11 +236,9 @@ class GeoJsonLayer(Layer):
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_id = region.id
                         region_properties.update(region.properties)
+                        group_features.append(Feature(region_id, polygon, region_properties))
                         break
-                    if region_id is None:
-                        region_id = self.__region_id
-                        self.__region_id += 1
-                    group_features.append(Feature(region_id, polygon, region_properties))
+
         else:
             for feature in features:
                 if feature.is_a('region'):
