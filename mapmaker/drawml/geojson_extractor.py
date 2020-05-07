@@ -126,7 +126,7 @@ class GeoJsonLayer(Layer):
         self.__geo_features = []
 
         features = self.process_shape_list(self._slide.shapes, self.__transform)
-        self.add_geo_features_(features)
+        self.add_geo_features_(features, True)
 
         self.__geo_collection = {
             'type': 'FeatureCollection',
@@ -151,8 +151,8 @@ class GeoJsonLayer(Layer):
         features = self.process_shape_list(group.shapes, transform@Transform(group).matrix())
         return self.add_geo_features_(features)
 
-    def add_geo_features_(self, features):
-    #=====================================
+    def add_geo_features_(self, features, outermost=False):
+    #======================================================
         map_area = self.extractor.map_area()
         divided_area = 0
         base_properties = {'layer': self.layer_id}
@@ -174,6 +174,8 @@ class GeoJsonLayer(Layer):
         single_features = [ feature for feature in features if not feature.has_children ]
         for feature in single_features:
             if feature.is_a('boundary'):
+                if outermost:
+                    raise ValueError('Boundary elements must be inside a group: {}'.format(feature))
                 if feature.geom_type == 'Polygon':
                     boundary_polygons.append(feature.geometry)
                 elif feature.geom_type == 'LineString':
