@@ -73,7 +73,9 @@ class Parser(object):
                       | Keyword('interior')
                       | Keyword('invisible')
                       | Keyword('open')
-                      | Keyword('region'))
+                      | Keyword('region')
+                      | Keyword('siblings')
+                      )
 
     FEATURE_FLAGS = Group(Keyword('group')
                       |   Keyword('organ')
