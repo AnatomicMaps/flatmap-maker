@@ -185,7 +185,7 @@ class GeoJsonLayer(Layer):
                     if cls != boundary_class:
                         boundary_class = cls
                     else:
-                        raise ValueError('Class of boundary has changed...')
+                        raise ValueError('Class of boundary has changed: {}'.format(feature))
             elif feature.is_a('group'):
                 grouped_properties.update(feature.properties)
             elif feature.has('class') or not feature.is_a('interior'):
@@ -251,7 +251,7 @@ class GeoJsonLayer(Layer):
         else:
             for feature in features:
                 if feature.is_a('region'):
-                    raise ValueError('Region dividers must have a boundary')
+                    raise ValueError('Region dividers must have a boundary: {}'.format(feature))
 
         if not outermost and interior_features:
             interior_polygons = []
