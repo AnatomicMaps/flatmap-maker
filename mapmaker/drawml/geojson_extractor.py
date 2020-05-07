@@ -416,7 +416,7 @@ class GeoJsonLayer(Layer):
 
 
         if closed:
-            return shapely.geometry.Polygon(coordinates)
+            geometry = shapely.geometry.Polygon(coordinates)
         else:
             geometry = shapely.geometry.LineString(coordinates)
             if not properties.get('open', False):
@@ -426,7 +426,7 @@ class GeoJsonLayer(Layer):
                 if delta_ends < AUTO_CLOSE_RATIO*geometry.length:
                     coordinates.append(coordinates[0])
                     return shapely.geometry.Polygon(coordinates)
-            return geometry
+        return geometry
 
 #===============================================================================
 
