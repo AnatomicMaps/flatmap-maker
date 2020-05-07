@@ -247,7 +247,7 @@ class GeoJsonLayer(Layer):
                 if feature.is_a('region'):
                     raise ValueError('Region dividers must have a boundary')
 
-        if interior_features:
+        if not outermost and interior_features:
             interior_polygons = []
             for feature in interior_features:
                 if feature.geom_type == 'Polygon':
