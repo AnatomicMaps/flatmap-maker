@@ -29,6 +29,8 @@ import pptx.shapes.connector
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
+from tqdm import tqdm
+
 #===============================================================================
 
 from labels import AnatomicalMap
@@ -247,8 +249,7 @@ class Layer(object):
         return self._slide.slide_id
 
     def process(self):
-    #=================
-        self.process_shape_list(self._slide.shapes)
+        self.process_shape_list(self._slide.shapes, outermost=True)
 
     def save(self, filename=None):
     #=============================
@@ -264,10 +265,17 @@ class Layer(object):
         # Override in sub-class
         pass
 
-    def process_shape_list(self, shapes, *args):
-    #===========================================
+    def process_shape_list(self, shapes, *args, outermost=False):
+    #============================================================
         if not self.__selectable:
             return []
+
+        if outermost:
+            print('Processing shape list...')
+            progress_bar = tqdm(total=len(shapes),
+                unit='shp', ncols=40,
+                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
+
         features = []
         for shape in shapes:
             properties = self.get_properties_(shape)
@@ -286,8 +294,12 @@ class Layer(object):
                 pass
             else:
                 print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
-        return features
+            if outermost:
+                progress_bar.update(1)
 
+        if outermost:
+            progress_bar.close()
+        return features
 
     def get_properties_(self, shape):
     #================================

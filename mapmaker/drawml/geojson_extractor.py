@@ -125,7 +125,7 @@ class GeoJsonLayer(Layer):
     #=================
         self.__geo_features = []
 
-        features = self.process_shape_list(self._slide.shapes, self.__transform)
+        features = self.process_shape_list(self._slide.shapes, self.__transform, outermost=True)
         self.add_geo_features_(features, True)
 
         self.__geo_collection = {
