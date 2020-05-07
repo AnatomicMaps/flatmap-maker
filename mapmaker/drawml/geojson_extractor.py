@@ -238,7 +238,7 @@ class GeoJsonLayer(Layer):
                         divider_lines.append(divider)
                     elif divider.geom_type == 'MultiLineString':
                         divider_lines.extend(divider.geoms)
-                for polygon in shapely.ops.polygonize(divider_lines):
+                for polygon in shapely.ops.polygonize(shapely.ops.unary_union(divider_lines)):
                     prepared_polygon = shapely.prepared.prep(polygon)
                     region_id = None
                     region_properties = base_properties.copy()
