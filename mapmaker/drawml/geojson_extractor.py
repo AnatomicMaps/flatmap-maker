@@ -52,8 +52,6 @@ from .presets import DML
 
 AUTO_CLOSE_RATIO = 0.3
 
-LINE_END_EXTENSION = 200
-
 #===============================================================================
 
 METRES_PER_EMU = 0.1   ## This to become a command line parameter...
@@ -179,7 +177,7 @@ class GeoJsonLayer(Layer):
                 if feature.geom_type == 'Polygon':
                     boundary_polygons.append(feature.geometry)
                 elif feature.geom_type == 'LineString':
-                    boundary_lines.append(extend_line(feature.geometry, LINE_END_EXTENSION))
+                    boundary_lines.append(extend_line(feature.geometry, self.settings.line_extension))
                 cls = feature.property('class')
                 if cls is not None:
                     if cls != boundary_class:
@@ -208,13 +206,12 @@ class GeoJsonLayer(Layer):
             dividers = [ boundary ]
             group_features = []
             regions = []
-            end_extension = LINE_END_EXTENSION
             for feature in single_features:
                 if feature.is_a('region'):
                     regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.properties))
                 elif feature.geom_type == 'LineString':
                     if feature.is_a('boundary') or not feature.has('annotation'):
-                        longer_line = extend_line(feature.geometry, end_extension)
+                        longer_line = extend_line(feature.geometry, self.settings.line_extension)
                         dividers.append(longer_line)
                     if not feature.is_a('invisible'):
                         group_features.append(feature)
