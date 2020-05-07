@@ -33,6 +33,10 @@ from tqdm import tqdm
 
 #===============================================================================
 
+EXCLUDE_SHAPE_NAMES = ['group', 'invisible', 'region']
+
+#===============================================================================
+
 LAYOUT_BLANK_SLIDE = 6
 
 #===============================================================================
@@ -60,7 +64,7 @@ XPATH_PRS_extLst        = './p:extLst'
 def valid_name(name):
     if name.startswith('.'):
         for directive in name[1:].split():
-            if directive in ['group', 'invisible', 'region']:
+            if directive in EXCLUDE_SHAPE_NAMES:
                 return False
     return True
 
