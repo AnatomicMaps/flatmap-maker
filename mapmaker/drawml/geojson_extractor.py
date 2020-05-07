@@ -226,7 +226,7 @@ class GeoJsonLayer(Layer):
                     #                                  feature.geometry.boundary,
                     #                                  {'layer': self.layer_id} ))
                     #    self.__region_id += 1
-                    if feature.is_a('boundary') and not feature.is_a('invisible'):
+                    if not feature.is_a('invisible'):
                         group_features.append(feature)
                 elif not feature.is_a('group'):
                     if not feature.is_a('invisible'):
