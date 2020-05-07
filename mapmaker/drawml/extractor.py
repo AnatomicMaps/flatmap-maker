@@ -288,16 +288,6 @@ class Layer(object):
                 print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
         return features
 
-##    query style map to get:
-##      level
-##      type
-##      layer -- use to assign layer, so one slide === one multi-layer map
-
-#      level:
-#      models:
-#      name:
-#      size: area/length a % of map area/diagonal
-#      type:
 
     def get_properties_(self, shape):
     #================================
