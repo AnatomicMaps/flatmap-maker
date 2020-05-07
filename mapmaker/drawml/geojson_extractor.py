@@ -232,7 +232,13 @@ class GeoJsonLayer(Layer):
                     if not feature.is_a('invisible'):
                         group_features.append(feature)
             if dividers:
-                for polygon in shapely.ops.polygonize(shapely.ops.unary_union(dividers)):
+                divider_lines = []
+                for divider in dividers:
+                    if divider.geom_type == 'LineString':
+                        divider_lines.append(divider)
+                    elif divider.geom_type == 'MultiLineString':
+                        divider_lines.extend(divider.geoms)
+                for polygon in shapely.ops.polygonize(divider_lines):
                     prepared_polygon = shapely.prepared.prep(polygon)
                     region_id = None
                     region_properties = base_properties.copy()
