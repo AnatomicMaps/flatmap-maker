@@ -57,12 +57,6 @@ class Parser(object):
     LAYER_DIRECTIVES = BACKGROUND | DESCRIPTION | IDENTIFIER | MODELS | SELECTION_FLAGS | ZOOM
     LAYER_DIRECTIVE = '.' + ZeroOrMore(LAYER_DIRECTIVES)
 
-    FEATURE_ID = Combine(Suppress('#') + ID_TEXT)
-    NEURAL_CLASS = Keyword('N1') | Keyword('N2') | Keyword('N3') | Keyword('N4') | Keyword('N5')
-    NODE = Group(Keyword('node') + Suppress('(') + NEURAL_CLASS + Suppress(')'))
-    EDGE = Group(Keyword('edge') + Suppress('(') + Group(delimitedList(FEATURE_ID)) + Suppress(')'))
-    SHAPE_TYPE = NODE | EDGE
-
     PATH = Group(Keyword('path') + Suppress('(') +  Group(delimitedList(ID_TEXT)) + Suppress(')'))
     ROUTE_NODES = ID_TEXT  | Group(Suppress('(') +  delimitedList(ID_TEXT) + Suppress(')'))
     ROUTE = Group(Keyword('route') + Suppress('(') +  Group(delimitedList(ROUTE_NODES)) + Suppress(')'))
@@ -85,7 +79,7 @@ class Parser(object):
                       |   Keyword('organ')
                       )
 
-    SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS | FEATURE_FLAGS | FEATURE_PROPERTIES | PATHWAY | SHAPE_FLAGS | SHAPE_TYPE)
+    SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS | FEATURE_FLAGS | FEATURE_PROPERTIES | PATHWAY | SHAPE_FLAGS)
 
     @staticmethod
     def layer_directive(s):
@@ -146,8 +140,6 @@ if __name__ == '__main__':
     test(Parser.shape_properties, '.models(FMA:1)')
     test(Parser.shape_properties, '.models(UBERON:1)')
     test(Parser.shape_properties, '.models (N1)')
-    test(Parser.shape_properties, '.edge(#n1, #n2)')
-    test(Parser.shape_properties, '.source(#n1) via(#n2) target(#n3)')
 
     test(Parser.shape_properties, '.path(P1, P2, P3, P4, P5, P6, P7, P8)')
     test(Parser.shape_properties, '.route(urinary_5, keast_2, S50_L6_B, S50_L6_T, S45_L6, C1, S44_L6)')
