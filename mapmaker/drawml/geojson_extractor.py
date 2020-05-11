@@ -180,7 +180,7 @@ class GeoJsonLayer(Layer):
                 if outermost:
                     raise ValueError('Boundary elements must be inside a group: {}'.format(feature))
                 if feature.geom_type == 'LineString':
-                    boundary_lines.append(extend_line(feature.geometry, self.settings.line_extension))
+                    boundary_lines.append(feature.geometry)
                 elif feature.geom_type == 'Polygon':
                     if boundary_polygon is not None:
                         raise FeaturesValueError('Group can only have one boundary shape:', features)
