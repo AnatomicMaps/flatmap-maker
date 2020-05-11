@@ -135,7 +135,7 @@ if __name__ == '__main__':
     test(Parser.layer_directive, '.id(LAYER) models(NCBITaxon:1)')
     test(Parser.layer_directive, '.selected')
     test(Parser.shape_properties, '.boundary')
-    test(Parser.shape_properties, '.id(FEATURE) models(UBERON:1)')
+    test(Parser.shape_properties, '.id(ID) class(FEATURE)')
     test(Parser.shape_properties, '.models(FM:1)')
     test(Parser.shape_properties, '.models(FMA:1)')
     test(Parser.shape_properties, '.models(UBERON:1)')
