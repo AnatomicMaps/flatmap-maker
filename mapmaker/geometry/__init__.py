@@ -74,7 +74,6 @@ class LineMatcher(object):
 #===============================================================================
 
 def make_boundary(line_segments):
-    print(len(line_segments), 'segs')
     lines = list(line_segments)
     line_matcher = LineMatcher(lines[0])
     remainder = lines[1:]
