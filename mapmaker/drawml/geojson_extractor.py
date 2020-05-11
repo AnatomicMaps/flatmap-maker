@@ -425,13 +425,10 @@ class GeoJsonLayer(Layer):
             geometry = shapely.geometry.Polygon(coordinates)
         else:
             geometry = shapely.geometry.LineString(coordinates)
-            if not properties.get('open', False):
-                # Return a polygon if distance between endpoints < 0.3*(line length)
-                delta_ends = shapely.geometry.Point(coordinates[0]).distance(
-                                shapely.geometry.Point(coordinates[-1]))
-                if delta_ends < AUTO_CLOSE_RATIO*geometry.length:
-                    coordinates.append(coordinates[0])
-                    return shapely.geometry.Polygon(coordinates)
+            if properties.get('closed', False):
+                # Return a polygon if flagged as `closed`
+                coordinates.append(coordinates[0])
+                return shapely.geometry.Polygon(coordinates)
         return geometry
 
 #===============================================================================
