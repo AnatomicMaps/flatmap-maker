@@ -105,11 +105,11 @@ class Parser(object):
         return result
 
     @staticmethod
-    def shape_properties(s):
+    def shape_properties(name_text):
         id = None
         properties = {}
         try:
-            parsed = Parser.SHAPE_MARKUP.parseString(s, parseAll=True)
+            parsed = Parser.SHAPE_MARKUP.parseString(name_text, parseAll=True)
             for prop in parsed[1:]:
                 if (Parser.FEATURE_FLAGS.matches(prop[0])
                  or Parser.SHAPE_FLAGS.matches(prop[0])):
@@ -120,6 +120,7 @@ class Parser(object):
                     properties[prop[0]] = prop[1]
         except ParseException:
             properties['error'] = 'Syntax error in directive'
+
         return properties
 
     @staticmethod
