@@ -63,10 +63,12 @@ class Parser(object):
     EDGE = Group(Keyword('edge') + Suppress('(') + Group(delimitedList(FEATURE_ID)) + Suppress(')'))
     SHAPE_TYPE = NODE | EDGE
 
-    PROPERTIES = CLASS | IDENTIFIER | STYLE
+    PATH = Group(Keyword('path') + Suppress('(') +  Group(delimitedList(ID_TEXT)) + Suppress(')'))
+    ROUTE_NODES = ID_TEXT  | Group(Suppress('(') +  delimitedList(ID_TEXT) + Suppress(')'))
+    ROUTE = Group(Keyword('route') + Suppress('(') +  Group(delimitedList(ROUTE_NODES)) + Suppress(')'))
+    PATHWAY = PATH + Optional(ROUTE)
 
-    ROUTING_TYPE = Keyword('source') | Keyword('target') | Keyword('via')
-    ROUTING = Group(ROUTING_TYPE + Suppress('(') + Group(FEATURE_ID | ONTOLOGY_ID) + Suppress(')'))
+    FEATURE_PROPERTIES = CLASS | IDENTIFIER | STYLE
 
     SHAPE_FLAGS = Group(Keyword('boundary')
                       | Keyword('children')
@@ -83,7 +85,7 @@ class Parser(object):
                       |   Keyword('organ')
                       )
 
-    SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS | FEATURE_FLAGS | PROPERTIES | ROUTING | SHAPE_FLAGS | SHAPE_TYPE)
+    SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS | FEATURE_FLAGS | FEATURE_PROPERTIES | PATHWAY | SHAPE_FLAGS | SHAPE_TYPE)
 
     @staticmethod
     def layer_directive(s):
@@ -146,5 +148,10 @@ if __name__ == '__main__':
     test(Parser.shape_properties, '.models (N1)')
     test(Parser.shape_properties, '.edge(#n1, #n2)')
     test(Parser.shape_properties, '.source(#n1) via(#n2) target(#n3)')
+
+    test(Parser.shape_properties, '.path(P1, P2, P3, P4, P5, P6, P7, P8)')
+    test(Parser.shape_properties, '.route(urinary_5, keast_2, S50_L6_B, S50_L6_T, S45_L6, C1, S44_L6)')
+    test(Parser.shape_properties, '.route(urinary_5, keast_2, S50_L6_B, S50_L6_T, S45_L6, C1, S44_L6, (S42_L6, S38_L6, S37_L6, S34_L6, S33_L6, S42_L6))')
+    test(Parser.shape_properties, '.path(P1, P2, P3, P4, P5, P6, P7, P8) route (urinary_5, keast_2, S50_L6_B, S50_L6_T, S45_L6, C1, S44_L6, (S42_L6, S38_L6, S37_L6, S34_L6, S33_L6, S42_L6))')
 
 #===============================================================================
