@@ -19,7 +19,7 @@
 #===============================================================================
 
 from pyparsing import alphanums, nums, printables, Combine, delimitedList, Group, Keyword
-from pyparsing import Optional, ParseException, Suppress, Word, ZeroOrMore
+from pyparsing import Optional, ParseException, Suppress, Word, ZeroOrMore, ParseResults
 
 #===============================================================================
 
@@ -113,11 +113,14 @@ class Parser(object):
                     properties[prop[0]] = True
                 elif Parser.DEPRECATED_FLAGS.matches(prop[0]):
                     properties['warning'] = "'{}' property is deprecated".format(prop[0])
+                elif prop[0] == 'path':
+                    properties[prop[0]] = list(prop[1])
+                elif prop[0] == 'route':
+                    properties[prop[0]] = [ list(p) if isinstance(p, ParseResults) else p for p in prop[1] ]
                 else:
                     properties[prop[0]] = prop[1]
         except ParseException:
             properties['error'] = 'Syntax error in directive'
-
         return properties
 
     @staticmethod
