@@ -73,13 +73,13 @@ class Parser(object):
                       | Keyword('closed')
                       | Keyword('divider')
                       | Keyword('interior')
-                      | Keyword('invisible')
                       | Keyword('region')
                       )
 
     DEPRECATED_FLAGS = Group(Keyword('siblings'))
 
     FEATURE_FLAGS = Group(Keyword('group')
+                      |   Keyword('invisible')
                       |   Keyword('organ')
                       )
 
