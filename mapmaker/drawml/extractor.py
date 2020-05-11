@@ -109,12 +109,8 @@ class Feature(object):
         return '{}: {}'.format(self.__geometry.geom_type, self.__properties)
 
     @property
-    def id(self):
-        return self.__id
-
-    @property
-    def has_children(self):
-        return self.__has_children
+    def annotated(self):
+        return self.has('annotation')
 
     @property
     def geometry(self):
@@ -127,6 +123,14 @@ class Feature(object):
     @property
     def geom_type(self):
         return self.__geometry.geom_type
+
+    @property
+    def has_children(self):
+        return self.__has_children
+
+    @property
+    def id(self):
+        return self.__id
 
     @property
     def properties(self):
