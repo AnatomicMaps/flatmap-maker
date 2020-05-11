@@ -191,14 +191,14 @@ class GeoJsonLayer(Layer):
                         boundary_class = cls
                     else:
                         raise ValueError('Class of boundary shapes have changed: {}'.format(feature))
-                group_features.append(feature)
             elif not feature.annotated or feature.is_a('divider'):
                 if feature.geom_type == 'LineString':
                     longer_line = extend_line(feature.geometry, self.settings.line_extension)
                     divider_lines.append(longer_line)
                 elif feature.geom_type == 'Polygon':
                     divider_polygons.append(feature.geometry)
-                group_features.append(feature)
+                if not feature.property('invisible'):
+                    group_features.append(feature)
             elif feature.is_a('group'):
                 grouped_properties.update(feature.properties)
             elif feature.is_a('region'):
