@@ -147,6 +147,12 @@ class Feature(object):
 
 #===============================================================================
 
+class FeaturesValueError(ValueError):
+    def __init__(self, msg, features):
+        super().__init__('\n  '.join([msg] + [str(f) for f in features]))
+
+#===============================================================================
+
 class Layer(object):
     def __init__(self, extractor, slide, slide_number):
         self._slide = slide
