@@ -71,6 +71,7 @@ class Parser(object):
     SHAPE_FLAGS = Group(Keyword('boundary')
                       | Keyword('children')
                       | Keyword('closed')
+                      | Keyword('divider')
                       | Keyword('interior')
                       | Keyword('invisible')
                       | Keyword('region')

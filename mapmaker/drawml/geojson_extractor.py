@@ -41,9 +41,11 @@ import shapely.prepared
 #===============================================================================
 
 from parser import Parser
+from geometry import make_boundary
 
 from .arc_to_bezier import cubic_beziers_from_arc, tuple2
-from .extractor import Feature, Extractor, Layer, Transform
+from .extractor import Feature, FeaturesValueError
+from .extractor import Extractor, Layer, Transform
 from .extractor import ellipse_point
 from .formula import Geometry, radians
 from .presets import DML
@@ -165,29 +167,42 @@ class GeoJsonLayer(Layer):
         }
 
         # We first find our boundary polygon(s)
-        boundary = None
-        boundary_area = 0
         boundary_class = None
         boundary_lines = []
-        boundary_polygons = []
+        boundary_polygon = None
+        divider_lines = []
+        divider_polygons = []
+        regions = []
 
         single_features = [ feature for feature in features if not feature.has_children ]
         for feature in single_features:
             if feature.is_a('boundary'):
                 if outermost:
                     raise ValueError('Boundary elements must be inside a group: {}'.format(feature))
-                if feature.geom_type == 'Polygon':
-                    boundary_polygons.append(feature.geometry)
-                elif feature.geom_type == 'LineString':
+                if feature.geom_type == 'LineString':
                     boundary_lines.append(extend_line(feature.geometry, self.settings.line_extension))
+                elif feature.geom_type == 'Polygon':
+                    if boundary_polygon is not None:
+                        raise FeaturesValueError('Group can only have one boundary shape:', features)
+                    boundary_polygon = feature.geometry
                 cls = feature.property('class')
                 if cls is not None:
                     if cls != boundary_class:
                         boundary_class = cls
                     else:
-                        raise ValueError('Class of boundary has changed: {}'.format(feature))
+                        raise ValueError('Class of boundary shapes have changed: {}'.format(feature))
+                group_features.append(feature)
+            elif not feature.annotated or feature.is_a('divider'):
+                if feature.geom_type == 'LineString':
+                    longer_line = extend_line(feature.geometry, self.settings.line_extension)
+                    divider_lines.append(longer_line)
+                elif feature.geom_type == 'Polygon':
+                    divider_polygons.append(feature.geometry)
+                group_features.append(feature)
             elif feature.is_a('group'):
                 grouped_properties.update(feature.properties)
+            elif feature.is_a('region'):
+                regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.properties))
             elif feature.has('class') or not feature.is_a('interior'):
                 group_features.append(feature)
 
@@ -196,49 +211,30 @@ class GeoJsonLayer(Layer):
             if feature.is_a('interior') and not feature.is_a('boundary'):
                 interior_features.append(feature)
 
-        if len(boundary_lines):
-            for boundary in shapely.ops.polygonize(shapely.ops.unary_union(boundary_lines)):
-                boundary_polygons.append(boundary)
-        if len(boundary_polygons):
-            boundary_polygon = shapely.geometry.MultiPolygon(boundary_polygons)
-            boundary_area = boundary_polygon.area
-            boundary = boundary_polygon.boundary
+        if boundary_polygon is not None and len(boundary_lines):
+            raise FeaturesValueError("Group can't be bounded by both a closed shape and lines:", features)
 
-        if boundary is not None:
-            dividers = [ boundary ]
-            group_features = []
-            regions = []
-            for feature in single_features:
-                if feature.is_a('region'):
-                    regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.properties))
-                elif feature.geom_type == 'LineString':
-                    if feature.is_a('boundary') or not feature.has('annotation'):
-                        longer_line = extend_line(feature.geometry, self.settings.line_extension)
-                        dividers.append(longer_line)
-                    if not feature.is_a('invisible'):
-                        group_features.append(feature)
-                elif feature.geom_type == 'Polygon':
-                    if not feature.has('annotation'):
-                        dividers.append(feature.geometry.boundary)
-                    # Only show divider if not flagged as invisible
-                    #if not feature.is_a('invisible'):
-                    #    group_features.append(Feature(self.__region_id,
-                    #                                  feature.geometry.boundary,
-                    #                                  {'layer': self.layer_id} ))
-                    #    self.__region_id += 1
-                    if not feature.is_a('invisible'):
-                        group_features.append(feature)
-                elif not feature.is_a('group'):
-                    if not feature.is_a('invisible'):
-                        group_features.append(feature)
-            if dividers:
-                divider_lines = []
-                for divider in dividers:
-                    if divider.geom_type == 'LineString':
-                        divider_lines.append(divider)
-                    elif divider.geom_type == 'MultiLineString':
-                        divider_lines.extend(divider.geoms)
-                for polygon in shapely.ops.polygonize(shapely.ops.unary_union(divider_lines)):
+        elif boundary_polygon is not None or len(boundary_lines):
+            if len(boundary_lines):
+                boundary_polygon = make_boundary(boundary_lines)
+
+            if len(divider_lines) or len(divider_polygons):
+
+                # For all line dividers, if the end of a line is 'close to' another line
+                # then extend the line end in about the same direction until it touches
+                # the other. NB. may need to 'bend towards' the other...
+                #
+                # And then only add these cleaned up lines as features, not the original dividers
+
+                for polygon in divider_polygons:
+                    divider_lines.append(polygon.boundary)
+                for d in divider_lines:
+                    if not d.is_valid:
+                        raise ValueError("Invalid divider...")
+                divider_lines.append(boundary_polygon.boundary)
+                polygon_boundaries = shapely.ops.unary_union(divider_lines)
+                polygons = list(shapely.ops.polygonize(polygon_boundaries))
+                for polygon in polygons:
                     prepared_polygon = shapely.prepared.prep(polygon)
                     region_id = None
                     region_properties = base_properties.copy()
@@ -247,7 +243,6 @@ class GeoJsonLayer(Layer):
                         region_properties.update(region.properties)
                         group_features.append(Feature(region_id, polygon, region_properties))
                         break
-
         else:
             for feature in features:
                 if feature.is_a('region'):
@@ -340,9 +335,7 @@ class GeoJsonLayer(Layer):
                     'id': unique_id,
                     'type': geojson['geometry']['type']
                 })
-
         return grouped_feature
-
 
     def process_shape(self, shape, properties, transform):
     #=====================================================
