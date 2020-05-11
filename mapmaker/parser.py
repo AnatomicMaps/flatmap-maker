@@ -74,14 +74,15 @@ class Parser(object):
                       | Keyword('invisible')
                       | Keyword('open')
                       | Keyword('region')
-                      | Keyword('siblings')
                       )
+
+    DEPRECATED_FLAGS = Group(Keyword('siblings'))
 
     FEATURE_FLAGS = Group(Keyword('group')
                       |   Keyword('organ')
                       )
 
-    SHAPE_MARKUP = '.' + ZeroOrMore(FEATURE_FLAGS | PROPERTIES | ROUTING | SHAPE_FLAGS | SHAPE_TYPE)
+    SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS | FEATURE_FLAGS | PROPERTIES | ROUTING | SHAPE_FLAGS | SHAPE_TYPE)
 
     @staticmethod
     def layer_directive(s):
@@ -113,6 +114,8 @@ class Parser(object):
                 if (Parser.FEATURE_FLAGS.matches(prop[0])
                  or Parser.SHAPE_FLAGS.matches(prop[0])):
                     properties[prop[0]] = True
+                elif Parser.DEPRECATED_FLAGS.matches(prop[0]):
+                    properties['warning'] = "'{}' property is deprecated".format(prop[0])
                 else:
                     properties[prop[0]] = prop[1]
         except ParseException:
@@ -121,7 +124,7 @@ class Parser(object):
 
     @staticmethod
     def ignore_property(name):
-        return Parser.SHAPE_FLAGS.matches(name)
+        return Parser.DEPRECATED_FLAGS.matches(name) or Parser.SHAPE_FLAGS.matches(name)
 
 #===============================================================================
 

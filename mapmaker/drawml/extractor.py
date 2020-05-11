@@ -331,6 +331,8 @@ class Layer(object):
                                                 .format(self.__slide_number, shape.name))
                         else:
                             self.__annotated_ids.append(annotated_id)
+                    elif key == 'warning':
+                        self.__errors.append('Warning: {}'.format(value))
                     else:
                         properties[key] = value
                 if 'class' in properties:
