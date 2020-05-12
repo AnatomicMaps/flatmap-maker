@@ -27,11 +27,19 @@ import pyproj
 
 from shapely.geometry import LineString, Polygon
 import shapely.ops
+import shapely.wkt
 
 #===============================================================================
 
 END_MATCH_RATIO      = 0.9
 ALMOST_TOUCHING_EMUS = 100
+#===============================================================================
+
+def save_geometry(geo, file):
+#============================
+    with open(file, 'w') as fp:
+        fp.write(shapely.wkt.dumps(geo))
+
 #===============================================================================
 
 # Ignore FutureWarning messages from ``pyproj.Proj``.

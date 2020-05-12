@@ -41,6 +41,7 @@ from parser import Parser
 from geometry import make_boundary
 from geometry import mercator_transform, mercator_transformer
 from geometry import transform_bezier_samples, transform_point
+from geometry import save_geometry
 
 from .arc_to_bezier import cubic_beziers_from_arc, tuple2
 from .extractor import Feature, FeaturesValueError
