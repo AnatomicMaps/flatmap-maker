@@ -65,6 +65,12 @@ class GeoJsonLayer(Layer):
         self.__region_id = 10000
         self.__transform = extractor.transform
 
+    def new_feature_(self, geometry, properties, *args):
+    #===================================================
+        feature = Feature(self.__region_id, geometry, properties, *args)
+        self.__region_id += 1
+        return feature
+
     def process(self):
     #=================
         self.__geo_features = []
@@ -204,7 +210,8 @@ class GeoJsonLayer(Layer):
 
         # Construct a MultiPolygon containing all of the group's polygons
         grouped_features = [ feature for feature in features if feature.has_children ]
-        grouped_features.extend( group_features)
+        grouped_features.extend(group_features)
+        feature_group = None
 
         grouped_lines = []
         for feature in grouped_features:
@@ -213,11 +220,10 @@ class GeoJsonLayer(Layer):
             elif feature.geom_type == 'MultiLineString':
                 grouped_lines.extend(list(feature.geometry))
         if len(grouped_lines):
-            grouped_feature = Feature(self.__region_id,
-                                      shapely.geometry.MultiLineString(grouped_lines),
-                                      grouped_properties, True)
-            group_features.append(grouped_feature)
-            self.__region_id += 1
+            feature_group = self.new_feature_(
+                  shapely.geometry.MultiLineString(grouped_lines),
+                  grouped_properties, True)
+            group_features.append(feature_group)
 
         grouped_polygons = []
         for feature in grouped_features:
@@ -226,11 +232,10 @@ class GeoJsonLayer(Layer):
             elif feature.geom_type == 'MultiPolygon':
                 grouped_polygons.extend(list(feature.geometry))
         if len(grouped_polygons):
-            grouped_feature = Feature(self.__region_id,
-                                      shapely.geometry.MultiPolygon(grouped_polygons),
-                                      grouped_properties, True)
-            group_features.append(grouped_feature)
-            self.__region_id += 1
+            feature_group = self.new_feature_(
+                    shapely.geometry.MultiPolygon(grouped_polygons),
+                    grouped_properties, True)
+            group_features.append(feature_group)
 
         for feature in group_features:
             unique_id = '{}-{}'.format(self.slide_id, feature.id)
@@ -277,7 +282,7 @@ class GeoJsonLayer(Layer):
                     'id': unique_id,
                     'type': geojson['geometry']['type']
                 })
-        return grouped_feature
+        return feature_group
 
     def process_shape(self, shape, properties, transform):
     #=====================================================
