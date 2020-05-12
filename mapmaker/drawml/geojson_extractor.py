@@ -104,8 +104,10 @@ class GeoJsonLayer(Layer):
     def add_geo_features_(self, features, outermost=False):
     #======================================================
         map_area = self.extractor.map_area()
-        divided_area = 0
-        base_properties = {'layer': self.layer_id}
+
+        base_properties = {
+            'layer': self.layer_id
+            }
 
         group_features = []
         grouped_properties = {
