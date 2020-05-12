@@ -110,7 +110,7 @@ class Feature(object):
 
     @property
     def annotated(self):
-        return self.has('annotation')
+        return self.shape_name.startswith('.')
 
     @property
     def geometry(self):
@@ -131,6 +131,10 @@ class Feature(object):
     @property
     def id(self):
         return self.__id
+
+    @property
+    def shape_name(self):
+        return self.__properties.get('shape_name', '')
 
     @property
     def properties(self):
@@ -314,9 +318,9 @@ class Layer(object):
     def get_properties_(self, shape):
     #================================
         properties = {}
+        properties['shape_name'] = shape.name
         if shape.name.startswith('.'):
             properties = Parser.shape_properties(shape.name)
-            properties['annotation'] = shape.name
             if 'error' in properties:
                 properties['error'] = 'syntax'
                 self.__errors.append('Feature in slide {} has annotation syntax error: {}'
