@@ -51,10 +51,6 @@ from .presets import DML
 
 #===============================================================================
 
-AUTO_CLOSE_RATIO = 0.3
-
-#===============================================================================
-
 METRES_PER_EMU = 0.1   ## This to become a command line parameter...
                        ## Or in a specification file...
 
