@@ -18,7 +18,12 @@
 #
 #===============================================================================
 
-FLATMAP_VERSION = 1.1
+
+MAPMAKER_VERSION = '0.7.0b1'
+
+#===============================================================================
+
+FLATMAP_VERSION  = 1.1
 
 #===============================================================================
 
@@ -92,6 +97,8 @@ def main():
     # --force option
 
     args = parser.parse_args()
+
+    print('Mapmaker {}'.format(MAPMAKER_VERSION))
 
     if args.min_zoom < 0 or args.min_zoom > args.max_zoom:
         sys.exit('--min-zoom must be between 0 and {}'.format(args.max_zoom))
