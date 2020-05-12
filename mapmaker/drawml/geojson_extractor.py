@@ -76,7 +76,7 @@ class GeoJsonLayer(Layer):
         self.__geo_features = []
 
         features = self.process_shape_list(self._slide.shapes, self.__transform, outermost=True)
-        self.add_geo_features_(features, True)
+        self.add_geo_features_('Slide', features, True)
 
         self.__geo_collection = {
             'type': 'FeatureCollection',
@@ -96,13 +96,13 @@ class GeoJsonLayer(Layer):
         with open(filename, 'w') as output_file:
             json.dump(self.__geo_collection, output_file)
 
-    def process_group(self, group, transform):
-    #=========================================
+    def process_group(self, group, properties, transform):
+    #=====================================================
         features = self.process_shape_list(group.shapes, transform@Transform(group).matrix())
-        return self.add_geo_features_(features)
+        return self.add_geo_features_(properties.get('shape_name', ''), features)
 
-    def add_geo_features_(self, features, outermost=False):
-    #======================================================
+    def add_geo_features_(self, group_name, features, outermost=False):
+    #==================================================================
         map_area = self.extractor.map_area()
 
         base_properties = {
@@ -132,14 +132,14 @@ class GeoJsonLayer(Layer):
                     boundary_lines.append(extend_line(feature.geometry))
                 elif feature.geom_type == 'Polygon':
                     if boundary_polygon is not None:
-                        raise FeaturesValueError('Group can only have one boundary shape:', features)
+                        raise FeaturesValueError('Group {} can only have one boundary shape:'.format(group_name), features)
                     boundary_polygon = feature.geometry
                 cls = feature.property('class')
                 if cls is not None:
                     if cls != boundary_class:
                         boundary_class = cls
                     else:
-                        raise ValueError('Class of boundary shapes have changed: {}'.format(feature))
+                        raise ValueError('Class of boundary shapes have changed in group{}: {}'.format(group_name, feature))
             elif not feature.annotated or feature.is_a('divider'):
                 if feature.geom_type == 'LineString':
                     dividers.append(feature.geometry)
@@ -160,14 +160,14 @@ class GeoJsonLayer(Layer):
                 interior_features.append(feature)
 
         if boundary_polygon is not None and len(boundary_lines):
-            raise FeaturesValueError("Group can't be bounded by both a closed shape and lines:", features)
+            raise FeaturesValueError("Group {} can't be bounded by both a closed shape and lines:".format(group_name, features))
 
         elif boundary_polygon is not None or len(boundary_lines):
             if len(boundary_lines):
                 try:
                     boundary_polygon = make_boundary(boundary_lines)
                 except ValueError as err:
-                    raise FeaturesValueError(str(err), features)
+                    raise FeaturesValueError('Group {}: {}'.format(group_name, str(err)), features)
 
             group_features.append(
                 self.new_feature_(
@@ -198,7 +198,7 @@ class GeoJsonLayer(Layer):
         else:
             for feature in features:
                 if feature.is_a('region'):
-                    raise ValueError('Region dividers must have a boundary: {}'.format(feature))
+                    raise ValueError('Region dividers in group {} must have a boundary: {}'.format(group_name, feature))
 
         if not outermost and interior_features:
             interior_polygons = []

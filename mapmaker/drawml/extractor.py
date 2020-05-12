@@ -205,6 +205,7 @@ class Layer(object):
         self.__map_features = []
 #*        self.__ontology_data = self.settings.ontology_data
         self.__annotations = {}
+        self.__current_group = []
 
     @property
     def extractor(self):
@@ -263,6 +264,7 @@ class Layer(object):
         return self._slide.slide_id
 
     def process(self):
+        self.__current_group.append('SLIDE')
         self.process_shape_list(self._slide.shapes, outermost=True)
 
     def save(self, filename=None):
@@ -270,8 +272,8 @@ class Layer(object):
         # Override in sub-class
         pass
 
-    def process_group(self, group, *args):
-    #=====================================
+    def process_group(self, group, properties, *args):
+    #=================================================
         self.process_shape_list(group.shapes, *args)
 
     def process_shape(self, shape, properties, *args):
@@ -300,7 +302,9 @@ class Layer(object):
                 feature = Feature(shape.shape_id, geometry, properties)
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
-                grouped_feature = self.process_group(shape, *args)
+                self.__current_group.append(properties.get('shape_name', "''"))
+                grouped_feature = self.process_group(shape, properties, *args)
+                self.__current_group.pop()
                 if grouped_feature is not None:
                     features.append(grouped_feature)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
@@ -322,20 +326,21 @@ class Layer(object):
             properties['shape_name'] = shape.name
             if 'error' in properties:
                 properties['error'] = 'syntax'
-                self.__errors.append('Feature in slide {} has annotation syntax error: {}'
-                                    .format(self.__slide_number, shape.name))
+                self.__errors.append('Shape in slide {}, group {}, has annotation syntax error: {}'
+                                    .format(self.__slide_number, self.__current_group[-1], shape.name))
             else:
                 for (key, value) in properties.items():
                     if key == 'id':
                         annotated_id = value
                         if annotated_id in self.__annotated_ids:
                             properties['error'] = 'duplicate-id'
-                            self.__errors.append('Feature in slide {} has a duplicate id: {}'
-                                                .format(self.__slide_number, shape.name))
+                            self.__errors.append('Shape in slide {}, group {}, has a duplicate id: {}'
+                                                .format(self.__slide_number, self.__current_group[-1], shape.name))
                         else:
                             self.__annotated_ids.append(annotated_id)
                     elif key == 'warning':
-                        self.__errors.append('Warning: {}'.format(value))
+                        self.__errors.append('Warning, slide {}, group {}: {}'
+                                            .format(self.__slide_number, self.__current_group[-1], value))
                     else:
                         properties[key] = value
                 if 'class' in properties:
