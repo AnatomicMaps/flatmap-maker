@@ -317,10 +317,9 @@ class Layer(object):
 
     def get_properties_(self, shape):
     #================================
-        properties = {}
-        properties['shape_name'] = shape.name
         if shape.name.startswith('.'):
             properties = Parser.shape_properties(shape.name)
+            properties['shape_name'] = shape.name
             if 'error' in properties:
                 properties['error'] = 'syntax'
                 self.__errors.append('Feature in slide {} has annotation syntax error: {}'
@@ -344,6 +343,8 @@ class Layer(object):
                         properties.update(self.__anatomical_map.properties(properties['class']))
                     else:
                         properties['label'] = properties['class']
+        else:
+            properties = { 'shape_name': shape.name }
         return properties
 
 #===============================================================================
