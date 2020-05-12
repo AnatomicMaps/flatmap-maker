@@ -120,8 +120,7 @@ class GeoJsonLayer(Layer):
         boundary_class = None
         boundary_lines = []
         boundary_polygon = None
-        divider_lines = []
-        divider_polygons = []
+        dividers = []
         regions = []
 
         single_features = [ feature for feature in features if not feature.has_children ]
@@ -130,7 +129,7 @@ class GeoJsonLayer(Layer):
                 if outermost:
                     raise ValueError('Boundary elements must be inside a group: {}'.format(feature))
                 if feature.geom_type == 'LineString':
-                    boundary_lines.append(feature.geometry)
+                    boundary_lines.append(extend_line(feature.geometry))
                 elif feature.geom_type == 'Polygon':
                     if boundary_polygon is not None:
                         raise FeaturesValueError('Group can only have one boundary shape:', features)
@@ -143,10 +142,9 @@ class GeoJsonLayer(Layer):
                         raise ValueError('Class of boundary shapes have changed: {}'.format(feature))
             elif not feature.annotated or feature.is_a('divider'):
                 if feature.geom_type == 'LineString':
-                    longer_line = extend_line(feature.geometry, self.settings.line_extension)
-                    divider_lines.append(longer_line)
+                    dividers.append(feature.geometry)
                 elif feature.geom_type == 'Polygon':
-                    divider_polygons.append(feature.geometry)
+                    dividers.append(feature.geometry.boundary)
                 if not feature.property('invisible'):
                     group_features.append(feature)
             elif feature.is_a('group'):
@@ -166,9 +164,17 @@ class GeoJsonLayer(Layer):
 
         elif boundary_polygon is not None or len(boundary_lines):
             if len(boundary_lines):
-                boundary_polygon = make_boundary(boundary_lines)
+                try:
+                    boundary_polygon = make_boundary(boundary_lines)
+                except ValueError as err:
+                    raise FeaturesValueError(str(err), features)
 
-            if len(divider_lines) or len(divider_polygons):
+            group_features.append(
+                self.new_feature_(
+                    boundary_polygon,
+                    base_properties))
+
+            if len(dividers):
 
                 # For all line dividers, if the end of a line is 'close to' another line
                 # then extend the line end in about the same direction until it touches
@@ -176,15 +182,11 @@ class GeoJsonLayer(Layer):
                 #
                 # And then only add these cleaned up lines as features, not the original dividers
 
-                for polygon in divider_polygons:
-                    divider_lines.append(polygon.boundary)
-                for d in divider_lines:
-                    if not d.is_valid:
-                        raise ValueError("Invalid divider...")
-                divider_lines.append(boundary_polygon.boundary)
+                dividers.append(boundary_polygon.boundary)
+                divider_lines = connect_dividers(dividers, debug_group)
                 polygon_boundaries = shapely.ops.unary_union(divider_lines)
                 polygons = list(shapely.ops.polygonize(polygon_boundaries))
-                for polygon in polygons:
+                for n, polygon in enumerate(polygons):
                     prepared_polygon = shapely.prepared.prep(polygon)
                     region_id = None
                     region_properties = base_properties.copy()
