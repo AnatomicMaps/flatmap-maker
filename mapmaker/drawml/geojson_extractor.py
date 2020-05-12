@@ -38,7 +38,8 @@ import shapely.prepared
 #===============================================================================
 
 from parser import Parser
-from geometry import make_boundary
+
+from geometry import connect_dividers, extend_line, make_boundary
 from geometry import mercator_transform, mercator_transformer
 from geometry import transform_bezier_samples, transform_point
 from geometry import save_geometry
@@ -54,33 +55,6 @@ from .presets import DML
 
 METRES_PER_EMU = 0.1   ## This to become a command line parameter...
                        ## Or in a specification file...
-
-
-def extend_(p0, p1, delta):
-#==========================
-    """
-    Extend the line through `p0` and `p1` by `delta`
-    and return the new end point
-    """
-    dx = p1[0] - p0[0]
-    dy = p1[1] - p0[1]
-    l = math.sqrt(dx*dx + dy*dy)
-    scale = (delta + l)/l
-    return (p0[0] + scale*dx, p0[1] + scale*dy)
-
-def extend_line(geometry, delta):
-#================================
-    if geometry.geom_type != 'LineString':
-        return geometry
-    coords = list(geometry.coords)
-    if len(coords) == 2:
-        return shapely.geometry.LineString([extend_(coords[1], coords[0], delta),
-                                            extend_(coords[0], coords[1], delta)])
-    else:
-        coords[0] = extend_(coords[1], coords[0], delta)
-        coords[-1] = extend_(coords[-2], coords[-1], delta)
-        return shapely.geometry.LineString(coords)
-
 #===============================================================================
 
 class GeoJsonLayer(Layer):
