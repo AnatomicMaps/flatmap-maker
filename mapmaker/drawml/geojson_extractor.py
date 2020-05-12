@@ -21,7 +21,6 @@
 import json
 import math
 import os
-import warnings
 
 #===============================================================================
 
@@ -32,8 +31,6 @@ from beziers.quadraticbezier import QuadraticBezier
 
 import numpy as np
 
-import pyproj
-
 import shapely.geometry
 import shapely.ops
 import shapely.prepared
@@ -42,6 +39,8 @@ import shapely.prepared
 
 from parser import Parser
 from geometry import make_boundary
+from geometry import mercator_transform, mercator_transformer
+from geometry import transform_bezier_samples, transform_point
 
 from .arc_to_bezier import cubic_beziers_from_arc, tuple2
 from .extractor import Feature, FeaturesValueError
@@ -59,34 +58,6 @@ AUTO_CLOSE_RATIO = 0.3
 METRES_PER_EMU = 0.1   ## This to become a command line parameter...
                        ## Or in a specification file...
 
-
-#===============================================================================
-
-# Ignore FutureWarning messages from ``pyproj.Proj``.
-
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
-mercator_transformer = pyproj.Transformer.from_proj(
-                            pyproj.Proj(init='epsg:3857'),
-                            pyproj.Proj(init='epsg:4326'))
-
-warnings.simplefilter(action='default', category=FutureWarning)
-
-
-def mercator_transform(geometry):
-#================================
-    return shapely.ops.transform(mercator_transformer.transform, geometry)
-
-#===============================================================================
-
-def transform_point(transform, point):
-#=====================================
-    return (transform@[point[0], point[1], 1.0])[:2]
-
-def transform_bezier_samples(transform, bz):
-#===========================================
-    samples = 100
-    return [transform_point(transform, (pt.x, pt.y)) for pt in bz.sample(samples)]
 
 def extend_(p0, p1, delta):
 #==========================

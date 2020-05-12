@@ -18,6 +18,13 @@
 #
 #===============================================================================
 
+import math
+import warnings
+
+#===============================================================================
+
+import pyproj
+
 from shapely.geometry import LineString, Polygon
 import shapely.ops
 
@@ -25,6 +32,34 @@ import shapely.ops
 
 END_MATCH_RATIO      = 0.9
 ALMOST_TOUCHING_EMUS = 100
+#===============================================================================
+
+# Ignore FutureWarning messages from ``pyproj.Proj``.
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+mercator_transformer = pyproj.Transformer.from_proj(
+                            pyproj.Proj(init='epsg:3857'),
+                            pyproj.Proj(init='epsg:4326'))
+
+warnings.simplefilter(action='default', category=FutureWarning)
+
+
+def mercator_transform(geometry):
+#================================
+    return shapely.ops.transform(mercator_transformer.transform, geometry)
+
+#===============================================================================
+
+def transform_point(transform, point):
+#=====================================
+    return (transform@[point[0], point[1], 1.0])[:2]
+
+def transform_bezier_samples(transform, bz):
+#===========================================
+    samples = 100
+    return [transform_point(transform, (pt.x, pt.y)) for pt in bz.sample(samples)]
+
 
 #===============================================================================
 
