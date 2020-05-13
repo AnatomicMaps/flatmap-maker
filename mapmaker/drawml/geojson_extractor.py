@@ -213,14 +213,13 @@ class GeoJsonLayer(Layer):
                     feature.geometry = feature.geometry.buffer(0).difference(interior_polygon)
 
         # Construct a MultiPolygon containing all of the group's polygons
-        grouped_features = [ feature for feature in features if feature.has_children ]
+        grouped_polygon_features = [ feature for feature in features if feature.has_children ]
         for feature in group_features:
-            grouped_features.append(feature.copy())
+            grouped_polygon_features.append(feature)
 
-        feature_group = None
-
+        feature_group = None  # Our returned Feature
         grouped_lines = []
-        for feature in grouped_features:
+        for feature in grouped_polygon_features:
             if feature.geom_type == 'LineString':
                 grouped_lines.append(feature.geometry)
             elif feature.geom_type == 'MultiLineString':
@@ -230,9 +229,8 @@ class GeoJsonLayer(Layer):
                   shapely.geometry.MultiLineString(grouped_lines),
                   grouped_properties, True)
             group_features.append(feature_group)
-
         grouped_polygons = []
-        for feature in grouped_features:
+        for feature in grouped_polygon_features:
             if feature.geom_type == 'Polygon':
                 grouped_polygons.append(feature.geometry)
             elif feature.geom_type == 'MultiPolygon':
