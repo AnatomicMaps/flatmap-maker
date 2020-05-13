@@ -303,6 +303,8 @@ def main():
             'max-zoom': map_zoom[1],
             'bounds': map_bounds,
             'version': FLATMAP_VERSION,
+            'image_layer': (args.background_tiles
+                         or os.path.isfile(os.path.join(map_dir, '{}.mbtiles'.format(layer_ids[0])))),
         }
 
         if map_models:
