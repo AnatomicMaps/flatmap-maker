@@ -214,7 +214,9 @@ class GeoJsonLayer(Layer):
 
         # Construct a MultiPolygon containing all of the group's polygons
         grouped_features = [ feature for feature in features if feature.has_children ]
-        grouped_features.extend(group_features)
+        for feature in grouped_features:
+            grouped_features.append(feature.copy)
+
         feature_group = None
 
         grouped_lines = []

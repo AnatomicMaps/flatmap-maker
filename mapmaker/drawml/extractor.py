@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import copy
 from math import sqrt, sin, cos, pi as PI
 import os
 
@@ -107,6 +108,12 @@ class Feature(object):
 
     def __str__(self):
         return '{}: {}'.format(self.__geometry.geom_type, self.__properties)
+
+    def copy(self):
+        return Feature(self.__id,
+            copy.deepcopy(self.__geometry),
+            copy.deepcopy(self.__properties),
+            self.__has_children)
 
     @property
     def annotated(self):
