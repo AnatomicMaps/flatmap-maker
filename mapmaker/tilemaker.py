@@ -33,6 +33,8 @@ import mercantile as mt
 import numpy as np
 from PIL import Image
 
+from tqdm import tqdm
+
 #===============================================================================
 
 from mbtiles import MBTiles, ExtractionError
@@ -183,18 +185,18 @@ class TileMaker(object):
         mbtiles = MBTiles(os.path.join(self._map_dir, database_name), True, True)
         mbtiles.add_metadata(id=layer, source=source_id)
 
-        count = 0
         zoom = self._max_zoom
         print('Tiling zoom level {} for {}'.format(zoom, layer))
+        progress_bar = tqdm(total=len(self._tiles),
+            unit='tiles', ncols=40,
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for tile in self._tiles:
             png = page_tiler.tile_as_png(tile.x - self._tile_start_coords[0],
                                          tile.y - self._tile_start_coords[1])
             if not_transparent(png):
-                if count and (count % 100) == 0:
-                    print("  {} tile: {} at ({}, {})".format(layer, count, tile.x, tile.y))
                 mbtiles.save_tile(zoom, tile.x, tile.y, png)
-                count += 1
-        print("  {} {} tiles".format(layer, count))
+            progress_bar.update(1)
+        progress_bar.close()
 
         self.make_overview_tiles(mbtiles, layer, zoom, self._tile_start_coords, self._tile_end_coords)
         mbtiles.close() #True)
@@ -203,11 +205,14 @@ class TileMaker(object):
     #=============================================================================
         if zoom > self._min_zoom:
             zoom -= 1
-            count = 0
             print('Tiling zoom level {} for {}'.format(zoom, layer))
             HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
             half_start = (start_coords[0]//2, start_coords[1]//2)
             half_end = (end_coords[0]//2, end_coords[1]//2)
+            progress_bar = tqdm(total=(half_end[0]-half_start[0]+1)
+                                     *(half_end[1]-half_start[1]+1),
+                unit='tiles', ncols=40,
+                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
             for x in range(half_start[0], half_end[0] + 1):
                 for y in range(half_start[1], half_end[1] + 1):
                     overview_tile = Image.new('RGBA', TILE_SIZE, (255, 255, 255, 0))
@@ -220,10 +225,9 @@ class TileMaker(object):
                             except ExtractionError:
                                 pass
                     if not_transparent(overview_tile):
-                        if count and (count % 100) == 0:
-                            print("  {} tile: {} at ({}, {})".format(layer, count, x, y))
                         mbtiles.save_tile(zoom, x, y, overview_tile)
-                        count += 1
+                    progress_bar.update(1)
+            progress_bar.close()
             self.make_overview_tiles(mbtiles, layer, zoom, half_start, half_end)
 
 
