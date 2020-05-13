@@ -209,7 +209,9 @@ class GeoJsonLayer(Layer):
                     interior_polygons.extend(list(feature.geometry))
             interior_polygon = shapely.ops.unary_union(interior_polygons)
             for feature in group_features:
-                if not feature.is_a('interior') and feature.geom_type in ['Polygon', 'MultiPolygon']:
+                if (feature.annotated
+                and not feature.is_a('interior')
+                and feature.geom_type in ['Polygon', 'MultiPolygon']):
                     feature.geometry = feature.geometry.buffer(0).difference(interior_polygon)
 
         # Construct a MultiPolygon containing all of the group's polygons
