@@ -20,7 +20,8 @@
 
 
 
-MAPMAKER_VERSION = '0.7.0b2'
+MAPMAKER_VERSION = '0.7.0b3'
+MAPMAKER_VERSION = '0.7.0b3devel'
 #===============================================================================
 
 FLATMAP_VERSION  = 1.1
