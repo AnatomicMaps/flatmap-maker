@@ -65,7 +65,7 @@ class SvgLayer(Layer):
             filename = os.path.join(self.settings.output_dir, '{}.svg'.format(self.layer_id))
         self.__dwg.saveas(filename)
 
-    def process_group(self, group, svg_parent):
+    def process_group(self, group, properties, svg_parent):
         svg_group = self.__dwg.g(id=group.shape_id)
         svg_group.matrix(*svg_transform(Transform(group).matrix()))
         svg_parent.add(svg_group)
