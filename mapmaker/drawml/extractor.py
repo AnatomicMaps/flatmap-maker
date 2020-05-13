@@ -197,22 +197,25 @@ class Layer(object):
                 self.__queryable_nodes = layer_directive.get('queryable-nodes', False)
                 self.__zoom = layer_directive.get('zoom', None)
             else:
-                # still need to initialise properties...
-                pass
+                self.set_defaults_()
         else:
-            self.__layer_id = 'layer-{:02d}'.format(slide_number)
-            self.__description = 'Layer {}'.format(slide_number)
-            self.__models = ''
-            self.__background_for = ''
-            self.__selectable = False
-            self.__selected = False
-            self.__queryable_nodes = False
-            self.__zoom = None
+            self.set_defaults_()
+
         self.__annotated_ids = []
         self.__map_features = []
 #*        self.__ontology_data = self.settings.ontology_data
         self.__annotations = {}
         self.__current_group = []
+
+    def set_defaults_(self):
+        self.__layer_id = 'layer-{:02d}'.format(self.__slide_number)
+        self.__description = 'Layer {}'.format(self.__slide_number)
+        self.__models = ''
+        self.__background_for = ''
+        self.__selectable = False
+        self.__selected = False
+        self.__queryable_nodes = False
+        self.__zoom = None
 
     @property
     def extractor(self):
