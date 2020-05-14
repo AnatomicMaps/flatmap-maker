@@ -197,9 +197,9 @@ class Layer(object):
                 self.__queryable_nodes = layer_directive.get('queryable-nodes', False)
                 self.__zoom = layer_directive.get('zoom', None)
             else:
-                self.set_defaults_()
+                self.__set_defaults()
         else:
-            self.set_defaults_()
+            self.__set_defaults()
 
         self.__feature_ids_by_id = {}  # id: unique_feature_id
         self.__map_features = []
@@ -209,7 +209,7 @@ class Layer(object):
         # Path and route information
         self.__pathways = LayerPathways()
 
-    def set_defaults_(self):
+    def __set_defaults(self):
         self.__layer_id = 'layer-{:02d}'.format(self.__slide_number)
         self.__description = 'Layer {}'.format(self.__slide_number)
         self.__models = ''
@@ -288,6 +288,7 @@ class Layer(object):
         return '{}#{}'.format(self.slide_id, id)
 
     def process(self):
+    #=================
         self.__current_group.append('SLIDE')
         self.process_shape_list(self._slide.shapes, outermost=True)
 
