@@ -208,6 +208,10 @@ class Layer(object):
         self.__current_group = []
 
         self.__ids_by_external_id = {}  # id: unique_feature_id
+
+        self.__class_counts = {}          # class: count
+        self.__ids_by_class = {}          # class: unique_feature_id
+
         # Path and route information
         self.__pathways = LayerPathways()
 
@@ -224,6 +228,8 @@ class Layer(object):
     def __set_feature_id(self, feature):
         if feature.has('external-id'):
             self.__ids_by_external_id[feature.property('external-id')] = feature.id
+        if feature.has('class'):
+            self.__ids_by_class[feature.property('class')] = feature.id
 
     @property
     def extractor(self):
@@ -376,11 +382,19 @@ class Layer(object):
                         self.__errors.append('Warning, slide {}, group {}: {}'
                                             .format(self.__slide_number, self.__current_group[-1], value))
                 if 'class' in properties:
-                    if self.__anatomical_map is not None:
-                        properties.update(self.__anatomical_map.properties(properties['class']))
+                    cls = properties['class']
+                    if cls in self.__class_counts:
+                        self.__class_counts[cls] += 1
                     else:
-                        properties['label'] = properties['class']
-                    properties.update(self.__external_properties.properties_from_class(properties['class']))
+                        self.__class_counts[cls] = 1
+                    self.__ids_by_class[cls] = None
+
+                    if self.__anatomical_map is not None:
+                        properties.update(self.__anatomical_map.properties(cls))
+                    else:
+                        properties['label'] = cls
+                    properties.update(self.__external_properties.properties_from_class(cls))
+
                 if 'external-id' in properties:
                     properties.update(self.__external_properties.properties_from_id(properties['external-id']))
 
