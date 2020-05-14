@@ -53,26 +53,62 @@ class NodePaths(object):
             else:
                 self.__end_paths[node_id].append(path_id)
 
-    def map_ids(self, id_map):
+    def map_ids(self, feature_map):
         result = NodePaths()
         for id, paths in self.__start_paths.items():
-            if id_map.get(id) is not None:
-                result.__start_paths[id_map[id]] = [
-                    id_map[path] for path in paths if id_map.get(path) is not None]
+            node_id = feature_map.map(id)
+            if node_id is not None:
+                node_paths = feature_map.map_list(paths)
+                if node_id in result.__start_paths:
+                    result.__start_paths[node_id].extend(node_paths)
+                else:
+                    result.__start_paths[node_id] = node_paths
         for id, paths in self.__through_paths.items():
-            if id_map.get(id) is not None:
-                result.__through_paths[id_map[id]] = [
-                    id_map[path] for path in paths if id_map.get(path) is not None]
+            node_id = feature_map.map(id)
+            if node_id is not None:
+                node_paths = feature_map.map_list(paths)
+                if node_id in result.__through_paths:
+                    result.__through_paths[node_id].extend(node_paths)
+                else:
+                    result.__through_paths[node_id] = node_paths
         for id, paths in self.__end_paths.items():
-            if id_map.get(id) is not None:
-                result.__end_paths[id_map[id]] = [
-                    id_map[path] for path in paths if id_map.get(path) is not None]
+            node_id = feature_map.map(id)
+            if node_id is not None:
+                node_paths = feature_map.map_list(paths)
+                if node_id in result.__end_paths:
+                    result.__end_paths[node_id].extend(node_paths)
+                else:
+                    result.__end_paths[node_id] = node_paths
         return result
 
     def update(self, other):
         self.__start_paths.update(other.__start_paths)
         self.__through_paths.update(other.__through_paths)
         self.__end_paths.update(other.__end_paths)
+
+#===============================================================================
+
+class FeatureIdMap(object):
+    def __init__(self, id_map, class_map, class_count):
+        self.__id_map = id_map
+        self.__class_map = class_map
+        self.__class_count = class_count
+
+    def map(self, id):
+        feature_id = self.__id_map.get(id)
+        if feature_id is None:
+            feature_id = self.__class_map.get(id)
+            if feature_id is not None and self.__class_count[id] > 1:
+                raise ValueError('Route has node with duplicated class: {}'.format(id))
+        return feature_id
+
+    def map_list(self, ids):
+        feature_ids = []
+        for id in ids:
+            feature_id = self.map(id)
+            if feature_id is not None:
+                feature_ids.append(feature_id)
+        return feature_ids
 
 #===============================================================================
 
@@ -93,13 +129,18 @@ class LayerPathways(object):
         self.__path_lines[id] = path_lines
         self.__node_paths.add_route(id, route_nodes)
 
-    def map_ids(self, id_map):
+    def as_feature_ids(self, id_map, class_map, class_count):
+        feature_map = FeatureIdMap(id_map, class_map, class_count)
         result = LayerPathways()
         for id, lines in self.__path_lines.items():
-            if id_map.get(id) is not None:
-                result.__path_lines[id_map[id]] = [
-                    id_map[line] for line in lines if id_map.get(line) is not None]
-        result.__node_paths = self.__node_paths.map_ids(id_map)
+            path_id = feature_map.map(id)
+            if path_id is not None:
+                path_lines = feature_map.map_list(lines)
+                if path_id in result.__path_lines:
+                    result.__path_lines[path_id].extend(path_lines)
+                else:
+                    result.__path_lines[path_id] = path_lines
+        result.__node_paths = self.__node_paths.map_ids(feature_map)
         return result
 
 #===============================================================================

@@ -289,7 +289,11 @@ class Layer(object):
 
     @property
     def pathways(self):
-        return self.__pathways.map_ids(self.__feature_ids_by_id)
+        return self.__pathways.as_feature_ids(
+            self.__ids_by_external_id,
+            self.__ids_by_class,
+            self.__class_counts
+        )
 
     def unique_id(self, id):
     #=======================
