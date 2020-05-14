@@ -1,0 +1,101 @@
+{
+    "styles": [
+        {
+            "class": "cardio_2",
+            "properties": {
+                "labelled": true
+            }
+        },
+        {
+            "class": "digestive_2",
+            "properties": {
+                "labelled": true
+            }
+        },
+        {
+            "class": "digestive_3",
+            "properties": {
+                "labelled": true
+            }
+        },
+        {
+            "class": "respiratory_2",
+            "properties": {
+                "labelled": true
+            }
+        },
+        {
+            "class": "urinary_2",
+            "properties": {
+                "labelled": true
+            }
+        }
+    ],
+    "paths": [
+        {
+            "id": "path_1",
+            "path": "P1, P2, P3, P4, P5, P6, P7, P8",
+            "route": "urinary_5, keast_2, S50_L6_B, S50_L6_T, S45_L6, C1, S44_L6, (S33_L6, S34_L6, S37_L6, S39_L6, S42_L6)"
+        },
+        {
+            "id": "path_2",
+            "path": "P9, P10, P11, P12, P13, P14, P15, P16",
+            "route": "urinary_5, keast_2, S50_S1_B, S50_S1_T, S45_S1, C2, S44_S1, (S33_S1, S34_S1, S37_S1, S39_S1, S42_S1)"
+        },
+        {
+            "id": "path_3",
+            "path": "P17, P18, P19, P20, P21,P22, P22, P23,P24",
+            "route": "(urinary_6, urinary_7, urinary_8, urinary_9, urinary_10, urinary_11), keast_1, keast_3, keast_4, S50_L6_B, S50_L6_T, S45_L6, C3, S44_L6, (S33_L6, S34_L6, S37_L6, S39_L6, S42_L6)"
+        },
+        {
+            "id": "path_4",
+            "path": "P17, P18, P19, P20, P21,P22, P22, P30, P31, P32",
+            "route": "(urinary_6, urinary_7, urinary_8, urinary_9, urinary_10, urinary_11), keast_1, keast_3, keast_4, S50_S1_B, S50_S1_T, S45_S1, C4, S44_S1, (S33_S1, S34_S1, S37_S1, S39_S1, S42_S1)"
+        },
+        {
+            "id": "path_5",
+            "path": "P38, P39",
+            "route": "S41_2_L5, C5, S43_L5, S50_L5_T, S50_L5_B, keast_2, urinary_5"
+        },
+        {
+            "id": "path_6",
+            "path": "P40, P41, P38",
+            "route": "S41_2_L6, C6, S43_L6, S50_L6_T, S50_L6_B, keast_2, urinary_5"
+        },
+        {
+            "id": "path_7",
+            "path": "P42, P43",
+            "route": "S39_L6, C7, S43_L6, S50_L6_T, S50_L6_B, keast_4, keast_3, C8"
+        },
+        {
+            "id": "path_8",
+            "path": "P44, P45, P43",
+            "route": "S39_S1, C9, S43_S1, S50_S1_T, S50_S1_B, keast_4, keast_3, C8"
+        },
+        {
+            "id": "path_9",
+            "path": "P46, P47, P48, P49",
+            "route": "keast_3, C9, keast_1, (urinary_6, urinary_7, urinary_9, urinary_10)"
+        },
+        {
+            "id": "path_10",
+            "path": "P50, P51, P52, P53, P54, P55, P56, P57, P58, P59, P60, P61, P62",
+            "route": "(urinary_6, urinary_7, urinary_8, urinary_9, urinary_10, urinary_11), keast_1, keast_3, keast_5, keast_6, keast_7, S50_L1_B, S50_L1_T, S45_L1, C10, S44_L1, (S33_L1, S34_L1, S37_L1, S39_L1, S42_L1)"
+        },
+        {
+            "id": "path_11",
+            "path": "P50, P51, P52, P53, P54, P55, P63, P64, P65, P66, P67, P69, P70",
+            "route": "(urinary_6, urinary_7, urinary_8, urinary_9, urinary_10, urinary_11), keast_1, keast_3, keast_5, keast_6, keast_7, S50_L2_B, S50_L2_T, S45_L2, C11, S44_L2, (S33_L2, S34_L2, S37_L2, S39_L2, S42_L2)"
+        },
+        {
+            "id": "path_12",
+            "path": "P71, P72",
+            "route": "S39_L1, C12, S43_L1, S50_L1_T, S50_L1_B, S48_L1, S49_L1, S50_L1_B, keast_7, keast_6, keast_5, keast_3, C13"
+        },
+        {
+            "id": "path_13",
+            "path": "P73, P74",
+            "route": "keast_3, C13, keast_1, (urinary_7, urinary_10)"
+        }
+    ]
+}
