@@ -42,6 +42,7 @@ import requests
 
 from drawml import GeoJsonExtractor
 ##from layermapping import LayerMapping
+from pathways import MapPathways
 from mbtiles import MBTiles
 ##from ontologies import OntologyData
 ##from rdf import update_RDF
@@ -175,6 +176,7 @@ def main():
 
     annotations = {}
     map_layers = []
+    map_pathways = MapPathways()
     tippe_inputs = []
     for slide_number in range(1, len(map_extractor)+1):
         if args.tile_slide > 0 and args.tile_slide != slide_number:
@@ -201,6 +203,7 @@ def main():
         if layer.background_for:
             map_layer['background_for'] = layer.background_for
         map_layers.append(map_layer)
+        map_pathways.add_layer(layer.pathways)
 
         if layer.models:
             map_models = layer.models
@@ -279,6 +282,9 @@ def main():
 
         # Save layer details in metadata
         tile_db.add_metadata(layers=json.dumps(map_layers))
+
+        # Save pathway details in metadata
+        tile_db.add_metadata(pathways=map_pathways.json())
 
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(annotations))

@@ -67,7 +67,7 @@ class GeoJsonLayer(Layer):
 
     def new_feature_(self, geometry, properties, *args):
     #===================================================
-        feature = Feature(self.__region_id, geometry, properties, *args)
+        feature = Feature(self.unique_id(self.__region_id), geometry, properties, *args)
         self.__region_id += 1
         return feature
 
@@ -191,9 +191,8 @@ class GeoJsonLayer(Layer):
                     region_id = None
                     region_properties = base_properties.copy()
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
-                        region_id = region.id
                         region_properties.update(region.properties)
-                        group_features.append(Feature(region_id, polygon, region_properties))
+                        group_features.append(Feature(region.id, polygon, region_properties))
                         break
         else:
             for feature in features:
@@ -244,7 +243,6 @@ class GeoJsonLayer(Layer):
             group_features.append(feature_group)
 
         for feature in group_features:
-            unique_id = '{}-{}'.format(self.slide_id, feature.id)
             if feature.geometry is not None:
                 # Initial set of properties come from ``.group``
                 properties = base_properties.copy()
@@ -256,13 +254,13 @@ class GeoJsonLayer(Layer):
                 area = geometry.area
                 geojson = {
                     'type': 'Feature',
-                    'id': feature.id,   # Must be numeric for tipeecanoe
+                    'id': int(feature.feature_id),   # Must be numeric for tipeecanoe
                     'tippecanoe' : {
                         'layer' : properties['layer']
                     },
                     'geometry': shapely.geometry.mapping(mercator_geometry),
                     'properties': {
-                        'id': unique_id,
+                        'id': feature.id,
                         'bounds': list(mercator_geometry.bounds),
                         'centroid': list(list(mercator_geometry.centroid.coords)[0]),
                         'area': area,
@@ -281,11 +279,11 @@ class GeoJsonLayer(Layer):
                             geojson['properties'][key] = value
                     properties['bounds'] = geojson['properties']['bounds']
                     properties['geometry'] = geojson['geometry']['type']
-                    self.annotations[unique_id] = properties
+                    self.annotations[feature.id] = properties
 
                 self.__geo_features.append(geojson)
                 self.map_features.append({
-                    'id': unique_id,
+                    'id': feature.id,
                     'type': geojson['geometry']['type']
                 })
         return feature_group

@@ -35,6 +35,7 @@ from tqdm import tqdm
 
 from labels import AnatomicalMap
 from parser import Parser
+from pathways import LayerPathways
 from properties import ExternalProperties
 
 #===============================================================================
@@ -134,6 +135,10 @@ class Feature(object):
         return self.__id
 
     @property
+    def feature_id(self):
+        return self.__id.split('#')[-1]
+
+    @property
     def shape_name(self):
         return self.__properties.get('shape_name', '')
 
@@ -196,11 +201,13 @@ class Layer(object):
         else:
             self.set_defaults_()
 
-        self.__annotated_ids = []
+        self.__feature_ids_by_id = {}  # id: unique_feature_id
         self.__map_features = []
 #*        self.__ontology_data = self.settings.ontology_data
         self.__annotations = {}
         self.__current_group = []
+        # Path and route information
+        self.__pathways = LayerPathways()
 
     def set_defaults_(self):
         self.__layer_id = 'layer-{:02d}'.format(self.__slide_number)
@@ -211,6 +218,10 @@ class Layer(object):
         self.__selected = False
         self.__queryable_nodes = False
         self.__zoom = None
+
+    def __set_feature_id(self, feature):
+        if 'id' in feature.properties:
+            self.__feature_ids_by_id[feature.properties['id']] = feature.id
 
     @property
     def extractor(self):
@@ -268,6 +279,14 @@ class Layer(object):
     def slide_id(self):
         return self._slide.slide_id
 
+    @property
+    def pathways(self):
+        return self.__pathways.map_ids(self.__feature_ids_by_id)
+
+    def unique_id(self, id):
+    #=======================
+        return '{}#{}'.format(self.slide_id, id)
+
     def process(self):
         self.__current_group.append('SLIDE')
         self.process_shape_list(self._slide.shapes, outermost=True)
@@ -300,15 +319,23 @@ class Layer(object):
         features = []
         for shape in shapes:
             properties = self.get_properties_(shape)
-            if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
+            if 'pathdef' in properties:
+                path_id = properties['pathdef']
+                self.__pathways.add_pathway(path_id,
+                                            self.__external_properties.path_lines(path_id),
+                                            self.__external_properties.route_nodes(path_id))
+                self.__feature_ids_by_id[path_id] = self.unique_id(shape.shape_id)
+            elif (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or isinstance(shape, pptx.shapes.connector.Connector)):
                 geometry = self.process_shape(shape, properties, *args)
-                feature = Feature(shape.shape_id, geometry, properties)
+                feature = Feature(self.unique_id(shape.shape_id), geometry, properties)
+                self.__set_feature_id(feature)
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.__current_group.append(properties.get('shape_name', "''"))
                 grouped_feature = self.process_group(shape, properties, *args)
+                self.__set_feature_id(grouped_feature)
                 self.__current_group.pop()
                 if grouped_feature is not None:
                     features.append(grouped_feature)
@@ -335,15 +362,14 @@ class Layer(object):
                                     .format(self.__slide_number, self.__current_group[-1], shape.name))
             else:
                 for (key, value) in properties.items():
-                    if key == 'id':
-                        annotated_id = value
-                        if annotated_id in self.__annotated_ids:
+                    if key in ['id', 'pathdef']:
+                        if value in self.__feature_ids_by_id:
                             properties['error'] = 'duplicate-id'
                             self.__errors.append('Shape in slide {}, group {}, has a duplicate id: {}'
                                                 .format(self.__slide_number, self.__current_group[-1], shape.name))
                         else:
-                            self.__annotated_ids.append(annotated_id)
                     elif key == 'warning':
+                            self.__feature_ids_by_id[value] = None
                         self.__errors.append('Warning, slide {}, group {}: {}'
                                             .format(self.__slide_number, self.__current_group[-1], value))
                     else:
