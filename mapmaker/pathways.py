@@ -157,7 +157,7 @@ class MapPathways(object):
     def json(self):
         return json.dumps({
             'path-lines': self.__path_lines,
-            'node_paths': self.__node_paths.as_dict
+            'node-paths': self.__node_paths.as_dict
             })
 
 #===============================================================================
