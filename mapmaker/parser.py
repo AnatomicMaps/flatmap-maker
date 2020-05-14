@@ -78,7 +78,7 @@ class Parser(object):
 #===============================================================================
 
     CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
-    PATH = Group(Keyword('pathdef') + Suppress('(') + ID_TEXT + Suppress(')'))
+    PATH = Group(Keyword('path') + Suppress('(') + ID_TEXT + Suppress(')'))
     STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
 
     FEATURE_PROPERTIES = CLASS | IDENTIFIER | STYLE

@@ -33,7 +33,7 @@ from tqdm import tqdm
 
 #===============================================================================
 
-EXCLUDE_SHAPE_NAMES = ['group', 'invisible', 'region', 'path', 'route']
+EXCLUDE_SHAPE_NAMES = ['group', 'invisible', 'region', 'path']
 
 #===============================================================================
 

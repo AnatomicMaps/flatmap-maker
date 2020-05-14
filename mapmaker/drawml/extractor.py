@@ -332,8 +332,8 @@ class Layer(object):
         features = []
         for shape in shapes:
             properties = self.get_properties_(shape)
-            if 'pathdef' in properties:
-                path_id = properties['pathdef']
+            if 'path' in properties:
+                path_id = properties['path']
                 self.__pathways.add_pathway(path_id,
                                             self.__external_properties.path_lines(path_id),
                                             self.__external_properties.route_nodes(path_id))
@@ -372,10 +372,10 @@ class Layer(object):
             if 'error' in properties:
                 properties['error'] = 'syntax'
                 self.__errors.append('Shape in slide {}, group {}, has annotation syntax error: {}'
-                                    .format(self.__slide_number, self.__current_group[-1], shape.name))
+                                    .format(self.__slide_number, group, shape.name))
             else:
                 for (key, value) in properties.items():
-                    if key in ['id', 'pathdef']:
+                    if key in ['id', 'path']:
                         if value in self.__ids_by_external_id:
                             properties['error'] = 'duplicate-id'
                             self.__errors.append('Shape in slide {}, group {}, has a duplicate id: {}'
