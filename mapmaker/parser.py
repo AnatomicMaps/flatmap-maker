@@ -38,14 +38,10 @@ class Parser(object):
                      )
     ONTOLOGY_ID = Combine(ONTOLOGY_SUFFIX + ':' + ID_TEXT)
 
-    CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
     IDENTIFIER = Group(Keyword('id') + Suppress('(') + ID_TEXT + Suppress(')'))
-    LABEL = Group(Keyword('label') + Suppress('(') + FREE_TEXT + Suppress(')'))
-    LAYER = Group(Keyword('layer') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
     MODELS = Group(Keyword('models') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
-    STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
 
-    DETAILS = Group(Keyword('details') + Suppress('(') + Suppress(')'))  ## Zoom start, slide/layer ID
+#===============================================================================
 
     BACKGROUND = Group(Keyword('background-for') + Suppress('(') + IDENTIFIER + Suppress(')'))
     DESCRIPTION = Group(Keyword('description') + Suppress('(') + FREE_TEXT + Suppress(')'))
@@ -57,29 +53,7 @@ class Parser(object):
     LAYER_DIRECTIVES = BACKGROUND | DESCRIPTION | IDENTIFIER | MODELS | SELECTION_FLAGS | ZOOM
     LAYER_DIRECTIVE = '.' + ZeroOrMore(LAYER_DIRECTIVES)
 
-    PATH = Group(Keyword('path') + Suppress('(') +  Group(delimitedList(ID_TEXT)) + Suppress(')'))
-    ROUTE_NODES = ID_TEXT  | Group(Suppress('(') +  delimitedList(ID_TEXT) + Suppress(')'))
-    ROUTE = Group(Keyword('route') + Suppress('(') +  Group(delimitedList(ROUTE_NODES)) + Suppress(')'))
-    PATHWAY = PATH + Optional(ROUTE)
-
-    FEATURE_PROPERTIES = CLASS | IDENTIFIER | STYLE
-
-    SHAPE_FLAGS = Group(Keyword('boundary')
-                      | Keyword('children')
-                      | Keyword('closed')
-                      | Keyword('divider')
-                      | Keyword('interior')
-                      | Keyword('region')
-                      )
-
-    DEPRECATED_FLAGS = Group(Keyword('siblings'))
-
-    FEATURE_FLAGS = Group(Keyword('group')
-                      |   Keyword('invisible')
-                      |   Keyword('organ')
-                      )
-
-    SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS | FEATURE_FLAGS | FEATURE_PROPERTIES | PATHWAY | SHAPE_FLAGS)
+#===============================================================================
 
     @staticmethod
     def layer_directive(s):
@@ -98,12 +72,38 @@ class Parser(object):
                     result[directive[0]] = directive[1]
 
         except ParseException:
-            result['error'] = 'Syntax error in directive'
+            result['error'] = 'Syntax error in layer directive'
         return result
+
+#===============================================================================
+
+    CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
+    PATH = Group(Keyword('pathdef') + Suppress('(') + ID_TEXT + Suppress(')'))
+    STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
+
+    FEATURE_PROPERTIES = CLASS | IDENTIFIER | STYLE
+
+    SHAPE_FLAGS = Group(Keyword('boundary')
+                      | Keyword('children')
+                      | Keyword('closed')
+                      | Keyword('divider')
+                      | Keyword('interior')
+                      | Keyword('region')
+                      )
+
+    DEPRECATED_FLAGS = Group(Keyword('siblings'))
+
+    FEATURE_FLAGS = Group(Keyword('group')
+                      |   Keyword('invisible')
+                      |   Keyword('organ')
+                      )
+
+    SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS | FEATURE_FLAGS | FEATURE_PROPERTIES | PATH | SHAPE_FLAGS)
+
+#===============================================================================
 
     @staticmethod
     def shape_properties(name_text):
-        id = None
         properties = {}
         try:
             parsed = Parser.SHAPE_MARKUP.parseString(name_text, parseAll=True)
@@ -113,19 +113,40 @@ class Parser(object):
                     properties[prop[0]] = True
                 elif Parser.DEPRECATED_FLAGS.matches(prop[0]):
                     properties['warning'] = "'{}' property is deprecated".format(prop[0])
-                elif prop[0] == 'path':
-                    properties[prop[0]] = list(prop[1])
-                elif prop[0] == 'route':
-                    properties[prop[0]] = [ list(p) if isinstance(p, ParseResults) else p for p in prop[1] ]
                 else:
                     properties[prop[0]] = prop[1]
         except ParseException:
-            properties['error'] = 'Syntax error in directive'
+            properties['error'] = 'Syntax error in shape markup'
         return properties
 
     @staticmethod
     def ignore_property(name):
         return Parser.DEPRECATED_FLAGS.matches(name) or Parser.SHAPE_FLAGS.matches(name)
+
+#===============================================================================
+
+    PATH_LINES = delimitedList(ID_TEXT)
+
+    ROUTE_NODE_GROUP = ID_TEXT  | Group(Suppress('(') +  delimitedList(ID_TEXT) + Suppress(')'))
+    ROUTE_NODES = delimitedList(ROUTE_NODE_GROUP)
+
+#===============================================================================
+
+    @staticmethod
+    def path_lines(line_ids):
+        try:
+            path_lines = Parser.PATH_LINES.parseString(line_ids, parseAll=True)
+        except ParseException:
+            raise ValueError('Syntax error in line list: '.format(line_ids))
+        return path_lines
+
+    @staticmethod
+    def route_nodes(node_ids):
+        try:
+            route_nodes = Parser.ROUTE_NODES.parseString(node_ids, parseAll=True)
+        except ParseException:
+            raise ValueError('Syntax error in route list: '.format(node_ids))
+        return route_nodes
 
 #===============================================================================
 
