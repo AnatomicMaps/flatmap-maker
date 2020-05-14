@@ -369,8 +369,8 @@ class Layer(object):
                             self.__errors.append('Shape in slide {}, group {}, has a duplicate id: {}'
                                                 .format(self.__slide_number, self.__current_group[-1], shape.name))
                         else:
-                    elif key == 'warning':
                             self.__feature_ids_by_id[value] = None
+                    if key == 'warning':
                         self.__errors.append('Warning, slide {}, group {}: {}'
                                             .format(self.__slide_number, self.__current_group[-1], value))
                     else:
