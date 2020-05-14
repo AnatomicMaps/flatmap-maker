@@ -35,6 +35,7 @@ from tqdm import tqdm
 
 from labels import AnatomicalMap
 from parser import Parser
+from properties import ExternalProperties
 
 #===============================================================================
 
@@ -168,6 +169,7 @@ class Layer(object):
                                                   extractor.settings.label_database)
         else:
             self.__anatomical_map = None
+        self.__external_properties = ExternalProperties(extractor.settings.properties)
 
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
@@ -351,6 +353,10 @@ class Layer(object):
                         properties.update(self.__anatomical_map.properties(properties['class']))
                     else:
                         properties['label'] = properties['class']
+                    properties.update(self.__external_properties.properties_from_class(properties['class']))
+                if 'id' in properties:
+                    properties.update(self.__external_properties.properties_from_id(properties['id']))
+
         else:
             properties = { 'shape_name': shape.name }
         return properties

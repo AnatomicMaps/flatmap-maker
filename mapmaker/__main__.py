@@ -61,6 +61,8 @@ def main():
                         help="generate image tiles of map's layers (may take a while...)")
     parser.add_argument('--anatomical-map',
                         help='Excel spreadsheet file for mapping shape classes to anatomical entities')
+    parser.add_argument('--properties',
+                        help='JSON file specifying additional properties of shapes')
 
     parser.add_argument('-n', '--no-vector-tiles', action='store_true',
                         help="don't generate vector tiles database and style files")
