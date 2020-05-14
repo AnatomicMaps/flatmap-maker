@@ -48,7 +48,7 @@ class Slide(object):
 
     def process_shape_list_(self, shapes):
         for shape in shapes:
-            unique_id = '{}-{}'.format(self._slide_id, shape.shape_id)
+            unique_id = '{}#{}'.format(self._slide_id, shape.shape_id)
             self._shapes_by_id[unique_id] = shape
             if shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.process_shape_list_(shape.shapes)
