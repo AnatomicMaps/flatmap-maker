@@ -375,8 +375,6 @@ class Layer(object):
                     if key == 'warning':
                         self.__errors.append('Warning, slide {}, group {}: {}'
                                             .format(self.__slide_number, self.__current_group[-1], value))
-                    else:
-                        properties[key] = value
                 if 'class' in properties:
                     if self.__anatomical_map is not None:
                         properties.update(self.__anatomical_map.properties(properties['class']))
