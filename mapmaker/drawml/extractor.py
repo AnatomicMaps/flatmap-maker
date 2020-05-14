@@ -104,7 +104,8 @@ class Feature(object):
     def __init__(self, id, geometry, properties, has_children=False):
         self.__id = id
         self.__geometry = geometry
-        self.__properties = properties
+        self.__properties = properties.copy()
+        self.__properties['id'] = id
         self.__has_children = has_children
 
     def __str__(self):
@@ -201,11 +202,12 @@ class Layer(object):
         else:
             self.__set_defaults()
 
-        self.__feature_ids_by_id = {}  # id: unique_feature_id
         self.__map_features = []
 #*        self.__ontology_data = self.settings.ontology_data
         self.__annotations = {}
         self.__current_group = []
+
+        self.__ids_by_external_id = {}  # id: unique_feature_id
         # Path and route information
         self.__pathways = LayerPathways()
 
@@ -220,8 +222,8 @@ class Layer(object):
         self.__zoom = None
 
     def __set_feature_id(self, feature):
-        if 'id' in feature.properties:
-            self.__feature_ids_by_id[feature.properties['id']] = feature.id
+        if feature.has('external-id'):
+            self.__ids_by_external_id[feature.property('external-id')] = feature.id
 
     @property
     def extractor(self):
@@ -325,7 +327,7 @@ class Layer(object):
                 self.__pathways.add_pathway(path_id,
                                             self.__external_properties.path_lines(path_id),
                                             self.__external_properties.route_nodes(path_id))
-                self.__feature_ids_by_id[path_id] = self.unique_id(shape.shape_id)
+                self.__ids_by_external_id[path_id] = self.unique_id(shape.shape_id)
             elif (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or isinstance(shape, pptx.shapes.connector.Connector)):
@@ -364,12 +366,12 @@ class Layer(object):
             else:
                 for (key, value) in properties.items():
                     if key in ['id', 'pathdef']:
-                        if value in self.__feature_ids_by_id:
+                        if value in self.__ids_by_external_id:
                             properties['error'] = 'duplicate-id'
                             self.__errors.append('Shape in slide {}, group {}, has a duplicate id: {}'
                                                 .format(self.__slide_number, self.__current_group[-1], shape.name))
                         else:
-                            self.__feature_ids_by_id[value] = None
+                            self.__ids_by_external_id[value] = None
                     if key == 'warning':
                         self.__errors.append('Warning, slide {}, group {}: {}'
                                             .format(self.__slide_number, self.__current_group[-1], value))
@@ -381,8 +383,8 @@ class Layer(object):
                     else:
                         properties['label'] = properties['class']
                     properties.update(self.__external_properties.properties_from_class(properties['class']))
-                if 'id' in properties:
-                    properties.update(self.__external_properties.properties_from_id(properties['id']))
+                if 'external-id' in properties:
+                    properties.update(self.__external_properties.properties_from_id(properties['external-id']))
 
         else:
             properties = { 'shape_name': shape.name }

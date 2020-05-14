@@ -113,6 +113,9 @@ class Parser(object):
                     properties[prop[0]] = True
                 elif Parser.DEPRECATED_FLAGS.matches(prop[0]):
                     properties['warning'] = "'{}' property is deprecated".format(prop[0])
+                elif prop[0] == 'id':
+                    # Keep separate from feature's unique id
+                    properties['external-id'] = prop[1]
                 else:
                     properties[prop[0]] = prop[1]
         except ParseException:

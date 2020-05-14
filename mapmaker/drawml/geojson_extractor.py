@@ -260,7 +260,6 @@ class GeoJsonLayer(Layer):
                     },
                     'geometry': shapely.geometry.mapping(mercator_geometry),
                     'properties': {
-                        'id': feature.id,
                         'bounds': list(mercator_geometry.bounds),
                         'centroid': list(list(mercator_geometry.centroid.coords)[0]),
                         'area': area,
