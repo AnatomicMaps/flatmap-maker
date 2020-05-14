@@ -61,10 +61,6 @@ class ExternalProperties(object):
                     routing = list(Parser.route_nodes(path['route']))
                     if len(routing) < 2:
                         raise ValueError('Route definition is too short for path {}'.format(path_id))
-
-
-#                    import pdb; pdb.set_trace()
-
                     through_nodes = []
                     for node in routing[1:-2]:
                         through_nodes += ExternalProperties.__make_list(node)
