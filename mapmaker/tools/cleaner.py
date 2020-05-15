@@ -19,6 +19,7 @@
 #===============================================================================
 
 import io
+import json
 from copy import deepcopy
 from zipfile import ZipFile
 
@@ -61,12 +62,22 @@ XPATH_PRS_extLst        = './p:extLst'
 
 #===============================================================================
 
-def valid_name(name):
-    if name.startswith('.'):
-        for directive in name[1:].split():
-            if directive.split('(')[0] in EXCLUDE_SHAPE_NAMES:
-                return False
-    return True
+class NameChecker(object):
+    def __init__(self, paths):
+        self._line_ids = set()
+        for path in paths:
+            self._line_ids.update([id.strip() for id in path['path'].split(',')])
+
+    def valid(self, name):
+        if name.startswith('.'):
+            for directive in name[1:].split():
+                if directive.split('(')[0] in EXCLUDE_SHAPE_NAMES:
+                    return False
+                elif directive.startswith('id'):
+                    id = directive[(directive.find('(')+1):directive.rfind(')')].strip()
+                    if id in self._line_ids:
+                        return False
+        return True
 
 #===============================================================================
 
@@ -89,10 +100,12 @@ def connector_type(name):
 #===============================================================================
 
 class Presentation(object):
-    def __init__(self, source_file):
+    def __init__(self, source_file, paths):
         print('Opening presentation...')
         self._source_file = source_file
         self._source = pptx.Presentation(source_file)
+
+        self._name_checker = NameChecker(paths)
 
 #        xml = open('dirty_prs.xml', 'w')
 #        xml.write(self._source.element.xml)
@@ -189,7 +202,7 @@ class Presentation(object):
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or shape.shape_type == MSO_SHAPE_TYPE.PICTURE
              or isinstance(shape, pptx.shapes.connector.Connector)):
-                if valid_name(shape.name):
+                if self._name_checker.valid(shape.name):
                 # parse and filter out region etc
                     self.append_shape_(shape)
 
@@ -264,9 +277,9 @@ class Presentation(object):
 
 #===============================================================================
 
-def clean_presentation(source, target):
-#======================================
-    presentation = Presentation(source)
+def clean_presentation(source, target, paths):
+#=============================================
+    presentation = Presentation(source, paths)
     presentation.clean(target)
 
 #===============================================================================
@@ -275,10 +288,15 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Clean Powerpoint slides for generating flatmap image tiles.')
+    parser.add_argument('--properties', required=True,
+                    help='JSON file specifying pathways')
     parser.add_argument('source_ppt', help='Powerpoint file to clean')
     parser.add_argument('cleaned_ppt', help='Cleaned Powerpoint to create')
     args = parser.parse_args()
 
-    clean_presentation(args.source_ppt, args.cleaned_ppt)
+    with open(args.properties) as fp:
+        properties = json.loads(fp.read())
+
+    clean_presentation(args.source_ppt, args.cleaned_ppt, properties['paths'])
 
 #===============================================================================
