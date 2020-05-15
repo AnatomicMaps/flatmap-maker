@@ -38,17 +38,17 @@ class ExternalProperties(object):
             with open(properties_file) as fp:
                 properties_dict = json.loads(fp.read())
 
-            for style in properties_dict['styles']:
-                if 'class' in style:
-                    cls = style['class']
-                    properties = style.get('properties', {})
+            for feature in properties_dict['features']:
+                if 'class' in feature:
+                    cls = feature['class']
+                    properties = feature.get('properties', {})
                     if cls in self.__properties_by_class:
                         self.__properties_by_class[cls].update(properties)
                     else:
                         self.__properties_by_class[cls] = properties
-                if 'id' in style:
-                    id = style['id']
-                    properties = style.get('properties', {})
+                if 'id' in feature:
+                    id = feature['id']
+                    properties = feature.get('properties', {})
                     if id in self.__properties_by_id:
                         self.__properties_by_id[id].update(properties)
                     else:
