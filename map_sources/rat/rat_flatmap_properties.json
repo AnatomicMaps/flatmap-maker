@@ -96,6 +96,221 @@
             "id": "path_13",
             "path": "P73, P74",
             "route": "keast_3, C13, keast_1, (urinary_7, urinary_10)"
+        },
+        {
+            "id": "path_14",
+            "path": "P75, P76",
+            "route": "S39_L2, C14, S43_L2, S50_L2_T, S50_L2_B, S48_L2, S49_L2, S50_L2_B, keast_7, keast_6, keast_5, keast_3, C13"
+        },
+        {
+            "id": "path_15",
+            "path": "P77, P78",
+            "route": "S39_L1, C15, S43_L1, S50_L1_T, S50_L1_B, S48_L1, S49_L1, S50_L1_B, keast_7, keast_6, C16"
+        },
+        {
+            "id": "path_16",
+            "path": "P78, P79, P80",
+            "route": "S39_L2, C17, S43_L2, S50_L2_T, S50_L2_B, S48_L2, S49_L2, S50_L2_B, keast_7, keast_6, C16"
+        },
+        {
+            "id": "path_17",
+            "path": "P81, P82",
+            "route": "keast_6, C16, keast_5, keast_3, keast_1, (urinary_7, urinary_10)"
+        },
+        {
+            "id": "path_18",
+            "path": "P83, P84, P85, P86, P87, P88, P89, P90, P91, P92, P93",
+            "route": "S39_L1, C26, S43_L1, S50_L1_T, S50_L1_B, S48_L1, S46_L1, S46_T12, spinal_47, S46_T13, spinal_47, S46_L1, spinal_47, S46_L2, spinal_47, S46_L4, spinal_47, S46_L5, spinal_47, S46_L6,(C18, C19, C20, C21, C22, C23, C24, C25)"
+        },
+        {
+            "id": "path_19",
+            "path": "P83, P84, P85, P86, P87, P88, P89, P90, P91, P92, P93",
+            "route": "S39_L2, C27, S43_L2, S50_L2_T, S50_L2_B, S48_L2, S46_L2, S46_T12, spinal_47, S46_T13, spinal_47, S46_L1, spinal_47, S46_L2, spinal_47, S46_L4, spinal_47, S46_L5, spinal_47, S46_L6,(C18, C19, C20, C21, C22, C23, C24, C25)"
+        },
+        {
+            "id": "path_20",
+            "path": "P94, P95, P96, P97, P98, P99, P100, P101, P102, P103",
+            "route": "(C18, C19, C20, C21, C22, C23, C24, C25), S46_T12, spinal_47, S46_T13, spinal_47, S46_L1, spinal_47, S46_L2, spinal_47, S46_L3, spinal_47, S46_L4, spinal_47, S46_L5, spinal_47, S46_L6, spinal_47, S46_S1, S49_S1, S50_S1_B, keast_4, keast_3, keast_1, (urinary_8, urinary_11)"
+        },
+        {
+            "id": "path_21",
+            "path": "P94, P95, P96, P97, P98, P99, P100, P101, P102, P103",
+            "route": "(C18, C19, C20, C21, C22, C23, C24, C25), S46_T12, spinal_47, S46_T13, spinal_47, S46_L1, spinal_47, S46_L2, spinal_47, S46_L3, spinal_47, S46_L4, spinal_47, S46_L5, spinal_47, S46_L6, S49_L6, S50_L6_B, keast_4, keast_3, keast_1, (urinary_8, urinary_11)"
+        },
+        {
+            "id": "path_22",
+            "path": "P104",
+            "route": "C28, brain_13"
+        },
+        {
+            "id": "path_23",
+            "path": "P105",
+            "route": "C29, brain_13"
+        },
+        {
+            "id": "path_24",
+            "path": "P106",
+            "route": "C30, brain_13"
+        },
+        {
+            "id": "path_25",
+            "path": "P107",
+            "route": "C31, brain_13"
+        },
+        {
+            "id": "path_26",
+            "path": "P108",
+            "route": "C32, brain_13"
+        },
+        {
+            "id": "path_27",
+            "path": "P109",
+            "route": "C33, brain_13"
+        },
+        {
+            "id": "path_28",
+            "path": "P110",
+            "route": "C34, brain_13"
+        },
+        {
+            "id": "path_29",
+            "path": "P111, P112",
+            "route": "brain_13, (S39_L6, S39_L7)"
+        },
+        {
+            "id": "path_30",
+            "path": "P113",
+            "route": "C43, S39_T1, C44, S39_T1"
+        },
+        {
+            "id": "path_31",
+            "path": "P114",
+            "route": "C45, S39_T1, C46, S39_T1"
+        },
+        {
+            "id": "path_32",
+            "path": "P115",
+            "route": "C45, S39_T1, C46, S39_T1"
+        },
+        {
+            "id": "path_33",
+            "path": "P116",
+            "route": "bolser20_1, bolser_20_2, bolser10_1, bolser_8, digestive_11 "
+        },
+        {
+            "id": "path_34",
+            "path": "P117",
+            "route": "bolser20_1, bolser_20_2, bolser2_1, digestive_11 "
+        },
+        {
+            "id": "path_35",
+            "path": "P118",
+            "route": "bolser20_1, bolser_20_2, bolser2_1, bolser26_1, bolser_12, bolser_3, respiratory_11"
+        },
+        {
+            "id": "path_36",
+            "path": "P119",
+            "route": "bolser20_1, bolser_20_2, bolser2_1, bolser26_1, bolser_12, bolser_11, respiratory_11"
+        },
+        {
+            "id": "path_37",
+            "path": "P120",
+            "route": "bolser20_1, bolser_20_2, bolser2_1, bolser26_1, boser21_1, bolser13_1, respiratory_11"
+        },
+        {
+            "id": "path_38",
+            "path": "P121",
+            "route": "bolser20_1, bolser_20_2, bolser2_1, bolser26_1, boser21_1, bolser_4, respiratory_11"
+        },
+        {
+            "id": "path_39",
+            "path": "P122",
+            "route": "bolser20_1, bolser_20_2, bolser2_1, bolser26_1, boser21_1, bolser_4, respiratory_5"
+        },
+        {
+            "id": "path_40",
+            "path": "P123",
+            "route": "bolser20_1, bolser_20_2, bolser2_1, bolser26_1, boser21_1, bolser13_2, respiratory_5"
+        },
+        {
+            "id": "path_41",
+            "path": "P124",
+            "route": "bolser20_1, bolser_20_2, respiratory_3"
+        },
+        {
+            "id": "path_42",
+            "path": "P125",
+            "route": "bolser20_1, bolser_20_2, bolser_10_2, respiratory_3"
+        },
+        {
+            "id": "path_43",
+            "path": "P126",
+            "route": "bolser20_1, bolser_20_2, bolser_10_2, brain_23_1, brian9_2"
+        },
+        {
+            "id": "path_44",
+            "path": "P127",
+            "route": "bolser20_1, bolser_20_2, bolser_10_2, brain_23_2, brian10_2"
+        },
+        {
+            "id": "path_45",
+            "path": "P128",
+            "route": "bolser20_1, bolser_20_2, bolser_10_2, brain_23_3, brian11_2"
+        },
+        {
+            "id": "path_46",
+            "path": "P129",
+            "route": "bolser20_1, bolser_20_2, bolser_10_2, brain_23_4, brian12_2"
+        },
+        {
+            "id": "path_47",
+            "path": "P130",
+            "route": "bolser20_1, bolser_20_2, bolser2_2, bolser_6, cardio_4"
+        },
+        {
+            "id": "path_48",
+            "path": "P131",
+            "route": "bolser20_1, bolser_20_2, bolser2_2, bolser_6, cardio_5"
+        },
+        {
+            "id": "path_49",
+            "path": "P132",
+            "route": "spinal_54, C49, bolser_17, respiratory_4"
+        },
+        {
+            "id": "path_50",
+            "path": "P133",
+            "route": "spinal_55, C50, bolser_17, respiratory_4"
+        },
+        {
+            "id": "path_51",
+            "path": "P134, P135",
+            "route": "S39_T1, C51, muscle_1"
+        },
+        {
+            "id": "path_52",
+            "path": "P136",
+            "route": "espiratory_12, boser16, boser_15, C39, bolser26_2, brain12_2"
+        },
+        {
+            "id": "path_53",
+            "path": "P137",
+            "route": "espiratory_8, boser21_2, boser_15, C40, bolser26_2, brain12_2"
+        },
+        {
+            "id": "path_54",
+            "path": "P138",
+            "route": "espiratory_13, boser_1, boser_15, C38, bolser26_2, brain12_2"
+        },
+        {
+            "id": "path_55",
+            "path": "P139",
+            "route": "cardio_4, boser_19, boser_6, C41, bolser_5, brain12_2"
+        },
+        {
+            "id": "path_56",
+            "path": "P140",
+            "route": "cardio_5, boser_7, boser_6, C42, bolser_5, brain12_2"
         }
     ]
 }
