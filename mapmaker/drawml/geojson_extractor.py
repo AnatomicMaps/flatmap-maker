@@ -261,6 +261,7 @@ class GeoJsonLayer(Layer):
                     'geometry': shapely.geometry.mapping(mercator_geometry),
                     'properties': {
                         'bounds': list(mercator_geometry.bounds),
+                        # The viewer requires `centroid`
                         'centroid': list(list(mercator_geometry.centroid.coords)[0]),
                         'area': area,
                         'length': geometry.length,
@@ -277,6 +278,7 @@ class GeoJsonLayer(Layer):
                         if not Parser.ignore_property(key):
                             geojson['properties'][key] = value
                     properties['bounds'] = geojson['properties']['bounds']
+                    properties['centroid'] = geojson['properties']['centroid']
                     properties['geometry'] = geojson['geometry']['type']
                     self.annotations[feature.id] = properties
 
