@@ -170,42 +170,42 @@
         {
             "id": "path_22",
             "path": "P104",
-            "route": "C28, brain_13"
+            "route": "C28, brain13_1"
         },
         {
             "id": "path_23",
             "path": "P105",
-            "route": "C29, brain_13"
+            "route": "C29, brain13_1"
         },
         {
             "id": "path_24",
             "path": "P106",
-            "route": "C30, brain_13"
+            "route": "C30, brain13_1"
         },
         {
             "id": "path_25",
             "path": "P107",
-            "route": "C31, brain_13"
+            "route": "C31, brain13_1"
         },
         {
             "id": "path_26",
             "path": "P108",
-            "route": "C32, brain_13"
+            "route": "C32, brain13_1"
         },
         {
             "id": "path_27",
             "path": "P109",
-            "route": "C33, brain_13"
+            "route": "C33, brain13_1"
         },
         {
             "id": "path_28",
             "path": "P110",
-            "route": "C34, brain_13"
+            "route": "C34, brain13_1"
         },
         {
             "id": "path_29",
             "path": "P111, P112",
-            "route": "brain_13, (S39_L6, S39_L7)"
+            "route": "brain13_1, (S39_L6, S39_L7)"
         },
         {
             "id": "path_30",
@@ -365,7 +365,7 @@
         {
             "id": "path_60",
             "path": "P151, P152, P153, P154, P155, P156, P157, P158, P159, P160, P161, P162, P163, P164, P165, P166, P167, P168, P169, P170, P171, P172, P173, P174, P175, P176, P177",
-            "route": "(C63, C64, C65, C66, C67, C68), S39_T1, S39_T2, S39_T3, S39_T4, S39_T5, S39_T6, S43_T1, S50_T1_T, S50_T1_B, S48_T1, S46_T1, spinal_47, S46_T2, spinal_47, S46_T3, spinal_47, S46_T4, spinal_47, S46_T5, spinal_47, S46_T6, connection_1, bolser_25, bolser_9, bolser_23, bolser_14, bolser_24, bolser20_1, ardell_1, ardell_2, ardell_3, (C69, C70, C71, C72, C73, C74, C75, C76, C77, C62, C60, C56)"
+            "route": "(C63, C64, C65, C66, C67, C68), S39_T1, S39_T2, S39_T3, S39_T4, S39_T5, S39_T6, S43_T1, S50_T1_T, S50_T1_B, S48_T1, S46_T1, spinal_47, S46_T2, spinal_47, S46_T3, spinal_47, S46_T4, spinal_47, S46_T5, spinal_47, S46_T6, connection1_1, bolser_25, bolser_9, bolser_23, bolser_14, bolser_24, bolser20_1, ardell_1, ardell_2, ardell_3, (C69, C70, C71, C72, C73, C74, C75, C76, C77, C62, C60, C56)"
         },
         {
             "id": "path_61",
