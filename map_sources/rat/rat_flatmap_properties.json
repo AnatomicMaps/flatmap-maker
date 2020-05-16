@@ -285,7 +285,7 @@
         {
             "id": "path_51",
             "path": "P134, P135",
-            "route": "S39_T1, C51, muscle_1"
+            "route": "S39_T1, C51, S43_T1, S50_T1_T, S50_T1_B, muscle_1"
         },
         {
             "id": "path_52",
@@ -311,6 +311,86 @@
             "id": "path_56",
             "path": "P140",
             "route": "cardio_5, boser_7, boser_6, C42, bolser_5, brain12_2"
+        },
+        {
+            "id": "path_57",
+            "path": "P141",
+            "route": "bolser_20_1, bolser_23, bolser_14, bolser_24, cardio_3, cardio_13"
+        },
+        {
+            "id": "path_67",
+            "path": "P208",
+            "route": "S39_T1, C80, S43_T1, S50_T1_T, S50_T1_B, S48_T1, bolser_25, bolser_9, bolser_24, bolser_14, bolser_23, bolser_20"
+        },
+        {
+            "id": "path_58",
+            "path": "P142, P144, P145, P146",
+            "route": "brain_33, C52,(ardell_1, C58, C59, ardell_2, C54, C55)"
+        },
+        {
+            "id": "path_59",
+            "path": "P142, P143, P144, P145, P146",
+            "route": "brain_34, C53,(ardell_1, C58, C59, ardell_2, C54, C55)"
+        },
+        {
+            "id": "path_60",
+            "path": "P151, P152, P153, P154, P155, P156, P157, P158, P159, P160, P161, P162, P163, P164, P165, P166, P167, P168, P169, P170, P171, P172, P173, P174, P175, P176, P177",
+            "route": "(C63, C64, C65, C66, C67, C68), S39_T1, S39_T2, S39_T3, S39_T4, S39_T5, S39_T6, S43_T1, S50_T1_T, S50_T1_B, S48_T1, S46_T1, spinal_47, S46_T2, spinal_47, S46_T3, spinal_47, S46_T4, spinal_47, S46_T5, spinal_47, S46_T6, connection_1, bolser_25, bolser_9, bolser_23, bolser_14, bolser_24, bolser20_1, ardell_1, ardell_2, ardell_3, (C69, C70, C71, C72, C73, C74, C75, C76, C77, C62, C60, C56)"
+        },
+        {
+            "id": "path_61",
+            "path": "P178",
+            "route": "C76, C78"
+        },
+        {
+            "id": "path_62",
+            "path": "P179",
+            "route": "C75, C79"
+        },
+       {
+            "id": "path_63",
+            "path": "P180, P181, P182, P183, P184, P185, P186, P187, P188, P189, P190, P191, P192, P193, P194, P195, P196, P197, P198, P199, P200, P201, P202, P203, P204, P205, P206",
+            "route": "(C77, C76, C75, C74, C73, C72, C71, C70, C69, C62), ardell_3, ardell_2, ardell_1, (C54, C58, cardio_18, cardio_19, cardio_20, cardio_21, cardio_22, cardio_23, cardio_24,cardio_25)"
+        },
+        {
+            "id": "path_64",
+            "path": "P147, P148",
+            "route": "ardell_2, C54, (C55, C56)"
+        },
+        {
+            "id": "path_65",
+            "path": "P149, P150",
+            "route": "ardell_1, C58, (C59, C60)"
+        },
+        {
+            "id": "path_66",
+            "path": "P207",
+            "route": "brain12_1, C43, brain_32"
+        },
+        {
+            "id": "path_68",
+            "path": "P209, P210, P211, P212, P213, P214, P215, P216",
+            "route": "(C55, C59), ardell_1, ardell_2, (cardio_18, cardio_19, cardio_20, cardio_21, cardio_22, cardio_23, cardio_24, cardio_25)"
+        },
+        {
+            "id": "path_69",
+            "path": "P217, P218, P219, P220, P221, P222, P223, P224",
+            "route": "(cardio_18, cardio_19, cardio_20, cardio_21, cardio_22, cardio_23, cardio_24, cardio_25), ardell_1, ardell_2, C57, C61, (C56, C60)"
+        },
+        {
+            "id": "path_70",
+            "path": "P225, P226, P227, P228, P229, P230, P231, P232, P233",
+            "route": "(cardio_16, cardio_17, cardio_18, cardio_19, cardio_20, cardio_21, cardio_22, cardio_23), bolser_15, C81, brain_12"
+        },
+        {
+            "id": "path_71",
+            "path": "P234, P235, P236, P237, P238, P239, P240, P241, P242, P243, P244, P245, P246, P247, P248, P249, P250, P251, P252",
+            "route": "(cardio_22, cardio_23, cardio_24, cardio_25), S50_C6_T, S45_C6, C82, S50_C7_T, S45_C7, C83, S50_C8_T, S45_C8, C84, S50_T1_B, S50_T1_T, S45_T1, C85, S50_T2_B, S50_T2_T, S45_T2, C86, S50_T3_B, S50_T3_T, S45_T3, C87, S50_T4_B, S50_T4_T, S45_T4, C88, S50_T5_B, S50_T5_T, S45_T5, C89, S50_T6_B, S50_T6_T, S45_T6, C90,(S44_C6, S44_C7, S44_C8, S44_T1, S44_T2, S44_T3, S44_T4, S44_T5, S44_T6)"
+        },
+        {
+            "id": "path_72",
+            "path": "P253, P254, P255",
+            "route": "(cardio_16, cardio_17), bolser_9, bolser_14, C91, C92, (C79, C78)"
         }
     ]
 }
