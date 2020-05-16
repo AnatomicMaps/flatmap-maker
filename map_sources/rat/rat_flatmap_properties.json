@@ -29,6 +29,36 @@
             "properties": {
                 "labelled": true
             }
+        },
+        {
+            "id": "data_1",
+            "properties": {
+                "label": "Dataset",
+                "dataset": "https://sparc.science/datasets/29?type=dataset"
+            }
+        },
+        {
+            "id": "data_2",
+            "properties": {
+                "label": "Dataset for phrenic nerve",
+                "models": "UBERON:0001884",
+                "dataset": "https://sparc.science/datasets/52?type=dataset"
+            }
+        },
+        {
+            "id": "data_3",
+            "properties": {
+                "label": "Dataset for glossopharyngeal nerve",
+                "models": "UBERON:0001649",
+                "dataset": "https://sparc.science/datasets/48?type=dataset"
+            }
+        },
+        {
+            "id": "data_4",
+            "properties": {
+                "label": "Dataset",
+                "dataset": "https://sparc.science/datasets/23?type=dataset"
+            }
         }
     ],
     "paths": [
