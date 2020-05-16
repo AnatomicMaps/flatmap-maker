@@ -55,30 +55,45 @@ class NodePaths(object):
 
     def map_ids(self, feature_map):
         result = NodePaths()
+        errors = False
         for id, paths in self.__start_paths.items():
-            node_id = feature_map.map(id)
-            if node_id is not None:
-                node_paths = feature_map.map_list(paths)
-                if node_id in result.__start_paths:
-                    result.__start_paths[node_id].extend(node_paths)
-                else:
-                    result.__start_paths[node_id] = node_paths
+            try:
+                node_id = feature_map.map(id)
+                if node_id is not None:
+                    node_paths = feature_map.map_list(paths)
+                    if node_id in result.__start_paths:
+                        result.__start_paths[node_id].extend(node_paths)
+                    else:
+                        result.__start_paths[node_id] = node_paths
+            except ValueError as err:
+                print('Node {}: {}'.format(id, str(err)))
+                errors = True
         for id, paths in self.__through_paths.items():
-            node_id = feature_map.map(id)
-            if node_id is not None:
-                node_paths = feature_map.map_list(paths)
-                if node_id in result.__through_paths:
-                    result.__through_paths[node_id].extend(node_paths)
-                else:
-                    result.__through_paths[node_id] = node_paths
+            try:
+                node_id = feature_map.map(id)
+                if node_id is not None:
+                    node_paths = feature_map.map_list(paths)
+                    if node_id in result.__through_paths:
+                        result.__through_paths[node_id].extend(node_paths)
+                    else:
+                        result.__through_paths[node_id] = node_paths
+            except ValueError as err:
+                print('Node {}: {}'.format(id, str(err)))
+                errors = True
         for id, paths in self.__end_paths.items():
-            node_id = feature_map.map(id)
-            if node_id is not None:
-                node_paths = feature_map.map_list(paths)
-                if node_id in result.__end_paths:
-                    result.__end_paths[node_id].extend(node_paths)
-                else:
-                    result.__end_paths[node_id] = node_paths
+            try:
+                node_id = feature_map.map(id)
+                if node_id is not None:
+                    node_paths = feature_map.map_list(paths)
+                    if node_id in result.__end_paths:
+                        result.__end_paths[node_id].extend(node_paths)
+                    else:
+                        result.__end_paths[node_id] = node_paths
+            except ValueError as err:
+                print('Node {}: {}'.format(id, str(err)))
+                errors = True
+        if errors:
+            raise ValueError('Errors in mapping route nodes')
         return result
 
     def update(self, other):
