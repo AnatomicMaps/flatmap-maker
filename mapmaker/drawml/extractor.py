@@ -369,6 +369,10 @@ class Layer(object):
         if shape.name.startswith('.'):
             properties = Parser.shape_properties(shape.name)
             properties['shape_name'] = shape.name
+            try:
+                group = self.__current_group[-1]
+            except IndexError:
+                group = "UNKNOWN"
             if 'error' in properties:
                 properties['error'] = 'syntax'
                 self.__errors.append('Shape in slide {}, group {}, has annotation syntax error: {}'
@@ -379,12 +383,12 @@ class Layer(object):
                         if value in self.__ids_by_external_id:
                             properties['error'] = 'duplicate-id'
                             self.__errors.append('Shape in slide {}, group {}, has a duplicate id: {}'
-                                                .format(self.__slide_number, self.__current_group[-1], shape.name))
+                                                .format(self.__slide_number, group, shape.name))
                         else:
                             self.__ids_by_external_id[value] = None
                     if key == 'warning':
                         self.__errors.append('Warning, slide {}, group {}: {}'
-                                            .format(self.__slide_number, self.__current_group[-1], value))
+                                            .format(self.__slide_number, group, value))
                 if 'class' in properties:
                     cls = properties['class']
                     if cls in self.__class_counts:
