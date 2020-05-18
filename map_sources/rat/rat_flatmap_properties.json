@@ -1,33 +1,63 @@
 {
     "features": [
         {
-            "class": "cardio_2",
+            "class": "body_1",
             "properties": {
-                "labelled": true
+                "tooltip": false
             }
         },
         {
-            "class": "digestive_2",
+            "class": "body_2",
             "properties": {
-                "labelled": true
+                "tooltip": false
             }
         },
         {
-            "class": "digestive_3",
+            "class": "body_3",
             "properties": {
-                "labelled": true
+                "tooltip": false
             }
         },
         {
-            "class": "respiratory_2",
+            "class": "body_4",
             "properties": {
-                "labelled": true
+                "tooltip": false
             }
         },
         {
-            "class": "urinary_2",
+            "class": "body_5",
             "properties": {
-                "labelled": true
+                "tooltip": false
+            }
+        },
+        {
+            "class": "body_6",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "brain_35",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "respiratory_6",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "respiratory_7",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "respiratory_3",
+            "properties": {
+                "label": "Trachea"
             }
         },
         {
