@@ -63,24 +63,28 @@
         {
             "id": "scaffold_1",
             "properties": {
+                "label": "Scaffold",
                 "scaffold": "heart"
             }
         },
         {
             "id": "scaffold_2",
             "properties": {
+                "label": "Scaffold",
                 "scaffold": "colon"
             }
         },
         {
             "id": "scaffold_3",
             "properties": {
+                "label": "Scaffold",
                 "scaffold": "bladder"
             }
         },
         {
             "id": "scaffold_4",
             "properties": {
+                "label": "Scaffold",
                 "scaffold": "stomach"
             }
         },
