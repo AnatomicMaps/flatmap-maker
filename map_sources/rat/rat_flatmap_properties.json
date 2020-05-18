@@ -61,6 +61,30 @@
             }
         },
         {
+            "id": "scaffold_1",
+            "properties": {
+                "scaffold": "heart"
+            }
+        },
+        {
+            "id": "scaffold_2",
+            "properties": {
+                "scaffold": "colon"
+            }
+        },
+        {
+            "id": "scaffold_3",
+            "properties": {
+                "scaffold": "bladder"
+            }
+        },
+        {
+            "id": "scaffold_4",
+            "properties": {
+                "scaffold": "stomach"
+            }
+        },
+        {
             "id": "data_1",
             "properties": {
                 "label": "Dataset",
