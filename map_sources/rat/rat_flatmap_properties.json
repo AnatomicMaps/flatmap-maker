@@ -122,63 +122,63 @@
             "id": "path_9",
 			"type": "para-post",
             "path": "P46, P47, P48, P49",
-            "route": "keast_3, C9, (urinary_6, urinary_7, urinary_9, urinary_10)"
+            "route": "keast_3, C9, (urinary_6, urinary_7, urinary_9, urinary_10)",
 			"nerves": "keast_1"
         },
         {
             "id": "path_10",
 			"type": "sensory",
             "path": "P50, P51, P52, P53, P54, P55, P56, P57, P58, P59, P60, P61, P62",
-            "route": "(urinary_6, urinary_7, urinary_8, urinary_9, urinary_10, urinary_11), keast_3, keast_6, S50_L1_B, S50_L1_T, S45_L1, C10, S44_L1, (S33_L1, S34_L1, S37_L1, S39_L1, S42_L1)"
+            "route": "(urinary_6, urinary_7, urinary_8, urinary_9, urinary_10, urinary_11), keast_3, keast_6, S50_L1_B, S50_L1_T, S45_L1, C10, S44_L1, (S33_L1, S34_L1, S37_L1, S39_L1, S42_L1)",
 			"nerves": "keast_7, keast_5, keast_1"
 		},
         {
             "id": "path_11",
 			"type": "sensory",
             "path": "P50, P51, P52, P53, P54, P55, P63, P64, P65, P66, P67, P69, P70",
-            "route": "(urinary_6, urinary_7, urinary_8, urinary_9, urinary_10, urinary_11), keast_3, keast_6, S50_L2_B, S50_L2_T, S45_L2, C11, S44_L2, (S33_L2, S34_L2, S37_L2, S39_L2, S42_L2)"
+            "route": "(urinary_6, urinary_7, urinary_8, urinary_9, urinary_10, urinary_11), keast_3, keast_6, S50_L2_B, S50_L2_T, S45_L2, C11, S44_L2, (S33_L2, S34_L2, S37_L2, S39_L2, S42_L2)",
 			"nerves": "keast_7, keast_5, keast_1"
 		},
         {
             "id": "path_12",
 			"type": "symp-pre",
             "path": "P71, P72",
-            "route": "S39_L1, C12, S43_L1, S50_L1_T, S50_L1_B, S48_L1, S49_L1, S50_L1_B, keast_6, keast_3, C13"
+            "route": "S39_L1, C12, S43_L1, S50_L1_T, S50_L1_B, S48_L1, S49_L1, S50_L1_B, keast_6, keast_3, C13",
 			"nerves": "keast_7, keast_5"
         },
         {
             "id": "path_13",
 			"type": "symp-post",
             "path": "P73, P74",
-            "route": "keast_3, C13, (urinary_7, urinary_10)"
+            "route": "keast_3, C13, (urinary_7, urinary_10)",
 			"nerves": "keast_1"
         },
         {
             "id": "path_14",
 			"type": "symp-pre",
             "path": "P75, P76",
-            "route": "S39_L2, C14, S43_L2, S50_L2_T, S50_L2_B, S48_L2, S49_L2, S50_L2_B, keast_6, keast_3, C13"
+            "route": "S39_L2, C14, S43_L2, S50_L2_T, S50_L2_B, S48_L2, S49_L2, S50_L2_B, keast_6, keast_3, C13",
 			"nerves": "keast_7, keast_5"
         },
         {
             "id": "path_15",
 			"type": "symp-pre",
             "path": "P77, P78",
-            "route": "S39_L1, C15, S43_L1, S50_L1_T, S50_L1_B, S48_L1, S49_L1, S50_L1_B, keast_6, C16"
+            "route": "S39_L1, C15, S43_L1, S50_L1_T, S50_L1_B, S48_L1, S49_L1, S50_L1_B, keast_6, C16",
 			"nerves": "keast_7"
         },
         {
             "id": "path_16",
 			"type": "symp-pre",
             "path": "P78, P79, P80",
-            "route": "S39_L2, C17, S43_L2, S50_L2_T, S50_L2_B, S48_L2, S49_L2, S50_L2_B, keast_6, C16"
+            "route": "S39_L2, C17, S43_L2, S50_L2_T, S50_L2_B, S48_L2, S49_L2, S50_L2_B, keast_6, C16",
 			"nerves": "keast_7"
         },
         {
             "id": "path_17",
 			"type": "symp-post",
             "path": "P81, P82",
-            "route": "keast_6, C16, keast_3, (urinary_7, urinary_10)"
+            "route": "keast_6, C16, keast_3, (urinary_7, urinary_10)",
 			"nerves": "keast_5, keast_1"
         },
         {
@@ -197,14 +197,14 @@
             "id": "path_20",
 			"type": "symp-post",
             "path": "P94, P95, P96, P97, P98, P99, P100, P101, P102, P103",
-            "route": "(C18, C19, C20, C21, C22, C23, C24, C25), S46_T12, spinal_47, S46_T13, spinal_47, S46_L1, spinal_47, S46_L2, spinal_47, S46_L3, spinal_47, S46_L4, spinal_47, S46_L5, spinal_47, S46_L6, spinal_47, S46_S1, S49_S1, S50_S1_B, keast_3, (urinary_8, urinary_11)"
+            "route": "(C18, C19, C20, C21, C22, C23, C24, C25), S46_T12, spinal_47, S46_T13, spinal_47, S46_L1, spinal_47, S46_L2, spinal_47, S46_L3, spinal_47, S46_L4, spinal_47, S46_L5, spinal_47, S46_L6, spinal_47, S46_S1, S49_S1, S50_S1_B, keast_3, (urinary_8, urinary_11)",
 			"nerves": "keast_4, keast_1"
 		},
         {
             "id": "path_21",
 			"type": "symp-post",
             "path": "P94, P95, P96, P97, P98, P99, P100, P101, P102, P103",
-            "route": "(C18, C19, C20, C21, C22, C23, C24, C25), S46_T12, spinal_47, S46_T13, spinal_47, S46_L1, spinal_47, S46_L2, spinal_47, S46_L3, spinal_47, S46_L4, spinal_47, S46_L5, spinal_47, S46_L6, S49_L6, S50_L6_B, keast_3, (urinary_8, urinary_11)"
+            "route": "(C18, C19, C20, C21, C22, C23, C24, C25), S46_T12, spinal_47, S46_T13, spinal_47, S46_L1, spinal_47, S46_L2, spinal_47, S46_L3, spinal_47, S46_L4, spinal_47, S46_L5, spinal_47, S46_L6, S49_L6, S50_L6_B, keast_3, (urinary_8, urinary_11)",
 			"nerves": "keast_4, keast_1"
 		},
         {
@@ -277,56 +277,56 @@
             "id": "path_33",
 			"type": "symp-post",
             "path": "P116",
-            "route": "bolser20_1, bolser20_2, digestive_11 "
+            "route": "bolser20_1, bolser20_2, digestive_11",
 			"nerves": "bolser10_1, bolser_8"
         },
         {
             "id": "path_34",
 			"type": "symp-post",
             "path": "P117",
-            "route": "bolser20_1, bolser20_2, digestive_11 "
+            "route": "bolser20_1, bolser20_2, digestive_11",
 			"nerves": "bolser2_1"
         },
         {
             "id": "path_35",
 			"type": "symp-post",
             "path": "P118",
-            "route": "bolser20_1, bolser20_2, respiratory_11"
+            "route": "bolser20_1, bolser20_2, respiratory_11",
 			"nerves": "bolser2_1, bolser26_1, bolser_12, bolser_3"
         },
         {
             "id": "path_36",
 			"type": "symp-post",
             "path": "P119",
-            "route": "bolser20_1, bolser20_2, respiratory_11"
+            "route": "bolser20_1, bolser20_2, respiratory_11",
 			"nerves": "bolser2_1, bolser26_1, bolser_12, bolser_11"
         },
         {
             "id": "path_37",
 			"type": "symp-post",
             "path": "P120",
-            "route": "bolser20_1, bolser20_2, respiratory_11"
+            "route": "bolser20_1, bolser20_2, respiratory_11",
 			"nerves": "bolser2_1, bolser26_1, bolser21_1, bolser13_1"
         },
         {
             "id": "path_38",
 			"type": "symp-post",
             "path": "P121",
-            "route": "bolser20_1, bolser20_2, respiratory_11"
+            "route": "bolser20_1, bolser20_2, respiratory_11",
 			"nerves": "bolser2_1, bolser26_1, bolser21_1, bolser_4"
         },
         {
             "id": "path_39",
 			"type": "symp-post",
             "path": "P122",
-            "route": "bolser20_1, bolser20_2, respiratory_5"
+            "route": "bolser20_1, bolser20_2, respiratory_5",
 			"nerves": "bolser2_1, bolser26_1, bolser21_1, bolser_4"
         },
         {
             "id": "path_40",
 			"type": "symp-post",
             "path": "P123",
-            "route": "bolser20_1, bolser20_2, respiratory_5"
+            "route": "bolser20_1, bolser20_2, respiratory_5",
 			"nerves": "bolser2_1, bolser26_1, bolser21_1, bolser13_2"
         },
         {
@@ -339,49 +339,49 @@
             "id": "path_42",
 			"type": "symp-post",
             "path": "P125",
-            "route": "bolser20_1, bolser20_2, respiratory_3"
+            "route": "bolser20_1, bolser20_2, respiratory_3",
 			"nerves": "bolser10_2"
         },
         {
             "id": "path_43",
 			"type": "symp-post",
             "path": "P126",
-            "route": "bolser20_1, bolser20_2, brain_23_1, brian9_2"
+            "route": "bolser20_1, bolser20_2, brain_23_1, brian9_2",
 			"nerves": "bolser10_2"
         },
         {
             "id": "path_44",
 			"type": "symp-post",
             "path": "P127",
-            "route": "bolser20_1, bolser20_2, brain_23_2, brian10_2"
+            "route": "bolser20_1, bolser20_2, brain_23_2, brian10_2",
 			"nerves": "bolser10_2"
         },
         {
             "id": "path_45",
 			"type": "symp-post",
             "path": "P128",
-            "route": "bolser20_1, bolser20_2, brain_23_3, brian11_2"
+            "route": "bolser20_1, bolser20_2, brain_23_3, brian11_2",
 			"nerves": "bolser10_2"
         },
         {
             "id": "path_46",
 			"type": "symp-post",
             "path": "P129",
-            "route": "bolser20_1, bolser20_2, brain_23_4, brian12_2"
+            "route": "bolser20_1, bolser20_2, brain_23_4, brian12_2",
 			"nerves": "bolser10_2"
         },
         {
             "id": "path_47",
 			"type": "symp-post",
             "path": "P130",
-            "route": "bolser20_1, bolser20_2, cardio_4"
+            "route": "bolser20_1, bolser20_2, cardio_4",
 			"nerves": "bolser2_2, bolser_6"
         },
         {
             "id": "path_48",
 			"type": "symp-post",
             "path": "P131",
-            "route": "bolser20_1, bolser20_2, cardio_5"
+            "route": "bolser20_1, bolser20_2, cardio_5",
 			"nerves": "bolser2_2, bolser_6"
         },
         {
@@ -406,28 +406,28 @@
             "id": "path_52",
 			"type": "sensory",
             "path": "P136",
-            "route": "respiratory_12, bolser_15, C39, brain12_2"
+            "route": "respiratory_12, bolser_15, C39, brain12_2",
 			"nerves": "bolser_16, bolser26_2"
         },
         {
             "id": "path_53",
 			"type": "sensory",
             "path": "P137",
-            "route": "respiratory_8, bolser_15, C40, brain12_2"
+            "route": "respiratory_8, bolser_15, C40, brain12_2",
 			"nerves": "bolser21_2, bolser26_2"
         },
         {
             "id": "path_54",
 			"type": "sensory",
             "path": "P138",
-            "route": "cardio_13, bolser_15, C38, brain12_2"
+            "route": "cardio_13, bolser_15, C38, brain12_2",
 			"nerves": "bolser_1, bolser26_2"
         },
         {
             "id": "path_55",
 			"type": "sensory",
             "path": "P139",
-            "route": "cardio_4, bolser_18, C41, brain12_2"
+            "route": "cardio_4, bolser_18, C41, brain12_2",
 			"nerves": "bolser_19, bolser_5"
 
         },
@@ -435,7 +435,7 @@
             "id": "path_56",
 			"type": "sensory",
             "path": "P140",
-            "route": "cardio_5, bolser_18, C42, brain12_2"
+            "route": "cardio_5, bolser_18, C42, brain12_2",
 			"nerves": "bolser_7, bolser_5"
         },
         {
