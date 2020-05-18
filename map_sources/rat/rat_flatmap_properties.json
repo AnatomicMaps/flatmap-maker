@@ -89,6 +89,48 @@
                 "label": "Dataset",
                 "dataset": "https://sparc.science/datasets/23?type=dataset"
             }
+        },
+        {
+            "class": "brain_14",
+            "properties": {
+                "label": "VLPAG"
+            }
+        },
+        {
+            "class": "brain_13",
+            "properties": {
+                "label": "BRGTN"
+            }
+        },
+        {
+            "class": "keast_1",
+            "properties": {
+                "label": "bladder nerves"
+            }
+        },
+        {
+            "class": "bolser_2",
+            "properties": {
+                "label": "external carotid nerve plexus"
+            }
+        },
+        {
+            "class": "ardell_1",
+            "properties": {
+                "label": "atrial intracardiac ganglion"
+            }
+        },
+        {
+            "class": "ardell_2",
+            "properties": {
+                "label": "ventricular intracardiac ganglion"
+            }
+        },
+        {
+            "class": "ardell_3",
+            "properties": {
+                "label": "mediastinal ganglion"
+            }
         }
     ],
     "paths": [
