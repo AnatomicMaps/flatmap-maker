@@ -345,9 +345,9 @@ class Layer(object):
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.__current_group.append(properties.get('shape_name', "''"))
                 grouped_feature = self.process_group(shape, properties, *args)
-                self.__set_feature_id(grouped_feature)
                 self.__current_group.pop()
                 if grouped_feature is not None:
+                    self.__set_feature_id(grouped_feature)
                     features.append(grouped_feature)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
                or shape.shape_type == MSO_SHAPE_TYPE.PICTURE):
