@@ -28,7 +28,7 @@ import requests
 
 #===============================================================================
 
-#ILX_ENDPOINT = 'http://uri.interlex.org/base/ilx_{}.json'
+ILX_ENDPOINT = 'http://uri.interlex.org/base/ilx_{:0>7}.json'
 VOCAB_ENDPOINT = 'https://scigraph.olympiangods.org/scigraph/vocabulary/id/{}.json'
 
 #===============================================================================
@@ -64,6 +64,21 @@ class LabelData(object):
                     self.set_label(entity, label)
             except:
                 print("Couldn't access", VOCAB_ENDPOINT.format(entity))
+        else:
+            endpoint = ILX_ENDPOINT.format(entity.strip().split(':')[-1])
+            try:
+                response = requests.get(endpoint)
+                if response:
+                    triples = response.json().get('triples')
+                    print(triples)
+                    for triple in triples:
+                        if triple[1] == 'rdfs:label':
+                            l = triple[2]
+                            label = l[0].upper() + l[1:]
+                            self.set_label(entity, label)
+                            print(entity, '-->', label)
+            except:
+                print("Couldn't access {} for {}".format(endpoint, entity))
         return label
 
 #===============================================================================
