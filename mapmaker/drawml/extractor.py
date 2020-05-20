@@ -403,6 +403,12 @@ class Layer(object):
                 if 'external-id' in properties:
                     properties.update(self.__external_properties.properties_from_id(properties['external-id']))
 
+                if 'marker' in properties:
+                    properties[type] = 'marker'
+                    if 'dataset' in properties:
+                        properties[kind] = 'dataset'
+                    elif 'scaffold' in properties:
+                        properties[kind] = 'scaffold'
         else:
             properties = { 'shape_name': shape.name }
         return properties

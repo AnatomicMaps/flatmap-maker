@@ -88,6 +88,7 @@ class Parser(object):
                       | Keyword('closed')
                       | Keyword('divider')
                       | Keyword('interior')
+                      | Keyword('marker')
                       | Keyword('region')
                       )
 
