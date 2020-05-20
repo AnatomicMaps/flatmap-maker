@@ -19,11 +19,20 @@
 #===============================================================================
 
 import json
+import pyparsing
+
+#===============================================================================
+
+try:
+    from parser import Parser
+except ImportError:
+    from mapmaker.parser import Parser
 
 #===============================================================================
 
 class NodePaths(object):
-    def __init__(self):
+    def __init__(self, feature_map):
+        self.__feature_map = feature_map
         self.__start_paths = {}     # node_id: [ path_ids ]
         self.__through_paths = {}   # node_id: [ path_ids ]
         self.__end_paths = {}       # node_id: [ path_ids ]
@@ -36,65 +45,19 @@ class NodePaths(object):
             'end-paths': self.__end_paths
         }
 
-    def add_route(self, path_id, route_nodes):
-        for node_id in route_nodes['start-nodes']:
-            if node_id not in self.__start_paths:
-                self.__start_paths[node_id] = [ path_id ]
-            else:
-                self.__start_paths[node_id].append(path_id)
-        for node_id in route_nodes['through-nodes']:
-            if node_id not in self.__through_paths:
-                self.__through_paths[node_id] = [ path_id ]
-            else:
-                self.__through_paths[node_id].append(path_id)
-        for node_id in route_nodes['end-nodes']:
-            if node_id not in self.__end_paths:
-                self.__end_paths[node_id] = [ path_id ]
-            else:
-                self.__end_paths[node_id].append(path_id)
+    def __add_paths(self, path_id, nodes, paths_dict, path_id):
+        for id in nodes:
+            node_id = self.__feature_map.map(id)
+            if node_id is not None:
+                if node_id not in paths_dict:
+                    paths_dict[node_id] = [ path_id ]
+                else:
+                    paths_dict[node_id].append(path_id)
 
-    def map_ids(self, feature_map):
-        result = NodePaths()
-        errors = False
-        for id, paths in self.__start_paths.items():
-            try:
-                node_id = feature_map.map(id)
-                if node_id is not None:
-                    node_paths = feature_map.map_list(paths)
-                    if node_id in result.__start_paths:
-                        result.__start_paths[node_id].extend(node_paths)
-                    else:
-                        result.__start_paths[node_id] = node_paths
-            except ValueError as err:
-                print('Node {}: {}'.format(id, str(err)))
-                errors = True
-        for id, paths in self.__through_paths.items():
-            try:
-                node_id = feature_map.map(id)
-                if node_id is not None:
-                    node_paths = feature_map.map_list(paths)
-                    if node_id in result.__through_paths:
-                        result.__through_paths[node_id].extend(node_paths)
-                    else:
-                        result.__through_paths[node_id] = node_paths
-            except ValueError as err:
-                print('Node {}: {}'.format(id, str(err)))
-                errors = True
-        for id, paths in self.__end_paths.items():
-            try:
-                node_id = feature_map.map(id)
-                if node_id is not None:
-                    node_paths = feature_map.map_list(paths)
-                    if node_id in result.__end_paths:
-                        result.__end_paths[node_id].extend(node_paths)
-                    else:
-                        result.__end_paths[node_id] = node_paths
-            except ValueError as err:
-                print('Node {}: {}'.format(id, str(err)))
-                errors = True
-        if errors:
-            raise ValueError('Errors in mapping route nodes')
-        return result
+    def add_route(self, path_id, route_nodes):
+        self.__add_paths(path_id, route_nodes['start-nodes'], self.__start_paths)
+        self.__add_paths(path_id, route_nodes['through-nodes'], self.__through_paths)
+        self.__add_paths(path_id, route_nodes['end-nodes'], self.__end_paths)
 
     def update(self, other):
         self.__start_paths.update(other.__start_paths)
@@ -127,52 +90,124 @@ class FeatureIdMap(object):
 
 #===============================================================================
 
-class LayerPathways(object):
-    def __init__(self):
-        self.__path_lines = {}
-        self.__node_paths = NodePaths()
+class ResolvedPathways(object):
+    def __init__(self, id_map, class_map, class_count):
+        self.__feature_map = FeatureIdMap(id_map, class_map, class_count)
+        self.__path_features = {}
+        self.__node_paths = NodePaths(self.__feature_map)
 
     @property
     def node_paths(self):
         return self.__node_paths
 
     @property
-    def path_lines(self):
-        return self.__path_lines
+    def path_features(self):
+        return self.__path_features
 
-    def add_pathway(self, id, path_lines, route_nodes):
-        self.__path_lines[id] = path_lines
-        self.__node_paths.add_route(id, route_nodes)
-
-    def as_feature_ids(self, id_map, class_map, class_count):
-        feature_map = FeatureIdMap(id_map, class_map, class_count)
-        result = LayerPathways()
-        for id, lines in self.__path_lines.items():
-            path_id = feature_map.map(id)
-            if path_id is not None:
-                path_lines = feature_map.map_list(lines)
-                if path_id in result.__path_lines:
-                    result.__path_lines[path_id].extend(path_lines)
-                else:
-                    result.__path_lines[path_id] = path_lines
-        result.__node_paths = self.__node_paths.map_ids(feature_map)
-        return result
+    def add_pathway(self, id, features, route_nodes):
+        path_id = self.__feature_map.map(id)
+        if path_id is not None:
+            path_features = self.__feature_map.map_list(features)
+            if path_id in self.__path_features:
+                self.__path_features[path_id].extend(path_features)
+            else:
+                self.__path_features[path_id] = path_features
+            self.__node_paths.add_route(path_id, route_nodes)
 
 #===============================================================================
 
-class MapPathways(object):
-    def __init__(self):
-        self.__path_lines = {}
-        self.__node_paths = NodePaths()
+class Pathways(object):
+    def __init__(self, paths_list):
+        self.__lines_by_path_id = {}
+        self.__routes_by_path_id = {}
+        self.__nerves_by_path_id = {}
+        self.__paths_by_nerve_id = {}
+        self.__types_by_path_id = {}
+        self.__paths_by_line_id = {}
+        self.__layer_paths = []
+        self.__resolved_pathways = None
+        for path in paths_list:
+            path_id = path['id']
+            self.__lines_by_path_id[path_id] = list(Parser.path_lines(path['path']))
+            for line_id in self.__lines_by_path_id[path_id]:
+                if line_id in self.__paths_by_line_id:
+                    self.__paths_by_line_id[line_id].append(path_id)
+                else:
+                    self.__paths_by_line_id[line_id] = [ path_id ]
+            if 'route' in path:
+                routing = list(Parser.route_nodes(path['route']))
+                if len(routing) < 2:
+                    raise ValueError('Route definition is too short for path {}'.format(path_id))
+                through_nodes = []
+                for node in routing[1:-2]:
+                    through_nodes += ExternalProperties.__make_list(node)
+                self.__routes_by_path_id[path_id] = {
+                    'start-nodes': ExternalProperties.__make_list(routing[0]),
+                    'through-nodes': through_nodes,
+                    'end-nodes': ExternalProperties.__make_list(routing[-1]),
+                }
+            if 'nerves' in path:
+                self.__nerves_by_path_id[path_id] = list(Parser.nerves(path['nerves']))
+            if 'type' in path:
+                self.__types_by_path_id[path_id] = path['type']
 
-    def add_layer(self, pathways):
-        self.__path_lines.update(pathways.path_lines)
-        self.__node_paths.update(pathways.node_paths)
+    @staticmethod
+    def __make_list(lst):
+        return list(lst) if isinstance(lst, pyparsing.ParseResults) else [ lst ]
 
-    def json(self):
-        return json.dumps({
-            'path-lines': self.__path_lines,
-            'node-paths': self.__node_paths.as_dict
-            })
+    @property
+    def resolved_pathways(self):
+        return self.__resolved_pathways
+
+    def add_path(self, path_id):
+        self.__layer_paths.append(path_id)
+
+    def properties(self, id):
+        result = {}
+        if id in self.__paths_by_line_id:
+            path_id = self.__paths_by_line_id[line_id]
+            result['kind'] = self.__types_by_path_id.get(path_id)
+            result['path'] = path_id
+            result['tile-layer'] = 'pathways'
+            result['type'] = 'line'
+        elif id in self.__paths_by_nerve_id
+            result['path'] = self.__paths_by_nerve_id(id)
+            result['tile-layer'] = 'pathways'
+            result['type'] = 'nerve'
+
+    def set_feature_ids(self, id_map, class_map, class_count):
+        if self.__resolved_pathways is not None:
+            return
+        self.__resolved_pathways = ResolvedPathways(id_map, class_map, class_count)
+        errors = False
+        for path_id in self.__layer_paths:
+            try:
+                self.__resolved_pathways.add_pathway(path_id,
+                                                     self.__lines_by_path_id.get(path_id, [])
+                                                   + self.__nerves_by_path_id.get(path_id, []),
+                                                     self.__routes_by_path_id.get(path_id, {
+                                                        'start-nodes': [],
+                                                        'through-nodes': [],
+                                                        'end-nodes': [],
+                                                     })
+                                                    )
+            except ValueError as err:
+                print('Path {}: {}'.format(path_id, str(err)))
+                errors = True
+        if errors:
+            raise ValueError('Errors in mapping paths and routes')
+
+#===============================================================================
+
+def pathways_to_json(pathways_list):
+    path_features = {}
+    node_paths = NodePaths(None)
+    for resolved_pathways in pathways_list:
+        path_features.update(resolved_pathways.path_features)
+        node_paths.update(resolved_pathways.node_paths)
+    return json.dumps({
+        'path-features': path_features,
+        'node-paths': node_paths.as_dict
+        })
 
 #===============================================================================

@@ -35,8 +35,7 @@ from tqdm import tqdm
 
 from labels import AnatomicalMap
 from parser import Parser
-from pathways import LayerPathways
-from properties import ExternalProperties
+from properties import Properties
 
 #===============================================================================
 
@@ -175,7 +174,8 @@ class Layer(object):
                                                   extractor.settings.label_database)
         else:
             self.__anatomical_map = None
-        self.__external_properties = ExternalProperties(extractor.settings.properties)
+        self.__external_properties = Properties(extractor.settings.properties)
+        self.__pathways = self.__external_properties.pathways
 
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
@@ -211,9 +211,6 @@ class Layer(object):
 
         self.__class_counts = {}          # class: count
         self.__ids_by_class = {}          # class: unique_feature_id
-
-        # Path and route information
-        self.__pathways = LayerPathways()
 
     def __set_defaults(self):
         self.__layer_id = 'layer-{:02d}'.format(self.__slide_number)
@@ -288,12 +285,8 @@ class Layer(object):
         return self._slide.slide_id
 
     @property
-    def pathways(self):
-        return self.__pathways.as_feature_ids(
-            self.__ids_by_external_id,
-            self.__ids_by_class,
-            self.__class_counts
-        )
+    def resolved_pathways(self):
+        return self.__pathways.resolved_pathways
 
     def unique_id(self, id):
     #=======================
@@ -303,6 +296,11 @@ class Layer(object):
     #=================
         self.__current_group.append('SLIDE')
         self.process_shape_list(self._slide.shapes, outermost=True)
+        self.__pathways.set_feature_ids(
+            self.__ids_by_external_id,
+            self.__ids_by_class,
+            self.__class_counts
+        )
 
     def save(self, filename=None):
     #=============================
@@ -334,13 +332,12 @@ class Layer(object):
             properties = self.get_properties_(shape)
             if 'path' in properties:
                 path_id = properties['path']
-                self.__pathways.add_pathway(path_id,
-                                            self.__external_properties.path_lines(path_id),
-                                            self.__external_properties.route_nodes(path_id))
+                self.__pathways.add_path(path_id),
                 self.__ids_by_external_id[path_id] = self.unique_id(shape.shape_id)
             elif (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or isinstance(shape, pptx.shapes.connector.Connector)):
+                properties.update(self._pathways.properties(properties.get('external-id')))
                 geometry = self.process_shape(shape, properties, *args)
                 feature = Feature(self.unique_id(shape.shape_id), geometry, properties)
                 self.__set_feature_id(feature)

@@ -20,7 +20,6 @@
 
 
 
-MAPMAKER_VERSION = '0.7.0b3'
 MAPMAKER_VERSION = '0.7.0b3devel'
 #===============================================================================
 
@@ -176,7 +175,7 @@ def main():
 
     annotations = {}
     map_layers = []
-    map_pathways = MapPathways()
+    pathways_list = []
     tippe_inputs = []
     for slide_number in range(1, len(map_extractor)+1):
         if args.tile_slide > 0 and args.tile_slide != slide_number:
@@ -203,7 +202,7 @@ def main():
         if layer.background_for:
             map_layer['background_for'] = layer.background_for
         map_layers.append(map_layer)
-        map_pathways.add_layer(layer.pathways)
+        pathways_list.append(layer.resolved_pathways)
 
         if layer.models:
             map_models = layer.models
@@ -284,7 +283,7 @@ def main():
         tile_db.add_metadata(layers=json.dumps(map_layers))
 
         # Save pathway details in metadata
-        tile_db.add_metadata(pathways=map_pathways.json())
+        tile_db.add_metadata(pathways=pathways_to_json(pathways_list))
 
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(annotations))
