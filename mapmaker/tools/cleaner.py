@@ -34,7 +34,7 @@ from tqdm import tqdm
 
 #===============================================================================
 
-EXCLUDE_SHAPE_NAMES = ['group', 'invisible', 'region', 'path']
+EXCLUDE_SHAPE_TYPES = ['group', 'invisible', 'marker', 'path', 'region']
 
 #===============================================================================
 
@@ -71,7 +71,7 @@ class NameChecker(object):
     def valid(self, name):
         if name.startswith('.'):
             for directive in name[1:].split():
-                if directive.split('(')[0] in EXCLUDE_SHAPE_NAMES:
+                if directive.split('(')[0] in EXCLUDE_SHAPE_TYPES:
                     return False
                 elif directive.startswith('id'):
                     id = directive[(directive.find('(')+1):directive.rfind(')')].strip()
