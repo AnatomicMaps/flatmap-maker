@@ -411,6 +411,8 @@ class Layer(object):
                         properties[kind] = 'scaffold'
         else:
             properties = { 'shape_name': shape.name }
+        # Name of vector tile layer containing features
+        properties['tile-layer'] = 'features'
         return properties
 
 #===============================================================================
@@ -449,7 +451,7 @@ class Extractor(object):
     def slide(self, slide_number):
         return self.__slides[slide_number - 1]
 
-    def slide_to_layer(self, slide_number, save_output=True, debug_xml=False):
+    def slide_to_layer(self, slide_number, debug_xml=False):
         slide = self.slide(slide_number)
         if debug_xml:
             xml = open(os.path.join(self.__settings.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
@@ -463,8 +465,6 @@ class Extractor(object):
             if layer.layer_id in self.__layers:
                 raise KeyError('Duplicate layer id ({}) in slide {}'.format(layer.layer_id, slide_number))
             self.__layers[layer.layer_id] = layer
-            if save_output:
-                layer.save()
             return layer
 
     def slides_to_layers(self, slide_range):

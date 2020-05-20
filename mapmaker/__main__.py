@@ -182,8 +182,7 @@ def main():
             continue
 
         layer = map_extractor.slide_to_layer(slide_number,
-                                                save_output=False,
-                                                debug_xml=args.debug_xml)
+                                             debug_xml=args.debug_xml)
         for error in layer.errors:
             print(error)
 
@@ -209,14 +208,13 @@ def main():
 
         if layer.selectable:
             annotations.update(layer.annotations)
-            filename = os.path.join(map_dir, '{}.json'.format(layer.layer_id))
-            filenames.append(filename)
-            layer.save(filename)
-            tippe_inputs.append({
-                'file': filename,
-                'layer': 'features',   ## Have `feature-layer(NAME)` as slide annotation??
-                'description': layer.description
-            })
+            for (layer_name, filename) in layer.save().items():
+                filenames.append(filename)
+                tippe_inputs.append({
+                    'file': filename,
+                    'layer': layer_name,
+                    'description': '{} -- {}'.format(layer.description, layer_name)
+                })
 
     # We are finished with the Powerpoint
 

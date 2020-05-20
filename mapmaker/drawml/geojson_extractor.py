@@ -57,11 +57,26 @@ METRES_PER_EMU = 0.1   ## This to become a command line parameter...
                        ## Or in a specification file...
 #===============================================================================
 
+def geo_collection(id, features, description=''):
+    return {
+        'type': 'FeatureCollection',
+        'id': id,
+        'creator': 'mapmaker',        # Add version
+        'features': features,
+        'properties': {
+            'id': id,
+            'description': description
+        }
+    }
+
+#===============================================================================
+
 class GeoJsonLayer(Layer):
     def __init__(self, extractor, slide, slide_number):
         super().__init__(extractor, slide, slide_number)
         self.__geo_collection = {}
         self.__geo_features = []
+        self.__geo_pathways = []
         self.__region_id = 10000
         self.__transform = extractor.transform
 
@@ -74,27 +89,24 @@ class GeoJsonLayer(Layer):
     def process(self):
     #=================
         self.__geo_features = []
-
+        self.__geo_pathways = []
         features = self.process_shape_list(self._slide.shapes, self.__transform, outermost=True)
         self.add_geo_features_('Slide', features, True)
 
-        self.__geo_collection = {
-            'type': 'FeatureCollection',
-            'id': self.layer_id,
-            'creator': 'mapmaker',        # Add version
-            'features': self.__geo_features,
-            'properties': {
-                'id': self.layer_id,
-                'description': self.description
-            }
-        }
-
-    def save(self, filename=None):
-    #=============================
-        if filename is None:
-            filename = os.path.join(self.settings.output_dir, '{}.json'.format(self.layer_id))
+    def save_as_collection_(self, features, layer_type, description=''):
+    #===================================================================
+        collection = geo_collection(self.layer_id, features, description)
+        filename = os.path.join(self.settings.output_dir, '{}_{}.json'.format(self.layer_id, layer_type))
         with open(filename, 'w') as output_file:
-            json.dump(self.__geo_collection, output_file)
+            json.dump(collection, output_file)
+        return filename
+
+    def save(self):
+    #==============
+        return {
+            'features': self.save_as_collection_(self.__geo_features, 'features', self.description),
+            'pathways': self.save_as_collection_(self.__geo_pathways, 'pathways')
+        }
 
     def process_group(self, group, properties, transform):
     #=====================================================
@@ -249,15 +261,15 @@ class GeoJsonLayer(Layer):
                 properties = base_properties.copy()
                 # And are overriden by feature specific ones
                 properties.update(feature.properties)
-
+                tile_layer = properties['tile-layer']
                 geometry = feature.geometry
-                mercator_geometry = mercator_transform(geometry)
                 area = geometry.area
+                mercator_geometry = mercator_transform(geometry)
                 geojson = {
                     'type': 'Feature',
                     'id': int(feature.feature_id),   # Must be numeric for tipeecanoe
                     'tippecanoe' : {
-                        'layer' : properties['layer']
+                        'layer' : tile_layer
                     },
                     'geometry': shapely.geometry.mapping(mercator_geometry),
                     'properties': {
@@ -266,6 +278,7 @@ class GeoJsonLayer(Layer):
                         'centroid': list(list(mercator_geometry.centroid.coords)[0]),
                         'area': area,
                         'length': geometry.length,
+                        'layer': tile_layer,
                     }
                 }
 
@@ -283,7 +296,11 @@ class GeoJsonLayer(Layer):
                     properties['geometry'] = geojson['geometry']['type']
                     self.annotations[feature.id] = properties
 
-                self.__geo_features.append(geojson)
+                if tile_layer == 'pathways':
+                    self.__geo_pathways.append(geojson)
+                else:
+                    self.__geo_features.append(geojson)
+
                 self.map_features.append({
                     'id': feature.id,
                     'type': geojson['geometry']['type']
