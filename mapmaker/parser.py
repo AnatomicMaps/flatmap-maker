@@ -95,7 +95,6 @@ class Parser(object):
 
     FEATURE_FLAGS = Group(Keyword('group')
                       |   Keyword('invisible')
-                      |   Keyword('organ')
                       )
 
     SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS | FEATURE_FLAGS | FEATURE_PROPERTIES | PATH | SHAPE_FLAGS)
