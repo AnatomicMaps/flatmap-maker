@@ -277,9 +277,13 @@ class Layer(object):
     #=======================
         return '{}#{}'.format(self.slide_id, id)
 
+    def process_initialise(self):
+    #============================
+        self.__current_group.append('SLIDE')
+
     def process(self):
     #=================
-        self.__current_group.append('SLIDE')
+        self.process_initialise()
         self.process_shape_list(self._slide.shapes, outermost=True)
         self.process_finialise()
 

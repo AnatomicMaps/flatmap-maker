@@ -88,6 +88,7 @@ class GeoJsonLayer(Layer):
 
     def process(self):
     #=================
+        self.process_initialise()
         self.__geo_features = []
         self.__geo_pathways = []
         features = self.process_shape_list(self._slide.shapes, self.__transform, outermost=True)
