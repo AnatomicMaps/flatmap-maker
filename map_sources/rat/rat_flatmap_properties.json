@@ -173,7 +173,7 @@
             "id": "path_2",
             "type": "sensory",
             "path": "P17, P18, P19, P20, P21,P22, P22, P23, P24, P25, P26, P27, P28, P29, P30, P31, P32, P33, P34, P35, P36, P37",
-            "route": "(urinary_6, urinary_7, urinary_8, urinary_9, urinary_10, urinary_11), keast_3, S50_L6_B, S50_S1_B, S50_L6_T, S50_S1_T, S45_L6, S45_S1, C3, C4, S44_L6, ((S33_L6, S34_L6, S37_L6, S39_L6, S42_L6, S33_S1, S34_S1, S37_S1, S39_S1, S42_S1)",
+            "route": "(urinary_6, urinary_7, urinary_8, urinary_9, urinary_10, urinary_11), keast_3, S50_L6_B, S50_S1_B, S50_L6_T, S50_S1_T, S45_L6, S45_S1, C3, C4, S44_L6, (S33_L6, S34_L6, S37_L6, S39_L6, S42_L6, S33_S1, S34_S1, S37_S1, S39_S1, S42_S1)",
             "nerves": "keast_4, keast_1"
         },
         {
