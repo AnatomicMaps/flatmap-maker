@@ -79,7 +79,7 @@ class Sources(object):
     @staticmethod
     def style(layers, vector_layer_dict, bounds, map_zoom):
         sources = {
-            'features': VectorSource.style(vector_layer_dict, bounds, map_zoom)
+            'vector-tiles': VectorSource.style(vector_layer_dict, bounds, map_zoom)
         }
         for layer_id in layers:
             sources['{}-image'.format(layer_id)] = RasterSource.style(layer_id, bounds, map_zoom)
