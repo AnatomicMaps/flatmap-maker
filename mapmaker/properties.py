@@ -82,8 +82,8 @@ class Properties(object):
     #================================
         return self.__properties_by_id.get(id, {})
 
-    def set_feature_class(self, class_id, feature_id):
-    #=================================================
+    def set_class_id(self, class_id, feature_id):
+    #============================================
         self.__ids_by_class[class_id] = feature_id
 
     def set_feature_id(self, external_id, feature_id):
