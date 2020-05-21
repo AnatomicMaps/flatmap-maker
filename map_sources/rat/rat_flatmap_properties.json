@@ -303,13 +303,13 @@
             "id": "path_22",
             "type": "symp-pre",
             "path": "P114",
-            "route": "brain_11, C45, C46, S39_T1"
+            "route": "brain11_1, C45, C46, S39_T1"
         },
         {
             "id": "path_23",
             "type": "symp-pre",
             "path": "P115",
-            "route": "brain_9, C47, C48, S39_T1"
+            "route": "brain9_1, C47, C48, S39_T1"
         },
         {
             "id": "path_24",
@@ -384,28 +384,28 @@
             "id": "path_34",
             "type": "symp-post",
             "path": "P126",
-            "route": "bolser20_1, bolser20_2, brain_23_1, brian9_2",
+            "route": "bolser20_1, bolser20_2, brain_23_1, brain9_2",
             "nerves": "bolser10_2"
         },
         {
             "id": "path_35",
             "type": "symp-post",
             "path": "P127",
-            "route": "bolser20_1, bolser20_2, brain_23_2, brian10_2",
+            "route": "bolser20_1, bolser20_2, brain_23_2, brain10_2",
             "nerves": "bolser10_2"
         },
         {
             "id": "path_36",
             "type": "symp-post",
             "path": "P128",
-            "route": "bolser20_1, bolser20_2, brain_23_3, brian11_2",
+            "route": "bolser20_1, bolser20_2, brain_23_3, brain11_2",
             "nerves": "bolser10_2"
         },
         {
             "id": "path_37",
             "type": "symp-post",
             "path": "P129",
-            "route": "bolser20_1, bolser20_2, brain_23_4, brian12_2",
+            "route": "bolser20_1, bolser20_2, brain_23_4, brain12_2",
             "nerves": "bolser10_2"
         },
         {
