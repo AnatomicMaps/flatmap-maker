@@ -132,6 +132,7 @@ class Properties(object):
                     else:
                         properties['label'] = cls
                     properties.update(self.properties_from_class(cls))
+                    properties.update(self.__pathways.properties(cls))
 
                 if 'external-id' in properties:
                     id = properties['external-id']
