@@ -202,7 +202,7 @@ class Layer(object):
         self.__description = 'Layer {}'.format(self.__slide_number)
         self.__models = ''
         self.__background_for = ''
-        self.__selectable = False
+        self.__selectable = True
         self.__selected = False
         self.__queryable_nodes = False
         self.__zoom = None
