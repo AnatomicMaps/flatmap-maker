@@ -120,7 +120,8 @@ class GeoJsonLayer(Layer):
         map_area = self.extractor.map_area()
 
         base_properties = {
-            'layer': self.layer_id
+            'layer': self.layer_id,
+            'tile-layer': 'features'
             }
 
         group_features = []
@@ -128,6 +129,7 @@ class GeoJsonLayer(Layer):
             'group': True,
             'interior': True,
             'layer': self.layer_id,
+            'tile-layer': 'features'
         }
 
         # We first find our boundary polygon(s)
@@ -263,7 +265,8 @@ class GeoJsonLayer(Layer):
                 properties = base_properties.copy()
                 # And are overriden by feature specific ones
                 properties.update(feature.properties)
-                tile_layer = properties['tile-layer']
+                source_layer = '{}-{}'.format(properties['layer'], properties['tile-layer'])
+                properties['source-layer'] = source_layer
                 geometry = feature.geometry
                 area = geometry.area
                 mercator_geometry = mercator_transform(geometry)
@@ -271,7 +274,7 @@ class GeoJsonLayer(Layer):
                     'type': 'Feature',
                     'id': int(feature.feature_id),   # Must be numeric for tipeecanoe
                     'tippecanoe' : {
-                        'layer' : tile_layer
+                        'layer' : source_layer
                     },
                     'geometry': shapely.geometry.mapping(mercator_geometry),
                     'properties': {
@@ -280,7 +283,7 @@ class GeoJsonLayer(Layer):
                         'centroid': list(list(mercator_geometry.centroid.coords)[0]),
                         'area': area,
                         'length': geometry.length,
-                        'layer': tile_layer,
+                        'layer': source_layer,
                     }
                 }
 
@@ -298,7 +301,7 @@ class GeoJsonLayer(Layer):
                     properties['geometry'] = geojson['geometry']['type']
                     self.annotations[feature.id] = properties
 
-                if tile_layer == 'pathways':
+                if properties['tile-layer'] == 'pathways':
                     self.__geo_pathways.append(geojson)
                 else:
                     self.__geo_features.append(geojson)
