@@ -33,7 +33,6 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from labels import AnatomicalMap
 from parser import Parser
 from properties import Properties
 
@@ -169,16 +168,12 @@ class Layer(object):
         self.__extractor = extractor
         self.__slide_number = slide_number
         self.__errors = []
-        if extractor.settings.anatomical_map:
-            self.__anatomical_map = AnatomicalMap(extractor.settings.anatomical_map,
-                                                  extractor.settings.label_database)
-        else:
-            self.__anatomical_map = None
-        self.__external_properties = Properties(extractor.settings.properties)
+        self.__external_properties = Properties(extractor.settings)
         self.__pathways = self.__external_properties.pathways
 
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
+        self.__set_defaults()
         if slide.has_notes_slide:
             notes_slide = slide.notes_slide
             notes_text = notes_slide.notes_text_frame.text
@@ -187,7 +182,6 @@ class Layer(object):
                 if 'error' in layer_directive:
                     self.__errors.append('Slide {}: invalid layer directive: {}'
                                         .format(slide_number, notes_text))
-                    self.__layer_id = 'layer-{:02d}'.format(slide_number)
                 else:
                     self.__layer_id = layer_directive.get('id')
                 self.__description = layer_directive.get('description', self.__layer_id.capitalize())
@@ -197,20 +191,11 @@ class Layer(object):
                 self.__selected = layer_directive.get('selected', False)
                 self.__queryable_nodes = layer_directive.get('queryable-nodes', False)
                 self.__zoom = layer_directive.get('zoom', None)
-            else:
-                self.__set_defaults()
-        else:
-            self.__set_defaults()
 
         self.__map_features = []
 #*        self.__ontology_data = self.settings.ontology_data
         self.__annotations = {}
         self.__current_group = []
-
-        self.__ids_by_external_id = {}  # id: unique_feature_id
-
-        self.__class_counts = {}          # class: count
-        self.__ids_by_class = {}          # class: unique_feature_id
 
     def __set_defaults(self):
         self.__layer_id = 'layer-{:02d}'.format(self.__slide_number)
@@ -224,9 +209,9 @@ class Layer(object):
 
     def __set_feature_id(self, feature):
         if feature.has('external-id'):
-            self.__ids_by_external_id[feature.property('external-id')] = feature.id
+            self.__external_properties.set_feature_id(feature.property('external-id'), feature.id)
         if feature.has('class'):
-            self.__ids_by_class[feature.property('class')] = feature.id
+            self.__external_properties.set_class_id(feature.property('class'), feature.id)
 
     @property
     def extractor(self):
@@ -329,15 +314,15 @@ class Layer(object):
 
         features = []
         for shape in shapes:
-            properties = self.get_properties_(shape)
+            properties = self.__external_properties.get_properties(shape,
+                            self.__current_group[-1],
+                            self.__slide_number)
             if 'path' in properties:
                 path_id = properties['path']
-                self.__pathways.add_path(path_id),
-                self.__ids_by_external_id[path_id] = self.unique_id(shape.shape_id)
+                self.__pathways.add_path(path_id)
             elif (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or isinstance(shape, pptx.shapes.connector.Connector)):
-                properties.update(self._pathways.properties(properties.get('external-id')))
                 geometry = self.process_shape(shape, properties, *args)
                 feature = Feature(self.unique_id(shape.shape_id), geometry, properties)
                 self.__set_feature_id(feature)
@@ -360,60 +345,6 @@ class Layer(object):
         if outermost:
             progress_bar.close()
         return features
-
-    def get_properties_(self, shape):
-    #================================
-        if shape.name.startswith('.'):
-            properties = Parser.shape_properties(shape.name)
-            properties['shape_name'] = shape.name
-            try:
-                group = self.__current_group[-1]
-            except IndexError:
-                group = "UNKNOWN"
-            if 'error' in properties:
-                properties['error'] = 'syntax'
-                self.__errors.append('Shape in slide {}, group {}, has annotation syntax error: {}'
-                                    .format(self.__slide_number, group, shape.name))
-            else:
-                for (key, value) in properties.items():
-                    if key in ['id', 'path']:
-                        if value in self.__ids_by_external_id:
-                            properties['error'] = 'duplicate-id'
-                            self.__errors.append('Shape in slide {}, group {}, has a duplicate id: {}'
-                                                .format(self.__slide_number, group, shape.name))
-                        else:
-                            self.__ids_by_external_id[value] = None
-                    if key == 'warning':
-                        self.__errors.append('Warning, slide {}, group {}: {}'
-                                            .format(self.__slide_number, group, value))
-                if 'class' in properties:
-                    cls = properties['class']
-                    if cls in self.__class_counts:
-                        self.__class_counts[cls] += 1
-                    else:
-                        self.__class_counts[cls] = 1
-                    self.__ids_by_class[cls] = None
-
-                    if self.__anatomical_map is not None:
-                        properties.update(self.__anatomical_map.properties(cls))
-                    else:
-                        properties['label'] = cls
-                    properties.update(self.__external_properties.properties_from_class(cls))
-
-                if 'external-id' in properties:
-                    properties.update(self.__external_properties.properties_from_id(properties['external-id']))
-
-                if 'marker' in properties:
-                    properties[type] = 'marker'
-                    if 'dataset' in properties:
-                        properties[kind] = 'dataset'
-                    elif 'scaffold' in properties:
-                        properties[kind] = 'scaffold'
-        else:
-            properties = { 'shape_name': shape.name }
-        # Name of vector tile layer containing features
-        properties['tile-layer'] = 'features'
-        return properties
 
 #===============================================================================
 

@@ -22,20 +22,36 @@ import json
 
 #===============================================================================
 
-from pathways import Pathways
+try:
+    from labels import AnatomicalMap
+    from parser import Parser
+    from pathways import Pathways
+except ImportError:
+    from mapmaker.labels import AnatomicalMap
+    from mapmaker.parser import Parser
+    from mapmaker.pathways import Pathways
 
 #===============================================================================
 
 class Properties(object):
-    def __init__(self, properties_file):
+    def __init__(self, settings):
+        if settings.anatomical_map:
+            self.__anatomical_map = AnatomicalMap(settings.anatomical_map,
+                                                  settings.label_database)
+        else:
+            self.__anatomical_map = None
         self.__properties_by_class = {}
         self.__properties_by_id = {}
         self.__pathways = None
-        if properties_file:
-            with open(properties_file) as fp:
+        self.__parse_errors = []
+        self.__ids_by_external_id = {}    # id: unique_feature_id
+        self.__class_counts = {}          # class: count
+        self.__ids_by_class = {}          # class: unique_feature_id
+        if settings.properties:
+            with open(settings.properties) as fp:
                 properties_dict = json.loads(fp.read())
                 self.__set_properties(properties_dict['features'])
-                self.__pathways = Pathways(properties_dict['pathways'])
+                self.__pathways = Pathways(properties_dict['paths'])
 
     def __set_properties(self, features_list):
         for feature in features_list:
@@ -59,9 +75,82 @@ class Properties(object):
         return self.__pathways
 
     def properties_from_class(self, cls):
+    #====================================
         return self.__properties_by_class.get(cls, {})
 
     def properties_from_id(self, id):
+    #================================
         return self.__properties_by_id.get(id, {})
+
+    def set_feature_class(self, class_id, feature_id):
+    #=================================================
+        self.__ids_by_class[class_id] = feature_id
+
+    def set_feature_id(self, external_id, feature_id):
+    #=================================================
+        self.__ids_by_external_id[external_id] = feature_id
+
+    def set_feature_ids(self):
+    #=========================
+        self.__pathways.set_feature_ids(
+            self.__ids_by_external_id,
+            self.__ids_by_class,
+            self.__class_counts
+        )
+
+    def get_properties(self, shape, group_name, slide_number=1):
+    #===========================================================
+        if shape.name.startswith('.'):
+            properties = Parser.shape_properties(shape.name)
+            properties['shape_name'] = shape.name
+            properties['tile-layer'] = 'features'
+            if 'error' in properties:
+                properties['error'] = 'syntax'
+                self.__parse_errors.append('Shape in slide {}, group {}, has annotation syntax error: {}'
+                                           .format(slide_number, group_name, shape.name))
+            else:
+                for (key, value) in properties.items():
+                    if key in ['id', 'path']:
+                        if value in self.__ids_by_external_id:
+                            self.__parse_errors.append('Shape in slide {}, group {}, has a duplicate id: {}'
+                                                       .format(slide_number, group_name, shape.name))
+                        else:
+                            self.__ids_by_external_id[value] = None
+                    if key == 'warning':
+                        self.__parse_errors.append('Warning, slide {}, group {}: {}'
+                                                  .format(slide_number, group_name, value))
+                if 'class' in properties:
+                    cls = properties['class']
+                    if cls in self.__class_counts:
+                        self.__class_counts[cls] += 1
+                    else:
+                        self.__class_counts[cls] = 1
+                    self.__ids_by_class[cls] = None
+
+                    if self.__anatomical_map is not None:
+                        properties.update(self.__anatomical_map.properties(cls))
+                    else:
+                        properties['label'] = cls
+                    properties.update(self.properties_from_class(cls))
+
+                if 'external-id' in properties:
+                    id = properties['external-id']
+                    properties.update(self.properties_from_id(id))
+                    properties.update(self.__pathways.properties(id))
+
+                if 'marker' in properties:
+                    properties['type'] = 'marker'
+                    if 'dataset' in properties:
+                        properties['kind'] = 'dataset'
+                    elif 'scaffold' in properties:
+                        properties['kind'] = 'scaffold'
+                return properties
+        else:
+            return {
+                'shape_name': shape.name,
+                'tile-layer': 'features'
+            }
+
+        return None
 
 #===============================================================================

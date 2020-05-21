@@ -140,11 +140,11 @@ class Pathways(object):
                     raise ValueError('Route definition is too short for path {}'.format(path_id))
                 through_nodes = []
                 for node in routing[1:-2]:
-                    through_nodes += ExternalProperties.__make_list(node)
+                    through_nodes += Pathways.__make_list(node)
                 self.__routes_by_path_id[path_id] = {
-                    'start-nodes': ExternalProperties.__make_list(routing[0]),
+                    'start-nodes': Pathways.__make_list(routing[0]),
                     'through-nodes': through_nodes,
-                    'end-nodes': ExternalProperties.__make_list(routing[-1]),
+                    'end-nodes': Pathways.__make_list(routing[-1]),
                 }
             if 'nerves' in path:
                 self.__nerves_by_path_id[path_id] = list(Parser.nerves(path['nerves']))
