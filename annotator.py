@@ -31,23 +31,22 @@ from tqdm import tqdm
 
 from mapmaker.labels import AnatomicalMap
 from mapmaker.parser import Parser
-from mapmaker.properties import ExternalProperties
+from mapmaker.properties import Properties
 
 #===============================================================================
 
 class Slide(object):
-    def __init__(self, slide, mapping, properties):
-        self._mapping = mapping
-        self._properties = properties
-        self._slide_id = slide.slide_id
+    def __init__(self, slide, properties):
+        self.__properties = properties
+        self.__slide_id = slide.slide_id
         if slide.has_notes_slide:
             notes_slide = slide.notes_slide
-            self._notes = notes_slide.notes_text_frame.text.rstrip()
+            self.__notes = notes_slide.notes_text_frame.text.rstrip()
         else:
-            self._notes = ''
-        self._properties_by_id = OrderedDict()
-        self._external_ids = []
-        self._current_group = ['SLIDE']
+            self.__notes = ''
+        self.__properties_by_id = OrderedDict()
+        self.__external_ids = []
+        self.__current_group = ['SLIDE']
         self.process_shape_list_(slide.shapes, True)
 
     def process_shape_list_(self, shapes, outermost):
@@ -58,71 +57,35 @@ class Slide(object):
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for shape in shapes:
             if shape.shape_type == MSO_SHAPE_TYPE.GROUP:
-                self._current_group.append(shape.name)
+                self.__current_group.append(shape.name)
                 self.process_shape_list_(shape.shapes, False)
-                self._current_group.pop()
+                self.__current_group.pop()
             else:
-                unique_id = '{}#{}'.format(self._slide_id, shape.shape_id)
-                self._properties_by_id[unique_id] = self.get_properties(shape)
+                unique_id = '{}#{}'.format(self.__slide_id, shape.shape_id)
+                self.__properties_by_id[unique_id] = self.__properties.get_properties(shape, self.__current_group[-1])
             if outermost:
                 progress_bar.update(1)
         if outermost:
             progress_bar.close()
 
-    def get_properties(self, shape):
-        if shape.name.startswith('.'):
-            properties = Parser.shape_properties(shape.name)
-            properties['name'] = shape.name
-            try:
-                group = self._current_group[-1]
-            except IndexError:
-                group = "UNKNOWN"
-            properties['group'] = group
-            if 'error' in properties:
-                properties['error'] = ('Shape in group {} has annotation syntax error: {}'
-                                       .format(group, shape.name))
-            else:
-                for (key, value) in properties.items():
-                    if key in ['id', 'path']:
-                        if value in self._external_ids:
-                            properties['error'] = ('Shape in group {} has a duplicate id: {}'
-                                                   .format(group, shape.name))
-                        else:
-                            self._external_ids.append(value)
-                    if key == 'warning':
-                        properties['warning'] = 'Warning in group {}: {}'.format(group, value)
-                if 'class' in properties:
-                    cls = properties['class']
-                    if self._mapping is not None:
-                        properties.update(self._mapping.properties(cls))
-                    else:
-                        properties['label'] = cls
-                    properties.update(self._properties.properties_from_class(cls))
-                if 'external-id' in properties:
-                    properties.update(self._properties.properties_from_id(properties['external-id']))
-            return properties
-        elif shape.name.startswith('#'):
-            return {'name': shape.name}
-        return None
-
     def list(self):
-        print('SLIDE: {!s:8} {}'.format(self._slide_id, self._notes))
-        for id, properties in self._properties_by_id.items():
+        print('SLIDE: {!s:8} {}'.format(self.__slide_id, self.__notes))
+        for id, properties in self.__properties_by_id.items():
             if properties:
                 print('SHAPE: {:8} {}'.format(id, properties))
 
 #===============================================================================
 
 class Presentation(object):
-    def __init__(self, powerpoint, mapping, properties):
-        self._pptx = pptx.Presentation(powerpoint)
-        self._slides_by_id = OrderedDict()
-        self._seen = []
-        for slide in self._pptx.slides:
-            self._slides_by_id[slide.slide_id] = Slide(slide, mapping, properties)
+    def __init__(self, powerpoint, properties):
+        self.__pptx = pptx.Presentation(powerpoint)
+        self.__slides_by_id = OrderedDict()
+        self.__seen = []
+        for slide in self.__pptx.slides:
+            self.__slides_by_id[slide.slide_id] = Slide(slide, properties)
 
     def list(self):
-        for slide in self._slides_by_id.values():
+        for slide in self.__slides_by_id.values():
             slide.list()
 
 #===============================================================================
@@ -151,17 +114,8 @@ if __name__ == '__main__':
     parser.add_argument('powerpoint', help='Powerpoint file')
 
     args = parser.parse_args()
+    args.label_database = 'labels.sqlite'
+    external_properties = Properties(args)
 
-
-    label_database = 'labels.sqlite'
-
-    if args.anatomical_map:
-        anatomical_map = AnatomicalMap(args.anatomical_map, label_database)
-    else:
-        anatomical_map = None
-    external_properties = ExternalProperties(args.properties)
-
-
-    presentation = Presentation(args.powerpoint, anatomical_map, external_properties)
-
+    presentation = Presentation(args.powerpoint, external_properties)
     presentation.list()
