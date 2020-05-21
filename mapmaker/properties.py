@@ -98,8 +98,8 @@ class Properties(object):
             self.__class_counts
         )
 
-    def get_properties(self, shape, group_name, slide_number=1):
-    #===========================================================
+    def get_properties(self, shape, group_name='', slide_number=1):
+    #==============================================================
         if shape.name.startswith('.'):
             properties = Parser.shape_properties(shape.name)
             properties['shape_name'] = shape.name
