@@ -145,7 +145,7 @@ SHAPE: 263#255  {'warning': "'siblings' property is deprecated", 'shape_name': '
 SHAPE: 263#256  {'group': True, 'class': 'respiratory_6', 'shape_name': '.group class(respiratory_6)', 'tile-layer': 'features', 'models': 'UBERON:0003604', 'label': 'Trachea cartilage', 'tooltip': False}
 SHAPE: 263#840  {'class': 'respiratory_9', 'shape_name': '.class(respiratory_9)', 'tile-layer': 'features', 'models': 'UBERON:0002375', 'label': 'Cricoid cartilage'}
 SHAPE: 263#841  {'class': 'endocrine_1', 'shape_name': '.class(endocrine_1)', 'tile-layer': 'features', 'models': 'UBERON:0002046', 'label': 'Thyroid gland'}
-SHAPE: 263#842  {'class': 'respiratory_11', 'shape_name': '.class(respiratory_11)', 'tile-layer': 'features', 'models': 'UBERON:0000388', 'label': 'Epiglottis'}
+SHAPE: 263#842  {'shape_name': 'XXX(respiratory_11)XXXX', 'tile-layer': 'features'}
 SHAPE: 263#843  {'class': 'respiratory_10', 'shape_name': '.class(respiratory_10)', 'tile-layer': 'features', 'models': 'UBERON:0001738', 'label': 'Thyroid cartilage'}
 SHAPE: 263#889  {'class': 'reproductive_5', 'shape_name': '.class(reproductive_5)', 'tile-layer': 'features', 'models': 'UBERON:0002367', 'label': 'Prostate gland'}
 SHAPE: 263#904  {'class': 'endocrine_2', 'shape_name': '.class(endocrine_2)', 'tile-layer': 'features', 'models': 'UBERON:0002370', 'label': 'Thymus'}
@@ -333,7 +333,7 @@ SHAPE: 263#315  {'shape_name': 'Freeform 314', 'tile-layer': 'features'}
 SHAPE: 263#316  {'shape_name': 'Freeform 315', 'tile-layer': 'features'}
 SHAPE: 263#311  {'group': True, 'class': 'brain_35', 'shape_name': '.group class(brain_35)', 'tile-layer': 'features', 'models': 'UBERON:0000955', 'label': 'Brain', 'tooltip': False}
 SHAPE: 263#305  {'class': 'brain_12', 'external-id': 'brain12_1', 'shape_name': '.class(brain_12) id(brain12_1)', 'tile-layer': 'features', 'models': 'UBERON:0009050', 'label': 'Nucleus of solitary tract'}
-SHAPE: 263#453  {'class': 'brain_9', 'shape_name': '.class(brain_9)', 'tile-layer': 'features', 'models': 'UBERON:0001930', 'label': 'Paraventricular nucleus of hypothalamus'}
+SHAPE: 263#453  {'class': 'brain_9', 'external-id': 'brain9_1', 'shape_name': '.class(brain_9) id(brain9_1)', 'tile-layer': 'features', 'models': 'UBERON:0001930', 'label': 'Paraventricular nucleus of hypothalamus'}
 SHAPE: 263#454  {'class': 'brain_20', 'shape_name': '.class(brain_20)', 'tile-layer': 'features', 'models': 'UBERON:0002883', 'label': 'Central amygdaloid nucleus'}
 SHAPE: 263#455  {'class': 'brain_17', 'shape_name': '.class(brain_17)', 'tile-layer': 'features', 'models': 'UBERON:0001880', 'label': 'Bed nucleus of stria terminalis'}
 SHAPE: 263#456  {'class': 'brain_18', 'shape_name': '.class(brain_18)', 'tile-layer': 'features', 'models': 'UBERON:0001931', 'label': 'Lateral preoptic nucleus'}
@@ -344,7 +344,7 @@ SHAPE: 263#460  {'class': 'brain_14', 'shape_name': '.class(brain_14)', 'tile-la
 SHAPE: 263#461  {'class': 'brain_32', 'shape_name': '.class(brain_32)', 'tile-layer': 'features', 'models': 'UBERON:0002022', 'label': 'Insula'}
 SHAPE: 263#462  {'class': 'brain_34', 'shape_name': '.class(brain_34)', 'tile-layer': 'features', 'models': 'UBERON:0002870', 'label': 'Dorsal motor nucleus of vagus nerve'}
 SHAPE: 263#463  {'class': 'brain_33', 'shape_name': '.class(brain_33)', 'tile-layer': 'features', 'models': 'UBERON:0001719', 'label': 'Nucleus ambiguus'}
-SHAPE: 263#464  {'class': 'brain_11', 'shape_name': '.class(brain_11)', 'tile-layer': 'features', 'models': 'UBERON:0005807', 'label': 'Rostral ventrolateral medulla'}
+SHAPE: 263#464  {'class': 'brain_11', 'external-id': 'brain11_1', 'shape_name': '.class(brain_11) id(brain11_1)', 'tile-layer': 'features', 'models': 'UBERON:0005807', 'label': 'Rostral ventrolateral medulla'}
 SHAPE: 263#465  {'class': 'brain_13', 'external-id': 'brain13_1', 'shape_name': '.class(brain_13) id(brain13_1)', 'tile-layer': 'features', 'label': 'BRGTN'}
 SHAPE: 263#466  {'class': 'connection_1', 'external-id': 'connection1_2', 'shape_name': '.class(connection_1) id(connection1_2)', 'tile-layer': 'features', 'models': 'UBERON:0002441', 'label': 'Cervicothoracic ganglion'}
 SHAPE: 263#467  {'shape_name': 'Freeform 466', 'tile-layer': 'features'}
