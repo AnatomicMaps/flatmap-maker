@@ -104,15 +104,13 @@ class ResolvedPathways(object):
     def path_features(self):
         return self.__path_features
 
-    def add_pathway(self, id, features, route_nodes):
-        path_id = self.__feature_map.map(id)
-        if path_id is not None:
-            path_features = self.__feature_map.map_list(features)
-            if path_id in self.__path_features:
-                self.__path_features[path_id].extend(path_features)
-            else:
-                self.__path_features[path_id] = path_features
-            self.__node_paths.add_route(path_id, route_nodes)
+    def add_pathway(self, path_id, features, route_nodes):
+        path_features = self.__feature_map.map_list(features)
+        if path_id in self.__path_features:
+            self.__path_features[path_id].extend(path_features)
+        else:
+            self.__path_features[path_id] = path_features
+        self.__node_paths.add_route(path_id, route_nodes)
 
 #===============================================================================
 
