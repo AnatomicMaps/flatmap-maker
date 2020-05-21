@@ -142,7 +142,7 @@ class Parser(object):
         try:
             path_lines = Parser.PATH_LINES.parseString(line_ids, parseAll=True)
         except ParseException:
-            raise ValueError('Syntax error in path lines list: '.format(line_ids))
+            raise ValueError('Syntax error in path lines list: {}'.format(line_ids))
         return path_lines
 
     @staticmethod
@@ -150,7 +150,7 @@ class Parser(object):
         try:
             route_nodes = Parser.ROUTE_NODES.parseString(node_ids, parseAll=True)
         except ParseException:
-            raise ValueError('Syntax error in route node list: '.format(node_ids))
+            raise ValueError('Syntax error in route node list: {}'.format(node_ids))
         return route_nodes
 
     @staticmethod
@@ -158,7 +158,7 @@ class Parser(object):
         try:
             nerves = Parser.NERVES.parseString(node_ids, parseAll=True)
         except ParseException:
-            raise ValueError('Syntax error in nerve list: '.format(node_ids))
+            raise ValueError('Syntax error in nerve list: {}'.format(node_ids))
         return nerves
 
 #===============================================================================
