@@ -34,7 +34,12 @@ from tqdm import tqdm
 
 #===============================================================================
 
+from properties import Properties
+
+#===============================================================================
+
 EXCLUDE_SHAPE_TYPES = ['group', 'invisible', 'marker', 'path', 'region']
+EXCLUDE_TILE_LAYERS = ['pathways']
 
 #===============================================================================
 
@@ -63,25 +68,15 @@ XPATH_PRS_extLst        = './p:extLst'
 #===============================================================================
 
 class NameChecker(object):
-    def __init__(self, paths):
-        self.__ignored_ids = set()
-        for path in paths:
-            for id in path['path'].split(','):
-                if '(' in id:
-                    self.__ignored_ids.update([id.strip() for id in id.strip()[1:-1].split(',')])
-                else:
-                    self.__ignored_ids.add(id.strip())
-            self.__ignored_ids.update([id.strip() for id in path.get('nerves', '').split(',')])
+    def __init__(self, properties):
+        self.__properties = properties
 
-    def valid(self, name):
-        if name.startswith('.'):
-            for directive in name[1:].split():
-                if directive.split('(')[0] in EXCLUDE_SHAPE_TYPES:
-                    return False
-                elif directive.startswith('class') or directive.startswith('id'):
-                    id = directive[(directive.find('(')+1):directive.rfind(')')].strip()
-                    if id in self.__ignored_ids:
-                        return False
+    def valid(self, shape):
+        for key, value in self.__properties.get_properties(shape).items():
+            if key in EXCLUDE_SHAPE_TYPES:
+                return False
+            elif key == 'tile-layer' and value in EXCLUDE_TILE_LAYERS:
+                return False
         return True
 
 #===============================================================================
@@ -105,12 +100,11 @@ def connector_type(name):
 #===============================================================================
 
 class Presentation(object):
-    def __init__(self, source_file, paths):
+    def __init__(self, source_file, properties):
         print('Opening presentation...')
         self._source_file = source_file
         self._source = pptx.Presentation(source_file)
-
-        self._name_checker = NameChecker(paths)
+        self._name_checker = NameChecker(properties)
 
 #        xml = open('dirty_prs.xml', 'w')
 #        xml.write(self._source.element.xml)
@@ -207,8 +201,7 @@ class Presentation(object):
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or shape.shape_type == MSO_SHAPE_TYPE.PICTURE
              or isinstance(shape, pptx.shapes.connector.Connector)):
-                if self._name_checker.valid(shape.name):
-                # parse and filter out region etc
+                if self._name_checker.valid(shape):
                     self.append_shape_(shape)
 
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
@@ -227,6 +220,24 @@ class Presentation(object):
     def append_shape_(self, shape):
         # We add a new shape and then replace
         # its xml element with the shape being appended
+        """
+$ python mapmaker/tools/cleaner.py --properties map_sources/rat/rat_flatmap_properties.json  \
+                                  tests/sources/paths.pptx tests/sources/paths_cleaned.pptx
+
+File "mapmaker/tools/cleaner.py", line 230, in append_shape_
+    shape.end_x, shape.end_y)
+  File "/Users/dave/.local/share/virtualenvs/map-maker-uZb0MJDL/lib/python3.7/site-packages/pptx/shapes/shapetree.py", line 263, in add_connector
+    cxnSp = self._add_cxnSp(connector_type, begin_x, begin_y, end_x, end_y)
+  File "/Users/dave/.local/share/virtualenvs/map-maker-uZb0MJDL/lib/python3.7/site-packages/pptx/shapes/shapetree.py", line 384, in _add_cxnSp
+    id_, name, connector_type, x, y, cx, cy, flipH, flipV
+  File "/Users/dave/.local/share/virtualenvs/map-maker-uZb0MJDL/lib/python3.7/site-packages/pptx/oxml/shapes/groupshape.py", line 51, in add_cxnSp
+    prst = MSO_CONNECTOR_TYPE.to_xml(type_member)
+  File "/Users/dave/.local/share/virtualenvs/map-maker-uZb0MJDL/lib/python3.7/site-packages/pptx/enum/base.py", line 205, in to_xml
+    cls.validate(enum_val)
+  File "/Users/dave/.local/share/virtualenvs/map-maker-uZb0MJDL/lib/python3.7/site-packages/pptx/enum/base.py", line 176, in validate
+    "%s not a member of %s enumeration" % (value, cls.__name__)
+ValueError: MIXED (-2) not a member of MSO_CONNECTOR_TYPE enumeration
+        """
         if isinstance(shape, pptx.shapes.connector.Connector):
             cxn_name = shape.element.xpath(XPATH_CONNECTION_TYPE)[0].get('prst')
             new_shape = self._current_group.shapes.add_connector(connector_type(cxn_name),
@@ -282,9 +293,9 @@ class Presentation(object):
 
 #===============================================================================
 
-def clean_presentation(source, target, paths):
-#=============================================
-    presentation = Presentation(source, paths)
+def clean_presentation(source, target, properties):
+#==================================================
+    presentation = Presentation(source, properties)
     presentation.clean(target)
 
 #===============================================================================
@@ -293,15 +304,22 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Clean Powerpoint slides for generating flatmap image tiles.')
+
+    parser.add_argument('--anatomical-map',
+                        help='Excel spreadsheet file for mapping shape classes to anatomical entities')
     parser.add_argument('--properties', required=True,
                     help='JSON file specifying pathways')
+
     parser.add_argument('source_ppt', help='Powerpoint file to clean')
     parser.add_argument('cleaned_ppt', help='Cleaned Powerpoint to create')
     args = parser.parse_args()
 
-    with open(args.properties) as fp:
-        properties = json.loads(fp.read())
+    ## Option to remove paths??
+    ## Then properties file only when removing paths
+    args = parser.parse_args()
+    args.label_database = 'labels.sqlite'
+    external_properties = Properties(args)
 
-    clean_presentation(args.source_ppt, args.cleaned_ppt, properties['paths'])
+    clean_presentation(args.source_ppt, args.cleaned_ppt, external_properties)
 
 #===============================================================================
