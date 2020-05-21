@@ -243,7 +243,7 @@ class GeoJsonLayer(Layer):
         feature_group = None  # Our returned Feature
         grouped_lines = []
         for feature in grouped_polygon_features:
-            if feature.property.get('type') not in ['line', 'nerve']:
+            if feature.properties.get('tile-layer') != 'pathways':
                 if feature.geom_type == 'LineString':
                     grouped_lines.append(feature.geometry)
                 elif feature.geom_type == 'MultiLineString':
