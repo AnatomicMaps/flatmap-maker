@@ -502,13 +502,13 @@
         },
         {
             "id": "path_52",
-            "type": "lsn",
+            "type": "lcn",
             "path": "P178",
             "route": "bolser_9, C76, C78, bolser_9"
         },
         {
             "id": "path_53",
-            "type": "lsn",
+            "type": "lcn",
             "path": "P179",
             "route": "bolser_14, C75, C79, bolser_14"
         },
@@ -520,13 +520,13 @@
         },
         {
             "id": "path_55",
-            "type": "lsn",
+            "type": "lcn",
             "path": "P147, P148",
             "route": "ardell_2, C54, C55, C56, ardell_2"
         },
         {
             "id": "path_56",
-            "type": "lsn",
+            "type": "lcn",
             "path": "P149, P150",
             "route": "ardell_1, C58, C59, C60, ardell_1"
         },
