@@ -139,6 +139,7 @@ class GeoJsonLayer(Layer):
         dividers = []
         regions = []
 
+        debug_group = False
         single_features = [ feature for feature in features if not feature.has_children ]
         for feature in single_features:
             if feature.is_a('boundary'):
@@ -186,6 +187,8 @@ class GeoJsonLayer(Layer):
 
         elif boundary_polygon is not None or len(boundary_lines):
             if len(boundary_lines):
+                if debug_group:
+                    save_geometry(shapely.geometry.MultiLineString(boundary_lines), 'boundary_lines.wkt')
                 try:
                     boundary_polygon = make_boundary(boundary_lines)
                 except ValueError as err:
@@ -205,9 +208,19 @@ class GeoJsonLayer(Layer):
                 # And then only add these cleaned up lines as features, not the original dividers
 
                 dividers.append(boundary_polygon.boundary)
+                if debug_group:
+                    save_geometry(shapely.geometry.MultiLineString(dividers), 'dividers.wkt')
+
                 divider_lines = connect_dividers(dividers, debug_group)
+                if debug_group:
+                    save_geometry(shapely.geometry.MultiLineString(divider_lines), 'divider_lines.wkt')
+
                 polygon_boundaries = shapely.ops.unary_union(divider_lines)
+                if debug_group:
+                    save_geometry(polygon_boundaries, 'polygon_boundaries.wkt')
+
                 polygons = list(shapely.ops.polygonize(polygon_boundaries))
+
                 for n, polygon in enumerate(polygons):
                     prepared_polygon = shapely.prepared.prep(polygon)
                     region_id = None
