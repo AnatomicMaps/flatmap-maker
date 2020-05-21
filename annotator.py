@@ -29,8 +29,6 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from mapmaker.labels import AnatomicalMap
-from mapmaker.parser import Parser
 from mapmaker.properties import Properties
 
 #===============================================================================

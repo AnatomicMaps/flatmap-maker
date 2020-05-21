@@ -40,10 +40,7 @@ import requests
 #===============================================================================
 
 from drawml import GeoJsonExtractor
-##from layermapping import LayerMapping
 from mbtiles import MBTiles
-##from ontologies import OntologyData
-##from rdf import update_RDF
 from pathways import pathways_to_json
 from styling import Style
 from tilemaker import make_background_tiles
@@ -76,8 +73,6 @@ def main():
     parser.add_argument('--min', dest='min_zoom', metavar='N', type=int, default=2,
                         help='minimum zoom level (defaults to 2)')
 
-    parser.add_argument('-x', '--line-extension', metavar='LINE_EXTENSION', type=int, default=200,
-                        help='amount to extend ends of region dividing lines in PPT EMUs (defaults to 200)')
 
     parser.add_argument('-d', '--debug', dest='debug_xml', action='store_true',
                         help="save a slide's DrawML for debugging")
