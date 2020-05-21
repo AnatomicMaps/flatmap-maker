@@ -167,6 +167,12 @@ class GeoJsonLayer(Layer):
                 grouped_properties.update(feature.properties)
             elif feature.is_a('region'):
                 regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.properties))
+            elif feature.is_a('marker'):
+                properties = base_properties.copy()
+                properties.update(feature.properties)
+                mercator_geometry = mercator_transform(feature.geometry)
+                properties['centroid'] = list(list(mercator_geometry.centroid.coords)[0])
+                self.annotations[feature.id] = properties
             elif feature.has('class') or not feature.is_a('interior'):
                 group_features.append(feature)
 
