@@ -183,7 +183,6 @@ class Pathways(object):
             result['type'] = 'line-dash' if result['kind'].endswith('-post') else 'line'
         elif id in self.__paths_by_nerve_id:
             path_id = self.__paths_by_nerve_id[id][0]
-            result['kind'] = self.__types_by_path_id.get(path_id)
             result['path-id'] = path_id
             result['tile-layer'] = 'pathways'
             result['type'] = 'nerve'
