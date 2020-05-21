@@ -41,10 +41,10 @@ import requests
 
 from drawml import GeoJsonExtractor
 ##from layermapping import LayerMapping
-from pathways import MapPathways
 from mbtiles import MBTiles
 ##from ontologies import OntologyData
 ##from rdf import update_RDF
+from pathways import pathways_to_json
 from styling import Style
 from tilemaker import make_background_tiles
 from tilejson import tile_json

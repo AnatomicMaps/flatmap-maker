@@ -92,6 +92,7 @@ class GeoJsonLayer(Layer):
         self.__geo_pathways = []
         features = self.process_shape_list(self._slide.shapes, self.__transform, outermost=True)
         self.add_geo_features_('Slide', features, True)
+        self.process_finialise()
 
     def save_as_collection_(self, features, layer_type, description=''):
     #===================================================================

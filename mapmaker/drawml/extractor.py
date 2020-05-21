@@ -281,11 +281,11 @@ class Layer(object):
     #=================
         self.__current_group.append('SLIDE')
         self.process_shape_list(self._slide.shapes, outermost=True)
-        self.__pathways.set_feature_ids(
-            self.__ids_by_external_id,
-            self.__ids_by_class,
-            self.__class_counts
-        )
+        self.process_finialise()
+
+    def process_finialise(self):
+    #===========================
+        self.__external_properties.set_feature_ids()
 
     def save(self, filename=None):
     #=============================

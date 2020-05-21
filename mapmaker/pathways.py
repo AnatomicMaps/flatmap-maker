@@ -45,7 +45,7 @@ class NodePaths(object):
             'end-paths': self.__end_paths
         }
 
-    def __add_paths(self, path_id, nodes, paths_dict, path_id):
+    def __add_paths(self, path_id, nodes, paths_dict):
         for id in nodes:
             node_id = self.__feature_map.map(id)
             if node_id is not None:
@@ -121,19 +121,14 @@ class Pathways(object):
         self.__lines_by_path_id = {}
         self.__routes_by_path_id = {}
         self.__nerves_by_path_id = {}
-        self.__paths_by_nerve_id = {}
         self.__types_by_path_id = {}
-        self.__paths_by_line_id = {}
         self.__layer_paths = []
         self.__resolved_pathways = None
         for path in paths_list:
             path_id = path['id']
-            self.__lines_by_path_id[path_id] = list(Parser.path_lines(path['path']))
-            for line_id in self.__lines_by_path_id[path_id]:
-                if line_id in self.__paths_by_line_id:
-                    self.__paths_by_line_id[line_id].append(path_id)
-                else:
-                    self.__paths_by_line_id[line_id] = [ path_id ]
+            self.__lines_by_path_id[path_id] = []
+            for line_group in Parser.path_lines(path['path']):
+                self.__lines_by_path_id[path_id] += Pathways.__make_list(line_group)
             if 'route' in path:
                 routing = list(Parser.route_nodes(path['route']))
                 if len(routing) < 2:
@@ -151,6 +146,22 @@ class Pathways(object):
             if 'type' in path:
                 self.__types_by_path_id[path_id] = path['type']
 
+        self.__paths_by_line_id = {}
+        for path_id, lines in self.__lines_by_path_id.items():
+            for line_id in lines:
+                if line_id in self.__paths_by_line_id:
+                    self.__paths_by_line_id[line_id].append(path_id)
+                else:
+                    self.__paths_by_line_id[line_id] = [ path_id ]
+
+        self.__paths_by_nerve_id = {}
+        for path_id, nerves in self.__nerves_by_path_id.items():
+            for nerve_id in nerves:
+                if nerve_id in self.__paths_by_nerve_id:
+                    self.__paths_by_nerve_id[nerve_id].append(path_id)
+                else:
+                    self.__paths_by_nerve_id[nerve_id] = [ path_id ]
+
     @staticmethod
     def __make_list(lst):
         return list(lst) if isinstance(lst, pyparsing.ParseResults) else [ lst ]
@@ -165,15 +176,18 @@ class Pathways(object):
     def properties(self, id):
         result = {}
         if id in self.__paths_by_line_id:
-            path_id = self.__paths_by_line_id[line_id]
+            path_id = self.__paths_by_line_id[id][0]
             result['kind'] = self.__types_by_path_id.get(path_id)
-            result['path'] = path_id
+            result['path-id'] = path_id
             result['tile-layer'] = 'pathways'
-            result['type'] = 'line'
-        elif id in self.__paths_by_nerve_id
-            result['path'] = self.__paths_by_nerve_id(id)
+            result['type'] = 'line-dash' if result['kind'].endswith('-post') else 'line'
+        elif id in self.__paths_by_nerve_id:
+            path_id = self.__paths_by_nerve_id[id][0]
+            result['kind'] = self.__types_by_path_id.get(path_id)
+            result['path-id'] = path_id
             result['tile-layer'] = 'pathways'
             result['type'] = 'nerve'
+        return result
 
     def set_feature_ids(self, id_map, class_map, class_count):
         if self.__resolved_pathways is not None:
