@@ -130,7 +130,8 @@ class Parser(object):
 
     NERVES = delimitedList(ID_TEXT)
 
-    PATH_LINES = delimitedList(ID_TEXT)
+    PATH_LINES_GROUP = ID_TEXT  | Group(Suppress('(') +  delimitedList(ID_TEXT) + Suppress(')'))
+    PATH_LINES = delimitedList(PATH_LINES_GROUP)
 
     ROUTE_NODE_GROUP = ID_TEXT  | Group(Suppress('(') +  delimitedList(ID_TEXT) + Suppress(')'))
     ROUTE_NODES = delimitedList(ROUTE_NODE_GROUP)
