@@ -64,18 +64,23 @@ XPATH_PRS_extLst        = './p:extLst'
 
 class NameChecker(object):
     def __init__(self, paths):
-        self._line_ids = set()
+        self.__ignored_ids = set()
         for path in paths:
-            self._line_ids.update([id.strip() for id in path['path'].split(',')])
+            for id in path['path'].split(','):
+                if '(' in id:
+                    self.__ignored_ids.update([id.strip() for id in id.strip()[1:-1].split(',')])
+                else:
+                    self.__ignored_ids.add(id.strip())
+            self.__ignored_ids.update([id.strip() for id in path.get('nerves', '').split(',')])
 
     def valid(self, name):
         if name.startswith('.'):
             for directive in name[1:].split():
                 if directive.split('(')[0] in EXCLUDE_SHAPE_TYPES:
                     return False
-                elif directive.startswith('id'):
+                elif directive.startswith('class') or directive.startswith('id'):
                     id = directive[(directive.find('(')+1):directive.rfind(')')].strip()
-                    if id in self._line_ids:
+                    if id in self.__ignored_ids:
                         return False
         return True
 
