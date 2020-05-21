@@ -426,13 +426,15 @@
             "id": "path_40",
             "type": "symp-post",
             "path": "P132",
-            "route": "spinal_54, C49, bolser_17, respiratory_4"
+            "route": "spinal_54, C49, respiratory_4",
+            "nerves": "bolser_17"
         },
         {
             "id": "path_41",
             "type": "symp-post",
             "path": "P133",
-            "route": "spinal_55, C50, bolser_17, respiratory_4"
+            "route": "spinal_55, C50, respiratory_4",
+            "nerves": "bolser_17"
         },
         {
             "id": "path_42",
