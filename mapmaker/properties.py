@@ -145,6 +145,9 @@ class Properties(object):
                         properties['kind'] = 'dataset'
                     elif 'scaffold' in properties:
                         properties['kind'] = 'scaffold'
+                    if 'models' in properties and 'label' not in properties:
+                        properties['label'] = self.__anatomical_map.label(properties['models'])
+
                 return properties
         else:
             return {

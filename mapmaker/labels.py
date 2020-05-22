@@ -129,3 +129,6 @@ class AnatomicalMap(object):
         else:
             props['label'] = cls
         return props
+
+    def label(self, entity):
+        return self.__label_data.get_label(entity)
