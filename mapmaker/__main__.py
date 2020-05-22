@@ -61,8 +61,6 @@ def main():
     parser.add_argument('--properties',
                         help='JSON file specifying additional properties of shapes')
 
-    parser.add_argument('-n', '--no-vector-tiles', action='store_true',
-                        help="don't generate vector tiles database and style files")
     parser.add_argument('-c', '--check-errors', action='store_true',
                         help="check for errors without generating a map")
     parser.add_argument('-t', '--tile', dest='tile_slide', metavar='N', type=int, default=0,
@@ -239,39 +237,34 @@ def main():
 
         mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
 
-        if args.no_vector_tiles:
-            if args.tile_slide == 0:
-                tile_db = MBTiles(mbtiles_file)
+        if len(tippe_inputs) == 0:
+            sys.exit('No selectable layers in Powerpoint...')
 
-        else:
-            if len(tippe_inputs) == 0:
-                sys.exit('No selectable layers in Powerpoint...')
+        # Generate Mapbox vector tiles
+        print('Running tippecanoe...')
 
-            # Generate Mapbox vector tiles
-            print('Running tippecanoe...')
+        subprocess.run(['tippecanoe', '--projection=EPSG:4326', '--force',
+                        # No compression results in a smaller `mbtiles` file
+                        # and is also required to serve tile directories
+                        '--no-tile-compression',
+                        '--buffer=100',
+                        '--minimum-zoom={}'.format(map_zoom[0]),
+                        '--maximum-zoom={}'.format(map_zoom[1]),
+                        '--output={}'.format(mbtiles_file),
+                        ]
+                        + list(["-L{}".format(json.dumps(input)) for input in tippe_inputs])
+                       )
 
-            subprocess.run(['tippecanoe', '--projection=EPSG:4326', '--force',
-                            # No compression results in a smaller `mbtiles` file
-                            # and is also required to serve tile directories
-                            '--no-tile-compression',
-                            '--buffer=100',
-                            '--minimum-zoom={}'.format(map_zoom[0]),
-                            '--maximum-zoom={}'.format(map_zoom[1]),
-                            '--output={}'.format(mbtiles_file),
-                            ]
-                            + list(["-L{}".format(json.dumps(input)) for input in tippe_inputs])
-                           )
+        # `tippecanoe` uses the bounding box containing all features as the
+        # map bounds, which is not the same as the extracted bounds, so update
+        # the map's metadata
 
-            # `tippecanoe` uses the bounding box containing all features as the
-            # map bounds, which is not the same as the extracted bounds, so update
-            # the map's metadata
+        tile_db = MBTiles(mbtiles_file)
 
-            tile_db = MBTiles(mbtiles_file)
+        tile_db.update_metadata(center=','.join([str(x) for x in map_centre]),
+                                bounds=','.join([str(x) for x in map_bounds]))
 
-            tile_db.update_metadata(center=','.join([str(x) for x in map_centre]),
-                                    bounds=','.join([str(x) for x in map_bounds]))
-
-            tile_db.execute("COMMIT")
+        tile_db.execute("COMMIT")
 
         if args.tile_slide == 0:
             # Save path of the Powerpoint source
