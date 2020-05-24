@@ -77,6 +77,12 @@ class Parser(object):
 
 #===============================================================================
 
+#    LABEL = Group(Keyword('label') + Suppress('(') + FREE_TEXT + Suppress(')'))
+#    LAYER = Group(Keyword('layer') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
+    ## WIP: DETAILS = Group(Keyword('details') + Suppress('(') + Suppress(')'))  ## Zoom start, slide/layer ID
+    ## Details are positioned within polygon's boundary on a layer "above" the polygon's
+    ## fill layer. Say positioned on an invisible place holder that is grouped with the polygon??
+
     CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
     PATH = Group(Keyword('path') + Suppress('(') + ID_TEXT + Suppress(')'))
     STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
@@ -86,16 +92,16 @@ class Parser(object):
     SHAPE_FLAGS = Group(Keyword('boundary')
                       | Keyword('children')
                       | Keyword('closed')
-                      | Keyword('divider')
                       | Keyword('interior')
                       | Keyword('marker')
-                      | Keyword('region')
                       )
 
     DEPRECATED_FLAGS = Group(Keyword('siblings'))
 
     FEATURE_FLAGS = Group(Keyword('group')
-                      |   Keyword('invisible')
+                        | Keyword('invisible')
+                        | Keyword('divider')
+                        | Keyword('region')
                       )
 
     SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS | FEATURE_FLAGS | FEATURE_PROPERTIES | PATH | SHAPE_FLAGS)
