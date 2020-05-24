@@ -57,24 +57,9 @@ METRES_PER_EMU = 0.1   ## This to become a command line parameter...
                        ## Or in a specification file...
 #===============================================================================
 
-def geo_collection(id, features, description=''):
-    return {
-        'type': 'FeatureCollection',
-        'id': id,
-        'creator': 'mapmaker',        # Add version
-        'features': features,
-        'properties': {
-            'id': id,
-            'description': description
-        }
-    }
-
-#===============================================================================
-
 class GeoJsonLayer(Layer):
     def __init__(self, extractor, slide, slide_number):
         super().__init__(extractor, slide, slide_number)
-        self.__geo_collection = {}
         self.__geo_features = []
         self.__geo_pathways = []
         self.__region_id = 10000
@@ -95,18 +80,20 @@ class GeoJsonLayer(Layer):
         self.add_geo_features_('Slide', features, True)
         self.process_finialise()
 
-    def save_as_collection_(self, features, layer_type, description=''):
-    #===================================================================
-        collection = geo_collection(self.layer_id, features, description)
+    def save_as_collection_(self, features, layer_type):
+    #===================================================
+        # Tippecanoe doesn't need a FeatureCollection
+        # Delimit features with RS...LF   (RS = 0x1E)
         filename = os.path.join(self.settings.output_dir, '{}_{}.json'.format(self.layer_id, layer_type))
         with open(filename, 'w') as output_file:
-            json.dump(collection, output_file)
+            for feature in features:
+                output_file.write('\x1E{}\x0A'.format(json.dumps(feature)))
         return filename
 
     def save(self):
     #==============
         return {
-            'features': self.save_as_collection_(self.__geo_features, 'features', self.description),
+            'features': self.save_as_collection_(self.__geo_features, 'features'),
             'pathways': self.save_as_collection_(self.__geo_pathways, 'pathways')
         }
 
