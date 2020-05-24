@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+from collections import defaultdict
 import json
 import pyparsing
 
@@ -27,42 +28,6 @@ try:
     from parser import Parser
 except ImportError:
     from mapmaker.parser import Parser
-
-#===============================================================================
-
-class NodePaths(object):
-    def __init__(self, feature_map):
-        self.__feature_map = feature_map
-        self.__start_paths = {}     # node_id: [ path_ids ]
-        self.__through_paths = {}   # node_id: [ path_ids ]
-        self.__end_paths = {}       # node_id: [ path_ids ]
-
-    @property
-    def as_dict(self):
-        return {
-            'start-paths': self.__start_paths,
-            'through-paths': self.__through_paths,
-            'end-paths': self.__end_paths
-        }
-
-    def __add_paths(self, path_id, nodes, paths_dict):
-        for id in nodes:
-            node_id = self.__feature_map.map(id)
-            if node_id is not None:
-                if node_id not in paths_dict:
-                    paths_dict[node_id] = [ path_id ]
-                else:
-                    paths_dict[node_id].append(path_id)
-
-    def add_route(self, path_id, route_nodes):
-        self.__add_paths(path_id, route_nodes['start-nodes'], self.__start_paths)
-        self.__add_paths(path_id, route_nodes['through-nodes'], self.__through_paths)
-        self.__add_paths(path_id, route_nodes['end-nodes'], self.__end_paths)
-
-    def update(self, other):
-        self.__start_paths.update(other.__start_paths)
-        self.__through_paths.update(other.__through_paths)
-        self.__end_paths.update(other.__end_paths)
 
 #===============================================================================
 
@@ -90,10 +55,44 @@ class FeatureIdMap(object):
 
 #===============================================================================
 
+class NodePaths(object):
+    def __init__(self, feature_map):
+        self.__feature_map = feature_map
+        self.__start_paths = defaultdict(list)     # node_id: [ path_ids ]
+        self.__through_paths = defaultdict(list)   # node_id: [ path_ids ]
+        self.__end_paths = defaultdict(list)       # node_id: [ path_ids ]
+
+    @property
+    def as_dict(self):
+        return {
+            'start-paths': self.__start_paths,
+            'through-paths': self.__through_paths,
+            'end-paths': self.__end_paths
+        }
+
+    def __add_paths(self, path_id, nodes, paths_dict):
+        for id in nodes:
+            node_id = self.__feature_map.map(id)
+            if node_id is not None:
+                paths_dict[node_id].append(path_id)
+
+    def add_route(self, path_id, route_nodes):
+        self.__add_paths(path_id, route_nodes['start-nodes'], self.__start_paths)
+        self.__add_paths(path_id, route_nodes['through-nodes'], self.__through_paths)
+        self.__add_paths(path_id, route_nodes['end-nodes'], self.__end_paths)
+
+    def update(self, other):
+        self.__start_paths.update(other.__start_paths)
+        self.__through_paths.update(other.__through_paths)
+        self.__end_paths.update(other.__end_paths)
+
+#===============================================================================
+
 class ResolvedPathways(object):
     def __init__(self, id_map, class_map, class_count):
         self.__feature_map = FeatureIdMap(id_map, class_map, class_count)
-        self.__path_features = {}
+        self.__path_lines = defaultdict(list)
+        self.__path_nerves = defaultdict(list)
         self.__node_paths = NodePaths(self.__feature_map)
 
     @property
@@ -101,15 +100,16 @@ class ResolvedPathways(object):
         return self.__node_paths
 
     @property
-    def path_features(self):
-        return self.__path_features
+    def path_lines(self):
+        return self.__path_lines
 
-    def add_pathway(self, path_id, features, route_nodes):
-        path_features = self.__feature_map.map_list(features)
-        if path_id in self.__path_features:
-            self.__path_features[path_id].extend(path_features)
-        else:
-            self.__path_features[path_id] = path_features
+    @property
+    def path_nerves(self):
+        return self.__path_nerves
+
+    def add_pathway(self, path_id, lines, nerves, route_nodes):
+        self.__path_lines[path_id].extend(self.__feature_map.map_list(lines))
+        self.__path_nerves[path_id].extend(self.__feature_map.map_list(nerves))
         self.__node_paths.add_route(path_id, route_nodes)
 
 #===============================================================================
@@ -144,21 +144,15 @@ class Pathways(object):
             if 'type' in path:
                 self.__types_by_path_id[path_id] = path['type']
 
-        self.__paths_by_line_id = {}
+        self.__paths_by_line_id = defaultdict(list)
         for path_id, lines in self.__lines_by_path_id.items():
             for line_id in lines:
-                if line_id in self.__paths_by_line_id:
-                    self.__paths_by_line_id[line_id].append(path_id)
-                else:
-                    self.__paths_by_line_id[line_id] = [ path_id ]
+                self.__paths_by_line_id[line_id].append(path_id)
 
-        self.__paths_by_nerve_id = {}
+        self.__paths_by_nerve_id = defaultdict(list)
         for path_id, nerves in self.__nerves_by_path_id.items():
             for nerve_id in nerves:
-                if nerve_id in self.__paths_by_nerve_id:
-                    self.__paths_by_nerve_id[nerve_id].append(path_id)
-                else:
-                    self.__paths_by_nerve_id[nerve_id] = [ path_id ]
+                self.__paths_by_nerve_id[nerve_id].append(path_id)
 
     @staticmethod
     def __make_list(lst):
@@ -194,8 +188,8 @@ class Pathways(object):
         for path_id in self.__layer_paths:
             try:
                 self.__resolved_pathways.add_pathway(path_id,
-                                                     self.__lines_by_path_id.get(path_id, [])
-                                                   + self.__nerves_by_path_id.get(path_id, []),
+                                                     self.__lines_by_path_id.get(path_id, []),
+                                                     self.__nerves_by_path_id.get(path_id, []),
                                                      self.__routes_by_path_id.get(path_id, {
                                                         'start-nodes': [],
                                                         'through-nodes': [],
@@ -211,13 +205,16 @@ class Pathways(object):
 #===============================================================================
 
 def pathways_to_json(pathways_list):
-    path_features = {}
+    path_lines = {}
+    path_nerves = {}
     node_paths = NodePaths(None)
     for resolved_pathways in pathways_list:
-        path_features.update(resolved_pathways.path_features)
+        path_lines.update(resolved_pathways.path_lines)
+        path_nerves.update(resolved_pathways.path_nerves)
         node_paths.update(resolved_pathways.node_paths)
     return json.dumps({
-        'path-features': path_features,
+        'path-lines': path_lines,
+        'path-nerves': path_nerves,
         'node-paths': node_paths.as_dict
         })
 
