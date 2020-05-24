@@ -294,7 +294,10 @@ class GeoJsonLayer(Layer):
                 }
 
                 if area > 0:
-                    geojson['properties']['scale'] = math.log(math.sqrt(map_area/area), 2)
+                    scale = math.log(math.sqrt(map_area/area), 2)
+                    geojson['properties']['scale'] = scale
+                    if scale > 6 and 'group' not in properties:
+                        geojson['tippecanoe']['minzoom'] = 5
                 else:
                     geojson['properties']['scale'] = 10
 
