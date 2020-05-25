@@ -92,11 +92,12 @@ class Properties(object):
 
     def set_feature_ids(self):
     #=========================
-        self.__pathways.set_feature_ids(
-            self.__ids_by_external_id,
-            self.__ids_by_class,
-            self.__class_counts
-        )
+        if self.__pathways is not None:
+            self.__pathways.set_feature_ids(
+                self.__ids_by_external_id,
+                self.__ids_by_class,
+                self.__class_counts
+            )
 
     def get_properties(self, shape, group_name='', slide_number=1):
     #==============================================================

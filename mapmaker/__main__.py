@@ -196,7 +196,8 @@ def main():
         if layer.background_for:
             map_layer['background_for'] = layer.background_for
         map_layers.append(map_layer)
-        pathways_list.append(layer.resolved_pathways)
+        if layer.resolved_pathways is not None:
+            pathways_list.append(layer.resolved_pathways)
 
         if layer.models:
             map_models = layer.models
