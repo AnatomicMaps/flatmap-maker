@@ -271,7 +271,7 @@ class Layer(object):
 
     @property
     def resolved_pathways(self):
-        return self.__pathways.resolved_pathways
+        return self.__pathways.resolved_pathways if self.__pathways is not None else None
 
     def unique_id(self, id):
     #=======================
