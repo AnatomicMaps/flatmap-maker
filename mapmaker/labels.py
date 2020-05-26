@@ -76,7 +76,6 @@ class LabelData(object):
                             l = triple[2]
                             label = l[0].upper() + l[1:]
                             self.set_label(entity, label)
-                            print(entity, '-->', label)
             except:
                 print("Couldn't access {} for {}".format(endpoint, entity))
         return label
