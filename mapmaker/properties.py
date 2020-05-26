@@ -149,7 +149,8 @@ class Properties(object):
                     elif 'simulations' in properties:
                         properties['kind'] = 'simulation'
                     if 'models' in properties and 'label' not in properties:
-                        properties['label'] = self.__anatomical_map.label(properties['models'])
+                        if self.__anatomical_map is not None:
+                            properties['label'] = self.__anatomical_map.label(properties['models'])
 
                 return properties
         else:
