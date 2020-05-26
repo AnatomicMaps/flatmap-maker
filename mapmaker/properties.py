@@ -142,10 +142,12 @@ class Properties(object):
 
                 if 'marker' in properties:
                     properties['type'] = 'marker'
-                    if 'dataset' in properties:
+                    if 'datasets' in properties:
                         properties['kind'] = 'dataset'
-                    elif 'scaffold' in properties:
+                    elif 'scaffolds' in properties:
                         properties['kind'] = 'scaffold'
+                    elif 'simulations' in properties:
+                        properties['kind'] = 'simulation'
                     if 'models' in properties and 'label' not in properties:
                         properties['label'] = self.__anatomical_map.label(properties['models'])
 
