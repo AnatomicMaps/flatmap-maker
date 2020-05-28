@@ -94,6 +94,7 @@ class ResolvedPathways(object):
         self.__path_lines = defaultdict(list)
         self.__path_nerves = defaultdict(list)
         self.__node_paths = NodePaths(self.__feature_map)
+        self.__type_paths = defaultdict(list)
 
     @property
     def node_paths(self):
@@ -107,10 +108,17 @@ class ResolvedPathways(object):
     def path_nerves(self):
         return self.__path_nerves
 
+    @property
+    def type_paths(self):
+        return self.__type_paths
+
     def add_pathway(self, path_id, lines, nerves, route_nodes):
         self.__path_lines[path_id].extend(self.__feature_map.map_list(lines))
         self.__path_nerves[path_id].extend(self.__feature_map.map_list(nerves))
         self.__node_paths.add_route(path_id, route_nodes)
+
+    def add_path_type(self, path_id, path_type):
+        self.__type_paths[path_type].append(path_id)
 
 #===============================================================================
 
@@ -196,6 +204,7 @@ class Pathways(object):
                                                         'end-nodes': [],
                                                      })
                                                     )
+                self.__resolved_pathways.add_path_type(path_id, self.__types_by_path_id.get(path_id))
             except ValueError as err:
                 print('Path {}: {}'.format(path_id, str(err)))
                 errors = True
@@ -208,14 +217,17 @@ def pathways_to_json(pathways_list):
     path_lines = {}
     path_nerves = {}
     node_paths = NodePaths(None)
+    type_paths = {}
     for resolved_pathways in pathways_list:
         path_lines.update(resolved_pathways.path_lines)
         path_nerves.update(resolved_pathways.path_nerves)
         node_paths.update(resolved_pathways.node_paths)
+        type_paths.update(resolved_pathways.type_paths)
     return json.dumps({
         'path-lines': path_lines,
         'path-nerves': path_nerves,
-        'node-paths': node_paths.as_dict
+        'node-paths': node_paths.as_dict,
+        'type-paths': type_paths
         })
 
 #===============================================================================
