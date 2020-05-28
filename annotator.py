@@ -69,8 +69,9 @@ class Slide(object):
     def list(self):
         print('SLIDE: {!s:8} {}'.format(self.__slide_id, self.__notes))
         for id, properties in self.__properties_by_id.items():
-            if properties:
+            if properties and properties.get('shape-name', ' ')[0] in ['#', '.']:
                 print('SHAPE: {:8} {}'.format(id, properties))
+        print('')
 
 #===============================================================================
 
