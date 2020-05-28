@@ -59,8 +59,7 @@ class LabelData(object):
             try:
                 response = requests.get(VOCAB_ENDPOINT.format(entity))
                 if response:
-                    l = response.json().get('labels', [entity])[0]
-                    label = l[0].upper() + l[1:]
+                    label = response.json().get('labels', [entity])[0]
                     self.set_label(entity, label)
             except:
                 print("Couldn't access", VOCAB_ENDPOINT.format(entity))
@@ -73,9 +72,7 @@ class LabelData(object):
                     print(triples)
                     for triple in triples:
                         if triple[1] == 'rdfs:label':
-                            l = triple[2]
-                            label = l[0].upper() + l[1:]
-                            self.set_label(entity, label)
+                            self.set_label(entity, triple[2])
             except:
                 print("Couldn't access {} for {}".format(endpoint, entity))
         return label
