@@ -103,7 +103,7 @@ class Properties(object):
     #==============================================================
         if shape.name.startswith('.'):
             properties = Parser.shape_properties(shape.name)
-            properties['shape_name'] = shape.name
+            properties['shape-name'] = shape.name
             properties['tile-layer'] = 'features'
             if 'error' in properties:
                 properties['error'] = 'syntax'
@@ -155,7 +155,7 @@ class Properties(object):
                 return properties
         else:
             return {
-                'shape_name': shape.name,
+                'shape-name': shape.name,
                 'tile-layer': 'features'
             }
 
