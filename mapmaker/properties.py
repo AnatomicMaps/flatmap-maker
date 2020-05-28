@@ -133,12 +133,14 @@ class Properties(object):
                     else:
                         properties['label'] = cls
                     properties.update(self.properties_from_class(cls))
-                    properties.update(self.__pathways.properties(cls))
+                    if self.__pathways is not None:
+                        properties.update(self.__pathways.properties(cls))
 
                 if 'external-id' in properties:
                     id = properties['external-id']
                     properties.update(self.properties_from_id(id))
-                    properties.update(self.__pathways.properties(id))
+                    if self.__pathways is not None:
+                        properties.update(self.__pathways.properties(id))
 
                 if 'marker' in properties:
                     properties['type'] = 'marker'
