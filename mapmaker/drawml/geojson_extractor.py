@@ -144,13 +144,6 @@ class GeoJsonLayer(Layer):
                         boundary_class = cls
                     else:
                         raise ValueError('Class of boundary shapes have changed in group{}: {}'.format(group_name, feature))
-            elif not feature.annotated or feature.is_a('divider'):
-                if feature.geom_type == 'LineString':
-                    dividers.append(feature.geometry)
-                elif feature.geom_type == 'Polygon':
-                    dividers.append(feature.geometry.boundary)
-                if not feature.property('invisible'):
-                    group_features.append(feature)
             elif feature.is_a('group'):
                 grouped_properties.update(feature.properties)
             elif feature.is_a('region'):
@@ -161,6 +154,13 @@ class GeoJsonLayer(Layer):
                 mercator_geometry = mercator_transform(feature.geometry)
                 properties['centroid'] = list(list(mercator_geometry.centroid.coords)[0])
                 self.annotations[feature.id] = properties
+            elif not feature.annotated or feature.is_a('divider'):
+                if feature.geom_type == 'LineString':
+                    dividers.append(feature.geometry)
+                elif feature.geom_type == 'Polygon':
+                    dividers.append(feature.geometry.boundary)
+                if not feature.property('invisible'):
+                    group_features.append(feature)
             elif feature.has('class') or not feature.is_a('interior'):
                 group_features.append(feature)
 
