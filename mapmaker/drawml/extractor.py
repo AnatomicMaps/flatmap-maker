@@ -206,6 +206,8 @@ class Layer(object):
         self.__selected = False
         self.__queryable_nodes = False
         self.__zoom = None
+        # Cannot overlap with slide shape ids...
+        self.__next_local_id = 100001
 
     def __set_feature_id(self, feature):
         if feature.has('external-id'):
@@ -276,6 +278,12 @@ class Layer(object):
     def unique_id(self, id):
     #=======================
         return '{}#{}'.format(self.slide_id, id)
+
+    def next_local_id(self):
+    #=======================
+        id = self.unique_id(self.__next_local_id)
+        self.__next_local_id += 1
+        return id
 
     def process_initialise(self):
     #============================

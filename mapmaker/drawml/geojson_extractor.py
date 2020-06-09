@@ -62,14 +62,11 @@ class GeoJsonLayer(Layer):
         super().__init__(extractor, slide, slide_number)
         self.__geo_features = []
         self.__geo_pathways = []
-        self.__region_id = 10000
         self.__transform = extractor.transform
 
     def new_feature_(self, geometry, properties, *args):
     #===================================================
-        feature = Feature(self.unique_id(self.__region_id), geometry, properties, *args)
-        self.__region_id += 1
-        return feature
+        return Feature(self.next_local_id(), geometry, properties, *args)
 
     def process(self):
     #=================
