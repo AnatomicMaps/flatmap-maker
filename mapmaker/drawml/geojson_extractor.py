@@ -167,7 +167,7 @@ class GeoJsonLayer(Layer):
                 interior_features.append(feature)
 
         if boundary_polygon is not None and len(boundary_lines):
-            raise FeaturesValueError("Group {} can't be bounded by both a closed shape and lines:".format(group_name, features))
+            raise FeaturesValueError("Group {} can't be bounded by both a closed shape and lines:".format(group_name), features)
 
         elif boundary_polygon is not None or len(boundary_lines):
             if len(boundary_lines):
