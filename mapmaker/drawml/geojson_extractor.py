@@ -258,6 +258,19 @@ class GeoJsonLayer(Layer):
                     grouped_properties, True)
             group_features.append(feature_group)
 
+        # Add polygon features for nerve cuffs
+        nerve_polygons = []
+        for feature in group_features:
+            if (feature.properties.get('type') == 'nerve'
+            and feature.geom_type == 'LineString'):
+                nerve_id = feature.id
+                nerve_polygon_feature = self.new_feature_(
+                    shapely.geometry.Polygon(feature.geometry.coords), feature.properties)
+                del nerve_polygon_feature.properties['models']
+                nerve_polygon_feature.properties['nerve-id'] = nerve_id
+                nerve_polygons.append(nerve_polygon_feature)
+        group_features.extend(nerve_polygons)
+
         for feature in group_features:
             if feature.geometry is not None:
                 # Initial set of properties come from ``.group``
