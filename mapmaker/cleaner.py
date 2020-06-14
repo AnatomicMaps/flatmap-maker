@@ -307,7 +307,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--anatomical-map',
                         help='Excel spreadsheet file for mapping shape classes to anatomical entities')
-    parser.add_argument('--properties', required=True,
+    parser.add_argument('--properties',
                     help='JSON file specifying pathways')
 
     parser.add_argument('source_ppt', help='Powerpoint file to clean')
