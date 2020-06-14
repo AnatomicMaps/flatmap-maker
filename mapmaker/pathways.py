@@ -128,7 +128,7 @@ class Pathways(object):
         self.__routes_by_path_id = {}
         self.__nerves_by_path_id = {}
         self.__types_by_path_id = {}
-        self.__layer_paths = []
+        self.__layer_paths = set()
         self.__resolved_pathways = None
         for path in paths_list:
             path_id = path['id']
@@ -170,22 +170,24 @@ class Pathways(object):
     def resolved_pathways(self):
         return self.__resolved_pathways
 
-    def add_path(self, path_id):
-        self.__layer_paths.append(path_id)
-
     def properties(self, id):
         result = {}
         if id in self.__paths_by_line_id:
             path_id = self.__paths_by_line_id[id][0]
-            result['kind'] = self.__types_by_path_id.get(path_id)
+            if path_id in self.__types_by_path_id:
+                result['kind'] = self.__types_by_path_id[path_id]
+                result['type'] = 'line-dash' if result['kind'].endswith('-post') else 'line'
+            else:
+                result['type'] = 'line'
             result['path-id'] = path_id
             result['tile-layer'] = 'pathways'
-            result['type'] = 'line-dash' if result['kind'].endswith('-post') else 'line'
+            self.__layer_paths.add(path_id)
         elif id in self.__paths_by_nerve_id:
             path_id = self.__paths_by_nerve_id[id][0]
             result['path-id'] = path_id
             result['tile-layer'] = 'pathways'
             result['type'] = 'nerve'
+            self.__layer_paths.add(path_id)
         return result
 
     def set_feature_ids(self, id_map, class_map, class_count):
