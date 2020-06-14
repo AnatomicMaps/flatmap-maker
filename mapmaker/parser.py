@@ -29,7 +29,8 @@ class Parser(object):
 
     ID_TEXT = Word(alphanums, alphanums+':/_-.')
 
-    ONTOLOGY_SUFFIX = (Keyword('FM')
+    ONTOLOGY_SUFFIX = (Keyword('ABI')
+                     | Keyword('FM')
                      | Keyword('FMA')
                      | Keyword('ILX')
                      | Keyword('MA')
