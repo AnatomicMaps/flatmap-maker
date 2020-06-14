@@ -123,7 +123,7 @@ class Feature(object):
 
     @property
     def geom_type(self):
-        return self.__geometry.geom_type
+        return self.__geometry.geom_type if self.__geometry else None
 
     @property
     def has_children(self):
