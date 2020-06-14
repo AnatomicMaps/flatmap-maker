@@ -47,8 +47,8 @@ class Properties(object):
         if settings.properties:
             with open(settings.properties) as fp:
                 properties_dict = json.loads(fp.read())
-                self.__set_properties(properties_dict['features'])
-                self.__pathways = Pathways(properties_dict['paths'])
+                self.__set_properties(properties_dict.get('features', []))
+                self.__pathways = Pathways(properties_dict.get('paths', []))
 
     def __set_properties(self, features_list):
         for feature in features_list:
