@@ -90,31 +90,32 @@ class AnatomicalMap(object):
         - If no ``Preferred ID`` is defined then the UBERON identifier is used.
         - The shape's label is set from its anatomical identifier; if none was assigned then the label is set to the shape's class.
     """
-    def __init__(self, mapping_spreadsheet, label_database):
+    def __init__(self, label_database, mapping_spreadsheet=None):
         self.__label_data = LabelData(label_database)
         self.__map = {}
-        for sheet in openpyxl.load_workbook(mapping_spreadsheet):
-            col_indices = {}
-            for (n, row) in enumerate(sheet.rows):
-                if n == 0:
-                    for cell in row:
-                        if cell.value in ['Power point identifier',
-                                          'Preferred ID',
-                                          'UBERON ID']:
-                            col_indices[cell.value] = cell.column - 1
-                    if len(col_indices) < 3:
-                        print("Sheet '{}' doean't have a valid header row -- data ignored".format(sheet.title))
-                        break
-                else:
-                    pp_id = row[col_indices['Power point identifier']].value
-                    preferred = row[col_indices['Preferred ID']].value
-                    if preferred == '-': preferred = ''
+        if mapping_spreadsheet is not None:
+            for sheet in openpyxl.load_workbook(mapping_spreadsheet):
+                col_indices = {}
+                for (n, row) in enumerate(sheet.rows):
+                    if n == 0:
+                        for cell in row:
+                            if cell.value in ['Power point identifier',
+                                              'Preferred ID',
+                                              'UBERON ID']:
+                                col_indices[cell.value] = cell.column - 1
+                        if len(col_indices) < 3:
+                            print("Sheet '{}' doean't have a valid header row -- data ignored".format(sheet.title))
+                            break
+                    else:
+                        pp_id = row[col_indices['Power point identifier']].value
+                        preferred = row[col_indices['Preferred ID']].value
+                        if preferred == '-': preferred = ''
 
-                    uberon = row[col_indices['UBERON ID']].value
-                    if uberon == '-': uberon = ''
+                        uberon = row[col_indices['UBERON ID']].value
+                        if uberon == '-': uberon = ''
 
-                    if pp_id and (preferred or uberon):
-                        self.__map[pp_id.strip()] = (preferred if preferred else uberon).strip()
+                        if pp_id and (preferred or uberon):
+                            self.__map[pp_id.strip()] = (preferred if preferred else uberon).strip()
         #print(self.__map)
 
     def properties(self, cls):

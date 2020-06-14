@@ -35,11 +35,8 @@ except ImportError:
 
 class Properties(object):
     def __init__(self, settings):
-        if settings.anatomical_map:
-            self.__anatomical_map = AnatomicalMap(settings.anatomical_map,
-                                                  settings.label_database)
-        else:
-            self.__anatomical_map = None
+        self.__anatomical_map = AnatomicalMap(settings.label_database,
+                                              settings.anatomical_map)
         self.__properties_by_class = {}
         self.__properties_by_id = {}
         self.__pathways = None
@@ -128,10 +125,7 @@ class Properties(object):
                         self.__class_counts[cls] = 1
                     self.__ids_by_class[cls] = None
 
-                    if self.__anatomical_map is not None:
-                        properties.update(self.__anatomical_map.properties(cls))
-                    else:
-                        properties['label'] = cls
+                    properties.update(self.__anatomical_map.properties(cls))
                     properties.update(self.properties_from_class(cls))
                     if self.__pathways is not None:
                         properties.update(self.__pathways.properties(cls))
