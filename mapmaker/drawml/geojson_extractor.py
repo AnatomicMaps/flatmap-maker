@@ -64,9 +64,9 @@ class GeoJsonLayer(Layer):
         self.__geo_pathways = []
         self.__transform = extractor.transform
 
-    def new_feature_(self, geometry, properties, *args):
-    #===================================================
-        return Feature(self.next_local_id(), geometry, properties, *args)
+    def new_feature_(self, geometry, properties, has_children=False):
+    #================================================================
+        return Feature(self.next_local_id(), geometry, properties, has_children)
 
     def process(self):
     #=================
