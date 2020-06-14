@@ -135,6 +135,8 @@ class GeoJsonLayer(Layer):
                     if boundary_polygon is not None:
                         raise FeaturesValueError('Group {} can only have one boundary shape:'.format(group_name), features)
                     boundary_polygon = feature.geometry
+                    if not feature.property('invisible'):
+                        group_features.append(feature)
                 cls = feature.property('class')
                 if cls is not None:
                     if cls != boundary_class:
