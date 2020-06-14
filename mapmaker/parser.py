@@ -94,10 +94,11 @@ class Parser(object):
                       | Keyword('children')
                       | Keyword('closed')
                       | Keyword('interior')
-                      | Keyword('marker')
                       )
 
-    DEPRECATED_FLAGS = Group(Keyword('siblings'))
+    DEPRECATED_FLAGS = Group(Keyword('siblings')
+                           | Keyword('marker')
+                           )
 
     FEATURE_FLAGS = Group(Keyword('group')
                         | Keyword('invisible')
