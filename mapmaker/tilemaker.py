@@ -29,7 +29,7 @@ import tempfile
 #===============================================================================
 
 import fitz
-import mercantile as mt
+import mercantile
 import numpy as np
 from PIL import Image
 
@@ -143,15 +143,15 @@ class TileMaker(object):
         self._database_names = self._manager.list()
 
         # Get whole tiles that span the image's extent
-        self._tiles = list(mt.tiles(*extent, self._max_zoom))
+        self._tiles = list(mercantile.tiles(*extent, self._max_zoom))
         tile_0 = self._tiles[0]
         tile_N = self._tiles[-1]
         self._tile_start_coords = (tile_0.x, tile_0.y)
         self._tile_end_coords = (tile_N.x, tile_N.y)
 
         # Tiled area in world coordinates (metres)
-        bounds_0 = mt.xy_bounds(tile_0)
-        bounds_N = mt.xy_bounds(tile_N)
+        bounds_0 = mercantile.xy_bounds(tile_0)
+        bounds_N = mercantile.xy_bounds(tile_N)
         tile_world = fitz.Rect(bounds_0.left, bounds_0.top, bounds_N.right, bounds_N.bottom)
 
         # Tiled area in tile pixel coordinates
@@ -163,8 +163,8 @@ class TileMaker(object):
         world_to_tile = Affine((sx, -sy), (tile_world.x0, tile_world.y0), (0, 0))
 
         # Extent in world coordinates (metres)
-        sw = mt.xy(*extent[:2])
-        ne = mt.xy(*extent[2:])
+        sw = mercantile.xy(*extent[:2])
+        ne = mercantile.xy(*extent[2:])
 
         # Converted to tile pixel coordinates
         self._image_rect = fitz.Rect(world_to_tile.transform(sw[0], ne[1]),

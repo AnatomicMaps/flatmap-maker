@@ -419,11 +419,12 @@ class GeoJsonLayer(Layer):
 class GeoJsonExtractor(Extractor):
     def __init__(self, pptx, settings):
         super().__init__(pptx, settings, GeoJsonLayer)
+        bounds = super().bounds()
         self.__transform = np.array([[METRES_PER_EMU,               0, 0],
-                                    [             0, -METRES_PER_EMU, 0],
-                                    [             0,               0, 1]])@np.array([[1, 0, -self.slide_size[0]/2.0],
-                                                                                     [0, 1, -self.slide_size[1]/2.0],
-                                                                                     [0, 0,                      1.0]])
+                                    [              0, -METRES_PER_EMU, 0],
+                                    [              0,               0, 1]])@np.array([[1, 0, -bounds[2]/2.0],
+                                                                                      [0, 1, -bounds[3]/2.0],
+                                                                                      [0, 0,            1.0]])
     @property
     def transform(self):
         return self.__transform
