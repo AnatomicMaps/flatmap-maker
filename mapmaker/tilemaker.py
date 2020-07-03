@@ -320,10 +320,13 @@ def make_background_tiles(map_bounds, map_zoom, map_dir, pdf_source, pdf_bytes, 
 if __name__ == '__main__':
     import sys
 
+    pdf_file = '../map_sources/body_demo.pdf'
     map_extent = [-56.5938090006128, -85.53899259200053,
                    56.5938090006128,  85.53899259200054]
-    make_background_tiles(map_extent, int(sys.argv[1]),
-                          '../maps/demo', '../map_sources/body_demo.pdf',
-                          [])
+
+    with open(pdf_file, 'rb') as f:
+        make_background_tiles(map_extent, [MIN_ZOOM, int(sys.argv[1])],
+                              '../maps/demo', pdf_file, f.read(),
+                              ['base'], 1)
 
 #===============================================================================
