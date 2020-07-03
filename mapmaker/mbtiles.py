@@ -78,7 +78,7 @@ class MBTiles(object):
         if not data: raise ExtractionError()
         return Image.open(io.BytesIO(data[0]))
 
-    def save_tile(self, zoom, x, y, image):
+    def save_tile_as_png(self, zoom, x, y, image):
         output = io.BytesIO()
         image.save(output, format='PNG')
         self._cursor.execute("""insert into tiles (zoom_level, tile_column, tile_row, tile_data)

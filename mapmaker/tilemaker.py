@@ -67,6 +67,11 @@ def not_transparent(img):
 
 #===============================================================================
 
+def transparent_image():
+    return Image.new('RGBA', (1, 1), color=(255, 255, 255, 0))
+
+#===============================================================================
+
 class Affine(object):
     def __init__(self, scale, translateA, translateB):
         self._matrix = np.array([[ scale[0], 0, -scale[0]*translateA[0] + translateB[0] ],
@@ -76,6 +81,33 @@ class Affine(object):
     def transform(self, x, y):
     #=========================
         return (self._matrix@[x, y, 1])[:2]
+
+#===============================================================================
+
+class Rect(object):
+    def __init__(self, *args):
+        if not args:
+            raise ValueError('Missing arguments for Rect constructor')
+        if len(args) == 4:
+            self.x0 = float(args[0])
+            self.y0 = float(args[1])
+            self.x1 = float(args[2])
+            self.y1 = float(args[3])
+        elif len(args) == 2:                  # 2 Points provided
+            self.x0 = float(args[0][0])
+            self.y0 = float(args[0][1])
+            self.x1 = float(args[1][0])
+            self.y1 = float(args[1][1])
+        else:
+            raise ValueError('Invalid arguments for Rect constructor')
+
+    @property
+    def height(self):
+        return abs(self.y1 - self.y0)
+
+    @property
+    def width(self):
+        return abs(self.x1 - self.x0)
 
 #===============================================================================
 
@@ -93,42 +125,64 @@ def check_image_size(dimension, max_dim, lower, upper, bounds, scale):
 #===============================================================================
 
 class PageTiler(object):
-    def __init__(self, pdf_page, image_rect):
-        self._pdf_page = pdf_page
-        self._page_rect = pdf_page.rect
-        sx = self._page_rect.width/image_rect.width
-        sy = self._page_rect.height/image_rect.height
+    def __init__(self, image_rect, source_rect):
+        self._source_rect = source_rect
+        sx = self._source_rect.width/image_rect.width
+        sy = self._source_rect.height/image_rect.height
         self._tile_to_image = Affine((sx, sy), (image_rect.x0, image_rect.y0), (0, 0))
 
-    def tile_as_png(self, tile_x, tile_y):
+    def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
+    #========================================================
+        # Overridden by subclass
+        return transparent_image()
+
+    def get_scaling(self, x0, y0, x1, y1):
     #=====================================
+        return (TILE_SIZE[0]/(x1 - x0), TILE_SIZE[1]/(y1 - y0))
+
+    def get_tile(self, tile_x, tile_y):
+    #==================================
         (x0, y0) = self._tile_to_image.transform(TILE_SIZE[0]*tile_x,
                                                  TILE_SIZE[1]*tile_y)
         (x1, y1) = self._tile_to_image.transform(TILE_SIZE[0]*(tile_x + 1),
                                                  TILE_SIZE[1]*(tile_y + 1))
-        scaling = ((TILE_SIZE[0] - 1)/(x1 - x0),   # Fitz includes RH edge pixel
-                   (TILE_SIZE[1] - 1)/(y1 - y0))   # so scale to 1px smaller...
 
-        # We now clip to avoid a black line if region outside of page...
-        if x1 >= self._page_rect.width: x1 = self._page_rect.width - 1
-        if y1 >= self._page_rect.height: y1 = self._page_rect.height - 1
-
-        pixmap = self._pdf_page.getPixmap(clip=fitz.Rect(x0, y0, x1, y1),
-                                          matrix=fitz.Matrix(*scaling),
-                                          alpha=True)
-
-        png_data = io.BytesIO(pixmap.getImageData('png'))
-        image = Image.open(png_data)
+        scaling = self.get_scaling(x0, y0, x1, y1)
+        image = self.extract_tile_as_image(x0, y0, x1, y1, scaling)
 
         if image.size == tuple(TILE_SIZE):
             return make_transparent(image)
         else:
             # Pad out partial tiles
-            x_start = check_image_size(image.width, TILE_SIZE[0], x0, x1, (0, self._page_rect.x1), scaling[0])
-            y_start = check_image_size(image.height, TILE_SIZE[1], y0, y1, (0, self._page_rect.y1), scaling[1])
+            x_start = check_image_size(image.width, TILE_SIZE[0], x0, x1, (0, self._source_rect.x1), scaling[0])
+            y_start = check_image_size(image.height, TILE_SIZE[1], y0, y1, (0, self._source_rect.y1), scaling[1])
             tile = Image.new('RGBA', TILE_SIZE, (255, 255, 255, 0))
             tile.paste(image, (x_start, y_start))
             return make_transparent(tile)
+
+#===============================================================================
+
+class PDF_PageTiler(PageTiler):
+    def __init__(self, image_rect, pdf_page):
+        super().__init__(image_rect, pdf_page.rect)
+        self._pdf_page = pdf_page
+
+    def get_scaling(self, x0, y0, x1, y1):
+    #=====================================
+        return ((TILE_SIZE[0] - 1)/(x1 - x0),   # Fitz includes RH edge pixel
+                (TILE_SIZE[1] - 1)/(y1 - y0))   # so scale to 1px smaller...
+
+    def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
+    #========================================================
+
+        # We now clip to avoid a black line if region outside of page...
+        if x1 >= self._source_rect.width: x1 = self._source_rect.width - 1
+        if y1 >= self._source_rect.height: y1 = self._source_rect.height - 1
+
+        pixmap = self._pdf_page.getPixmap(clip=fitz.Rect(x0, y0, x1, y1),
+                                          matrix=fitz.Matrix(*scaling),
+                                          alpha=True)
+        return Image.open(io.BytesIO(pixmap.getImageData('png')))
 
 #===============================================================================
 
@@ -152,10 +206,10 @@ class TileMaker(object):
         # Tiled area in world coordinates (metres)
         bounds_0 = mercantile.xy_bounds(tile_0)
         bounds_N = mercantile.xy_bounds(tile_N)
-        tile_world = fitz.Rect(bounds_0.left, bounds_0.top, bounds_N.right, bounds_N.bottom)
+        tile_world = Rect(bounds_0.left, bounds_0.top, bounds_N.right, bounds_N.bottom)
 
         # Tiled area in tile pixel coordinates
-        tile_extent = fitz.Rect(0, 0, TILE_SIZE[0]*(tile_N.x-tile_0.x+1), TILE_SIZE[1]*(tile_N.y-tile_0.y+1))
+        tile_extent = Rect(0, 0, TILE_SIZE[0]*(tile_N.x-tile_0.x+1), TILE_SIZE[1]*(tile_N.y-tile_0.y+1))
 
         # Affine transform from world to tile pixel coordinates
         sx = tile_extent.width/tile_world.width
@@ -167,8 +221,8 @@ class TileMaker(object):
         ne = mercantile.xy(*extent[2:])
 
         # Converted to tile pixel coordinates
-        self._image_rect = fitz.Rect(world_to_tile.transform(sw[0], ne[1]),
-                                     world_to_tile.transform(ne[0], sw[1]))
+        self._image_rect = Rect(world_to_tile.transform(sw[0], ne[1]),
+                                world_to_tile.transform(ne[0], sw[1]))
 
         self._processes = []
 
@@ -178,7 +232,7 @@ class TileMaker(object):
 
     def make_tiles(self, source_id, pdf_page, layer):
     #================================================
-        page_tiler = PageTiler(pdf_page, self._image_rect)
+        page_tiler = PDF_PageTiler(self._image_rect, pdf_page)
 
         database_name = '{}.mbtiles'.format(layer)
         self._database_names.append(database_name)
@@ -191,10 +245,10 @@ class TileMaker(object):
             unit='tiles', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for tile in self._tiles:
-            png = page_tiler.tile_as_png(tile.x - self._tile_start_coords[0],
-                                         tile.y - self._tile_start_coords[1])
-            if not_transparent(png):
-                mbtiles.save_tile(zoom, tile.x, tile.y, png)
+            image = page_tiler.get_tile(tile.x - self._tile_start_coords[0],
+                                        tile.y - self._tile_start_coords[1])
+            if not_transparent(image):
+                mbtiles.save_tile_as_png(zoom, tile.x, tile.y, image)
             progress_bar.update(1)
         progress_bar.close()
 
@@ -225,7 +279,7 @@ class TileMaker(object):
                             except ExtractionError:
                                 pass
                     if not_transparent(overview_tile):
-                        mbtiles.save_tile(zoom, x, y, overview_tile)
+                        mbtiles.save_tile_as_png(zoom, x, y, overview_tile)
                     progress_bar.update(1)
             progress_bar.close()
             self.make_overview_tiles(mbtiles, layer, zoom, half_start, half_end)
