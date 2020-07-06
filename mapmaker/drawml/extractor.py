@@ -33,6 +33,7 @@ from tqdm import tqdm
 
 #===============================================================================
 
+from flatmap import MapLayer
 from parser import Parser
 from properties import Properties
 
@@ -162,51 +163,33 @@ class FeaturesValueError(ValueError):
 
 #===============================================================================
 
-class Layer(object):
+class SlideLayer(MapLayer):
     def __init__(self, extractor, slide, slide_number):
         self._slide = slide
         self.__extractor = extractor
         self.__slide_number = slide_number
-        self.__errors = []
         self.__external_properties = Properties(extractor.settings)
-        self.__pathways = self.__external_properties.pathways
-
+        super().__init__(slide_number, self.__external_properties.pathways)
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
-        self.__set_defaults()
         if slide.has_notes_slide:
             notes_slide = slide.notes_slide
             notes_text = notes_slide.notes_text_frame.text
             if notes_text.startswith('.'):
                 layer_directive = Parser.layer_directive(notes_text)
                 if 'error' in layer_directive:
-                    self.__errors.append('Slide {}: invalid layer directive: {}'
-                                        .format(slide_number, notes_text))
+                    super().error('Slide {}: invalid layer directive: {}'
+                                   .format(slide_number, notes_text))
                 else:
-                    self.__layer_id = layer_directive.get('id')
-                self.__description = layer_directive.get('description', self.__layer_id.capitalize())
-                self.__models = layer_directive.get('models', '')
-                self.__background_for = layer_directive.get('background-for', '')
-                self.__selectable = self.__background_for == '' and not layer_directive.get('not-selectable')
-                self.__selected = layer_directive.get('selected', False)
-                self.__queryable_nodes = layer_directive.get('queryable-nodes', False)
-                self.__zoom = layer_directive.get('zoom', None)
-
-        self.__map_features = []
-#*        self.__ontology_data = self.settings.ontology_data
-        self.__annotations = {}
+                    self.layer_id = layer_directive.get('id')
+                self.background_for = layer_directive.get('background-for', '')
+                self.description = layer_directive.get('description', self.layer_id.capitalize())
+                self.models = layer_directive.get('models', '')
+                self.queryable_nodes = layer_directive.get('queryable-nodes', False)
+                self.selectable = self.background_for == '' and not layer_directive.get('not-selectable')
+                self.selected = layer_directive.get('selected', False)
+                self.zoom = layer_directive.get('zoom', None)
         self.__current_group = []
-
-    def __set_defaults(self):
-    #========================
-        self.__layer_id = 'layer-{:02d}'.format(self.__slide_number)
-        self.__description = 'Layer {}'.format(self.__slide_number)
-        self.__models = ''
-        self.__background_for = ''
-        self.__selectable = True
-        self.__selected = False
-        self.__queryable_nodes = False
-        self.__zoom = None
         # Cannot overlap with slide shape ids...
         self.__next_local_id = 100001
 
@@ -224,58 +207,6 @@ class Layer(object):
     @property
     def settings(self):
         return self.__extractor.settings
-
-    @property
-    def annotations(self):
-        return self.__annotations
-
-    @property
-    def description(self):
-        return self.__description
-
-    @property
-    def models(self):
-        return self.__models
-
-    @property
-    def background_for(self):
-        return self.__background_for
-
-    @property
-    def selected(self):
-        return self.__selected
-
-    @property
-    def selectable(self):
-        return self.__selectable
-
-    @property
-    def queryable_nodes(self):
-        return self.__queryable_nodes
-
-    @property
-    def zoom(self):
-        return self.__zoom
-
-    @property
-    def errors(self):
-        return self.__errors
-
-    @property
-    def map_features(self):
-        return self.__map_features
-
-    @property
-    def layer_id(self):
-        return self.__layer_id
-
-    @property
-    def slide_id(self):
-        return self._slide.slide_id
-
-    @property
-    def resolved_pathways(self):
-        return self.__pathways.resolved_pathways if self.__pathways is not None else None
 
     def unique_id(self, id):
     #=======================
@@ -317,7 +248,7 @@ class Layer(object):
 
     def process_shape_list(self, shapes, *args, outermost=False):
     #============================================================
-        if not self.__selectable:
+        if not self.selectable:
             return []
 
         if outermost:
@@ -363,7 +294,7 @@ class Layer(object):
 #===============================================================================
 
 class Extractor(object):
-    def __init__(self, pptx, settings, layer_class=Layer):
+    def __init__(self, pptx, settings, layer_class=SlideLayer):
         self.__LayerClass = layer_class
         self.__pptx = Presentation(pptx)
         self.__settings = settings

@@ -36,6 +36,115 @@ FLATMAP_VERSION  = 1.1
 
 #===============================================================================
 
+class MapLayer(object):
+    def __init__(self, id, pathways=None):
+        self.__annotations = {}
+        self.__errors = []
+        self.__pathways = pathways
+        self.__map_features = []
+#*        self.__ontology_data = self.settings.ontology_data
+
+
+        self.__layer_id = 'layer-{}'.format(id)
+        self.__description = 'Layer {}'.format(id)
+        self.__models = ''
+        self.__background_for = ''
+        self.__selectable = True
+        self.__selected = False
+        self.__queryable_nodes = False
+        self.__zoom = None
+
+    @property
+    def annotations(self):
+        return self.__annotations
+
+    @property
+    def background_for(self):
+        return self.__background_for
+
+    @background_for.setter
+    def background_for(self, value):
+        self.__background_for = value
+
+    @property
+    def description(self):
+        return self.__description
+
+    @description.setter
+    def description(self, value):
+        self.__description = value
+
+    @property
+    def errors(self):
+        return self.__errors
+
+    @property
+    def layer_id(self):
+        return self.__layer_id
+
+    @layer_id.setter
+    def layer_id(self, value):
+        self.__layer_id = value
+
+    @property
+    def map_features(self):
+        return self.__map_features
+
+    @property
+    def models(self):
+        return self.__models
+
+    @models.setter
+    def models(self, value):
+        self.__models = value
+
+    @property
+    def queryable_nodes(self):
+        return self.__queryable_nodes
+
+    @queryable_nodes.setter
+    def queryable_nodes(self, value):
+        self.__queryable_nodes = value
+
+    @property
+    def resolved_pathways(self):
+        return self.__pathways.resolved_pathways if self.__pathways is not None else None
+
+    @property
+    def selected(self):
+        return self.__selected
+
+    @selected.setter
+    def selected(self, value):
+        self.__selected = value
+
+    @property
+    def selectable(self):
+        return self.__selectable
+
+    @selectable.setter
+    def selectable(self, value):
+        self.__selectable = value
+
+    @property
+    def slide_id(self):
+        return self._slide.slide_id
+
+    @property
+    def zoom(self):
+        return self.__zoom
+
+    @zoom.setter
+    def zoom(self, value):
+        self.__zoom = value
+
+
+    def error(self, msg):
+    #====================
+        self.__errors.append(msg)
+
+#===============================================================================
+
 class Flatmap(object):
     def __init__(self, id, source, creator, map_dir, zoom, bounds):
         self.__annotations = {}

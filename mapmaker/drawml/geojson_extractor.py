@@ -57,7 +57,7 @@ METRES_PER_EMU = 0.1   ## This to become a command line parameter...
                        ## Or in a specification file...
 #===============================================================================
 
-class GeoJsonLayer(Layer):
+class GeoJsonLayer(SlideLayer):
     def __init__(self, extractor, slide, slide_number):
         super().__init__(extractor, slide, slide_number)
         self.__geo_features = []
