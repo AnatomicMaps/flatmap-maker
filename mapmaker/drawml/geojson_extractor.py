@@ -266,7 +266,8 @@ class GeoJsonLayer(Layer):
                 nerve_id = feature.id
                 nerve_polygon_feature = self.new_feature_(
                     shapely.geometry.Polygon(feature.geometry.coords), feature.properties)
-                del nerve_polygon_feature.properties['models']
+                if 'models' in nerve_polygon_feature.properties:
+                    del nerve_polygon_feature.properties['models']
                 nerve_polygon_feature.properties['nerve-id'] = nerve_id
                 nerve_polygons.append(nerve_polygon_feature)
         group_features.extend(nerve_polygons)
