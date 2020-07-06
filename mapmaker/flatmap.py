@@ -189,8 +189,8 @@ class Flatmap(object):
         cmd_stream = os.popen('tar -C {} -c -z {} | ssh {} "tar -C /flatmaps -x -z"'
                              .format(args.map_base, upload, host))
 
-    def finalise(self, show_files):
-    #==============================
+    def finalise(self, show_files=False):
+    #====================================
         for filename in self.__geojson_files:
             if show_files:
                 print(filename)
