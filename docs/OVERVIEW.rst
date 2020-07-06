@@ -1,6 +1,8 @@
-From Powerpoint to Flatmaps
-===========================
+DRC Paper
+=========
 
-Zoomable maps are widely used to view geographical information, and provide a natural way to interact with a large range of different length scales. Within the SPARC MAPcore project, such maps are known as flatmaps and are used to visualise and explore the relationships between organ systems and autonomic nerves. Microsoft Powerpoint is a popular application for drawing diagrams and can be used to prepare flatmaps.
+Flatmaps
+--------
 
-In this talk I intend to give an overview of how flatmaps are used and structured, show how to prepare and annotate a set of Powerpoint slides, and describe the tools for generating a map from these slides.
+Flatmaps are interactive maps for exploring anatomical information over a large range of length scales, using the same interfaces as used by geographical maps. A flatmap is defined by a set of shapes in MS Powerpoint slide along with additional properties specified in JSON. These shapes and properties are used by a Python application to construct GeoJSON features, with Powerpoint coordinates converted to WGS84/Pseudo-Mercator geographical coordinates. Mapbox vector tiles are generated from the GeoJSON and separately, background image tiles are generated from a PDF of the original Powerpoint slide. Generated maps are provided to a browser-based flatmap viewer via a Web Map Tile Service (WMTS).
+
