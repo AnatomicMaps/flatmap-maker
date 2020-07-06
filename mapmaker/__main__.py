@@ -23,28 +23,21 @@
 MAPMAKER_VERSION = '0.8.1beta1'
 #===============================================================================
 
-FLATMAP_VERSION  = 1.1
 
 #===============================================================================
 
-import datetime
+
+#===============================================================================
+
 import io
-import json
-import subprocess
-import tempfile
-
-#===============================================================================
 
 import requests
 
 #===============================================================================
 
 from drawml import GeoJsonExtractor
-from mbtiles import MBTiles
-from pathways import pathways_to_json
-from styling import Style
 from tilemaker import make_background_tiles
-from tilejson import tile_json
+from flatmap import Flatmap
 
 #===============================================================================
 
@@ -150,216 +143,67 @@ def main():
 
     args.label_database = os.path.join(args.map_base, 'labels.sqlite')
 
-    map_models = ''
-
     if not os.path.exists(map_dir):
         os.makedirs(map_dir)
+
+    map_extractor = GeoJsonExtractor(pptx_bytes, args)
+    flatmap = Flatmap(args.map_id, map_source, ' '.join(sys.argv),
+                      map_dir, map_zoom, map_extractor.latlng_bounds())
 
 #*    # Labels and relationships between anatomical entities
 
 #*    args.ontology_data = OntologyData()
 #*    args.layer_mapping = LayerMapping('./layers.json', 'features')
 
-    filenames = []
-    upload_files = ['index.mbtiles']
-
-    print('Extracting layers...')
-    map_extractor = GeoJsonExtractor(pptx_bytes, args)
-
     # Process slides, saving layer information
-
-    annotations = {}
-    map_layers = []
-    pathways_list = []
-    tippe_inputs = []
+    print('Extracting layers...')
     for slide_number in range(1, len(map_extractor)+1):
         if args.tile_slide > 0 and args.tile_slide != slide_number:
             continue
-
         layer = map_extractor.slide_to_layer(slide_number,
                                              debug_xml=args.debug_xml)
         for error in layer.errors:
             print(error)
-
-        if layer.zoom is not None:
-            map_zoom = layer.zoom
-
-        map_layer = {
-            'id': layer.layer_id,
-            'slide-id': layer.slide_id,
-            'description': layer.description,
-            'selectable': layer.selectable,
-            'selected': layer.selected,
-            'queryable-nodes': layer.queryable_nodes,
-            'features': layer.map_features
-        }
-        if layer.background_for:
-            map_layer['background_for'] = layer.background_for
-        map_layers.append(map_layer)
-        if layer.resolved_pathways is not None:
-            pathways_list.append(layer.resolved_pathways)
-
-        if layer.models:
-            map_models = layer.models
-
-        if layer.selectable:
-            annotations.update(layer.annotations)
-            for (layer_name, filename) in layer.save().items():
-                filenames.append(filename)
-                tippe_inputs.append({
-                    'file': filename,
-                    'layer': layer_name,
-                    'description': '{} -- {}'.format(layer.description, layer_name)
-                })
+        flatmap.add_layer(layer)
 
     # We are finished with the Powerpoint
-
     pptx_bytes.close()
 
-    if len(map_layers) == 0:
+    if len(flatmap) == 0:
         sys.exit('No map layers in Powerpoint...')
 
     if args.check_errors:
         # Show what the map is about
-        if map_models:
-            print('Checked map for {}'.format(map_models))
+        if flatmap.models:
+            print('Checked map for {}'.format(flatmap.models))
 
     else:
-
-        layer_ids = [layer['id'] for layer in map_layers]
-
-        # Get our map's actual bounds and centre
-
-        bounds = map_extractor.bounds()
-        map_centre = [(bounds[0]+bounds[2])/2, (bounds[1]+bounds[3])/2]
-        map_bounds = [bounds[0], bounds[3], bounds[2], bounds[1]]   # southwest and northeast ccorners
-
-        # The vector tiles' database
-
-        mbtiles_file = os.path.join(map_dir, 'index.mbtiles')
-
-        if len(tippe_inputs) == 0:
-            sys.exit('No selectable layers in Powerpoint...')
-
-        # Generate Mapbox vector tiles
         print('Running tippecanoe...')
-
-        subprocess.run(['tippecanoe', '--projection=EPSG:4326', '--force',
-                        # No compression results in a smaller `mbtiles` file
-                        # and is also required to serve tile directories
-                        '--no-tile-compression',
-                        '--buffer=100',
-                        '--minimum-zoom={}'.format(map_zoom[0]),
-                        '--maximum-zoom={}'.format(map_zoom[1]),
-                        '--output={}'.format(mbtiles_file),
-                        ]
-                        + list(["-L{}".format(json.dumps(input)) for input in tippe_inputs])
-                       )
-
-        # `tippecanoe` uses the bounding box containing all features as the
-        # map bounds, which is not the same as the extracted bounds, so update
-        # the map's metadata
-
-        tile_db = MBTiles(mbtiles_file)
-
-        tile_db.update_metadata(center=','.join([str(x) for x in map_centre]),
-                                bounds=','.join([str(x) for x in map_bounds]))
-
-        tile_db.execute("COMMIT")
+        flatmap.make_vector_tiles()
 
         if args.tile_slide == 0:
-            # Save path of the Powerpoint source
-            tile_db.add_metadata(source=map_source)    ## We don't always want this updated...
-                                                       ## e.g. if re-running after tile generation
-            # What the map models
-            if map_models:
-                tile_db.add_metadata(describes=map_models)
-
-            # Save layer details in metadata
-            tile_db.add_metadata(layers=json.dumps(map_layers))
-
-            # Save pathway details in metadata
-            tile_db.add_metadata(pathways=pathways_to_json(pathways_list))
-
-            # Save annotations in metadata
-            tile_db.add_metadata(annotations=json.dumps(annotations))
-
-            # Save command used to run mapmaker
-            tile_db.add_metadata(created_by=' '.join(sys.argv))
-
-            # Save the maps creation time
-            tile_db.add_metadata(created=datetime.datetime.utcnow().isoformat())
-
-#*        ## TODO: set ``layer.properties`` for annotations...
-#*        ##update_RDF(args.map_base, args.map_id, map_source, annotations)
-            # Commit updates to the database
-            tile_db.execute("COMMIT")
-
-
-
-            print('Creating style files...')
-
-            map_index = {
-                'id': args.map_id,
-                'min-zoom': map_zoom[0],
-                'max-zoom': map_zoom[1],
-                'bounds': map_bounds,
-                'version': FLATMAP_VERSION,
-                'image_layer': (args.background_tiles
-                             or os.path.isfile(os.path.join(map_dir, '{}.mbtiles'.format(layer_ids[0])))),
-            }
-
-            if map_models:
-                map_index['describes'] = map_models
-
-            # Create `index.json` for building a map in the viewer
-
-            with open(os.path.join(map_dir, 'index.json'), 'w') as output_file:
-                json.dump(map_index, output_file)
-
-            # Create style file
-
-            metadata = tile_db.metadata()
-
-            style_dict = Style.style(layer_ids, metadata, map_zoom)
-            with open(os.path.join(map_dir, 'style.json'), 'w') as output_file:
-                json.dump(style_dict, output_file)
-
-            # Create TileJSON file
-
-            json_source = tile_json(args.map_id, map_zoom, map_bounds)
-            with open(os.path.join(map_dir, 'tilejson.json'), 'w') as output_file:
-                json.dump(json_source, output_file)
-
-        upload_files.extend(['index.json', 'style.json', 'tilejson.json'])
-
-        if args.tile_slide == 0:
-            # We are finished with the tile database, so close it
-            tile_db.close();
+            print('Creating index and style files...')
+            flatmap.save_map_json(args.background_tiles
+                               or os.path.isfile(os.path.join(map_dir, '{}.mbtiles'.format(flatmap.layer_ids[0]))))
 
         if args.background_tiles:
             print('Generating background tiles (may take a while...)')
-            upload_files.extend(make_background_tiles(map_bounds, map_zoom, map_dir,
-                                  pdf_source, pdf_bytes, layer_ids, args.tile_slide))
+            image_tile_files = make_background_tiles_from_pdf(flatmap.bounds, map_zoom, map_dir,
+                                                              pdf_bytes, pdf_source,
+                                                              flatmap.layer_ids, args.tile_slide)
+            flatmap.add_upload_files(image_tile_files)
 
         # Show what the map is about
-        if map_models:
-            print('Generated map for {}'.format(map_models))
+        if flatmap.models:
+            print('Generated map for {}'.format(flatmap.models))
 
         if args.upload:
-            upload = ' '.join([ '{}/{}'.format(args.map_id, f) for f in upload_files ])
-            cmd_stream = os.popen('tar -C {} -c -z {} | ssh {} "tar -C /flatmaps -x -z"'
-                                 .format(args.map_base, upload, args.upload))
+            flatmap.upload(args.upload)
             print('Uploaded map...', cmd_stream.read())
 
     # Tidy up
     print('Cleaning up...')
-
-    for filename in filenames:
-        if args.save_geojson:
-            print(filename)
-        else:
-            os.remove(filename)
+    flatmap.finalise(args.save_geojson)
 
 #===============================================================================
 
