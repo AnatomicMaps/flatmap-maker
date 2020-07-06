@@ -437,11 +437,12 @@ class GeoJsonExtractor(Extractor):
         bottom_right = transform_point(self.__transform, (bounds[2], bounds[3]))
         return abs(bottom_right[0] - top_left[0]) * (top_left[1] - bottom_right[1])
 
-    def bounds(self):
-    #================
+    def latlng_bounds(self):
+    #=======================
         bounds = super().bounds()
         top_left = mercator_transformer.transform(*transform_point(self.__transform, (bounds[0], bounds[1])))
         bottom_right = mercator_transformer.transform(*transform_point(self.__transform, (bounds[2], bounds[3])))
-        return [top_left[0], top_left[1], bottom_right[0], bottom_right[1]]
+        # southwest and northeast corners
+        return (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
 #===============================================================================
