@@ -235,10 +235,10 @@ class TileMaker(object):
         database_name = '{}.mbtiles'.format(layer_id)
         self._database_names.append(database_name)
         mbtiles = MBTiles(os.path.join(self._map_dir, database_name), True, True)
-        mbtiles.add_metadata(id=layer, source=source_id)
+        mbtiles.add_metadata(id=layer_id, source=source_id)
 
         zoom = self._max_zoom
-        print('Tiling zoom level {} for {}'.format(zoom, layer))
+        print('Tiling zoom level {} for {}'.format(zoom, layer_id))
         progress_bar = tqdm(total=len(self._tiles),
             unit='tiles', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
@@ -250,14 +250,14 @@ class TileMaker(object):
             progress_bar.update(1)
         progress_bar.close()
 
-        self.make_overview_tiles(mbtiles, layer, zoom, self._tile_start_coords, self._tile_end_coords)
+        self.make_overview_tiles(mbtiles, layer_id, zoom, self._tile_start_coords, self._tile_end_coords)
         mbtiles.close() #True)
 
-    def make_overview_tiles(self, mbtiles, layer, zoom, start_coords, end_coords):
-    #=============================================================================
+    def make_overview_tiles(self, mbtiles, layer_id, zoom, start_coords, end_coords):
+    #================================================================================
         if zoom > self._min_zoom:
             zoom -= 1
-            print('Tiling zoom level {} for {}'.format(zoom, layer))
+            print('Tiling zoom level {} for {}'.format(zoom, layer_id))
             HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
             half_start = (start_coords[0]//2, start_coords[1]//2)
             half_end = (end_coords[0]//2, end_coords[1]//2)
@@ -280,7 +280,7 @@ class TileMaker(object):
                         mbtiles.save_tile_as_png(zoom, x, y, overview_tile)
                     progress_bar.update(1)
             progress_bar.close()
-            self.make_overview_tiles(mbtiles, layer, zoom, half_start, half_end)
+            self.make_overview_tiles(mbtiles, layer_id, zoom, half_start, half_end)
 
     def wait_for_processes(self):
     #============================
