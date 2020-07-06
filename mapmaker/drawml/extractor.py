@@ -198,6 +198,7 @@ class Layer(object):
         self.__current_group = []
 
     def __set_defaults(self):
+    #========================
         self.__layer_id = 'layer-{:02d}'.format(self.__slide_number)
         self.__description = 'Layer {}'.format(self.__slide_number)
         self.__models = ''
@@ -210,6 +211,7 @@ class Layer(object):
         self.__next_local_id = 100001
 
     def __set_feature_id(self, feature):
+    #===================================
         if feature.has('external-id'):
             self.__external_properties.set_feature_id(feature.property('external-id'), feature.id)
         if feature.has('class'):
