@@ -124,7 +124,7 @@ def check_image_size(dimension, max_dim, lower, upper, bounds, scale):
 
 #===============================================================================
 
-class PageTiler(object):
+class TileSource(object):
     def __init__(self, image_rect, source_rect):
         self._source_rect = source_rect
         sx = self._source_rect.width/image_rect.width
@@ -162,7 +162,7 @@ class PageTiler(object):
 
 #===============================================================================
 
-class PDF_PageTiler(PageTiler):
+class PDFTileSource(TileSource):
     def __init__(self, image_rect, pdf_page):
         super().__init__(image_rect, pdf_page.rect)
         self._pdf_page = pdf_page
@@ -230,11 +230,9 @@ class TileMaker(object):
     def database_names(self):
         return self._database_names
 
-    def make_tiles(self, source_id, pdf_page, layer):
-    #================================================
-        page_tiler = PDF_PageTiler(self._image_rect, pdf_page)
-
-        database_name = '{}.mbtiles'.format(layer)
+    def make_tiles(self, source_id, tile_source, layer_id):
+    #======================================================
+        database_name = '{}.mbtiles'.format(layer_id)
         self._database_names.append(database_name)
         mbtiles = MBTiles(os.path.join(self._map_dir, database_name), True, True)
         mbtiles.add_metadata(id=layer, source=source_id)
@@ -245,8 +243,8 @@ class TileMaker(object):
             unit='tiles', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for tile in self._tiles:
-            image = page_tiler.get_tile(tile.x - self._tile_start_coords[0],
-                                        tile.y - self._tile_start_coords[1])
+            image = tile_source.get_tile(tile.x - self._tile_start_coords[0],
+                                         tile.y - self._tile_start_coords[1])
             if not_transparent(image):
                 mbtiles.save_tile_as_png(zoom, tile.x, tile.y, image)
             progress_bar.update(1)
@@ -284,33 +282,33 @@ class TileMaker(object):
             progress_bar.close()
             self.make_overview_tiles(mbtiles, layer, zoom, half_start, half_end)
 
-
-    def start_make_tiles_process(self, pdf_bytes, source_id, page_no, layer):
-    #========================================================================
-        print('Page {}: {}'.format(page_no, layer))
-
-        pdf = fitz.Document(stream=pdf_bytes, filetype='application/pdf')
-        pages = list(pdf)
-        pdf_page = pages[page_no - 1]
-
-        process = multiprocessing.Process(target=self.make_tiles, args=(source_id, pdf_page, layer))
-        self._processes.append(process)
-        process.start()
-
     def wait_for_processes(self):
     #============================
         for process in self._processes:
             process.join()
 
+    def make_tiles_from_pdf(self, pdf_page, source_id, layer_id):
+    #============================================================
+        self.make_tiles(source_id, PDFTileSource(self._image_rect, pdf_page), layer_id)
+
+    def start_make_tiles_from_pdf(self, pdf_bytes, source_id, page_no, layer_id):
+    #============================================================================
+        print('Page {}: {}'.format(page_no, layer_id))
+        pdf = fitz.Document(stream=pdf_bytes, filetype='application/pdf')
+        process = multiprocessing.Process(target=self.make_tiles_from_pdf, args=(pdf[page_no - 1], source_id, layer_id))
+        self._processes.append(process)
+        process.start()
+
+
 #===============================================================================
 
-def make_background_tiles(map_bounds, map_zoom, map_dir, pdf_source, pdf_bytes, layer_ids, slide=0):
+def make_background_tiles_from_pdf(map_bounds, map_zoom, map_dir, pdf_bytes, source_name, layer_ids, slide=0):
     tile_maker = TileMaker(map_bounds, map_dir, map_zoom)
     if slide > 0:   # There is just a single layer
-        tile_maker.start_make_tiles_process(pdf_bytes, '{}#{}'.format(pdf_source, slide), slide, layer_ids[0])
+        tile_maker.start_make_tiles_from_pdf(pdf_bytes, '{}#{}'.format(source_name, slide), slide, layer_ids[0])
     else:
         for n, layer_id in enumerate(layer_ids):
-            tile_maker.start_make_tiles_process(pdf_bytes, '{}#{}'.format(pdf_source, n+1), n+1, layer_id)
+            tile_maker.start_make_tiles_from_pdf(pdf_bytes, '{}#{}'.format(source_name, n+1), n+1, layer_id)
 
     tile_maker.wait_for_processes()
     return tile_maker.database_names
@@ -320,13 +318,16 @@ def make_background_tiles(map_bounds, map_zoom, map_dir, pdf_source, pdf_bytes, 
 if __name__ == '__main__':
     import sys
 
-    pdf_file = '../map_sources/body_demo.pdf'
-    map_extent = [-56.5938090006128, -85.53899259200053,
-                   56.5938090006128,  85.53899259200054]
+    map_extent = [-10, -20, 10, 20]
+    max_zoom = 6
 
-    with open(pdf_file, 'rb') as f:
-        make_background_tiles(map_extent, [MIN_ZOOM, int(sys.argv[1])],
-                              '../maps/demo', pdf_file, f.read(),
-                              ['base'], 1)
+    mode = 'PDF' if len(sys.argv) < 2 else sys.argv[1].upper()
+
+    if mode == 'PDF':
+        pdf_file = '../map_sources/body_demo.pdf'
+        with open(pdf_file, 'rb') as f:
+            make_background_tiles_from_pdf(map_extent, [MIN_ZOOM, max_zoom],
+                                           '../maps/demo', f.read(),
+                                           pdf_file, ['base'], 1)
 
 #===============================================================================

@@ -35,8 +35,8 @@ import requests
 #===============================================================================
 
 from drawml import GeoJsonExtractor
-from tilemaker import make_background_tiles
 from flatmap import Flatmap
+from tilemaker import make_background_tiles_from_pdf
 
 #===============================================================================
 
