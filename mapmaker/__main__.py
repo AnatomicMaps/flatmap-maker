@@ -48,6 +48,9 @@ def main():
 
     parser.add_argument('-b', '--background-tiles', action='store_true',
                         help="generate image tiles of map's layers (may take a while...)")
+    parser.add_argument('-t', '--tile', dest='tile_slide', metavar='N', type=int, default=0,
+                        help='only generate image tiles for this slide (1-origin); sets --background-tiles')
+
     parser.add_argument('--anatomical-map',
                         help='Excel spreadsheet file for mapping shape classes to anatomical entities')
     parser.add_argument('--properties',
@@ -55,14 +58,11 @@ def main():
 
     parser.add_argument('-c', '--check-errors', action='store_true',
                         help="check for errors without generating a map")
-    parser.add_argument('-t', '--tile', dest='tile_slide', metavar='N', type=int, default=0,
-                        help='only generate image tiles for this slide (1-origin); implies --background-tiles and --no-vector-tiles')
-
     parser.add_argument('-z', '--initial-zoom', metavar='N', type=int, default=4,
                         help='initial zoom level (defaults to 4)')
-    parser.add_argument('--max', dest='max_zoom', metavar='N', type=int, default=10,
+    parser.add_argument('--max-zoom', dest='max_zoom', metavar='N', type=int, default=10,
                         help='maximum zoom level (defaults to 10)')
-    parser.add_argument('--min', dest='min_zoom', metavar='N', type=int, default=2,
+    parser.add_argument('--min-zoom', dest='min_zoom', metavar='N', type=int, default=2,
                         help='minimum zoom level (defaults to 2)')
 
 
@@ -101,7 +101,6 @@ def main():
 
     if args.tile_slide > 0:
         args.background_tiles = True
-        args.no_vector_tiles = True
 
     if args.powerpoint.startswith('http:') or args.powerpoint.startswith('https:'):
         response = requests.get(args.powerpoint)
