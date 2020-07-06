@@ -162,6 +162,20 @@ class TileSource(object):
 
 #===============================================================================
 
+class ImageTileSource(TileSource):
+    def __init__(self, image_rect, image):
+        if image.mode == "RGB":
+            alpha_channel = Image.new('L', image.size, 255)   # 'L' 8-bit pixels, black and white
+            image.putalpha(alpha_channel)
+        self._source_image = image
+        super().__init__(image_rect, Rect([0, 0], image.size))
+
+    def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
+    #========================================================
+        return self._source_image.crop((scaling[0]*x0, scaling[1]*y0, scaling[0]*x1, scaling[1]*y1))
+
+#===============================================================================
+
 class PDFTileSource(TileSource):
     def __init__(self, image_rect, pdf_page):
         super().__init__(image_rect, pdf_page.rect)
@@ -299,6 +313,13 @@ class TileMaker(object):
         self._processes.append(process)
         process.start()
 
+#===============================================================================
+
+def make_background_tiles_from_image(map_bounds, map_zoom, map_dir, image, source_name, layer_id):
+    tile_maker = TileMaker(map_bounds, map_dir, map_zoom)
+    tile_maker.start_make_tiles_from_image(image, source_name, layer_id)
+    tile_maker.wait_for_processes()
+    return tile_maker.database_names
 
 #===============================================================================
 
@@ -329,5 +350,12 @@ if __name__ == '__main__':
             make_background_tiles_from_pdf(map_extent, [MIN_ZOOM, max_zoom],
                                            '../maps/demo', f.read(),
                                            pdf_file, ['base'], 1)
+    elif mode == 'JPEG':
+        jpeg_file = './mbf/pig/sub-10sam-1P10-1Slide2p3MT10x.jp2'
+        make_background_tiles_from_image(map_extent, [MIN_ZOOM, max_zoom],
+                                         '../maps/demo', Image.open(jpeg_file),
+                                         jpeg_file, 'test')
+    else:
+        sys.exit('Unknown mode of test -- must be "JPEG" or "PDF"')
 
 #===============================================================================
