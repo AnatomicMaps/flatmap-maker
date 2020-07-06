@@ -389,7 +389,7 @@ class Extractor(object):
         return self.__slide_size
 
     def bounds(self):
-        return [0, 0, self.__slide_size[0], self.__slide_size[1]]
+        return (0, 0, self.__slide_size[0], self.__slide_size[1])
 
     def slide(self, slide_number):
         return self.__slides[slide_number - 1]
