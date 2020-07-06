@@ -20,12 +20,11 @@
 
 
 
-MAPMAKER_VERSION = '0.8.1beta1'
-#===============================================================================
 
 
 #===============================================================================
 
+__version__ = '0.9.0-devel'
 
 #===============================================================================
 
@@ -74,7 +73,7 @@ def main():
     parser.add_argument('-u', '--upload', metavar='USER@SERVER',
                         help='Upload generated map to server')
 
-    parser.add_argument('-v', '--version', action='version', version='0.3.1')
+    parser.add_argument('-v', '--version', action='version', version=__version__)
 
     required = parser.add_argument_group('required arguments')
 
@@ -89,7 +88,7 @@ def main():
 
     args = parser.parse_args()
 
-    print('Mapmaker {}'.format(MAPMAKER_VERSION))
+    print('Mapmaker {}'.format(__version__))
 
     if args.min_zoom < 0 or args.min_zoom > args.max_zoom:
         sys.exit('--min-zoom must be between 0 and {}'.format(args.max_zoom))
