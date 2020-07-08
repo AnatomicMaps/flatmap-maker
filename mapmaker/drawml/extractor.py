@@ -165,7 +165,7 @@ class FeaturesValueError(ValueError):
 
 class SlideLayer(MapLayer):
     def __init__(self, extractor, slide, slide_number):
-        self._slide = slide
+        self.__slide = slide
         self.__extractor = extractor
         self.__slide_number = slide_number
         self.__external_properties = Properties(extractor.settings)
@@ -208,6 +208,14 @@ class SlideLayer(MapLayer):
     def settings(self):
         return self.__extractor.settings
 
+    @property
+    def slide(self):
+        return self.__slide
+
+    @property
+    def slide_id(self):
+        return self.__slide.slide_id
+
     def unique_id(self, id):
     #=======================
         return '{}#{}'.format(self.slide_id, id)
@@ -225,7 +233,7 @@ class SlideLayer(MapLayer):
     def process(self):
     #=================
         self.process_initialise()
-        self.process_shape_list(self._slide.shapes, outermost=True)
+        self.process_shape_list(self.slide.shapes, outermost=True)
         self.process_finialise()
 
     def process_finialise(self):

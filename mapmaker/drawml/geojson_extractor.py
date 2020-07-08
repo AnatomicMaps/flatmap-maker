@@ -73,7 +73,7 @@ class GeoJsonLayer(SlideLayer):
         self.process_initialise()
         self.__geo_features = []
         self.__geo_pathways = []
-        features = self.process_shape_list(self._slide.shapes, self.__transform, outermost=True)
+        features = self.process_shape_list(self.slide.shapes, self.__transform, outermost=True)
         self.add_geo_features_('Slide', features, True)
         self.process_finialise()
 
