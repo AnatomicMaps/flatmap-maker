@@ -39,19 +39,17 @@ FLATMAP_VERSION  = 1.1
 class MapLayer(object):
     def __init__(self, id, pathways=None):
         self.__annotations = {}
-        self.__errors = []
-        self.__pathways = pathways
-        self.__map_features = []
-#*        self.__ontology_data = self.settings.ontology_data
-
-
-        self.__layer_id = 'layer-{}'.format(id)
+        self.__background_for = None
         self.__description = 'Layer {}'.format(id)
-        self.__models = ''
-        self.__background_for = ''
+        self.__errors = []
+        self.__layer_id = 'layer-{:02d}'.format(id) if isinstance(id, int) else id
+        self.__map_features = []
+        self.__models = None
+#*        self.__ontology_data = self.settings.ontology_data
+        self.__pathways = pathways
+        self.__queryable_nodes = False
         self.__selectable = True
         self.__selected = False
-        self.__queryable_nodes = False
         self.__zoom = None
 
     @property
@@ -128,7 +126,7 @@ class MapLayer(object):
 
     @property
     def slide_id(self):
-        return self._slide.slide_id
+        return None
 
     @property
     def zoom(self):
@@ -137,7 +135,6 @@ class MapLayer(object):
     @zoom.setter
     def zoom(self, value):
         self.__zoom = value
-
 
     def error(self, msg):
     #====================
@@ -157,7 +154,7 @@ class Flatmap(object):
         self.__layer_ids = []
         self.__map_dir = map_dir
         self.__mbtiles_file = os.path.join(map_dir, 'index.mbtiles') # The vector tiles' database
-        self.__models = ''
+        self.__models = None
         self.__pathways = []
         self.__source = source
         self.__tippe_inputs = []
@@ -183,24 +180,25 @@ class Flatmap(object):
     #==========================
         map_layer = {
             'id': layer.layer_id,
-            'slide-id': layer.slide_id,
             'description': layer.description,
             'selectable': layer.selectable,
             'selected': layer.selected,
             'queryable-nodes': layer.queryable_nodes,
             'features': layer.map_features
         }
-        if layer.background_for:
-            map_layer['background_for'] = layer.background_for
+        if layer.background_for is not None:
+            map_layer['background-for'] = layer.background_for
+        if layer.slide_id is not None:
+            map_layer['slide-id'] = layer.slide_id
         self.__layers.append(map_layer)
         self.__layer_ids.append(layer.layer_id)
         if layer.resolved_pathways is not None:
             self.__pathways.append(layer.resolved_pathways)
-        if layer.models:
+        if layer.models is not None:
             self.__models = layer.models
         if layer.selectable:
             self.__annotations.update(layer.annotations)
-            for (layer_name, filename) in layer.save().items():
+            for (layer_name, filename) in layer.save(self.__map_dir).items():
                 self.__geojson_files.append(filename)
                 self.__tippe_inputs.append({
                     'file': filename,
@@ -235,15 +233,15 @@ class Flatmap(object):
         tile_db.close();
         self.add_upload_files(['index.mbtiles'])
 
-    def save_map_json(self, has_image_layer):
-    #========================================
+    def save_map_json(self, has_image_layer=False):
+    #==============================================
         tile_db = MBTiles(self.__mbtiles_file)
 
         # Save path of the Powerpoint source
         tile_db.add_metadata(source=self.__source)    ## We don't always want this updated...
                                                    ## e.g. if re-running after tile generation
         # What the map models
-        if self.__models:
+        if self.__models is not None:
             tile_db.add_metadata(describes=self.__models)
         # Save layer details in metadata
         tile_db.add_metadata(layers=json.dumps(self.__layers))
@@ -268,7 +266,7 @@ class Flatmap(object):
             'version': FLATMAP_VERSION,
             'image_layer': has_image_layer
         }
-        if self.__models:
+        if self.__models is not None:
             map_index['describes'] = self.__models
         # Create `index.json` for building a map in the viewer
         with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:
@@ -292,11 +290,13 @@ class Flatmap(object):
     #=================================
         self.__upload_files.extend(files)
 
-    def upload(self, host):
-    #======================
+    def upload(self, map_base, host):
+    #================================
         upload = ' '.join([ '{}/{}'.format(self.__id, f) for f in self.__upload_files ])
         cmd_stream = os.popen('tar -C {} -c -z {} | ssh {} "tar -C /flatmaps -x -z"'
-                             .format(args.map_base, upload, host))
+                             .format(map_base, upload, host))
+        return cmd_stream.read()
+
 
     def finalise(self, show_files=False):
     #====================================

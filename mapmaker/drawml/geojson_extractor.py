@@ -77,21 +77,21 @@ class GeoJsonLayer(SlideLayer):
         self.add_geo_features_('Slide', features, True)
         self.process_finialise()
 
-    def save_as_collection_(self, features, layer_type):
-    #===================================================
+    def save_as_collection_(self, map_dir, features, layer_type):
+    #============================================================
         # Tippecanoe doesn't need a FeatureCollection
         # Delimit features with RS...LF   (RS = 0x1E)
-        filename = os.path.join(self.settings.output_dir, '{}_{}.json'.format(self.layer_id, layer_type))
+        filename = os.path.join(map_dir, '{}_{}.json'.format(self.layer_id, layer_type))
         with open(filename, 'w') as output_file:
             for feature in features:
                 output_file.write('\x1E{}\x0A'.format(json.dumps(feature)))
         return filename
 
-    def save(self):
-    #==============
+    def save(self, map_dir):
+    #=======================
         return {
-            'features': self.save_as_collection_(self.__geo_features, 'features'),
-            'pathways': self.save_as_collection_(self.__geo_pathways, 'pathways')
+            'features': self.save_as_collection_(map_dir, self.__geo_features, 'features'),
+            'pathways': self.save_as_collection_(map_dir, self.__geo_pathways, 'pathways')
         }
 
     def process_group(self, group, properties, transform):

@@ -60,9 +60,9 @@ class SvgLayer(SlideLayer):
     def process(self):
         self.process_shape_list(self.__slide.shapes, self.__dwg)
 
-    def save(self, filename=None):
+    def save(self, map_dir, filename=None):
         if filename is None:
-            filename = os.path.join(self.settings.output_dir, '{}.svg'.format(self.layer_id))
+            filename = os.path.join(self.map_dir, '{}.svg'.format(self.layer_id))
         self.__dwg.saveas(filename)
 
     def process_group(self, group, properties, svg_parent):

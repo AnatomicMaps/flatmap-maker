@@ -137,12 +137,10 @@ def main():
                 pdf_bytes = f.read()
 
     map_dir = os.path.join(args.map_base, args.map_id)
-    args.output_dir = map_dir
-
-    args.label_database = os.path.join(args.map_base, 'labels.sqlite')
-
     if not os.path.exists(map_dir):
         os.makedirs(map_dir)
+
+    args.label_database = os.path.join(args.map_base, 'labels.sqlite')
 
     map_extractor = GeoJsonExtractor(pptx_bytes, args)
     flatmap = Flatmap(args.map_id, map_source, ' '.join(sys.argv),
@@ -158,7 +156,7 @@ def main():
     for slide_number in range(1, len(map_extractor)+1):
         if args.tile_slide > 0 and args.tile_slide != slide_number:
             continue
-        layer = map_extractor.slide_to_layer(slide_number,
+        layer = map_extractor.slide_to_layer(slide_number, map_dir,
                                              debug_xml=args.debug_xml)
         for error in layer.errors:
             print(error)
@@ -196,8 +194,7 @@ def main():
             print('Generated map for {}'.format(flatmap.models))
 
         if args.upload:
-            flatmap.upload(args.upload)
-            print('Uploaded map...', cmd_stream.read())
+            print('Uploaded map...', flatmap.upload(args.map_base, args.upload))
 
     # Tidy up
     print('Cleaning up...')
