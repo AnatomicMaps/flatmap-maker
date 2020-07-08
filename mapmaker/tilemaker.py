@@ -329,6 +329,20 @@ class TileMaker(object):
         for process in self._processes:
             process.join()
 
+###
+
+    def make_tiles_from_image(self, image, source_id, layer_id):
+    #===========================================================
+        self.make_tiles(source_id, ImageTileSource(self._image_rect, image), layer_id)
+
+    def start_make_tiles_from_image(self, image, source_id, layer_id):
+    #=================================================================
+        process = multiprocessing.Process(target=self.make_tiles_from_image, args=(image, source_id, layer_id))
+        self._processes.append(process)
+        process.start()
+
+###
+
     def make_tiles_from_pdf(self, pdf_page, source_id, layer_id):
     #============================================================
         self.make_tiles(source_id, PDFTileSource(self._image_rect, pdf_page), layer_id)
