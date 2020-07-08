@@ -46,7 +46,7 @@ from geometry import save_geometry
 
 from .arc_to_bezier import cubic_beziers_from_arc, tuple2
 from .extractor import Feature, FeaturesValueError
-from .extractor import Extractor, Layer, Transform
+from .extractor import Extractor, SlideLayer, Transform
 from .extractor import ellipse_point
 from .formula import Geometry, radians
 from .presets import DML
