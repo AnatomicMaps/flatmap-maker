@@ -20,12 +20,14 @@
 
 import io
 import os
+
+import cv2
+import numpy as np
 import sqlite3
 
 #===============================================================================
 
 import mbutil as mb
-from PIL import Image
 
 #===============================================================================
 
@@ -76,14 +78,13 @@ class MBTiles(object):
                                                           (zoom,             x,             mb.flip_y(zoom, y)))
         data = rows.fetchone()
         if not data: raise ExtractionError()
-        return Image.open(io.BytesIO(data[0]))
+        return cv2.imdecode(np.frombuffer(data[0], 'B'), cv2.IMREAD_UNCHANGED)
 
     def save_tile_as_png(self, zoom, x, y, image):
-        output = io.BytesIO()
-        image.save(output, format='PNG')
+        output = cv2.imencode('.png', image)[1]
         self._cursor.execute("""insert into tiles (zoom_level, tile_column, tile_row, tile_data)
                                            values (?, ?, ?, ?);""",
-                                                  (zoom, x, mb.flip_y(zoom, y), sqlite3.Binary(output.getvalue()))
+                                                  (zoom, x, mb.flip_y(zoom, y), sqlite3.Binary(output))
                             )
 
 #===============================================================================

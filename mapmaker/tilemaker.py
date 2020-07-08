@@ -28,10 +28,10 @@ import tempfile
 
 #===============================================================================
 
+import cv2
 import fitz
 import mercantile
 import numpy as np
-from PIL import Image
 
 from tqdm import tqdm
 
@@ -52,23 +52,34 @@ WHITE     = (255, 255, 255)
 # Based on https://stackoverflow.com/a/54148416/2159023
 
 def make_transparent(img, colour=WHITE):
-    x = np.asarray(img).copy()
+    transparent = img.copy()
     if colour == WHITE:
-        x[:, :, 3] = (255*((x[:, :, :3] != 255).any(axis=2) * (x[:, :, 3] != 0))).astype(np.uint8)
+        transparent[:, :, 3] = (255*((transparent[:, :, :3] != 255).any(axis=2) * (transparent[:, :, 3] != 0))).astype(np.uint8)
     else:
-        x[:, :, 3] = (255*((x[:,:,0:3] != tuple(colour)[0:3]).any(axis=2) * (x[:, :, 3] != 0))).astype(np.uint8)
-    return Image.fromarray(x)
+        transparent[:, :, 3] = (255*((transparent[:,:,0:3] != tuple(colour)[0:3]).any(axis=2) * (transparent[:, :, 3] != 0))).astype(np.uint8)
+    return transparent
 
 #===============================================================================
 
 def not_transparent(img):
-    x = np.asarray(img)
-    return np.any(x[:,:,3])
+    return np.any(img[:,:,3])
 
 #===============================================================================
 
-def transparent_image():
-    return Image.new('RGBA', (1, 1), color=(255, 255, 255, 0))
+def transparent_image(size=(1, 1)):
+    image = np.full(size + (4,), 255, dtype=np.uint8)
+    image[:,:,3] = 0
+    return image
+
+#===============================================================================
+
+def get_image_size(img):
+    return tuple(reversed(img.shape[:2]))
+
+def paste_image(destination, source, offset):
+    destination[offset[1]:offset[1]+source.shape[0],
+                offset[0]:offset[0]+source.shape[1]] = source
+    return destination
 
 #===============================================================================
 
@@ -146,33 +157,43 @@ class TileSource(object):
                                                  TILE_SIZE[1]*tile_y)
         (x1, y1) = self._tile_to_image.transform(TILE_SIZE[0]*(tile_x + 1),
                                                  TILE_SIZE[1]*(tile_y + 1))
-
         scaling = self.get_scaling(x0, y0, x1, y1)
         image = self.extract_tile_as_image(x0, y0, x1, y1, scaling)
-
-        if image.size == tuple(TILE_SIZE):
+        image_size = get_image_size(image)
+        if image_size == tuple(TILE_SIZE):
             return make_transparent(image)
         else:
             # Pad out partial tiles
-            x_start = check_image_size(image.width, TILE_SIZE[0], x0, x1, (0, self._source_rect.x1), scaling[0])
-            y_start = check_image_size(image.height, TILE_SIZE[1], y0, y1, (0, self._source_rect.y1), scaling[1])
-            tile = Image.new('RGBA', TILE_SIZE, (255, 255, 255, 0))
-            tile.paste(image, (x_start, y_start))
+            tile = transparent_image(TILE_SIZE)
+            x_start = check_image_size(image_size[0], TILE_SIZE[0], x0, x1, (0, self._source_rect.x1), scaling[0])
+            y_start = check_image_size(image_size[1], TILE_SIZE[1], y0, y1, (0, self._source_rect.y1), scaling[1])
+            paste_image(tile, image, (x_start, y_start))
             return make_transparent(tile)
 
 #===============================================================================
 
 class ImageTileSource(TileSource):
     def __init__(self, image_rect, image):
-        if image.mode == "RGB":
-            alpha_channel = Image.new('L', image.size, 255)   # 'L' 8-bit pixels, black and white
-            image.putalpha(alpha_channel)
-        self._source_image = image
-        super().__init__(image_rect, Rect([0, 0], image.size))
+        if image.shape[2] == 3:
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
+        self.__source_image = image
+        super().__init__(image_rect, Rect((0, 0), get_image_size(image)))
 
     def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
     #========================================================
-        return self._source_image.crop((scaling[0]*x0, scaling[1]*y0, scaling[0]*x1, scaling[1]*y1))
+        X0 = max(0, round(x0))
+        X1 = min(round(x1), self.__source_image.shape[1])
+        Y0 = max(0, round(y0))
+        Y1 = min(round(y1), self.__source_image.shape[0])
+        if x0 < 0 or x1 >= self.__source_image.shape[1]:
+            width = round(scaling[0]*(X1 - X0))
+        else:
+            width = TILE_SIZE[0]
+        if y0 < 0 or y1 >= self.__source_image.shape[0]:
+            height = round(scaling[1]*(Y1 - Y0))
+        else:
+            height = TILE_SIZE[1]
+        return cv2.resize(self.__source_image[Y0:Y1, X0:X1], (width, height), interpolation=cv2.INTER_CUBIC)
 
 #===============================================================================
 
@@ -196,7 +217,8 @@ class PDFTileSource(TileSource):
         pixmap = self._pdf_page.getPixmap(clip=fitz.Rect(x0, y0, x1, y1),
                                           matrix=fitz.Matrix(*scaling),
                                           alpha=True)
-        return Image.open(io.BytesIO(pixmap.getImageData('png')))
+        data = pixmap.getImageData('png')
+        return cv2.imdecode(np.frombuffer(data, 'B'), cv2.IMREAD_UNCHANGED)
 
 #===============================================================================
 
@@ -281,13 +303,13 @@ class TileMaker(object):
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
             for x in range(half_start[0], half_end[0] + 1):
                 for y in range(half_start[1], half_end[1] + 1):
-                    overview_tile = Image.new('RGBA', TILE_SIZE, (255, 255, 255, 0))
+                    overview_tile = transparent_image(TILE_SIZE)
                     for i in range(2):
                         for j in range(2):
                             try:
                                 tile = mbtiles.get_tile(zoom+1, 2*x+i, 2*y+j)
-                                half_tile = tile.resize((HALF_SIZE[0], HALF_SIZE[1]), Image.LANCZOS)
-                                overview_tile.paste(half_tile, (i*HALF_SIZE[0], j*HALF_SIZE[1]))
+                                half_tile = cv2.resize(tile, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
+                                paste_image(overview_tile, half_tile, (i*HALF_SIZE[0], j*HALF_SIZE[1]))
                             except ExtractionError:
                                 pass
                     if not_transparent(overview_tile):
