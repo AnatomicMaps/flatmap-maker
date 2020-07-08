@@ -89,6 +89,9 @@ class Affine(object):
                                  [ 0, scale[1], -scale[1]*translateA[1] + translateB[1] ],
                                  [ 0,        0,                                       1 ]])
 
+    def __str__(self):
+        return 'Affine: {}'.format(self._matrix)
+
     def transform(self, x, y):
     #=========================
         return (self._matrix@[x, y, 1])[:2]
@@ -112,6 +115,9 @@ class Rect(object):
         else:
             raise ValueError('Invalid arguments for Rect constructor')
 
+    def __str__(self):
+        return 'Rect: ({} x {})'.format(self.width, self.height)
+
     @property
     def height(self):
         return abs(self.y1 - self.y0)
@@ -129,8 +135,8 @@ def check_image_size(dimension, max_dim, lower, upper, bounds, scale):
                 return max_dim - dimension
             else:
                 return int(math.floor(0.5 - lower*scale))
-    else:
-        assert(dimension == max_dim)
+    elif dimension != max_dim:
+        raise AssertionError('Image size mismatch: {} != {}'.format(dimension, max_dim))
     return 0
 
 #===============================================================================
