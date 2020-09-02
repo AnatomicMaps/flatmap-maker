@@ -112,7 +112,7 @@ setup(
         "mercantile==1.1.2",
         "numpy==1.18.1",
         "owlready2==0.23",
-        "pillow==7.0.0",
+        "pillow==7.2.0",
         "pymupdf==1.16.10",
         "pyparsing==2.4.6",
         "pyproj==2.4.2.post1",
