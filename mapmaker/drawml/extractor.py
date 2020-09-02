@@ -271,8 +271,7 @@ class SlideLayer(MapLayer):
                             self.__current_group[-1],
                             self.__slide_number)
             if 'path' in properties:
-                path_id = properties['path']
-                self.__pathways.add_path(path_id)
+                pass
             elif (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or isinstance(shape, pptx.shapes.connector.Connector)):
