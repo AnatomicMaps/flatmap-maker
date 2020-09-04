@@ -44,7 +44,7 @@ class Parser(object):
 
 #===============================================================================
 
-    BACKGROUND = Group(Keyword('background-for') + Suppress('(') + IDENTIFIER + Suppress(')'))
+    BACKGROUND = Group(Keyword('background-for') + Suppress('(') + ID_TEXT + Suppress(')'))
     DESCRIPTION = Group(Keyword('description') + Suppress('(') + FREE_TEXT + Suppress(')'))
     SELECTION_FLAGS = Group(Keyword('not-selectable') | Keyword('selected') | Keyword('queryable'))
     ZOOM = Group(Keyword('zoom') + Suppress('(')
