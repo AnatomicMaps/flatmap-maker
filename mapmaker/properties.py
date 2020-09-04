@@ -155,6 +155,6 @@ class Properties(object):
                 'tile-layer': 'features'
             }
 
-        return None
+        return {}
 
 #===============================================================================
