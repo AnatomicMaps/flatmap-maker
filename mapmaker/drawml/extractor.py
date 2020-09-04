@@ -270,7 +270,10 @@ class SlideLayer(MapLayer):
             properties = self.__external_properties.get_properties(shape,
                             self.__current_group[-1],
                             self.__slide_number)
-            if 'path' in properties:
+            if 'error' in properties:
+                super().error('Slide {}: invalid shape markup: {}'
+                               .format(self.__slide_number, shape.name))
+            elif 'path' in properties:
                 pass
             elif (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM

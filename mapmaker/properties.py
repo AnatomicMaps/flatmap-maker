@@ -148,13 +148,11 @@ class Properties(object):
                 if 'models' in properties and 'label' not in properties:
                     properties['label'] = self.__anatomical_map.label(properties['models'])
 
-                return properties
+            return properties
         else:
             return {
                 'shape-name': shape.name,
                 'tile-layer': 'features'
             }
-
-        return {}
 
 #===============================================================================
