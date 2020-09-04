@@ -41,10 +41,12 @@ from tilemaker import make_background_tiles_from_pdf
 #===============================================================================
 
 def main():
-    import argparse
+    import configargparse
     import os, sys
 
-    parser = argparse.ArgumentParser(description='Convert Powerpoint slides to a flatmap.')
+    parser = configargparse.ArgumentParser() ## description='Convert Powerpoint slides to a flatmap.')
+
+    parser.add_argument('-c', '--conf', is_config_file=True, help='configuration file containing arguments')
 
     parser.add_argument('-b', '--background-tiles', action='store_true',
                         help="generate image tiles of map's layers (may take a while...)")
@@ -56,7 +58,7 @@ def main():
     parser.add_argument('--properties',
                         help='JSON file specifying additional properties of shapes')
 
-    parser.add_argument('-c', '--check-errors', action='store_true',
+    parser.add_argument('--check-errors', action='store_true',
                         help="check for errors without generating a map")
     parser.add_argument('-z', '--initial-zoom', metavar='N', type=int, default=4,
                         help='initial zoom level (defaults to 4)')

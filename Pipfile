@@ -26,6 +26,7 @@ openpyxl = "*"
 tqdm = "*"
 lxml = "*"
 opencv-python-headless = "*"
+configargparse = "*"
 
 [requires]
 python_version = "3.7"
