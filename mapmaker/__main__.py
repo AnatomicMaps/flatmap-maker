@@ -79,7 +79,7 @@ def main():
 
     required = parser.add_argument_group('required arguments')
 
-    required.add_argument('--map-dir', dest='map_base', metavar='MAP_DIR', required=True,
+    required.add_argument('-o', '--output-dir', dest='map_base', metavar='OUTPUT_DIR', required=True,
                         help='base directory for generated flatmaps')
     required.add_argument('--id', dest='map_id', metavar='MAP_ID', required=True,
                         help='a unique identifier for the map')
