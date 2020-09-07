@@ -337,10 +337,10 @@ class Extractor(object):
     def slide(self, slide_number):
         return self.__slides[slide_number - 1]
 
-    def slide_to_layer(self, slide_number, map_dir, debug_xml=False):
+    def slide_to_layer(self, slide_number, output_dir, debug_xml=False):
         slide = self.slide(slide_number)
         if debug_xml:
-            xml = open(os.path.join(map_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
+            xml = open(os.path.join(output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
             xml.write(slide.element.xml)
             xml.close()
         if self.__LayerClass is not None:

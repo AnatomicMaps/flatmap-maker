@@ -143,7 +143,7 @@ class MapLayer(object):
 #===============================================================================
 
 class Flatmap(object):
-    def __init__(self, id, source, creator, map_dir, zoom, bounds):
+    def __init__(self, id, source, creator, output_dir, zoom, bounds):
         self.__annotations = {}
         self.__bounds = bounds
         self.__centre = ((bounds[0]+bounds[2])/2, (bounds[1]+bounds[3])/2)
@@ -152,8 +152,8 @@ class Flatmap(object):
         self.__id = id
         self.__layers = []
         self.__layer_ids = []
-        self.__map_dir = map_dir
-        self.__mbtiles_file = os.path.join(map_dir, 'index.mbtiles') # The vector tiles' database
+        self.__output_dir = output_dir
+        self.__mbtiles_file = os.path.join(output_dir, 'index.mbtiles') # The vector tiles' database
         self.__models = None
         self.__pathways = []
         self.__source = source
@@ -198,7 +198,7 @@ class Flatmap(object):
             self.__models = layer.models
         if layer.selectable:
             self.__annotations.update(layer.annotations)
-            for (layer_name, filename) in layer.save(self.__map_dir).items():
+            for (layer_name, filename) in layer.save(self.__output_dir).items():
                 self.__geojson_files.append(filename)
                 self.__tippe_inputs.append({
                     'file': filename,
@@ -269,18 +269,18 @@ class Flatmap(object):
         if self.__models is not None:
             map_index['describes'] = self.__models
         # Create `index.json` for building a map in the viewer
-        with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:
+        with open(os.path.join(self.__output_dir, 'index.json'), 'w') as output_file:
             json.dump(map_index, output_file)
 
         # Create style file
         metadata = tile_db.metadata()
         style_dict = Style.style(self.__layer_ids, metadata, self.__zoom)
-        with open(os.path.join(self.__map_dir, 'style.json'), 'w') as output_file:
+        with open(os.path.join(self.__output_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
         # Create TileJSON file
         json_source = tile_json(self.__id, self.__zoom, self.__bounds)
-        with open(os.path.join(self.__map_dir, 'tilejson.json'), 'w') as output_file:
+        with open(os.path.join(self.__output_dir, 'tilejson.json'), 'w') as output_file:
             json.dump(json_source, output_file)
 
         tile_db.close();

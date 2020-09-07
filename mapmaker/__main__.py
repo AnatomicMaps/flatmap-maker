@@ -138,15 +138,15 @@ def main():
             with open(pdf_source, 'rb') as f:
                 pdf_bytes = f.read()
 
-    map_dir = os.path.join(args.map_base, args.map_id)
-    if not os.path.exists(map_dir):
-        os.makedirs(map_dir)
+    output_dir = os.path.join(args.map_base, args.map_id)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     args.label_database = os.path.join(args.map_base, 'labels.sqlite')
 
     map_extractor = GeoJsonExtractor(pptx_bytes, args)
     flatmap = Flatmap(args.map_id, map_source, ' '.join(sys.argv),
-                      map_dir, map_zoom, map_extractor.latlng_bounds())
+                      output_dir, map_zoom, map_extractor.latlng_bounds())
 
 #*    # Labels and relationships between anatomical entities
 
@@ -158,7 +158,7 @@ def main():
     for slide_number in range(1, len(map_extractor)+1):
         if args.tile_slide > 0 and args.tile_slide != slide_number:
             continue
-        layer = map_extractor.slide_to_layer(slide_number, map_dir,
+        layer = map_extractor.slide_to_layer(slide_number, output_dir,
                                              debug_xml=args.debug_xml)
         for error in layer.errors:
             print(error)
@@ -182,11 +182,11 @@ def main():
         if args.tile_slide == 0:
             print('Creating index and style files...')
             flatmap.save_map_json(args.background_tiles
-                               or os.path.isfile(os.path.join(map_dir, '{}.mbtiles'.format(flatmap.layer_ids[0]))))
+                               or os.path.isfile(os.path.join(output_dir, '{}.mbtiles'.format(flatmap.layer_ids[0]))))
 
         if args.background_tiles:
             print('Generating background tiles (may take a while...)')
-            image_tile_files = make_background_tiles_from_pdf(flatmap.bounds, map_zoom, map_dir,
+            image_tile_files = make_background_tiles_from_pdf(flatmap.bounds, map_zoom, output_dir,
                                                               pdf_bytes, pdf_source,
                                                               flatmap.layer_ids, args.tile_slide)
             flatmap.add_upload_files(image_tile_files)
