@@ -41,17 +41,19 @@ class Parser(object):
 
     IDENTIFIER = Group(Keyword('id') + Suppress('(') + ID_TEXT + Suppress(')'))
     MODELS = Group(Keyword('models') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
+    ZOOM_LEVEL = INTEGER
 
 #===============================================================================
 
     BACKGROUND = Group(Keyword('background-for') + Suppress('(') + ID_TEXT + Suppress(')'))
     DESCRIPTION = Group(Keyword('description') + Suppress('(') + FREE_TEXT + Suppress(')'))
+    OUTLINE = Group(Keyword('outline') + Suppress('(') + ID_TEXT + Suppress(')'))
     SELECTION_FLAGS = Group(Keyword('not-selectable') | Keyword('selected') | Keyword('queryable'))
     ZOOM = Group(Keyword('zoom') + Suppress('(')
-                                   + Group(INTEGER + Suppress(',') + INTEGER + Suppress(',') + INTEGER)
+                                   + Group(ZOOM_LEVEL + Suppress(',') + ZOOM_LEVEL + Suppress(',') + ZOOM_LEVEL)
                                  + Suppress(')'))
 
-    LAYER_DIRECTIVES = BACKGROUND | DESCRIPTION | IDENTIFIER | MODELS | SELECTION_FLAGS | ZOOM
+    LAYER_DIRECTIVES = BACKGROUND | DESCRIPTION | IDENTIFIER | MODELS | OUTLINE | SELECTION_FLAGS | ZOOM
     LAYER_DIRECTIVE = '.' + ZeroOrMore(LAYER_DIRECTIVES)
 
 #===============================================================================
@@ -85,6 +87,7 @@ class Parser(object):
     ## fill layer. Say positioned on an invisible place holder that is grouped with the polygon??
 
     CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
+    DETAILS = Group(Keyword('details') + Suppress('(') + ID_TEXT + Suppress(',') + ZOOM_LEVEL + Suppress(')'))
     PATH = Group(Keyword('path') + Suppress('(') + ID_TEXT + Suppress(')'))
     STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
 
@@ -106,7 +109,12 @@ class Parser(object):
                         | Keyword('region')
                       )
 
-    SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS | FEATURE_FLAGS | FEATURE_PROPERTIES | PATH | SHAPE_FLAGS)
+    SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS
+                                  | DETAILS
+                                  | FEATURE_FLAGS
+                                  | FEATURE_PROPERTIES
+                                  | PATH
+                                  | SHAPE_FLAGS)
 
 #===============================================================================
 
