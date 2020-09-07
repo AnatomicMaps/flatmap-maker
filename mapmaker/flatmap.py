@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+from collections import OrderedDict
 import datetime
 import json
 import os
@@ -42,6 +43,7 @@ class MapLayer(object):
         self.__background_for = None
         self.__description = 'Layer {}'.format(id)
         self.__errors = []
+        self.__geo_features = OrderedDict()
         self.__layer_id = 'layer-{:02d}'.format(id) if isinstance(id, int) else id
         self.__map_features = []
         self.__models = None
@@ -75,6 +77,10 @@ class MapLayer(object):
     @property
     def errors(self):
         return self.__errors
+
+    @property
+    def geo_features(self):
+        return self.__geo_features
 
     @property
     def layer_id(self):
@@ -135,6 +141,19 @@ class MapLayer(object):
     @zoom.setter
     def zoom(self, value):
         self.__zoom = value
+
+    def add_geo_feature(self, feature):
+    #==================================
+        self.__geo_features[feature.id] = feature
+        self.__map_features.append({
+            'id': feature.id,
+            'type': feature.properties['geometry']
+        })
+
+    def save_geo_features(self):
+    #===========================
+        # Override in sub-class
+        pass
 
     def error(self, msg):
     #====================
@@ -197,6 +216,7 @@ class Flatmap(object):
         if layer.models is not None:
             self.__models = layer.models
         if layer.selectable:
+            layer.save_geo_features()
             self.__annotations.update(layer.annotations)
             for (layer_name, filename) in layer.save(self.__output_dir).items():
                 self.__geojson_files.append(filename)
