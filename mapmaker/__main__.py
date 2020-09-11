@@ -34,7 +34,7 @@ import requests
 
 #===============================================================================
 
-from drawml import GeoJsonExtractor
+from drawml import GeoJsonMaker
 from flatmap import Flatmap
 from tilemaker import make_background_tiles_from_pdf
 
@@ -144,9 +144,9 @@ def main():
 
     args.label_database = os.path.join(args.map_base, 'labels.sqlite')
 
-    map_extractor = GeoJsonExtractor(pptx_bytes, args)
+    mapmaker = GeoJsonMaker(pptx_bytes, args)
     flatmap = Flatmap(args.map_id, map_source, ' '.join(sys.argv),
-                      output_dir, map_zoom, map_extractor.latlng_bounds())
+                      output_dir, map_zoom, mapmaker)
 
 #*    # Labels and relationships between anatomical entities
 
@@ -155,10 +155,10 @@ def main():
 
     # Process slides, saving layer information
     print('Extracting layers...')
-    for slide_number in range(1, len(map_extractor)+1):
+    for slide_number in range(1, len(mapmaker)+1):
         if args.tile_slide > 0 and args.tile_slide != slide_number:
             continue
-        layer = map_extractor.slide_to_layer(slide_number, output_dir,
+        layer = mapmaker.slide_to_layer(slide_number, output_dir,
                                              debug_xml=args.debug_xml)
         for error in layer.errors:
             print(error)

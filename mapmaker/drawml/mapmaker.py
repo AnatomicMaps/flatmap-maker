@@ -164,11 +164,11 @@ class FeaturesValueError(ValueError):
 #===============================================================================
 
 class SlideLayer(MapLayer):
-    def __init__(self, extractor, slide, slide_number):
+    def __init__(self, mapmaker, slide, slide_number):
         self.__slide = slide
-        self.__extractor = extractor
+        self.__mapmaker = mapmaker
         self.__slide_number = slide_number
-        self.__external_properties = Properties(extractor.settings)
+        self.__external_properties = Properties(mapmaker.settings)
         super().__init__(slide_number, self.__external_properties.pathways)
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
@@ -201,12 +201,12 @@ class SlideLayer(MapLayer):
             self.__external_properties.set_class_id(feature.property('class'), feature.id)
 
     @property
-    def extractor(self):
-        return self.__extractor
+    def mapmaker(self):
+        return self.__mapmaker
 
     @property
     def settings(self):
-        return self.__extractor.settings
+        return self.__mapmaker.settings
 
     @property
     def slide(self):
@@ -303,7 +303,7 @@ class SlideLayer(MapLayer):
 
 #===============================================================================
 
-class Extractor(object):
+class MapMaker(object):
     def __init__(self, pptx, settings, layer_class=SlideLayer):
         self.__LayerClass = layer_class
         self.__pptx = Presentation(pptx)

@@ -18,7 +18,6 @@
 #
 #===============================================================================
 
-from .extractor import Extractor
-from .geojson_extractor import GeoJsonExtractor
+from .geojson import GeoJsonMaker
 
 #===============================================================================

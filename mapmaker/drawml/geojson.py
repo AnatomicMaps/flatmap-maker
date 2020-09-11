@@ -45,9 +45,9 @@ from geometry import transform_bezier_samples, transform_point
 from geometry import save_geometry
 
 from .arc_to_bezier import cubic_beziers_from_arc, tuple2
-from .extractor import Feature, FeaturesValueError
-from .extractor import Extractor, SlideLayer, Transform
-from .extractor import ellipse_point
+from .mapmaker import Feature, FeaturesValueError
+from .mapmaker import MapMaker, SlideLayer, Transform
+from .mapmaker import ellipse_point
 from .formula import Geometry, radians
 from .presets import DML
 
@@ -58,9 +58,9 @@ METRES_PER_EMU = 0.1   ## This to become a command line parameter...
 #===============================================================================
 
 class GeoJsonLayer(SlideLayer):
-    def __init__(self, extractor, slide, slide_number):
-        super().__init__(extractor, slide, slide_number)
-        self.__transform = extractor.transform
+    def __init__(self, mapmaker, slide, slide_number):
+        super().__init__(mapmaker, slide, slide_number)
+        self.__transform = mapmaker.transform
 
     def new_feature_(self, geometry, properties, has_children=False):
     #================================================================
@@ -433,7 +433,7 @@ class GeoJsonLayer(SlideLayer):
 
 #===============================================================================
 
-class GeoJsonExtractor(Extractor):
+class GeoJsonMaker(MapMaker):
     def __init__(self, pptx, settings):
         super().__init__(pptx, settings, GeoJsonLayer)
         bounds = super().bounds()

@@ -162,8 +162,10 @@ class MapLayer(object):
 #===============================================================================
 
 class Flatmap(object):
-    def __init__(self, id, source, creator, output_dir, zoom, bounds):
+    def __init__(self, id, source, creator, output_dir, zoom, mapmaker):
         self.__annotations = {}
+        self.__area = mapmaker.map_area()
+        bounds = mapmaker.latlng_bounds()
         self.__bounds = bounds
         self.__centre = ((bounds[0]+bounds[2])/2, (bounds[1]+bounds[3])/2)
         self.__creator = creator
@@ -172,6 +174,7 @@ class Flatmap(object):
         self.__layers = []
         self.__layer_ids = []
         self.__output_dir = output_dir
+        self.__mapmaker = mapmaker
         self.__mbtiles_file = os.path.join(output_dir, 'index.mbtiles') # The vector tiles' database
         self.__models = None
         self.__pathways = []
