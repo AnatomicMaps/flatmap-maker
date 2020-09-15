@@ -132,6 +132,9 @@ class Parser(object):
                 elif prop[0] == 'id':
                     # Keep separate from feature's unique id
                     properties['external-id'] = prop[1]
+                elif prop[0] == 'details':
+                    properties[prop[0]] = prop[1]
+                    properties['maxzoom'] = int(prop[2]) - 1
                 else:
                     properties[prop[0]] = prop[1]
         except ParseException:
