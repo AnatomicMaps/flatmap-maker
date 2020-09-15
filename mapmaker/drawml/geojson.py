@@ -57,38 +57,19 @@ METRES_PER_EMU = 0.1   ## This to become a command line parameter...
                        ## Or in a specification file...
 #===============================================================================
 
-class GeoJsonLayer(SlideLayer):
-    def __init__(self, mapmaker, slide, slide_number):
-        super().__init__(mapmaker, slide, slide_number)
-        self.__transform = mapmaker.transform
+class GeoJsonOutput(object):
 
-    def new_feature_(self, geometry, properties, has_children=False):
-    #================================================================
-        return Feature(self.next_local_id(), geometry, properties, has_children)
-
-    def initialise_geojson_layers_(self):
-    #====================================
+    def initialise_geojson_output(self):
+    #===================================
         self.__geojson_layers = {
             'features': [],
             'pathways': []
         }
 
-    def add_geojson_layer(self, layer_id):
-    #=====================================
-        if layer_id not in self.__geojson_layers:
-            self.__geojson_layers[layer_id] = []
-
-    def process_initialise(self):
-    #============================
-        super().process_initialise()
-        self.initialise_geojson_layers_()
-
-    def process(self):
-    #=================
-        self.process_initialise()
-        features = self.process_shape_list(self.slide.shapes, self.__transform, outermost=True)
-        self.add_geo_features_('Slide', features, True)
-        self.process_finialise()
+    def save(self, map_dir):
+    #=======================
+        return { layer_id: self.save_as_collection_(map_dir, layer_id)
+                    for layer_id in self.__geojson_layers}
 
     def save_as_collection_(self, map_dir, layer_id):
     #================================================
@@ -100,10 +81,78 @@ class GeoJsonLayer(SlideLayer):
                 output_file.write('\x1E{}\x0A'.format(json.dumps(feature)))
         return filename
 
-    def save(self, map_dir):
-    #=======================
-        return { layer_id: self.save_as_collection_(map_dir, layer_id)
-                    for layer_id in self.__geojson_layers}
+    def save_geo_features(self, map_area):
+    #=====================================
+        for feature in self.geo_features:
+            properties = feature.properties
+            source_layer = '{}-{}'.format(self.layer_id, feature.properties['tile-layer'])
+            geometry = feature.geometry
+            area = geometry.area
+            mercator_geometry = mercator_transform(geometry)
+            geojson = {
+                'type': 'Feature',
+                'id': int(feature.feature_id),   # Must be numeric for tipeecanoe
+                'tippecanoe' : {
+                    'layer' : source_layer
+                },
+                'geometry': shapely.geometry.mapping(mercator_geometry),
+                'properties': {
+                    'bounds': list(mercator_geometry.bounds),
+                    # The viewer requires `centroid`
+                    'centroid': list(list(mercator_geometry.centroid.coords)[0]),
+                    'area': area,
+                    'length': geometry.length,
+                    'layer': source_layer,
+                }
+            }
+            if 'maxzoom' in properties:
+                geojson['tippecanoe']['maxzoom'] = properties['maxzoom']
+            if 'minzoom' in properties:
+                geojson['tippecanoe']['minzoom'] = properties['minzoom']
+            if area > 0:
+                scale = math.log(math.sqrt(map_area/area), 2)
+                geojson['properties']['scale'] = scale
+                if scale > 6 and 'group' not in properties and 'minzoom' not in properties:
+                    geojson['tippecanoe']['minzoom'] = 5
+            else:
+                geojson['properties']['scale'] = 10
+
+            if properties:
+                for (key, value) in properties.items():
+                    if not Parser.ignore_property(key):
+                        geojson['properties'][key] = value
+                properties['bounds'] = geojson['properties']['bounds']
+                properties['centroid'] = geojson['properties']['centroid']
+                properties['geometry'] = geojson['geometry']['type']
+                self.annotations[feature.id] = properties
+
+            if properties['tile-layer'] == 'pathways':
+                self.__geojson_layers['pathways'].append(geojson)
+            else:
+                self.__geojson_layers['features'].append(geojson)
+
+#===============================================================================
+
+class GeoJsonLayer(GeoJsonOutput, SlideLayer):
+    def __init__(self, mapmaker, slide, slide_number):
+        super().__init__(mapmaker, slide, slide_number)
+        self.__transform = mapmaker.transform
+
+    def new_feature_(self, geometry, properties, has_children=False):
+    #================================================================
+        return Feature(self.next_local_id(), geometry, properties, has_children)
+
+    def process_initialise(self):
+    #============================
+        super().process_initialise()
+        self.initialise_geojson_output()
+
+    def process(self):
+    #=================
+        self.process_initialise()
+        features = self.process_shape_list(self.slide.shapes, self.__transform, outermost=True)
+        self.add_geo_features_('Slide', features, True)
+        self.process_finialise()
 
     def process_group(self, group, properties, transform):
     #=====================================================
@@ -113,7 +162,6 @@ class GeoJsonLayer(SlideLayer):
     def add_geo_features_(self, group_name, features, outermost=False):
     #==================================================================
         base_properties = {
-            'layer': self.layer_id,
             'tile-layer': 'features'
             }
 
@@ -121,7 +169,6 @@ class GeoJsonLayer(SlideLayer):
         grouped_properties = {
             'group': True,
             'interior': True,
-            'layer': self.layer_id,
             'tile-layer': 'features'
         }
 
@@ -287,62 +334,10 @@ class GeoJsonLayer(SlideLayer):
                 for (key, value) in base_properties.items():
                     if key not in feature.properties:
                         feature.properties[key] = value
-
-                source_layer = '{}-{}'.format(feature.properties['layer'], feature.properties['tile-layer'])
-                feature.properties['source-layer'] = source_layer
                 feature.properties['geometry'] = feature.geometry.geom_type
-
                 self.add_geo_feature(feature)
 
         return feature_group
-
-    def save_geo_features(self):
-    #===========================
-        map_area = self.extractor.map_area()
-        for feature in self.geo_features.values():
-            properties = feature.properties
-            source_layer = properties['source-layer']
-            geometry = feature.geometry
-            area = geometry.area
-            mercator_geometry = mercator_transform(geometry)
-
-            geojson = {
-                'type': 'Feature',
-                'id': int(feature.feature_id),   # Must be numeric for tipeecanoe
-                'tippecanoe' : {
-                    'layer' : source_layer
-                },
-                'geometry': shapely.geometry.mapping(mercator_geometry),
-                'properties': {
-                    'bounds': list(mercator_geometry.bounds),
-                    # The viewer requires `centroid`
-                    'centroid': list(list(mercator_geometry.centroid.coords)[0]),
-                    'area': area,
-                    'length': geometry.length,
-                    'layer': source_layer,
-                }
-            }
-            if area > 0:
-                scale = math.log(math.sqrt(map_area/area), 2)
-                geojson['properties']['scale'] = scale
-                if scale > 6 and 'group' not in properties:
-                    geojson['tippecanoe']['minzoom'] = 5
-            else:
-                geojson['properties']['scale'] = 10
-
-            if properties:
-                for (key, value) in properties.items():
-                    if not Parser.ignore_property(key):
-                        geojson['properties'][key] = value
-                properties['bounds'] = geojson['properties']['bounds']
-                properties['centroid'] = geojson['properties']['centroid']
-                properties['geometry'] = geojson['geometry']['type']
-                self.annotations[feature.id] = properties
-
-            if properties['tile-layer'] == 'pathways':
-                self.__geojson_layers['pathways'].append(geojson)
-            else:
-                self.__geojson_layers['features'].append(geojson)
 
     def process_shape(self, shape, properties, transform):
     #=====================================================
