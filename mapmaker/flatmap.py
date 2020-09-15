@@ -171,9 +171,9 @@ class Flatmap(object):
         self.__creator = creator
         self.__geojson_files = []
         self.__id = id
-        self.__layers = []
-        self.__layer_ids = []
         self.__output_dir = output_dir
+        self.__layers = OrderedDict()
+        self.__map_layers = []
         self.__mapmaker = mapmaker
         self.__mbtiles_file = os.path.join(output_dir, 'index.mbtiles') # The vector tiles' database
         self.__models = None
@@ -184,7 +184,7 @@ class Flatmap(object):
         self.__zoom = zoom
 
     def __len__(self):
-        return len(self.__layers)
+        return len(self.__map_layers)
 
     @property
     def bounds(self):
@@ -192,7 +192,7 @@ class Flatmap(object):
 
     @property
     def layer_ids(self):
-        return self.__layer_ids
+        return list(self.__layers.keys())
 
     @property
     def models(self):
@@ -200,6 +200,8 @@ class Flatmap(object):
 
     def add_layer(self, layer):
     #==========================
+        self.__layers[layer.layer_id] = layer
+
         map_layer = {
             'id': layer.layer_id,
             'description': layer.description,
@@ -212,8 +214,7 @@ class Flatmap(object):
             map_layer['background-for'] = layer.background_for
         if layer.slide_id is not None:
             map_layer['slide-id'] = layer.slide_id
-        self.__layers.append(map_layer)
-        self.__layer_ids.append(layer.layer_id)
+        self.__map_layers.append(map_layer)
         if layer.resolved_pathways is not None:
             self.__pathways.append(layer.resolved_pathways)
         if layer.models is not None:
@@ -267,7 +268,7 @@ class Flatmap(object):
         if self.__models is not None:
             tile_db.add_metadata(describes=self.__models)
         # Save layer details in metadata
-        tile_db.add_metadata(layers=json.dumps(self.__layers))
+        tile_db.add_metadata(layers=json.dumps(self.__map_layers))
         # Save pathway details in metadata
         tile_db.add_metadata(pathways=pathways_to_json(self.__pathways))
         # Save annotations in metadata
@@ -297,7 +298,7 @@ class Flatmap(object):
 
         # Create style file
         metadata = tile_db.metadata()
-        style_dict = Style.style(self.__layer_ids, metadata, self.__zoom)
+        style_dict = Style.style(self.layer_ids, metadata, self.__zoom)
         with open(os.path.join(self.__output_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
