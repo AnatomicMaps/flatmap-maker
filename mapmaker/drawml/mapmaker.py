@@ -185,6 +185,7 @@ class SlideLayer(MapLayer):
                 self.background_for = layer_directive.get('background-for', '')
                 self.description = layer_directive.get('description', self.layer_id.capitalize())
                 self.models = layer_directive.get('models', '')
+                self.outline_feature_id = layer_directive.get('outline')
                 self.queryable_nodes = layer_directive.get('queryable-nodes', False)
                 self.selectable = self.background_for == '' and not layer_directive.get('not-selectable')
                 self.selected = layer_directive.get('selected', False)
@@ -360,5 +361,11 @@ class MapMaker(object):
             slide_range = [slide_range]
         for n in slide_range:
             self.slide_to_layer(n)
+
+    @staticmethod
+    def resolve_details(layers_dict):
+    #================================
+        # Override in sub-class
+        pass
 
 #===============================================================================

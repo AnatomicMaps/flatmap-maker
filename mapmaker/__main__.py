@@ -162,6 +162,7 @@ def main():
                                              debug_xml=args.debug_xml)
         for error in layer.errors:
             print(error)
+
         flatmap.add_layer(layer)
 
     # We are finished with the Powerpoint
@@ -169,6 +170,12 @@ def main():
 
     if len(flatmap) == 0:
         sys.exit('No map layers in Powerpoint...')
+
+    # Add details of high-resolution features
+    flatmap.resolve_details()
+
+    # Output all features (as GeoJSON)
+    flatmap.output_layers()
 
     if args.check_errors:
         # Show what the map is about

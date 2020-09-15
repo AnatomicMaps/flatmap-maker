@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import copy
 import json
 import math
 import os
@@ -29,8 +30,11 @@ from beziers.cubicbezier import CubicBezier
 from beziers.point import Point as BezierPoint
 from beziers.quadraticbezier import QuadraticBezier
 
+import cv2
+
 import numpy as np
 
+import shapely.affinity
 import shapely.geometry
 import shapely.ops
 import shapely.prepared
@@ -38,6 +42,8 @@ import shapely.prepared
 #===============================================================================
 
 from parser import Parser
+
+from flatmap import MapLayer
 
 from geometry import connect_dividers, extend_line, make_boundary
 from geometry import mercator_transform, mercator_transformer
@@ -428,6 +434,13 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
 
 #===============================================================================
 
+class DetailsLayer(GeoJsonOutput, MapLayer):
+    def __init__(self, layer_id):
+        MapLayer.__init__(self, layer_id)
+        self.initialise_geojson_output()
+
+#===============================================================================
+
 class GeoJsonMaker(MapMaker):
     def __init__(self, pptx, settings):
         super().__init__(pptx, settings, GeoJsonLayer)
@@ -455,5 +468,80 @@ class GeoJsonMaker(MapMaker):
         bottom_right = mercator_transformer.transform(*transform_point(self.__transform, (bounds[2], bounds[3])))
         # southwest and northeast corners
         return (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
+
+
+    @staticmethod
+    def add_detail_features(detail_layer, lowres_features, layers_dict):
+    #===================================================================
+        extra_details = []
+        for feature in lowres_features:
+            hires_layer = layers_dict.get(feature.properties['details'])
+            if hires_layer is None:
+                raise KeyError("Cannot find details' layer '{}'".format(feature.properties['details']))
+
+            outline_feature = hires_layer.features_with_id.get(hires_layer.outline_feature_id)
+            if outline_feature is None:
+                raise KeyError("Cannot find outline feature '{}'".format(hires_layer.outline_feature_id))
+
+            # Calculate ``shapely.affinity`` 2D affine transform matrix to map source shapes to the destination
+
+            # NOTE: We have no way of ensuring that the vertices of the source and destination rectangles
+            #       align as intended. As a result, output features might be rotated by some multiple
+            #       of 90 degrees.
+
+            src = np.array(outline_feature.geometry.minimum_rotated_rectangle.exterior.coords, dtype = "float32")[:-1]
+            dst = np.array(feature.geometry.minimum_rotated_rectangle.exterior.coords, dtype = "float32")[:-1]
+            M = cv2.getPerspectiveTransform(src, dst)
+            transform = np.concatenate((M[0][0:2], M[1][0:2], M[0][2], M[1][2]), axis=None).tolist()
+
+            # Set the feature's geometry to that of the high-resolution outline
+
+            feature.geometry = shapely.affinity.affine_transform(outline_feature.geometry, transform)
+
+            # The detail layer gets a scaled copy of each high-resolution feature
+
+            external_id = feature.properties.get('external-id', '')
+            minzoom = feature.properties['maxzoom'] + 1
+            for f in hires_layer.geo_features:
+
+                hires_feature = Feature(f.id, shapely.affinity.affine_transform(f.geometry, transform), f.properties)
+                ## need to update hires_feature.id (from f.id ??)
+                ## and hires_feature.properties['id']
+
+                hires_feature.properties['minzoom'] = minzoom
+                if external_id != '' and 'external-id' in hires_feature.properties:
+                    hires_feature.properties['external-id'] = '{}/{}'.format(external_id,
+                                                                             hires_feature.properties['external-id'])
+                detail_layer.add_geo_feature(hires_feature)
+                if hires_feature.has('details'):
+                    extra_details.append(hires_feature)
+
+        # If hires features that we've just added also have details then add them
+        # to the detail layer
+
+        if extra_details:
+            GeoJsonMaker.add_detail_features(detail_layer, extra_details, layers_dict)
+
+    @staticmethod
+    def resolve_details(layers_dict):
+    #================================
+        # Generate a details layer for layer with detail features
+
+        ## Need image layers...
+        ##
+        ## have Image of slide with outline image and outline's BBOX
+        ## so can get Rect with just outline. Transform to match detail's feature.
+        ##
+        ## set layer.__image from slide when first making??
+        ## Also want image layers scaled and with minzoom set...
+
+        print('Resolving details...')
+        detail_layers = []
+        for layer in layers_dict.values():
+            if not layer.hidden and layer.detail_features:
+                detail_layer = DetailsLayer('{}-details'.format(layer.layer_id))
+                detail_layers.append(detail_layer)
+                GeoJsonMaker.add_detail_features(detail_layer, layer.detail_features, layers_dict)
+        return detail_layers
 
 #===============================================================================

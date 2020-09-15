@@ -43,11 +43,14 @@ class MapLayer(object):
         self.__background_for = None
         self.__description = 'Layer {}'.format(id)
         self.__errors = []
-        self.__geo_features = OrderedDict()
+        self.__geo_features = []
+        self.__features_with_id = {}
         self.__layer_id = 'layer-{:02d}'.format(id) if isinstance(id, int) else id
+        self.__detail_features = []
         self.__map_features = []
         self.__models = None
 #*        self.__ontology_data = self.settings.ontology_data
+        self.__outline_feature_id = None
         self.__pathways = pathways
         self.__queryable_nodes = False
         self.__selectable = True
@@ -75,12 +78,28 @@ class MapLayer(object):
         self.__description = value
 
     @property
+    def detail_features(self):
+        return self.__detail_features
+
+    @property
+    def details_layer(self):
+        return self.__details_layer
+
+    @property
     def errors(self):
         return self.__errors
 
     @property
+    def features_with_id(self):
+        return self.__features_with_id
+
+    @property
     def geo_features(self):
         return self.__geo_features
+
+    @property
+    def hidden(self):
+        return self.__outline_feature_id is not None
 
     @property
     def layer_id(self):
@@ -101,6 +120,14 @@ class MapLayer(object):
     @models.setter
     def models(self, value):
         self.__models = value
+
+    @property
+    def outline_feature_id(self):
+        return self.__outline_feature_id
+
+    @outline_feature_id.setter
+    def outline_feature_id(self, value):
+        self.__outline_feature_id = value
 
     @property
     def queryable_nodes(self):
@@ -144,7 +171,12 @@ class MapLayer(object):
 
     def add_geo_feature(self, feature):
     #==================================
-        self.__geo_features[feature.id] = feature
+        self.__geo_features.append(feature)
+        if feature.has('details'):
+            self.__detail_features.append(feature)
+        external_id = feature.properties.get('external-id')
+        if external_id is not None:
+            self.__features_with_id[external_id] = feature
         self.__map_features.append({
             'id': feature.id,
             'type': feature.properties['geometry']
@@ -202,6 +234,9 @@ class Flatmap(object):
     #==========================
         self.__layers[layer.layer_id] = layer
 
+        if layer.hidden:
+            return
+
         map_layer = {
             'id': layer.layer_id,
             'description': layer.description,
@@ -214,21 +249,32 @@ class Flatmap(object):
             map_layer['background-for'] = layer.background_for
         if layer.slide_id is not None:
             map_layer['slide-id'] = layer.slide_id
+
         self.__map_layers.append(map_layer)
+
         if layer.resolved_pathways is not None:
             self.__pathways.append(layer.resolved_pathways)
         if layer.models is not None:
             self.__models = layer.models
-        if layer.selectable:
-            layer.save_geo_features()
-            self.__annotations.update(layer.annotations)
-            for (layer_name, filename) in layer.save(self.__output_dir).items():
-                self.__geojson_files.append(filename)
-                self.__tippe_inputs.append({
-                    'file': filename,
-                    'layer': layer_name,
-                    'description': '{} -- {}'.format(layer.description, layer_name)
-                })
+
+    def resolve_details(self):
+    #=========================
+        for layer in self.__mapmaker.resolve_details(self.__layers):
+            self.add_layer(layer)
+
+    def output_layers(self):
+    #=======================
+        for layer in self.__layers.values():
+            if not layer.hidden:
+                layer.save_geo_features(self.__area)
+                self.__annotations.update(layer.annotations)
+                for (layer_name, filename) in layer.save(self.__output_dir).items():
+                    self.__geojson_files.append(filename)
+                    self.__tippe_inputs.append({
+                        'file': filename,
+                        'layer': layer_name,
+                        'description': '{} -- {}'.format(layer.description, layer_name)
+                    })
 
     def make_vector_tiles(self):
     #===========================
