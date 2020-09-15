@@ -333,12 +333,15 @@ class MapMaker(object):
         return self.__slide_size
 
     def bounds(self):
+    #================
         return (0, 0, self.__slide_size[0], self.__slide_size[1])
 
     def slide(self, slide_number):
+    #=============================
         return self.__slides[slide_number - 1]
 
     def slide_to_layer(self, slide_number, output_dir, debug_xml=False):
+    #===================================================================
         slide = self.slide(slide_number)
         if debug_xml:
             xml = open(os.path.join(output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
@@ -355,6 +358,7 @@ class MapMaker(object):
             return layer
 
     def slides_to_layers(self, slide_range):
+    #=======================================
         if slide_range is None:
             slide_range = range(1, len(self.__slides)+1)
         elif isinstance(slide_range, int):

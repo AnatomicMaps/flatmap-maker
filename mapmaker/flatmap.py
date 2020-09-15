@@ -203,12 +203,12 @@ class Flatmap(object):
         self.__creator = creator
         self.__geojson_files = []
         self.__id = id
-        self.__output_dir = output_dir
         self.__layers = OrderedDict()
         self.__map_layers = []
         self.__mapmaker = mapmaker
         self.__mbtiles_file = os.path.join(output_dir, 'index.mbtiles') # The vector tiles' database
         self.__models = None
+        self.__output_dir = output_dir
         self.__pathways = []
         self.__source = source
         self.__tippe_inputs = []
@@ -366,7 +366,6 @@ class Flatmap(object):
         cmd_stream = os.popen('tar -C {} -c -z {} | ssh {} "tar -C /flatmaps -x -z"'
                              .format(map_base, upload, host))
         return cmd_stream.read()
-
 
     def finalise(self, show_files=False):
     #====================================
