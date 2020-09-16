@@ -142,11 +142,11 @@ def check_image_size(dimension, max_dim, lower, upper, bounds, scale):
 #===============================================================================
 
 class TileSource(object):
-    def __init__(self, image_rect, source_rect):
-        self._source_rect = source_rect
-        sx = self._source_rect.width/image_rect.width
-        sy = self._source_rect.height/image_rect.height
-        self._tile_to_image = Affine((sx, sy), (image_rect.x0, image_rect.y0), (0, 0))
+    def __init__(self, tile_pixel_rect, image_rect):
+        self._image_rect = image_rect
+        sx = self._image_rect.width/tile_pixel_rect.width
+        sy = self._image_rect.height/tile_pixel_rect.height
+        self._tile_to_image = Affine((sx, sy), (tile_pixel_rect.x0, tile_pixel_rect.y0), (0, 0))
 
     def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
     #========================================================
@@ -171,19 +171,19 @@ class TileSource(object):
         else:
             # Pad out partial tiles
             tile = transparent_image(TILE_SIZE)
-            x_start = check_image_size(image_size[0], TILE_SIZE[0], x0, x1, (0, self._source_rect.x1), scaling[0])
-            y_start = check_image_size(image_size[1], TILE_SIZE[1], y0, y1, (0, self._source_rect.y1), scaling[1])
+            x_start = check_image_size(image_size[0], TILE_SIZE[0], x0, x1, (0, self._image_rect.x1), scaling[0])
+            y_start = check_image_size(image_size[1], TILE_SIZE[1], y0, y1, (0, self._image_rect.y1), scaling[1])
             paste_image(tile, image, (x_start, y_start))
             return make_transparent(tile)
 
 #===============================================================================
 
 class ImageTileSource(TileSource):
-    def __init__(self, image_rect, image):
+    def __init__(self, tile_pixel_rect, image):
         if image.shape[2] == 3:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
         self.__source_image = image
-        super().__init__(image_rect, Rect((0, 0), get_image_size(image)))
+        super().__init__(tile_pixel_rect, Rect((0, 0), get_image_size(image)))
 
     def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
     #========================================================
@@ -191,21 +191,17 @@ class ImageTileSource(TileSource):
         X1 = min(round(x1), self.__source_image.shape[1])
         Y0 = max(0, round(y0))
         Y1 = min(round(y1), self.__source_image.shape[0])
-        if x0 < 0 or x1 >= self.__source_image.shape[1]:
-            width = round(scaling[0]*(X1 - X0))
-        else:
-            width = TILE_SIZE[0]
-        if y0 < 0 or y1 >= self.__source_image.shape[0]:
-            height = round(scaling[1]*(Y1 - Y0))
-        else:
-            height = TILE_SIZE[1]
+        width = (TILE_SIZE[0] if x0 >= 0 and x1 < self.__source_image.shape[1]
+            else round(scaling[0]*(X1 - X0)))
+        height = (TILE_SIZE[1] if y0 >= 0 and y1 < self.__source_image.shape[0]
+            else round(scaling[1]*(Y1 - Y0)))
         return cv2.resize(self.__source_image[Y0:Y1, X0:X1], (width, height), interpolation=cv2.INTER_CUBIC)
 
 #===============================================================================
 
 class PDFTileSource(TileSource):
-    def __init__(self, image_rect, pdf_page):
-        super().__init__(image_rect, pdf_page.rect)
+    def __init__(self, tile_pixel_rect, pdf_page):
+        super().__init__(tile_pixel_rect, pdf_page.rect)
         self._pdf_page = pdf_page
 
     def get_scaling(self, x0, y0, x1, y1):
@@ -217,8 +213,8 @@ class PDFTileSource(TileSource):
     #========================================================
 
         # We now clip to avoid a black line if region outside of page...
-        if x1 >= self._source_rect.width: x1 = self._source_rect.width - 1
-        if y1 >= self._source_rect.height: y1 = self._source_rect.height - 1
+        if x1 >= self._image_rect.width: x1 = self._image_rect.width - 1
+        if y1 >= self._image_rect.height: y1 = self._image_rect.height - 1
 
         pixmap = self._pdf_page.getPixmap(clip=fitz.Rect(x0, y0, x1, y1),
                                           matrix=fitz.Matrix(*scaling),
@@ -263,8 +259,8 @@ class TileMaker(object):
         ne = mercantile.xy(*extent[2:])
 
         # Converted to tile pixel coordinates
-        self._image_rect = Rect(world_to_tile.transform(sw[0], ne[1]),
-                                world_to_tile.transform(ne[0], sw[1]))
+        self._tile_pixel_rect = Rect(world_to_tile.transform(sw[0], ne[1]),
+                                     world_to_tile.transform(ne[0], sw[1]))
 
         self._processes = []
 
@@ -333,7 +329,7 @@ class TileMaker(object):
 
     def make_tiles_from_image(self, image, source_id, layer_id):
     #===========================================================
-        self.make_tiles(source_id, ImageTileSource(self._image_rect, image), layer_id)
+        self.make_tiles(source_id, ImageTileSource(self._tile_pixel_rect, image), layer_id)
 
     def start_make_tiles_from_image(self, image, source_id, layer_id):
     #=================================================================
@@ -345,7 +341,7 @@ class TileMaker(object):
 
     def make_tiles_from_pdf(self, pdf_page, source_id, layer_id):
     #============================================================
-        self.make_tiles(source_id, PDFTileSource(self._image_rect, pdf_page), layer_id)
+        self.make_tiles(source_id, PDFTileSource(self._tile_pixel_rect, pdf_page), layer_id)
 
     def start_make_tiles_from_pdf(self, pdf_bytes, source_id, page_no, layer_id):
     #============================================================================
