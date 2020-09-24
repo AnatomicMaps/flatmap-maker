@@ -69,7 +69,6 @@ class LabelData(object):
                 response = requests.get(endpoint)
                 if response:
                     triples = response.json().get('triples')
-                    print(triples)
                     for triple in triples:
                         if triple[1] == 'rdfs:label':
                             self.set_label(entity, triple[2])
