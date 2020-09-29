@@ -23,6 +23,7 @@ import datetime
 import json
 import os
 import subprocess
+import sys
 
 #===============================================================================
 
@@ -30,6 +31,7 @@ from mbtiles import MBTiles
 from pathways import pathways_to_json
 from styling import Style
 from tilejson import tile_json
+from tilemaker import TileMaker
 
 #===============================================================================
 
@@ -194,7 +196,7 @@ class MapLayer(object):
 #===============================================================================
 
 class Flatmap(object):
-    def __init__(self, id, source, creator, output_dir, zoom, mapmaker):
+    def __init__(self, source, creator, zoom, mapmaker, settings):
         self.__annotations = {}
         self.__area = mapmaker.map_area()
         bounds = mapmaker.latlng_bounds()
@@ -202,14 +204,15 @@ class Flatmap(object):
         self.__centre = ((bounds[0]+bounds[2])/2, (bounds[1]+bounds[3])/2)
         self.__creator = creator
         self.__geojson_files = []
-        self.__id = id
+        self.__id = settings.map_id
         self.__layers = OrderedDict()
         self.__map_layers = []
         self.__mapmaker = mapmaker
-        self.__mbtiles_file = os.path.join(output_dir, 'index.mbtiles') # The vector tiles' database
+        self.__mbtiles_file = os.path.join(settings.output_dir, 'index.mbtiles') # The vector tiles' database
         self.__models = None
-        self.__output_dir = output_dir
+        self.__output_dir = settings.output_dir
         self.__pathways = []
+        self.__settings = settings
         self.__source = source
         self.__tippe_inputs = []
         self.__upload_files = []
@@ -232,6 +235,8 @@ class Flatmap(object):
 
     def add_layer(self, layer):
     #==========================
+        if layer.layer_id in self.__layers:
+            raise KeyError('Duplicate layer id ({}) in slide {}'.format(layer.layer_id, layer.slide_number))
         self.__layers[layer.layer_id] = layer
 
         if layer.hidden:
@@ -257,30 +262,30 @@ class Flatmap(object):
         if layer.models is not None:
             self.__models = layer.models
 
-    def resolve_details(self):
-    #=========================
-        for layer in self.__mapmaker.resolve_details(self.__layers):
-            self.add_layer(layer)
+    def add_layer_from_slide(self, slide_number):
+    #============================================
+        layer = self.__mapmaker.slide_to_layer(slide_number)
+        print('Slide {}, layer {}'.format(layer.slide_number, layer.layer_id))
+        for error in layer.errors:
+            print(error)
+        self.add_layer(layer)
+        if not layer.hidden:
+            self.__mapmaker.add_image_layer(layer.layer_id, slide_number)
 
-    def output_layers(self):
-    #=======================
-        for layer in self.__layers.values():
-            if not layer.hidden:
-                layer.save_geo_features(self.__area)
-                self.__annotations.update(layer.annotations)
-                for (layer_name, filename) in layer.save(self.__output_dir).items():
-                    self.__geojson_files.append(filename)
-                    self.__tippe_inputs.append({
-                        'file': filename,
-                        'layer': layer_name,
-                        'description': '{} -- {}'.format(layer.description, layer_name)
-                    })
+    def make_background_tiles(self, pdf_bytes, pdf_source_name):
+    #===========================================================
+        tilemaker = TileMaker(pdf_source_name, self.__bounds, self.__output_dir, self.__zoom)
+        for image_layer in self.__mapmaker.image_layers:
+            tilemaker.start_tiles_from_pdf_process(pdf_bytes, image_layer)
+            break #################
+        tilemaker.wait_for_processes()
+        return tilemaker.database_names
 
     def make_vector_tiles(self):
     #===========================
         # Generate Mapbox vector tiles
         if len(self.__tippe_inputs) == 0:
-            sys.exit('No selectable layers in Powerpoint...')
+            sys.exit('No selectable layers found...')
         subprocess.run(['tippecanoe', '--projection=EPSG:4326', '--force',
                         # No compression results in a smaller `mbtiles` file
                         # and is also required to serve tile directories
@@ -302,6 +307,25 @@ class Flatmap(object):
         tile_db.execute("COMMIT")
         tile_db.close();
         self.add_upload_files(['index.mbtiles'])
+
+    def output_layers(self):
+    #=======================
+        for layer in self.__layers.values():
+            if not layer.hidden:
+                layer.save_geo_features(self.__area)
+                self.__annotations.update(layer.annotations)
+                for (layer_name, filename) in layer.save(self.__output_dir).items():
+                    self.__geojson_files.append(filename)
+                    self.__tippe_inputs.append({
+                        'file': filename,
+                        'layer': layer_name,
+                        'description': '{} -- {}'.format(layer.description, layer_name)
+                    })
+
+    def resolve_details(self):
+    #=========================
+        for layer in self.__mapmaker.resolve_details(self.__layers):
+            self.add_layer(layer)
 
     def save_map_json(self, has_image_layer=False):
     #==============================================

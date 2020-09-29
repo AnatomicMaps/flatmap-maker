@@ -36,7 +36,6 @@ import requests
 
 from drawml import GeoJsonMaker
 from flatmap import Flatmap
-from tilemaker import make_background_tiles_from_pdf
 
 #===============================================================================
 
@@ -138,15 +137,14 @@ def main():
             with open(pdf_source, 'rb') as f:
                 pdf_bytes = f.read()
 
-    output_dir = os.path.join(args.map_base, args.map_id)
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    args.output_dir = os.path.join(args.map_base, args.map_id)
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
 
     args.label_database = os.path.join(args.map_base, 'labels.sqlite')
 
     mapmaker = GeoJsonMaker(pptx_bytes, args)
-    flatmap = Flatmap(args.map_id, map_source, ' '.join(sys.argv),
-                      output_dir, map_zoom, mapmaker)
+    flatmap = Flatmap(map_source, ' '.join(sys.argv), map_zoom, mapmaker, args)
 
 #*    # Labels and relationships between anatomical entities
 
@@ -158,12 +156,7 @@ def main():
     for slide_number in range(1, len(mapmaker)+1):
         if args.tile_slide > 0 and args.tile_slide != slide_number:
             continue
-        layer = mapmaker.slide_to_layer(slide_number, output_dir,
-                                             debug_xml=args.debug_xml)
-        for error in layer.errors:
-            print(error)
-
-        flatmap.add_layer(layer)
+        flatmap.add_layer_from_slide(slide_number)
 
     # We are finished with the Powerpoint
     pptx_bytes.close()
@@ -189,13 +182,11 @@ def main():
         if args.tile_slide == 0:
             print('Creating index and style files...')
             flatmap.save_map_json(args.background_tiles
-                               or os.path.isfile(os.path.join(output_dir, '{}.mbtiles'.format(flatmap.layer_ids[0]))))
+                               or os.path.isfile(os.path.join(args.output_dir, '{}.mbtiles'.format(flatmap.layer_ids[0]))))
 
         if args.background_tiles:
             print('Generating background tiles (may take a while...)')
-            image_tile_files = make_background_tiles_from_pdf(flatmap.bounds, map_zoom, output_dir,
-                                                              pdf_bytes, pdf_source,
-                                                              flatmap.layer_ids, args.tile_slide)
+            image_tile_files = flatmap.make_background_tiles(pdf_bytes, pdf_source)
             flatmap.add_upload_files(image_tile_files)
 
         # Show what the map is about

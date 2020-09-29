@@ -217,6 +217,10 @@ class SlideLayer(MapLayer):
     def slide_id(self):
         return self.__slide.slide_id
 
+    @property
+    def slide_number(self):
+        return self.__slide_number
+
     def unique_id(self, id):
     #=======================
         return '{}#{}'.format(self.slide_id, id)
@@ -304,71 +308,73 @@ class SlideLayer(MapLayer):
 
 #===============================================================================
 
+class ImageLayer(object):
+    def __init__(self, id, slide_number, bounding_box=None, image_transform=None):
+        self.__bounding_box = bounding_box
+        self.__id = id
+        self.__slide_number = slide_number
+        self.__image_transform = image_transform
+
+    @property
+    def bounding_box(self):
+        return self.__bounding_box
+
+    @property
+    def id(self):
+        return self.__id
+
+    @property
+    def image_transform(self):
+        return self.__image_transform
+
+    @property
+    def slide_number(self):
+        return self.__slide_number
+
+#===============================================================================
+
 class MapMaker(object):
-    def __init__(self, pptx, settings, layer_class=SlideLayer):
-        self.__LayerClass = layer_class
+    def __init__(self, pptx, settings):
+        self.__image_layers = []
         self.__pptx = Presentation(pptx)
         self.__settings = settings
         self.__slides = self.__pptx.slides
         self.__slide_size = [self.__pptx.slide_width, self.__pptx.slide_height]
-        self.__layers = {}
 
     def __len__(self):
         return len(self.__slides)
 
     @property
-    def layers(self):
-        return self.__layers
+    def image_layers(self):
+        return self.__image_layers
 
     @property
     def settings(self):
         return self.__settings
 
     @property
-    def slide_maker(self):
-        return self.__slide_maker
-
-    @property
     def slide_size(self):
         return self.__slide_size
+
+    def add_image_layer(self, id, slide_number, bounding_box=None, image_transform=None):
+    #==============================================================================
+        self.__image_layers.append(ImageLayer(id, slide_number, bounding_box, image_transform))
 
     def bounds(self):
     #================
         return (0, 0, self.__slide_size[0], self.__slide_size[1])
 
-    def slide(self, slide_number):
-    #=============================
-        return self.__slides[slide_number - 1]
-
-    def slide_to_layer(self, slide_number, output_dir, debug_xml=False):
-    #===================================================================
-        slide = self.slide(slide_number)
-        if debug_xml:
-            xml = open(os.path.join(output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
+    def get_slide(self, slide_number):
+    #=================================
+        slide = self.__slides[slide_number - 1]
+        if self.__settings.debug_xml:
+            xml = open(os.path.join(self.__settings.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
             xml.write(slide.element.xml)
             xml.close()
-        if self.__LayerClass is not None:
-            layer = self.__LayerClass(self, slide, slide_number)
-            layer.process()
-            print('Slide {}, layer {}'.format(slide_number, layer.layer_id))
+        return slide
 
-            if layer.layer_id in self.__layers:
-                raise KeyError('Duplicate layer id ({}) in slide {}'.format(layer.layer_id, slide_number))
-            self.__layers[layer.layer_id] = layer
-            return layer
-
-    def slides_to_layers(self, slide_range):
-    #=======================================
-        if slide_range is None:
-            slide_range = range(1, len(self.__slides)+1)
-        elif isinstance(slide_range, int):
-            slide_range = [slide_range]
-        for n in slide_range:
-            self.slide_to_layer(n)
-
-    @staticmethod
-    def resolve_details(layers_dict):
-    #================================
+    def resolve_details(self, layers_dict):
+    #======================================
         # Override in sub-class
         pass
 
