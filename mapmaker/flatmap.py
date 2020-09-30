@@ -47,7 +47,7 @@ class MapLayer(object):
         self.__errors = []
         self.__geo_features = []
         self.__features_with_id = {}
-        self.__layer_id = 'layer-{:02d}'.format(id) if isinstance(id, int) else id
+        self.__id = 'layer-{:02d}'.format(id) if isinstance(id, int) else id
         self.__detail_features = []
         self.__map_features = []
         self.__models = None
@@ -104,12 +104,11 @@ class MapLayer(object):
         return self.__outline_feature_id is not None
 
     @property
-    def layer_id(self):
-        return self.__layer_id
+    def id(self):
+        return self.__id
 
-    @layer_id.setter
-    def layer_id(self, value):
-        self.__layer_id = value
+    def set_id(self, id):
+        self.__id = id
 
     @property
     def map_features(self):
@@ -235,15 +234,15 @@ class Flatmap(object):
 
     def add_layer(self, layer):
     #==========================
-        if layer.layer_id in self.__layers:
-            raise KeyError('Duplicate layer id ({}) in slide {}'.format(layer.layer_id, layer.slide_number))
-        self.__layers[layer.layer_id] = layer
+        if layer.id in self.__layers:
+            raise KeyError('Duplicate layer id ({}) in slide {}'.format(layer.id, layer.slide_number))
+        self.__layers[layer.id] = layer
 
         if layer.hidden:
             return
 
         map_layer = {
-            'id': layer.layer_id,
+            'id': layer.id,
             'description': layer.description,
             'selectable': layer.selectable,
             'selected': layer.selected,
@@ -265,7 +264,7 @@ class Flatmap(object):
     def add_layer_from_slide(self, slide_number):
     #============================================
         layer = self.__mapmaker.slide_to_layer(slide_number)
-        print('Slide {}, layer {}'.format(layer.slide_number, layer.layer_id))
+        print('Slide {}, layer {}'.format(layer.slide_number, layer.id))
         for error in layer.errors:
             print(error)
         self.add_layer(layer)

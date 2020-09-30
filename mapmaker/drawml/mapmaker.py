@@ -181,9 +181,9 @@ class SlideLayer(MapLayer):
                     super().error('Slide {}: invalid layer directive: {}'
                                    .format(slide_number, notes_text))
                 else:
-                    self.layer_id = layer_directive.get('id')
+                    self.set_id(layer_directive.get('id'))
                 self.background_for = layer_directive.get('background-for', '')
-                self.description = layer_directive.get('description', self.layer_id.capitalize())
+                self.description = layer_directive.get('description', self.id.capitalize())
                 self.models = layer_directive.get('models', '')
                 self.outline_feature_id = layer_directive.get('outline')
                 self.queryable_nodes = layer_directive.get('queryable-nodes', False)

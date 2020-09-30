@@ -42,8 +42,8 @@ METRES_PER_UM = 100
 #===============================================================================
 
 class MBFLayer(MapLayer):
-    def __init__(self, xml_file, layer_id):
-        super().__init__(layer_id)
+    def __init__(self, xml_file, id):
+        super().__init__(id)
         self.__xml_file = xml_file
 
         self.__mbf = etree.parse(xml_file).getroot()
@@ -122,7 +122,7 @@ class MBFLayer(MapLayer):
                 geometry = shapely.geometry.LineString(points)
             mercator_geometry = mercator_transform(geometry)
 
-            source_layer = '{}-{}'.format(self.layer_id, tile_layer)
+            source_layer = '{}-{}'.format(self.id, tile_layer)
             feature = {
                 'type': 'Feature',
                 'id': next_id,   # Must be numeric for tipeecanoe
@@ -135,9 +135,9 @@ class MBFLayer(MapLayer):
                     'bounds': list(mercator_geometry.bounds),
                     # The viewer requires `centroid`
                     'centroid': list(list(mercator_geometry.centroid.coords)[0]),
-                    'id': '{}#{}'.format(self.layer_id, next_id),
+                    'id': '{}#{}'.format(self.id, next_id),
                     'length': geometry.length,
-                    'layer': self.layer_id,
+                    'layer': self.id,
                     'source-layer': source_layer,
                     'tile-layer': 'features',
                     'scale': 1,
@@ -155,7 +155,7 @@ class MBFLayer(MapLayer):
     def save(self, map_dir):
     #=======================
         tile_layer = 'features'
-        filename = os.path.join(map_dir, '{}_{}.json'.format(self.layer_id, tile_layer))
+        filename = os.path.join(map_dir, '{}_{}.json'.format(self.id, tile_layer))
         # Tippecanoe doesn't need a FeatureCollection
         # Delimit features with RS...LF   (RS = 0x1E)
         with open(filename, 'w') as output_file:

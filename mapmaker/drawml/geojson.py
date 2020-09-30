@@ -81,7 +81,7 @@ class GeoJsonOutput(object):
     #================================================
         # Tippecanoe doesn't need a FeatureCollection
         # Delimit features with RS...LF   (RS = 0x1E)
-        filename = os.path.join(map_dir, '{}_{}.json'.format(self.layer_id, layer_id))
+        filename = os.path.join(map_dir, '{}_{}.json'.format(self.id, layer_id))
         with open(filename, 'w') as output_file:
             for feature in self.__geojson_layers.get(layer_id, []):
                 output_file.write('\x1E{}\x0A'.format(json.dumps(feature)))
@@ -91,7 +91,7 @@ class GeoJsonOutput(object):
     #=====================================
         for feature in self.geo_features:
             properties = feature.properties
-            source_layer = '{}-{}'.format(self.layer_id, feature.properties['tile-layer'])
+            source_layer = '{}-{}'.format(self.id, feature.properties['tile-layer'])
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
@@ -434,8 +434,8 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
 #===============================================================================
 
 class DetailsLayer(GeoJsonOutput, MapLayer):
-    def __init__(self, layer_id):
-        MapLayer.__init__(self, layer_id)
+    def __init__(self, id):
+        MapLayer.__init__(self, id)
         self.initialise_geojson_output()
 
 #===============================================================================
@@ -502,7 +502,7 @@ class GeoJsonMaker(MapMaker):
 
             feature.geometry = shapely.affinity.affine_transform(outline_feature.geometry, transform)
 
-            self.add_image_layer('{}-{}'.format(hires_layer.layer_id, feature.id),
+            self.add_image_layer('{}-{}'.format(hires_layer.id, feature.id),
                                  hires_layer.slide_number,
                                  bounding_box=outline_feature.geometry.bounds,
                                  image_transform=M)
@@ -547,7 +547,7 @@ class GeoJsonMaker(MapMaker):
         detail_layers = []
         for layer in layers_dict.values():
             if not layer.hidden and layer.detail_features:
-                detail_layer = DetailsLayer('{}-details'.format(layer.layer_id))
+                detail_layer = DetailsLayer('{}-details'.format(layer.id))
                 detail_layers.append(detail_layer)
                 self.add_detail_features(detail_layer, layer.detail_features, layers_dict)
         return detail_layers
