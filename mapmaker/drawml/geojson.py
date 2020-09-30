@@ -475,8 +475,8 @@ class GeoJsonMaker(MapMaker):
         layer.process()
         return layer
 
-    def add_detail_features(self, detail_layer, lowres_features, layers_dict):
-    #=========================================================================
+    def add_detail_features(self, layer, detail_layer, lowres_features, layers_dict):
+    #================================================================================
         extra_details = []
         for feature in lowres_features:
             hires_layer = layers_dict.get(feature.properties['details'])
@@ -501,16 +501,17 @@ class GeoJsonMaker(MapMaker):
             # Set the feature's geometry to that of the high-resolution outline
 
             feature.geometry = shapely.affinity.affine_transform(outline_feature.geometry, transform)
+            minzoom = feature.properties['maxzoom'] + 1
 
-            self.add_image_layer('{}-{}'.format(hires_layer.id, feature.id),
-                                 hires_layer.slide_number,
-                                 bounding_box=outline_feature.geometry.bounds,
-                                 image_transform=M)
+            layer.add_image_layer('{}-{}'.format(hires_layer.id, feature.id),
+                                  hires_layer.slide_number,
+                                  minzoom,
+                                  bounding_box=outline_feature.geometry.bounds,
+                                  image_transform=M)
 
             # The detail layer gets a scaled copy of each high-resolution feature
 
             external_id = feature.properties.get('external-id', '')
-            minzoom = feature.properties['maxzoom'] + 1
             for f in hires_layer.geo_features:
 
                 hires_feature = Feature(f.id, shapely.affinity.affine_transform(f.geometry, transform), f.properties)
@@ -529,7 +530,7 @@ class GeoJsonMaker(MapMaker):
         # to the detail layer
 
         if extra_details:
-            self.add_detail_features(detail_layer, extra_details, layers_dict)
+            self.add_detail_features(layer, detail_layer, extra_details, layers_dict)
 
     def resolve_details(self, layers_dict):
     #======================================
@@ -549,7 +550,7 @@ class GeoJsonMaker(MapMaker):
             if not layer.hidden and layer.detail_features:
                 detail_layer = DetailsLayer('{}-details'.format(layer.id))
                 detail_layers.append(detail_layer)
-                self.add_detail_features(detail_layer, layer.detail_features, layers_dict)
+                self.add_detail_features(layer, detail_layer, layer.detail_features, layers_dict)
         return detail_layers
 
 #===============================================================================

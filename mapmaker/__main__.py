@@ -181,8 +181,7 @@ def main():
 
         if args.tile_slide == 0:
             print('Creating index and style files...')
-            flatmap.save_map_json(args.background_tiles
-                               or os.path.isfile(os.path.join(args.output_dir, '{}.mbtiles'.format(flatmap.layer_ids[0]))))
+            flatmap.save_map_json()
 
         if args.background_tiles:
             print('Generating background tiles (may take a while...)')

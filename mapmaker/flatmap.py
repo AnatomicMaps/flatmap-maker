@@ -48,6 +48,7 @@ class MapLayer(object):
         self.__geo_features = []
         self.__features_with_id = {}
         self.__id = 'layer-{:02d}'.format(id) if isinstance(id, int) else id
+        self.__image_layers = []
         self.__detail_features = []
         self.__map_features = []
         self.__models = None
@@ -109,6 +110,10 @@ class MapLayer(object):
 
     def set_id(self, id):
         self.__id = id
+
+    @property
+    def image_layers(self):
+        return self.__image_layers
 
     @property
     def map_features(self):
@@ -183,6 +188,10 @@ class MapLayer(object):
             'type': feature.properties['geometry']
         })
 
+    def add_image_layer(self, id, slide_number, zoom, bounding_box=None, image_transform=None):
+    #==========================================================================================
+        self.__image_layers.append(ImageLayer(id, slide_number, zoom, bounding_box, image_transform))
+
     def save_geo_features(self):
     #===========================
         # Override in sub-class
@@ -191,6 +200,36 @@ class MapLayer(object):
     def error(self, msg):
     #====================
         self.__errors.append(msg)
+
+#===============================================================================
+
+class ImageLayer(object):
+    def __init__(self, id, slide_number, zoom, bounding_box=None, image_transform=None):
+        self.__bounding_box = bounding_box
+        self.__id = '{}-image'.format(id)
+        self.__slide_number = slide_number
+        self.__image_transform = image_transform
+        self.__zoom = zoom
+
+    @property
+    def bounding_box(self):
+        return self.__bounding_box
+
+    @property
+    def id(self):
+        return self.__id
+
+    @property
+    def image_transform(self):
+        return self.__image_transform
+
+    @property
+    def slide_number(self):
+        return self.__slide_number
+
+    @property
+    def zoom(self):
+        return self.__zoom
 
 #===============================================================================
 
@@ -205,7 +244,7 @@ class Flatmap(object):
         self.__geojson_files = []
         self.__id = settings.map_id
         self.__layers = OrderedDict()
-        self.__map_layers = []
+        self.__map_layer_count = 0
         self.__mapmaker = mapmaker
         self.__mbtiles_file = os.path.join(settings.output_dir, 'index.mbtiles') # The vector tiles' database
         self.__models = None
@@ -218,7 +257,7 @@ class Flatmap(object):
         self.__zoom = zoom
 
     def __len__(self):
-        return len(self.__map_layers)
+        return self.__map_layer_count
 
     @property
     def bounds(self):
@@ -238,28 +277,35 @@ class Flatmap(object):
             raise KeyError('Duplicate layer id ({}) in slide {}'.format(layer.id, layer.slide_number))
         self.__layers[layer.id] = layer
 
-        if layer.hidden:
-            return
-
-        map_layer = {
-            'id': layer.id,
-            'description': layer.description,
-            'selectable': layer.selectable,
-            'selected': layer.selected,
-            'queryable-nodes': layer.queryable_nodes,
-            'features': layer.map_features
-        }
-        if layer.background_for is not None:
-            map_layer['background-for'] = layer.background_for
-        if layer.slide_id is not None:
-            map_layer['slide-id'] = layer.slide_id
-
-        self.__map_layers.append(map_layer)
-
         if layer.resolved_pathways is not None:
             self.__pathways.append(layer.resolved_pathways)
         if layer.models is not None:
             self.__models = layer.models
+
+        if not layer.hidden:
+            self.__map_layer_count += 1
+
+    def map_layers(self):
+    #====================
+        map_layers = []
+        for layer in self.__layers.values():
+            if not layer.hidden:
+                print('Map layer:', layer.id)
+                map_layer = {
+                    'id': layer.id,
+                    'description': layer.description,
+                    'selectable': layer.selectable,
+                    'selected': layer.selected,
+                    'queryable-nodes': layer.queryable_nodes,
+                    'features': layer.map_features,
+                    'image-layers': [l.id for l in layer.image_layers]
+                }
+                if layer.background_for is not None:
+                    map_layer['background-for'] = layer.background_for
+                if layer.slide_id is not None:
+                    map_layer['slide-id'] = layer.slide_id
+                map_layers.append(map_layer)
+        return map_layers
 
     def add_layer_from_slide(self, slide_number):
     #============================================
@@ -269,14 +315,14 @@ class Flatmap(object):
             print(error)
         self.add_layer(layer)
         if not layer.hidden:
-            self.__mapmaker.add_image_layer(layer.layer_id, slide_number)
+            layer.add_image_layer(layer.id, slide_number, self.__zoom[0])
 
     def make_background_tiles(self, pdf_bytes, pdf_source_name):
     #===========================================================
         tilemaker = TileMaker(pdf_source_name, self.__bounds, self.__output_dir, self.__zoom)
-        for image_layer in self.__mapmaker.image_layers:
-            tilemaker.start_tiles_from_pdf_process(pdf_bytes, image_layer)
-            break #################
+        for layer in self.__layers.values():
+            for image_layer in layer.image_layers:
+                tilemaker.start_tiles_from_pdf_process(pdf_bytes, image_layer)
         tilemaker.wait_for_processes()
         return tilemaker.database_names
 
@@ -326,8 +372,8 @@ class Flatmap(object):
         for layer in self.__mapmaker.resolve_details(self.__layers):
             self.add_layer(layer)
 
-    def save_map_json(self, has_image_layer=False):
-    #==============================================
+    def save_map_json(self):
+    #=======================
         tile_db = MBTiles(self.__mbtiles_file)
 
         # Save path of the Powerpoint source
@@ -337,7 +383,7 @@ class Flatmap(object):
         if self.__models is not None:
             tile_db.add_metadata(describes=self.__models)
         # Save layer details in metadata
-        tile_db.add_metadata(layers=json.dumps(self.__map_layers))
+        tile_db.add_metadata(layers=json.dumps(self.map_layers()))
         # Save pathway details in metadata
         tile_db.add_metadata(pathways=pathways_to_json(self.__pathways))
         # Save annotations in metadata
@@ -351,13 +397,18 @@ class Flatmap(object):
 
 #*        ## TODO: set ``layer.properties`` for annotations...
 #*        ##update_RDF(args.map_base, args.map_id, source, annotations)
+
+        image_layers = []
+        for layer in self.__layers.values():
+            image_layers.extend(layer.image_layers)
+
         map_index = {
             'id': self.__id,
             'min-zoom': self.__zoom[0],
             'max-zoom': self.__zoom[1],
             'bounds': self.__bounds,
             'version': FLATMAP_VERSION,
-            'image_layer': has_image_layer
+            'image-layers': [layer.id for layer in image_layers]
         }
         if self.__models is not None:
             map_index['describes'] = self.__models
@@ -367,7 +418,7 @@ class Flatmap(object):
 
         # Create style file
         metadata = tile_db.metadata()
-        style_dict = Style.style(self.layer_ids, metadata, self.__zoom)
+        style_dict = Style.style(image_layers, metadata, self.__zoom)
         with open(os.path.join(self.__output_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 

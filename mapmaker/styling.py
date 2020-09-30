@@ -44,13 +44,13 @@ class ImageSource(object):
 
 class RasterSource(object):
     @staticmethod
-    def style(layer_id, bounds, map_zoom):
+    def style(layer_id, bounds, min_zoom, max_zoom):
         return {
             'type': 'raster',
             'tiles': ['/tiles/{}/{{z}}/{{x}}/{{y}}'.format(layer_id)],
             'format': 'png',
-            'minzoom': map_zoom[0],
-            'maxzoom': map_zoom[1],
+            'minzoom': min_zoom,
+            'maxzoom': max_zoom,
             'bounds': bounds    # southwest(lng, lat), northeast(lng, lat)
         }
 
@@ -77,26 +77,26 @@ class VectorSource(object):
 
 class Sources(object):
     @staticmethod
-    def style(layers, vector_layer_dict, bounds, map_zoom):
+    def style(image_layers, vector_layer_dict, bounds, map_zoom):
         sources = {
             'vector-tiles': VectorSource.style(vector_layer_dict, bounds, map_zoom)
         }
-        for layer_id in layers:
-            sources['{}-image'.format(layer_id)] = RasterSource.style(layer_id, bounds, map_zoom)
+        for layer in image_layers:
+            sources[layer.id] = RasterSource.style(layer.id, bounds, layer.zoom, map_zoom[1])
         return sources
 
 #===============================================================================
 
 class Style(object):
     @staticmethod
-    def style(layers, metadata, map_zoom):
+    def style(image_layers, metadata, map_zoom):
         if 'json' not in metadata:
             raise ValueError('Invalid metadata for tiles -- no geometry?')
         vector_layer_dict = json.loads(metadata['json'])
         bounds = [float(x) for x in metadata['bounds'].split(',')]
         return {
             'version': 8,
-            'sources': Sources.style(layers, vector_layer_dict, bounds, map_zoom),
+            'sources': Sources.style(image_layers, vector_layer_dict, bounds, map_zoom),
             'glyphs': 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
             'zoom': map_zoom[2],
             'center': [float(x) for x in metadata['center'].split(',')],

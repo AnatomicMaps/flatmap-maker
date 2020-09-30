@@ -308,34 +308,8 @@ class SlideLayer(MapLayer):
 
 #===============================================================================
 
-class ImageLayer(object):
-    def __init__(self, id, slide_number, bounding_box=None, image_transform=None):
-        self.__bounding_box = bounding_box
-        self.__id = id
-        self.__slide_number = slide_number
-        self.__image_transform = image_transform
-
-    @property
-    def bounding_box(self):
-        return self.__bounding_box
-
-    @property
-    def id(self):
-        return self.__id
-
-    @property
-    def image_transform(self):
-        return self.__image_transform
-
-    @property
-    def slide_number(self):
-        return self.__slide_number
-
-#===============================================================================
-
 class MapMaker(object):
     def __init__(self, pptx, settings):
-        self.__image_layers = []
         self.__pptx = Presentation(pptx)
         self.__settings = settings
         self.__slides = self.__pptx.slides
@@ -345,20 +319,12 @@ class MapMaker(object):
         return len(self.__slides)
 
     @property
-    def image_layers(self):
-        return self.__image_layers
-
-    @property
     def settings(self):
         return self.__settings
 
     @property
     def slide_size(self):
         return self.__slide_size
-
-    def add_image_layer(self, id, slide_number, bounding_box=None, image_transform=None):
-    #==============================================================================
-        self.__image_layers.append(ImageLayer(id, slide_number, bounding_box, image_transform))
 
     def bounds(self):
     #================
