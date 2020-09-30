@@ -46,7 +46,10 @@ class Properties(object):
         self.__ids_by_class = {}          # class: unique_feature_id
         if settings.properties:
             with open(settings.properties) as fp:
-                properties_dict = json.loads(fp.read())
+                try:
+                    properties_dict = json.loads(fp.read())
+                except json.decoder.JSONDecodeError as err:
+                    raise ValueError('Error in properties file, {}'.format(err))
                 self.__set_properties(properties_dict.get('features', []))
                 self.__pathways = Pathways(properties_dict.get('paths', []))
 
