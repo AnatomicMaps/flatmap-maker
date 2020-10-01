@@ -279,7 +279,8 @@ class Flatmap(object):
 
         if layer.resolved_pathways is not None:
             self.__pathways.append(layer.resolved_pathways)
-        if layer.models is not None:
+
+        if layer.models:
             self.__models = layer.models
 
         if not layer.hidden:
