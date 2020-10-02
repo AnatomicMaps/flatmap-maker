@@ -140,7 +140,7 @@ class Pathways(object):
                 if len(routing) < 2:
                     raise ValueError('Route definition is too short for path {}'.format(path_id))
                 through_nodes = []
-                for node in routing[1:-2]:
+                for node in routing[1:-1]:
                     through_nodes += Pathways.__make_list(node)
                 self.__routes_by_path_id[path_id] = {
                     'start-nodes': Pathways.__make_list(routing[0]),
