@@ -93,7 +93,7 @@ class Properties(object):
     def set_feature_ids(self):
     #=========================
         if self.__pathways is not None:
-            self.__pathways.set_feature_ids(
+            self.__pathways.resolve_pathways(
                 self.__ids_by_external_id,
                 self.__ids_by_class,
                 self.__class_counts
@@ -131,13 +131,13 @@ class Properties(object):
                     properties.update(self.__anatomical_map.properties(cls))
                     properties.update(self.properties_from_class(cls))
                     if self.__pathways is not None:
-                        properties.update(self.__pathways.properties(cls))
+                        properties.update(self.__pathways.add_path(cls))
 
                 if 'external-id' in properties:
                     id = properties['external-id']
                     properties.update(self.properties_from_id(id))
                     if self.__pathways is not None:
-                        properties.update(self.__pathways.properties(id))
+                        properties.update(self.__pathways.add_path(id))
 
                 if 'marker' in properties:
                     properties['type'] = 'marker'

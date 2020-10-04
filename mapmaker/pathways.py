@@ -170,27 +170,27 @@ class Pathways(object):
     def resolved_pathways(self):
         return self.__resolved_pathways
 
-    def properties(self, id):
-        result = {}
+    def add_path(self, id):
+        properties = {}
         if id in self.__paths_by_line_id:
             path_id = self.__paths_by_line_id[id][0]
             if path_id in self.__types_by_path_id:
-                result['kind'] = self.__types_by_path_id[path_id]
-                result['type'] = 'line-dash' if result['kind'].endswith('-post') else 'line'
+                properties['kind'] = self.__types_by_path_id[path_id]
+                properties['type'] = 'line-dash' if properties['kind'].endswith('-post') else 'line'
             else:
-                result['type'] = 'line'
-            result['path-id'] = path_id
-            result['tile-layer'] = 'pathways'
+                properties['type'] = 'line'
+            properties['path-id'] = path_id
+            properties['tile-layer'] = 'pathways'
             self.__layer_paths.add(path_id)
         elif id in self.__paths_by_nerve_id:
             path_id = self.__paths_by_nerve_id[id][0]
-            result['path-id'] = path_id
-            result['tile-layer'] = 'pathways'
-            result['type'] = 'nerve'
+            properties['path-id'] = path_id
+            properties['tile-layer'] = 'pathways'
+            properties['type'] = 'nerve'
             self.__layer_paths.add(path_id)
-        return result
+        return properties
 
-    def set_feature_ids(self, id_map, class_map, class_count):
+    def resolve_pathways(self, id_map, class_map, class_count):
         if self.__resolved_pathways is not None:
             return
         self.__resolved_pathways = ResolvedPathways(id_map, class_map, class_count)
