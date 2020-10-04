@@ -83,34 +83,18 @@ def paste_image(destination, source, offset):
 
 #===============================================================================
 
-class Transform(object):
-    def __init__(self, scale, translateA=None, translateB=None):
-        if translateA is None: translateA = (0, 0)
-        if translateB is None: translateB = (0, 0)
+class Affine(object):
+    def __init__(self, scale, translateA, translateB):
         self._matrix = np.array([[ scale[0], 0, -scale[0]*translateA[0] + translateB[0] ],
                                  [ 0, scale[1], -scale[1]*translateA[1] + translateB[1] ],
                                  [ 0,        0,                                       1 ]])
 
     def __str__(self):
-        return 'Transform: {}'.format(self._matrix)
+        return 'Affine: {}'.format(self._matrix)
 
-    def transform_point(self, x, y):
-    #===============================
+    def transform(self, x, y):
+    #=========================
         return (self._matrix@[x, y, 1])[:2]
-
-#===============================================================================
-
-class Point(object):
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def __str__(self):
-        return 'Point: ({}, {})'.format(self.x, self.y)
-
-    def transform(self, matrix):
-    #===========================
-        return Point(*matrix.transform_point(self.x, self.y))
 
 #===============================================================================
 
@@ -132,9 +116,7 @@ class Rect(object):
             raise ValueError('Invalid arguments for Rect constructor')
 
     def __str__(self):
-        return 'Rect: ({}, {}, {}, {}) {} x {})'.format(self.x0, self.y0,
-                                                        self.x1, self.y1,
-                                                        self.width, self.height)
+        return 'Rect: ({} x {})'.format(self.width, self.height)
 
     @property
     def height(self):
@@ -143,14 +125,6 @@ class Rect(object):
     @property
     def width(self):
         return abs(self.x1 - self.x0)
-
-    def to_fitz(self):
-    #=================
-        return fitz.Rect(self.x0, self.y0, self.x1, self.y1)
-
-    def transform(self, matrix):
-    #===========================
-        return Rect(matrix.transform_point(self.x0, self.y0), matrix.transform_point(self.x1, self.y1))
 
 #===============================================================================
 
@@ -167,248 +141,159 @@ def check_image_size(dimension, max_dim, lower, upper, bounds, scale):
 
 #===============================================================================
 
-class ScaledImageSource(object):
-    """
-    A class to tile an image that has been scaled to tile pixel coordinates
+class TileSource(object):
+    def __init__(self, tile_pixel_rect, image_rect):
+        self._image_rect = image_rect
+        sx = self._image_rect.width/tile_pixel_rect.width
+        sy = self._image_rect.height/tile_pixel_rect.height
+        self._tile_to_image = Affine((sx, sy), (tile_pixel_rect.x0, tile_pixel_rect.y0), (0, 0))
 
-    :param image: An OpenCV image. The image has to have been scaled to
-                  tile pixel coordinates
-    :type image: class:`numpy.ndarray`
-    :param image_offset: The offset of the image in tile pixels,
-                       origin is top-left of tiles
-    :type image_offset: tuple(int, int)
-    """
-    def __init__(self, image, image_offset):
-        """Constructor"""
-        print('Image:', get_image_size(image), ' offset:', image_offset)
-        if image.shape[2] == 3:
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
-        self.__image = image
-        image_size = get_image_size(image)
-        self.__image_width = image_size[0]
-        self.__image_height = image_size[1]
-        self.__image_offset = image_offset
+    def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
+    #========================================================
+        # Overridden by subclass
+        return transparent_image()
+
+    def get_scaling(self, x0, y0, x1, y1):
+    #=====================================
+        return (TILE_SIZE[0]/(x1 - x0), TILE_SIZE[1]/(y1 - y0))
 
     def get_tile(self, tile_x, tile_y):
     #==================================
-        """
-        Extract a tile from the source image
-
-        :param tile_x: tile X-coordinate number, relative to left of tiled area
-        :type tile_x: int
-        :param tile_y: tile Y-coordinate number, relative to top of tiled area
-        :type tile_y: int
-        :returns: A ``TILE_SIZE`` image
-        :rtype: class:`numpy.ndarray`
-        """
-
-        # Get tile sides relative to image
-
-        x0 = TILE_SIZE[0]*tile_x - self.__image_offset[0]
-        x1 = x0 + TILE_SIZE[0]
-        y0 = TILE_SIZE[1]*tile_y - self.__image_offset[1]
-        y1 = y0 + TILE_SIZE[1]
-
-        # Extract image subset that is covered by the tile
-
-        X0 = max(0, x0)
-        X1 = min(x1, self.__image_width)
-        Y0 = max(0, y0)
-        Y1 = min(y1, self.__image_height)
-
-
-        image = self.__image[Y0:Y1, X0:X1]
-
-        # Check for image partially covering tile and pad if necessary,
-        # returning a transparent image
-        #
+        (x0, y0) = self._tile_to_image.transform(TILE_SIZE[0]*tile_x,
+                                                 TILE_SIZE[1]*tile_y)
+        (x1, y1) = self._tile_to_image.transform(TILE_SIZE[0]*(tile_x + 1),
+                                                 TILE_SIZE[1]*(tile_y + 1))
+        scaling = self.get_scaling(x0, y0, x1, y1)
+        image = self.extract_tile_as_image(x0, y0, x1, y1, scaling)
         image_size = get_image_size(image)
-        if image_size == TILE_SIZE:
+        if image_size == tuple(TILE_SIZE):
             return make_transparent(image)
         else:
-            x_start = -x0 if x0 < 0 else 0
-            y_start = -y0 if y0 < 0 else 0
+            # Pad out partial tiles
             tile = transparent_image(TILE_SIZE)
+            x_start = check_image_size(image_size[0], TILE_SIZE[0], x0, x1, (0, self._image_rect.x1), scaling[0])
+            y_start = check_image_size(image_size[1], TILE_SIZE[1], y0, y1, (0, self._image_rect.y1), scaling[1])
             paste_image(tile, image, (x_start, y_start))
             return make_transparent(tile)
 
 #===============================================================================
 
-class ImageTileSource(ScaledImageSource):
-    """
-    Scale and map an image to tiles
-
-    :param map_rect: The map's extent in tile pixels. This region is covered
-                     by a set of whole tiles which may extend beyond the map
-    :type map_rect: class:`Rect`
-    :param image: An OpenCV image. The image is scaled to fit the
-                  map's tile pixel extent
-    :type image: class:`numpy.ndarray`
-    :param image_rect: The region of the image to tile (in tile pixels,
-                       after scaling, origin is top-left of page)
-    :type image_rect: class:`Rect`, optional
-    """
-    def __init__(self, map_rect, image, image_rect=None):
-        """Constructor"""
+class ImageTileSource(TileSource):
+    def __init__(self, tile_pixel_rect, image):
         if image.shape[2] == 3:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
         self.__source_image = image
-        image_size = get_image_size(image)
-        self.__tile_to_image = Transform((image_size[0]/map_rect.width, image_size[1]/map_rect.height),
-                                         (map_rect.x0, map_rect.y0), (0, 0))
-        self.__image_rect = map_rect if image_rect is None else image_rect
+        super().__init__(tile_pixel_rect, Rect((0, 0), get_image_size(image)))
+
+    def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
+    #========================================================
+        X0 = max(0, round(x0))
+        X1 = min(round(x1), self.__source_image.shape[1])
+        Y0 = max(0, round(y0))
+        Y1 = min(round(y1), self.__source_image.shape[0])
+        width = (TILE_SIZE[0] if x0 >= 0 and x1 < self.__source_image.shape[1]
+            else round(scaling[0]*(X1 - X0)))
+        height = (TILE_SIZE[1] if y0 >= 0 and y1 < self.__source_image.shape[0]
+            else round(scaling[1]*(Y1 - Y0)))
+        return cv2.resize(self.__source_image[Y0:Y1, X0:X1], (width, height), interpolation=cv2.INTER_CUBIC)
 
 #===============================================================================
 
-class PDFTileSource(ScaledImageSource):
-    """
-    Scale and map a PDF page to tiles
+class PDFTileSource(TileSource):
+    def __init__(self, tile_pixel_rect, pdf_page):
+        super().__init__(tile_pixel_rect, pdf_page.rect)
+        self._pdf_page = pdf_page
 
-    :param map_rect: The map's extent in tile pixels. This region is covered
-                     by a set of whole tiles which may extend beyond the map
-    :type map_rect: class:`Rect`
-    :param pdf_page: A page of a PDF document. The page is converted to an image
-                     scaled to fit the map's tile pixel extent
-    :type pdf_page: class:`fitz.Page`
-    :param image_bbox: The region of the page to tile (in tile pixels,
-                       after scaling, origin is top-left of page). By default
-                       the entire page is tiled
-    :type image_bbox: class:`Rect`, optional
-    :param image_transform: If not ``None`` the extracted image is transformed
-                            using ``cv2.perspectiveTransform`` before being used
-                            as the source for tiles
-    :type image_transform: class:`numpy.ndarray`, optional
-    """
-    def __init__(self, map_rect, pdf_page, image_bbox=None, image_transform=None):
-        """Constructor"""
-        page_to_tile = fitz.Matrix(map_rect.width/pdf_page.rect.width,
-                                   map_rect.height/pdf_page.rect.height)
+    def get_scaling(self, x0, y0, x1, y1):
+    #=====================================
+        return ((TILE_SIZE[0] - 1)/(x1 - x0),   # Fitz includes RH edge pixel
+                (TILE_SIZE[1] - 1)/(y1 - y0))   # so scale to 1px smaller...
 
+    def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
+    #========================================================
 
-        if image_bbox is None:
-            clip_region = None
-            image_offset = (round(map_rect.x0), round(map_rect.y0))
-        else:
-            clip_region = image_bbox.transform(Transform((pdf_page.rect.width/map_rect.width,
-                                                          pdf_page.rect.height/map_rect.height))
-                                              ).to_fitz()
-            image_offset = (round(image_bbox.x0), round(image_bbox.y0))
+        # We now clip to avoid a black line if region outside of page...
+        if x1 >= self._image_rect.width: x1 = self._image_rect.width - 1
+        if y1 >= self._image_rect.height: y1 = self._image_rect.height - 1
 
-        data = pdf_page.getPixmap(matrix=page_to_tile, alpha=True, clip=clip_region).getImageData('png')
-        pdf_image = cv2.imdecode(np.frombuffer(data, 'B'), cv2.IMREAD_UNCHANGED)
-
-        if image_transform is not None:
-            print('XFRM:', image_transform)
-            #pdf_image = cv2.perspectiveTransform(pdf_image, image_transform)
-
-        super().__init__(pdf_image, image_offset)
-
-
-class PDFDetailsSource(ScaledImageSource):
-    def __init__(self, map_rect, pdf_page, image_rect=None):
-        pass
-
+        pixmap = self._pdf_page.getPixmap(clip=fitz.Rect(x0, y0, x1, y1),
+                                          matrix=fitz.Matrix(*scaling),
+                                          alpha=True)
+        data = pixmap.getImageData('png')
+        return cv2.imdecode(np.frombuffer(data, 'B'), cv2.IMREAD_UNCHANGED)
 
 #===============================================================================
 
 class TileMaker(object):
-    """
-    A class for generating image tiles for a map
-
-    Image tiles are stored as ``mbtiles``, in a SQLite3 database.
-
-    The map's extent together with the maximum zoom level is used to determine
-    the set of tiles that covers the map, along with a transform from map
-    coordinates to tile pixel coordinates and the the location of the map in
-    terms of tile pixels.
-
-    :param source_name: The file name or URL for the source image data
-    :type source_name: str
-    :param extent: The map's extent as in latitude and longitude
-    :type extent: tuple(south, west, north, east)
-    :param output_dir: The directory in which to store image tiles
-    :type output_dir: str
-    :param map_zoom: The range of zoom levels to generate tiles
-    :type map_zoom: tuple, optional, defaults to (`MIN_ZOOM`, `MAX_ZOOM`)
-    """
-    def __init__(self, source_name, extent, output_dir, map_zoom=(MIN_ZOOM, MAX_ZOOM)):
-        self.__source_name = source_name
-        self.__output_dir = output_dir
-        self.__min_zoom = map_zoom[0]
-        self.__max_zoom = map_zoom[1]
+    def __init__(self, extent, map_dir, map_zoom=(MIN_ZOOM, MAX_ZOOM)):
+        self._map_dir = map_dir
+        self._min_zoom = map_zoom[0]
+        self._max_zoom = map_zoom[1]
 
         # We need a manager to share the list of database names between processes
+        self._manager = multiprocessing.Manager()
+        self._database_names = self._manager.list()
 
-        self.__manager = multiprocessing.Manager()
-        self.__database_names = self.__manager.list()
-        self.__processes = []
-
-        # Get the set oof tiles that span the map
-
-        self.__tiles = list(mercantile.tiles(*extent, self.__max_zoom))
-        tile_0 = self.__tiles[0]
-        tile_N = self.__tiles[-1]
-        self.__tile_start_coords = (tile_0.x, tile_0.y)
-        self.__tile_end_coords = (tile_N.x, tile_N.y)
+        # Get whole tiles that span the image's extent
+        self._tiles = list(mercantile.tiles(*extent, self._max_zoom))
+        tile_0 = self._tiles[0]
+        tile_N = self._tiles[-1]
+        self._tile_start_coords = (tile_0.x, tile_0.y)
+        self._tile_end_coords = (tile_N.x, tile_N.y)
 
         # Tiled area in world coordinates (metres)
-
         bounds_0 = mercantile.xy_bounds(tile_0)
         bounds_N = mercantile.xy_bounds(tile_N)
         tile_world = Rect(bounds_0.left, bounds_0.top, bounds_N.right, bounds_N.bottom)
 
         # Tiled area in tile pixel coordinates
-
         tile_extent = Rect(0, 0, TILE_SIZE[0]*(tile_N.x-tile_0.x+1), TILE_SIZE[1]*(tile_N.y-tile_0.y+1))
 
-        # Transform between world and tile pixel coordinates
-
+        # Affine transform from world to tile pixel coordinates
         sx = tile_extent.width/tile_world.width
         sy = tile_extent.height/tile_world.height
-        self.__world_to_tile = Transform((sx, -sy), (tile_world.x0, tile_world.y0), (0, 0))
-        self.__tile_to_world = Transform((1.0/sx, -1.0/sy), (0, 0), (tile_world.x0, tile_world.y0))
+        world_to_tile = Affine((sx, -sy), (tile_world.x0, tile_world.y0), (0, 0))
 
         # Extent in world coordinates (metres)
-
         sw = mercantile.xy(*extent[:2])
         ne = mercantile.xy(*extent[2:])
 
-        # Map extent in tile pixel coordinates
+        # Converted to tile pixel coordinates
+        self._tile_pixel_rect = Rect(world_to_tile.transform(sw[0], ne[1]),
+                                     world_to_tile.transform(ne[0], sw[1]))
 
-        self.__map_rect = Rect(sw[0], ne[1], ne[0], sw[1]).transform(self.__world_to_tile)
-
+        self._processes = []
 
     @property
     def database_names(self):
-        return self.__database_names
+        return self._database_names
 
-    def make_tiles(self, tile_source, layer_id):
-    #===========================================
+    def make_tiles(self, source_id, tile_source, layer_id):
+    #======================================================
         database_name = '{}.mbtiles'.format(layer_id)
-        self.__database_names.append(database_name)
-        mbtiles = MBTiles(os.path.join(self.__output_dir, database_name), True, True)
-        mbtiles.add_metadata(id='{}#{}'.format(self.__source_name, layer_id),
-                             source=self.__source_name)
+        self._database_names.append(database_name)
+        mbtiles = MBTiles(os.path.join(self._map_dir, database_name), True, True)
+        mbtiles.add_metadata(id=layer_id, source=source_id)
 
-        zoom = self.__max_zoom
+        zoom = self._max_zoom
         print('Tiling zoom level {} for {}'.format(zoom, layer_id))
-        progress_bar = tqdm(total=len(self.__tiles),
+        progress_bar = tqdm(total=len(self._tiles),
             unit='tiles', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
-        for tile in self.__tiles:
-            image = tile_source.get_tile(tile.x - self.__tile_start_coords[0],
-                                         tile.y - self.__tile_start_coords[1])
+        for tile in self._tiles:
+            image = tile_source.get_tile(tile.x - self._tile_start_coords[0],
+                                         tile.y - self._tile_start_coords[1])
             if not_transparent(image):
                 mbtiles.save_tile_as_png(zoom, tile.x, tile.y, image)
             progress_bar.update(1)
         progress_bar.close()
 
-        self.make_overview_tiles(mbtiles, layer_id, zoom, self.__tile_start_coords, self.__tile_end_coords)
+        self.make_overview_tiles(mbtiles, layer_id, zoom, self._tile_start_coords, self._tile_end_coords)
         mbtiles.close() #True)
 
     def make_overview_tiles(self, mbtiles, layer_id, zoom, start_coords, end_coords):
     #================================================================================
-        if zoom > self.__min_zoom:
+        if zoom > self._min_zoom:
             zoom -= 1
             print('Tiling zoom level {} for {}'.format(zoom, layer_id))
             HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
@@ -437,49 +322,53 @@ class TileMaker(object):
 
     def wait_for_processes(self):
     #============================
-        for process in self.__processes:
+        for process in self._processes:
             process.join()
 
 ###
 
-    def make_tiles_from_image(self, image, layer_id):
-    #================================================
-        tile_source = ImageTileSource(self.__map_rect, image)
-        self.make_tiles(tile_source, layer_id)
+    def make_tiles_from_image(self, image, source_id, layer_id):
+    #===========================================================
+        self.make_tiles(source_id, ImageTileSource(self._tile_pixel_rect, image), layer_id)
 
-    def start_make_tiles_from_image(self, image, layer_id):
-    #======================================================
-        process = multiprocessing.Process(target=self.make_tiles_from_image, args=(image, layer_id))
-        self.__processes.append(process)
+    def start_make_tiles_from_image(self, image, source_id, layer_id):
+    #=================================================================
+        process = multiprocessing.Process(target=self.make_tiles_from_image, args=(image, source_id, layer_id))
+        self._processes.append(process)
         process.start()
 
 ###
 
-    def make_tiles_from_pdf_(self, pdf_page, image_layer):
-    #=====================================================
-        bounds = image_layer.bounding_box
-        tile_source = PDFTileSource(self.__map_rect, pdf_page,
-                                    Rect(*bounds) if bounds is not None else bounds,
-                                    image_layer.image_transform)
-        self.make_tiles(tile_source, image_layer.id)
+    def make_tiles_from_pdf(self, pdf_page, source_id, layer_id):
+    #============================================================
+        self.make_tiles(source_id, PDFTileSource(self._tile_pixel_rect, pdf_page), layer_id)
 
-    def start_tiles_from_pdf_process(self, pdf_bytes, image_layer):
-    #==============================================================
-        page_no = image_layer.slide_number
-        print('Page {}: {}'.format(page_no, image_layer.id))
-
+    def start_make_tiles_from_pdf(self, pdf_bytes, source_id, page_no, layer_id):
+    #============================================================================
+        print('Page {}: {}'.format(page_no, layer_id))
         pdf = fitz.Document(stream=pdf_bytes, filetype='application/pdf')
-
-        process = multiprocessing.Process(target=self.make_tiles_from_pdf_, args=(pdf[page_no - 1], image_layer))
-
-        self.__processes.append(process)
+        process = multiprocessing.Process(target=self.make_tiles_from_pdf, args=(pdf[page_no - 1], source_id, layer_id))
+        self._processes.append(process)
         process.start()
 
 #===============================================================================
 
-def make_background_tiles_from_image(map_bounds, map_zoom, output_dir, image, source_name, layer_id):
-    tile_maker = TileMaker(map_bounds, output_dir, map_zoom)
+def make_background_tiles_from_image(map_bounds, map_zoom, map_dir, image, source_name, layer_id):
+    tile_maker = TileMaker(map_bounds, map_dir, map_zoom)
     tile_maker.start_make_tiles_from_image(image, source_name, layer_id)
+    tile_maker.wait_for_processes()
+    return tile_maker.database_names
+
+#===============================================================================
+
+def make_background_tiles_from_pdf(map_bounds, map_zoom, map_dir, pdf_bytes, source_name, layer_ids, slide=0):
+    tile_maker = TileMaker(map_bounds, map_dir, map_zoom)
+    if slide > 0:   # There is just a single layer
+        tile_maker.start_make_tiles_from_pdf(pdf_bytes, '{}#{}'.format(source_name, slide), slide, layer_ids[0])
+    else:
+        for n, layer_id in enumerate(layer_ids):
+            tile_maker.start_make_tiles_from_pdf(pdf_bytes, '{}#{}'.format(source_name, n+1), n+1, layer_id)
+
     tile_maker.wait_for_processes()
     return tile_maker.database_names
 
