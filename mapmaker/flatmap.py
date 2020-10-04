@@ -409,7 +409,7 @@ class Flatmap(object):
             'max-zoom': self.__zoom[1],
             'bounds': self.__bounds,
             'version': FLATMAP_VERSION,
-            'image-layers': [layer.id for layer in image_layers]
+            'image_layer': len(image_layers) > 0  ## For compatibility
         }
         if self.__models is not None:
             map_index['describes'] = self.__models
