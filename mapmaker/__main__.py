@@ -77,6 +77,8 @@ def main():
 
     parser.add_argument('--clear', action='store_true',
                         help="Remove all files from generated map's directory before generating new map")
+    parser.add_argument('--refresh-labels', action='store_true',
+                        help='Clear the label text cache before map making')
     parser.add_argument('-u', '--upload', metavar='USER@SERVER',
                         help='Upload generated map to server')
 
@@ -150,6 +152,11 @@ def main():
         os.makedirs(args.output_dir)
 
     args.label_database = os.path.join(args.map_base, 'labels.sqlite')
+    if args.refresh_labels:
+        try:
+            os.remove(args.label_database)
+        except FileNotFoundError:
+            pass
 
     mapmaker = GeoJsonMaker(pptx_bytes, args)
     flatmap = Flatmap(map_source, ' '.join(sys.argv), map_zoom, mapmaker, args)
