@@ -503,11 +503,11 @@ class GeoJsonMaker(MapMaker):
             feature.geometry = shapely.affinity.affine_transform(outline_feature.geometry, transform)
             minzoom = feature.properties['maxzoom'] + 1
 
-            layer.add_image_layer('{}-{}'.format(hires_layer.id, feature.id),
-                                  hires_layer.slide_number,
-                                  minzoom,
-                                  bounding_box=outline_feature.geometry.bounds,
-                                  image_transform=M)
+##            layer.add_image_layer('{}-{}'.format(hires_layer.id, feature.id).replace('#', '_'),
+##                                  hires_layer.slide_number,
+##                                  minzoom,
+##                                  bounding_box=outline_feature.geometry.bounds,
+##                                  image_transform=M)
 
             # The detail layer gets a scaled copy of each high-resolution feature
 
