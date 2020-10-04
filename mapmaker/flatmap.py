@@ -276,13 +276,8 @@ class Flatmap(object):
         if layer.id in self.__layers:
             raise KeyError('Duplicate layer id ({}) in slide {}'.format(layer.id, layer.slide_number))
         self.__layers[layer.id] = layer
-
-        if layer.resolved_pathways is not None:
-            self.__pathways.append(layer.resolved_pathways)
-
         if layer.models:
             self.__models = layer.models
-
         if not layer.hidden:
             self.__map_layer_count += 1
 
@@ -294,6 +289,20 @@ class Flatmap(object):
         self.add_layer(layer)
         if not layer.hidden:
             layer.add_image_layer(layer.id, slide_number, self.__zoom[0])
+
+    def finialise(self):
+    #===================
+        # Add details of high-resolution features
+        for layer in self.__mapmaker.resolve_details(self.__layers):
+            self.add_layer(layer)
+
+        # Set feature ids of path components
+        self.__mapmaker.external_properties.resolve_pathways()
+
+        # Get all path details for the map
+        for layer in self.__layers.values():
+            if layer.resolved_pathways is not None:
+                self.__pathways.append(layer.resolved_pathways)
 
     def make_background_tiles(self, pdf_bytes, pdf_source_name):
     #===========================================================
@@ -367,10 +376,13 @@ class Flatmap(object):
                         'description': '{} -- {}'.format(layer.description, layer_name)
                     })
 
-    def resolve_details(self):
-    #=========================
-        for layer in self.__mapmaker.resolve_details(self.__layers):
-            self.add_layer(layer)
+    def process(self):
+    #=================
+        print('Extracting layers...')
+        for slide_number in range(1, len(self.__mapmaker)+1):
+            if self.__settings.tile_slide > 0 and self.__settings.tile_slide != slide_number:
+                continue
+            self.add_layer_from_slide(slide_number)
 
     def save_map_json(self):
     #=======================

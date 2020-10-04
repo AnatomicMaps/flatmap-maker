@@ -168,8 +168,12 @@ class SlideLayer(MapLayer):
         self.__slide = slide
         self.__mapmaker = mapmaker
         self.__slide_number = slide_number
-        self.__external_properties = Properties(mapmaker.settings)
+        self.__external_properties = mapmaker.external_properties
+        self.__features = []
+
+
         super().__init__(slide_number, self.__external_properties.pathways)
+
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
         if slide.has_notes_slide:
@@ -194,8 +198,9 @@ class SlideLayer(MapLayer):
         # Cannot overlap with slide shape ids...
         self.__next_local_id = 100001
 
-    def __set_feature_id(self, feature):
-    #===================================
+    def set_external_properties_feature_id(self, feature):
+    #=====================================================
+    ## Keep relationship between external_id/class and feature.id
         if feature.has('external-id'):
             self.__external_properties.set_feature_id(feature.property('external-id'), feature.id)
         if feature.has('class'):
@@ -243,7 +248,7 @@ class SlideLayer(MapLayer):
 
     def process_finialise(self):
     #===========================
-        self.__external_properties.set_feature_ids()
+        pass
 
     def save(self, filename=None):
     #=============================
@@ -285,14 +290,14 @@ class SlideLayer(MapLayer):
              or isinstance(shape, pptx.shapes.connector.Connector)):
                 geometry = self.process_shape(shape, properties, *args)
                 feature = Feature(self.unique_id(shape.shape_id), geometry, properties)
-                self.__set_feature_id(feature)
+                self.set_external_properties_feature_id(feature)
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.__current_group.append(properties.get('shape_name', "''"))
                 grouped_feature = self.process_group(shape, properties, *args)
                 self.__current_group.pop()
                 if grouped_feature is not None:
-                    self.__set_feature_id(grouped_feature)
+                    self.set_external_properties_feature_id(grouped_feature)
                     features.append(grouped_feature)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
                or shape.shape_type == MSO_SHAPE_TYPE.PICTURE):
@@ -310,6 +315,7 @@ class SlideLayer(MapLayer):
 
 class MapMaker(object):
     def __init__(self, pptx, settings):
+        self.__external_properties = Properties(settings)
         self.__pptx = Presentation(pptx)
         self.__settings = settings
         self.__slides = self.__pptx.slides
@@ -317,6 +323,10 @@ class MapMaker(object):
 
     def __len__(self):
         return len(self.__slides)
+
+    @property
+    def external_properties(self):
+        return self.__external_properties
 
     @property
     def settings(self):

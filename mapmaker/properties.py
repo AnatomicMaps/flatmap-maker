@@ -90,8 +90,8 @@ class Properties(object):
     #=================================================
         self.__ids_by_external_id[external_id] = feature_id
 
-    def set_feature_ids(self):
-    #=========================
+    def resolve_pathways(self):
+    #==========================
         if self.__pathways is not None:
             self.__pathways.resolve_pathways(
                 self.__ids_by_external_id,

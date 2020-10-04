@@ -130,6 +130,7 @@ class GeoJsonOutput(object):
                 properties['bounds'] = geojson['properties']['bounds']
                 properties['centroid'] = geojson['properties']['centroid']
                 properties['geometry'] = geojson['geometry']['type']
+                properties['layer'] = self.id
                 self.annotations[feature.id] = properties
 
             if properties['tile-layer'] == 'pathways':
@@ -514,16 +515,13 @@ class GeoJsonMaker(MapMaker):
 
             external_id = feature.properties.get('external-id', '')
             for f in hires_layer.geo_features:
-
-                hires_feature = Feature(f.id, shapely.affinity.affine_transform(f.geometry, transform), f.properties)
-                ## need to update hires_feature.id (from f.id ??)
-                ## and hires_feature.properties['id']
-
+                hires_feature = Feature(layer.next_local_id(),
+                                        shapely.affinity.affine_transform(f.geometry, transform),
+                                        f.properties)
+                hires_feature.properties['layer'] = layer.id
                 hires_feature.properties['minzoom'] = minzoom
-                if external_id != '' and 'external-id' in hires_feature.properties:
-                    hires_feature.properties['external-id'] = '{}/{}'.format(external_id,
-                                                                             hires_feature.properties['external-id'])
                 detail_layer.add_geo_feature(hires_feature)
+                layer.set_external_properties_feature_id(hires_feature)
                 if hires_feature.has('details'):
                     extra_details.append(hires_feature)
 

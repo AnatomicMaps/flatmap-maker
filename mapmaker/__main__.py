@@ -160,11 +160,7 @@ def main():
 #*    args.layer_mapping = LayerMapping('./layers.json', 'features')
 
     # Process slides, saving layer information
-    print('Extracting layers...')
-    for slide_number in range(1, len(mapmaker)+1):
-        if args.tile_slide > 0 and args.tile_slide != slide_number:
-            continue
-        flatmap.add_layer_from_slide(slide_number)
+    flatmap.process()
 
     # We are finished with the Powerpoint
     pptx_bytes.close()
@@ -172,8 +168,8 @@ def main():
     if len(flatmap) == 0:
         sys.exit('No map layers in Powerpoint...')
 
-    # Add details of high-resolution features
-    flatmap.resolve_details()
+    # Finish mapmaking
+    flatmap.finialise()
 
     # Output all features (as GeoJSON)
     flatmap.output_layers()
