@@ -58,14 +58,14 @@ class RasterSource(object):
 
 class VectorSource(object):
     @staticmethod
-    def style(vector_layer_dict, bounds, map_zoom):
+    def style(vector_layer_dict, bounds, layer_zoom):
         return {
             'type': 'vector',
             'tiles': ['/mvtiles/{z}/{x}/{y}'],
             'format': 'pbf',
             'version': '2',
-            'minzoom': map_zoom[0],
-            'maxzoom': map_zoom[1],
+            'minzoom': layer_zoom[0],
+            'maxzoom': layer_zoom[1],
             'bounds': bounds,   # southwest(lng, lat), northeast(lng, lat)
             'attribution': ATTRIBUTION,
             'generator': 'tippecanoe v1.34.0',
