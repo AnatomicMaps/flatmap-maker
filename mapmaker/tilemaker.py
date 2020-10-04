@@ -213,7 +213,7 @@ class ImageTileSource(TileSource):
 class PDFTileSource(TileSource):
     def __init__(self, tile_pixel_rect, pdf_page):
         super().__init__(tile_pixel_rect, pdf_page.rect)
-        self._pdf_page = pdf_page
+        self.__pdf_page = pdf_page
 
     def get_scaling(self, x0, y0, x1, y1):
     #=====================================
@@ -224,14 +224,15 @@ class PDFTileSource(TileSource):
     #========================================================
 
         # We now clip to avoid a black line if region outside of page...
-        if x1 >= self._image_rect.width: x1 = self._image_rect.width - 1
-        if y1 >= self._image_rect.height: y1 = self._image_rect.height - 1
-
-        pixmap = self._pdf_page.getPixmap(clip=fitz.Rect(x0, y0, x1, y1),
-                                          matrix=fitz.Matrix(*scaling),
-                                          alpha=True)
-        data = pixmap.getImageData('png')
-        return cv2.imdecode(np.frombuffer(data, 'B'), cv2.IMREAD_UNCHANGED)
+        if x1 >= self.__pdf_page.rect.width:
+            x1 = self.__pdf_page.rect.width - 1
+        if y1 >= self.__pdf_page.rect.height:
+            y1 = self.__pdf_page.rect.height - 1
+        pixmap = self.__pdf_page.getPixmap(clip=fitz.Rect(x0, y0, x1, y1),
+                                           matrix=fitz.Matrix(*scaling),
+                                           alpha=False)
+        image = np.frombuffer(pixmap.samples, 'B').reshape(pixmap.height, pixmap.width, pixmap.n)
+        return cv2.cvtColor(image, cv2.COLOR_BGR2RGBA)
 
 #===============================================================================
 
@@ -377,16 +378,19 @@ class TileMaker(object):
 
 ###
 
-    def make_tiles_from_pdf(self, pdf_page, source_id, layer_id):
-    #============================================================
-        self.make_tiles(source_id, PDFTileSource(self._tile_pixel_rect, pdf_page), layer_id)
+    def make_tiles_from_pdf_(self, pdf_page, image_layer):
+    #=====================================================
+        bounds = image_layer.bounding_box
+        tile_source = PDFTileSource(self.__map_rect, pdf_page)
+        self.make_tiles(tile_source, image_layer.id)
 
-    def start_make_tiles_from_pdf(self, pdf_bytes, source_id, page_no, layer_id):
-    #============================================================================
-        print('Page {}: {}'.format(page_no, layer_id))
+    def start_tiles_from_pdf_process(self, pdf_bytes, image_layer):
+    #==============================================================
+        page_no = image_layer.slide_number
+        print('Page {}: {}'.format(page_no, image_layer.id))
         pdf = fitz.Document(stream=pdf_bytes, filetype='application/pdf')
-        process = multiprocessing.Process(target=self.make_tiles_from_pdf, args=(pdf[page_no - 1], source_id, layer_id))
-        self._processes.append(process)
+        process = multiprocessing.Process(target=self.make_tiles_from_pdf_, args=(pdf[page_no - 1], image_layer))
+        self.__processes.append(process)
         process.start()
 
 #===============================================================================
@@ -394,19 +398,6 @@ class TileMaker(object):
 def make_background_tiles_from_image(map_bounds, map_zoom, output_dir, image, source_name, layer_id):
     tile_maker = TileMaker(map_bounds, output_dir, map_zoom)
     tile_maker.start_make_tiles_from_image(image, source_name, layer_id)
-    tile_maker.wait_for_processes()
-    return tile_maker.database_names
-
-#===============================================================================
-
-def make_background_tiles_from_pdf(map_bounds, map_zoom, map_dir, pdf_bytes, source_name, layer_ids, slide=0):
-    tile_maker = TileMaker(map_bounds, map_dir, map_zoom)
-    if slide > 0:   # There is just a single layer
-        tile_maker.start_make_tiles_from_pdf(pdf_bytes, '{}#{}'.format(source_name, slide), slide, layer_ids[0])
-    else:
-        for n, layer_id in enumerate(layer_ids):
-            tile_maker.start_make_tiles_from_pdf(pdf_bytes, '{}#{}'.format(source_name, n+1), n+1, layer_id)
-
     tile_maker.wait_for_processes()
     return tile_maker.database_names
 
