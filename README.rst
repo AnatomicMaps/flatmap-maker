@@ -28,11 +28,11 @@ Command line help::
 
 ::
 
-    usage: mapmaker [-h] [-c CONF] [-b] [-t N] [--anatomical-map ANATOMICAL_MAP]
-                    [--properties PROPERTIES] [--check-errors] [-z N]
-                    [--max-zoom N] [--min-zoom N] [-d] [-s] [--refresh-labels]
-                    [-u USER@SERVER] [-v] -o OUTPUT_DIR --id MAP_ID --slides
-                    POWERPOINT
+    usage: mapmaker [-h] [-c CONF] [-b] [-t N] [--background-only]
+                    [--anatomical-map ANATOMICAL_MAP] [--properties PROPERTIES]
+                    [--check-errors] [-z N] [--max-zoom N] [--min-zoom N] [-d]
+                    [-s] [--clear] [--refresh-labels] [-u USER@SERVER] [-v] -o
+                    OUTPUT_DIR --id MAP_ID --slides POWERPOINT
 
     Args that start with '--' (eg. -b) can also be set in a config file (specified
     via -c). Config file syntax allows: key=value, flag=true, stuff=[a,b,c] (for
@@ -48,6 +48,7 @@ Command line help::
                             while...)
       -t N, --tile N        only generate image tiles for this slide (1-origin);
                             sets --background-tiles
+      --background-only     don't generate vector tiles (sets --background-tiles)
       --anatomical-map ANATOMICAL_MAP
                             Excel spreadsheet file for mapping shape classes to
                             anatomical entities
@@ -60,6 +61,8 @@ Command line help::
       --min-zoom N          minimum zoom level (defaults to 2)
       -d, --debug           save a slide's DrawML for debugging
       -s, --save-geojson    Save GeoJSON files for each layer
+      --clear               Remove all files from generated map's directory before
+                            generating new map
       --refresh-labels      Clear the label text cache before map making
       -u USER@SERVER, --upload USER@SERVER
                             Upload generated map to server

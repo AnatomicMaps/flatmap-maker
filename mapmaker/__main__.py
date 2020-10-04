@@ -42,6 +42,7 @@ from flatmap import Flatmap
 def main():
     import configargparse
     import os, sys
+    import shutil
 
     parser = configargparse.ArgumentParser() ## description='Convert Powerpoint slides to a flatmap.')
 
@@ -51,6 +52,8 @@ def main():
                         help="generate image tiles of map's layers (may take a while...)")
     parser.add_argument('-t', '--tile', dest='tile_slide', metavar='N', type=int, default=0,
                         help='only generate image tiles for this slide (1-origin); sets --background-tiles')
+    parser.add_argument('--background-only', action='store_true',
+                        help="don't generate vector tiles (sets --background-tiles)")
 
     parser.add_argument('--anatomical-map',
                         help='Excel spreadsheet file for mapping shape classes to anatomical entities')
@@ -71,6 +74,9 @@ def main():
                         help="save a slide's DrawML for debugging")
     parser.add_argument('-s', '--save-geojson', action='store_true',
                         help='Save GeoJSON files for each layer')
+
+    parser.add_argument('--clear', action='store_true',
+                        help="Remove all files from generated map's directory before generating new map")
     parser.add_argument('-u', '--upload', metavar='USER@SERVER',
                         help='Upload generated map to server')
 
@@ -100,7 +106,7 @@ def main():
 
     map_zoom = (args.min_zoom, args.max_zoom, args.initial_zoom)
 
-    if args.tile_slide > 0:
+    if args.tile_slide > 0 or args.background_only:
         args.background_tiles = True
 
     if args.powerpoint.startswith('http:') or args.powerpoint.startswith('https:'):
@@ -138,6 +144,8 @@ def main():
                 pdf_bytes = f.read()
 
     args.output_dir = os.path.join(args.map_base, args.map_id)
+    if args.clear:
+        shutil.rmtree(args.output_dir, True)
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
@@ -176,12 +184,13 @@ def main():
             print('Checked map for {}'.format(flatmap.models))
 
     else:
-        print('Running tippecanoe...')
-        flatmap.make_vector_tiles()
+        if not args.background_only:
+            print('Running tippecanoe...')
+            flatmap.make_vector_tiles()
 
-        if args.tile_slide == 0:
-            print('Creating index and style files...')
-            flatmap.save_map_json()
+            if args.tile_slide == 0:
+                print('Creating index and style files...')
+                flatmap.save_map_json()
 
         if args.background_tiles:
             print('Generating background tiles (may take a while...)')
