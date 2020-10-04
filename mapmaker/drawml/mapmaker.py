@@ -270,7 +270,6 @@ class SlideLayer(MapLayer):
             return []
 
         if outermost:
-            print('Processing shape list...')
             progress_bar = tqdm(total=len(shapes),
                 unit='shp', ncols=40,
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')

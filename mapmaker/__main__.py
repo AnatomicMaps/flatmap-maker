@@ -61,7 +61,7 @@ def main():
                         help='JSON file specifying additional properties of shapes')
 
     parser.add_argument('--check-errors', action='store_true',
-                        help="check for errors without generating a map")
+                        help='check for errors without generating a map')
     parser.add_argument('-z', '--initial-zoom', metavar='N', type=int, default=4,
                         help='initial zoom level (defaults to 4)')
     parser.add_argument('--max-zoom', dest='max_zoom', metavar='N', type=int, default=10,
