@@ -286,28 +286,6 @@ class Flatmap(object):
         if not layer.hidden:
             self.__map_layer_count += 1
 
-    def map_layers(self):
-    #====================
-        map_layers = []
-        for layer in self.__layers.values():
-            if not layer.hidden:
-                print('Map layer:', layer.id)
-                map_layer = {
-                    'id': layer.id,
-                    'description': layer.description,
-                    'selectable': layer.selectable,
-                    'selected': layer.selected,
-                    'queryable-nodes': layer.queryable_nodes,
-                    'features': layer.map_features,
-                    'image-layers': [l.id for l in layer.image_layers]
-                }
-                if layer.background_for is not None:
-                    map_layer['background-for'] = layer.background_for
-                if layer.slide_id is not None:
-                    map_layer['slide-id'] = layer.slide_id
-                map_layers.append(map_layer)
-        return map_layers
-
     def add_layer_from_slide(self, slide_number):
     #============================================
         layer = self.__mapmaker.slide_to_layer(slide_number)
@@ -352,6 +330,28 @@ class Flatmap(object):
         tile_db.execute("COMMIT")
         tile_db.close();
         self.add_upload_files(['index.mbtiles'])
+
+    def map_layers(self):
+    #====================
+        map_layers = []
+        for layer in self.__layers.values():
+            if not layer.hidden:
+                print('Map layer:', layer.id)
+                map_layer = {
+                    'id': layer.id,
+                    'description': layer.description,
+                    'selectable': layer.selectable,
+                    'selected': layer.selected,
+                    'queryable-nodes': layer.queryable_nodes,
+                    'features': layer.map_features,
+                    'image-layers': [l.id for l in layer.image_layers]
+                }
+                if layer.background_for is not None:
+                    map_layer['background-for'] = layer.background_for
+                if layer.slide_id is not None:
+                    map_layer['slide-id'] = layer.slide_id
+                map_layers.append(map_layer)
+        return map_layers
 
     def output_layers(self):
     #=======================
