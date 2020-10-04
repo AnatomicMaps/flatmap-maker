@@ -472,6 +472,7 @@ class GeoJsonMaker(MapMaker):
     #======================================
         slide = self.get_slide(slide_number)
         layer = GeoJsonLayer(self, slide, slide_number)
+        print('Slide {}, layer {}'.format(slide_number, layer.id))
         layer.process()
         return layer
 

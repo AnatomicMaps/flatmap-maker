@@ -311,7 +311,6 @@ class Flatmap(object):
     def add_layer_from_slide(self, slide_number):
     #============================================
         layer = self.__mapmaker.slide_to_layer(slide_number)
-        print('Slide {}, layer {}'.format(layer.slide_number, layer.id))
         for error in layer.errors:
             print(error)
         self.add_layer(layer)
