@@ -32,17 +32,18 @@ except ImportError:
 #===============================================================================
 
 class FeatureIdMap(object):
-    def __init__(self, id_map, class_map, class_count):
+    def __init__(self, id_map, class_map):
         self.__id_map = id_map
         self.__class_map = class_map
-        self.__class_count = class_count
 
     def map(self, id):
         feature_id = self.__id_map.get(id)
         if feature_id is None:
-            feature_id = self.__class_map.get(id)
-            if feature_id is not None and self.__class_count[id] > 1:
+            feature_ids = self.__class_map.get(id, [])
+            if len(feature_ids) > 1:
                 raise ValueError('Route has node with duplicated class: {}'.format(id))
+            elif len(feature_ids) == 1:
+                feature_id = feature_ids[0]
         return feature_id
 
     def map_list(self, ids):
@@ -81,16 +82,11 @@ class NodePaths(object):
         self.__add_paths(path_id, route_nodes['through-nodes'], self.__through_paths)
         self.__add_paths(path_id, route_nodes['end-nodes'], self.__end_paths)
 
-    def update(self, other):
-        self.__start_paths.update(other.__start_paths)
-        self.__through_paths.update(other.__through_paths)
-        self.__end_paths.update(other.__end_paths)
-
 #===============================================================================
 
 class ResolvedPathways(object):
-    def __init__(self, id_map, class_map, class_count):
-        self.__feature_map = FeatureIdMap(id_map, class_map, class_count)
+    def __init__(self, id_map, class_map):
+        self.__feature_map = FeatureIdMap(id_map, class_map)
         self.__path_lines = defaultdict(list)
         self.__path_nerves = defaultdict(list)
         self.__node_paths = NodePaths(self.__feature_map)
@@ -168,7 +164,12 @@ class Pathways(object):
 
     @property
     def resolved_pathways(self):
-        return self.__resolved_pathways
+        return {
+            'path-lines': self.__resolved_pathways.path_lines,
+            'path-nerves': self.__resolved_pathways.path_nerves,
+            'node-paths': self.__resolved_pathways.node_paths.as_dict,
+            'type-paths': self.__resolved_pathways.type_paths
+            }
 
     def add_path(self, id):
         properties = {}
@@ -190,10 +191,10 @@ class Pathways(object):
             self.__layer_paths.add(path_id)
         return properties
 
-    def resolve_pathways(self, id_map, class_map, class_count):
+    def resolve_pathways(self, id_map, class_map):
         if self.__resolved_pathways is not None:
             return
-        self.__resolved_pathways = ResolvedPathways(id_map, class_map, class_count)
+        self.__resolved_pathways = ResolvedPathways(id_map, class_map)
         errors = False
         for path_id in self.__layer_paths:
             try:
@@ -212,24 +213,5 @@ class Pathways(object):
                 errors = True
         if errors:
             raise ValueError('Errors in mapping paths and routes')
-
-#===============================================================================
-
-def pathways_to_json(pathways_list):
-    path_lines = {}
-    path_nerves = {}
-    node_paths = NodePaths(None)
-    type_paths = {}
-    for resolved_pathways in pathways_list:
-        path_lines.update(resolved_pathways.path_lines)
-        path_nerves.update(resolved_pathways.path_nerves)
-        node_paths.update(resolved_pathways.node_paths)
-        type_paths.update(resolved_pathways.type_paths)
-    return json.dumps({
-        'path-lines': path_lines,
-        'path-nerves': path_nerves,
-        'node-paths': node_paths.as_dict,
-        'type-paths': type_paths
-        })
 
 #===============================================================================

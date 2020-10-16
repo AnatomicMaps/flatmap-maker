@@ -33,25 +33,23 @@ except ImportError:
 
 #===============================================================================
 
-class Properties(object):
-    def __init__(self, settings):
+class JsonProperties(object):
+    def __init__(self, flatmap, settings):
+        self.__flatmap = flatmap
         self.__anatomical_map = AnatomicalMap(settings.label_database,
                                               settings.anatomical_map)
         self.__properties_by_class = {}
         self.__properties_by_id = {}
-        self.__pathways = None
-        self.__parse_errors = []
-        self.__ids_by_external_id = {}    # id: unique_feature_id
-        self.__class_counts = {}          # class: count
-        self.__ids_by_class = {}          # class: unique_feature_id
+        self.__shape_ids_by_feature_id = {}     # shape_id: unique_feature_id
+        properties_dict = {}
         if settings.properties:
             with open(settings.properties) as fp:
                 try:
                     properties_dict = json.loads(fp.read())
                 except json.decoder.JSONDecodeError as err:
                     raise ValueError('Error in properties file, {}'.format(err))
-                self.__set_properties(properties_dict.get('features', []))
-                self.__pathways = Pathways(properties_dict.get('paths', []))
+        self.__set_properties(properties_dict.get('features', []))
+        self.__pathways = Pathways(properties_dict.get('paths', []))
 
     def __set_properties(self, features_list):
         for feature in features_list:
@@ -71,91 +69,40 @@ class Properties(object):
                     self.__properties_by_id[id] = properties
 
     @property
-    def pathways(self):
-        return self.__pathways
+    def resolved_pathways(self):
+        return self.__pathways.resolved_pathways
 
-    def properties_from_class(self, cls):
-    #====================================
-        return self.__properties_by_class.get(cls, {})
-
-    def properties_from_id(self, id):
-    #================================
-        return self.__properties_by_id.get(id, {})
-
-    def set_class_id(self, class_id, feature_id):
-    #============================================
-        self.__ids_by_class[class_id] = feature_id
-
-    def set_feature_id(self, external_id, feature_id):
-    #=================================================
-        self.__ids_by_external_id[external_id] = feature_id
-
-    def resolve_pathways(self):
-    #==========================
+    def resolve_pathways(self, id_map, class_map):
+    #=============================================
         if self.__pathways is not None:
-            self.__pathways.resolve_pathways(
-                self.__ids_by_external_id,
-                self.__ids_by_class,
-                self.__class_counts
-            )
+            self.__pathways.resolve_pathways(id_map, class_map)
 
-    def get_properties(self, shape, group_name='', slide_number=1):
-    #==============================================================
-        if shape.name.startswith('.'):
-            properties = Parser.shape_properties(shape.name)
-            properties['shape-name'] = shape.name
-            properties['tile-layer'] = 'features'
-            if 'error' in properties:
-                properties['error'] = 'syntax'
-                self.__parse_errors.append('Shape in slide {}, group {}, has annotation syntax error: {}'
-                                           .format(slide_number, group_name, shape.name))
-            else:
-                for (key, value) in properties.items():
-                    if key in ['id', 'path']:
-                        if value in self.__ids_by_external_id:
-                            self.__parse_errors.append('Shape in slide {}, group {}, has a duplicate id: {}'
-                                                       .format(slide_number, group_name, shape.name))
-                        else:
-                            self.__ids_by_external_id[value] = None
-                    if key == 'warning':
-                        self.__parse_errors.append('Warning, slide {}, group {}: {}'
-                                                  .format(slide_number, group_name, value))
-                if 'class' in properties:
-                    cls = properties['class']
-                    if cls in self.__class_counts:
-                        self.__class_counts[cls] += 1
-                    else:
-                        self.__class_counts[cls] = 1
-                    self.__ids_by_class[cls] = None
+    def get_properties(self, id=None, cls=None):
+    #===========================================
+        properties = {}
+        if cls is not None:
+            properties.update(self.__anatomical_map.properties(cls))
+            properties.update(self.__properties_by_class.get(cls, {}))
+            if self.__pathways is not None:
+                properties.update(self.__pathways.add_path(cls))
 
-                    properties.update(self.__anatomical_map.properties(cls))
-                    properties.update(self.properties_from_class(cls))
-                    if self.__pathways is not None:
-                        properties.update(self.__pathways.add_path(cls))
+        if id is not None:
+            properties.update(self.__properties_by_id.get(id, {}))
+            if self.__pathways is not None:
+                properties.update(self.__pathways.add_path(id))
 
-                if 'external-id' in properties:
-                    id = properties['external-id']
-                    properties.update(self.properties_from_id(id))
-                    if self.__pathways is not None:
-                        properties.update(self.__pathways.add_path(id))
+        if 'marker' in properties:
+            properties['type'] = 'marker'
+            if 'datasets' in properties:
+                properties['kind'] = 'dataset'
+            elif 'scaffolds' in properties:
+                properties['kind'] = 'scaffold'
+            elif 'simulations' in properties:
+                properties['kind'] = 'simulation'
 
-                if 'marker' in properties:
-                    properties['type'] = 'marker'
-                    if 'datasets' in properties:
-                        properties['kind'] = 'dataset'
-                    elif 'scaffolds' in properties:
-                        properties['kind'] = 'scaffold'
-                    elif 'simulations' in properties:
-                        properties['kind'] = 'simulation'
+        if 'models' in properties and 'label' not in properties:
+            properties['label'] = self.__anatomical_map.label(properties['models'])
 
-                if 'models' in properties and 'label' not in properties:
-                    properties['label'] = self.__anatomical_map.label(properties['models'])
-
-            return properties
-        else:
-            return {
-                'shape-name': shape.name,
-                'tile-layer': 'features'
-            }
+        return properties
 
 #===============================================================================

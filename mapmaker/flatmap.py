@@ -28,7 +28,6 @@ import sys
 #===============================================================================
 
 from mbtiles import MBTiles
-from pathways import pathways_to_json
 from styling import Style
 from tilejson import tile_json
 from tilemaker import TileMaker
@@ -40,7 +39,7 @@ FLATMAP_VERSION  = 1.1
 #===============================================================================
 
 class MapLayer(object):
-    def __init__(self, id, pathways=None):
+    def __init__(self, id, mapmaker):
         self.__annotations = {}
         self.__background_for = None
         self.__description = 'Layer {}'.format(id)
@@ -51,10 +50,10 @@ class MapLayer(object):
         self.__image_layers = []
         self.__detail_features = []
         self.__map_features = []
+        self.__mapmaker = mapmaker
         self.__models = None
 #*        self.__ontology_data = self.settings.ontology_data
         self.__outline_feature_id = None
-        self.__pathways = pathways
         self.__queryable_nodes = False
         self.__selectable = True
         self.__selected = False
@@ -120,6 +119,10 @@ class MapLayer(object):
         return self.__map_features
 
     @property
+    def mapmaker(self):
+        return self.__mapmaker
+
+    @property
     def models(self):
         return self.__models
 
@@ -144,10 +147,6 @@ class MapLayer(object):
         self.__queryable_nodes = value
 
     @property
-    def resolved_pathways(self):
-        return self.__pathways.resolved_pathways if self.__pathways is not None else None
-
-    @property
     def selected(self):
         return self.__selected
 
@@ -164,6 +163,10 @@ class MapLayer(object):
         self.__selectable = value
 
     @property
+    def settings(self):
+        return self.__mapmaker.settings
+
+    @property
     def slide_id(self):
         return None
 
@@ -178,13 +181,13 @@ class MapLayer(object):
     def add_geo_feature(self, feature):
     #==================================
         self.__geo_features.append(feature)
-        if feature.has('details'):
+        if feature.has_property('details'):
             self.__detail_features.append(feature)
-        external_id = feature.properties.get('external-id')
-        if external_id is not None:
-            self.__features_with_id[external_id] = feature
+        id = feature.properties.get('id')
+        if id is not None:
+            self.__features_with_id[id] = feature
         self.__map_features.append({
-            'id': feature.id,
+            'shape-id': feature.shape_id,
             'type': feature.properties['geometry']
         })
 
@@ -249,7 +252,6 @@ class Flatmap(object):
         self.__mbtiles_file = os.path.join(settings.output_dir, 'index.mbtiles') # The vector tiles' database
         self.__models = None
         self.__output_dir = settings.output_dir
-        self.__pathways = []
         self.__settings = settings
         self.__source = source
         self.__tippe_inputs = []
@@ -290,19 +292,22 @@ class Flatmap(object):
         if not layer.hidden:
             layer.add_image_layer(layer.id, slide_number, self.__zoom[0])
 
-    def finialise(self):
-    #===================
+    def finalise(self):
+    #==================
         # Add details of high-resolution features
         for layer in self.__mapmaker.resolve_details(self.__layers):
             self.add_layer(layer)
 
         # Set feature ids of path components
-        self.__mapmaker.external_properties.resolve_pathways()
+        self.__mapmaker.resolve_pathways()
 
-        # Get all path details for the map
-        for layer in self.__layers.values():
-            if layer.resolved_pathways is not None:
-                self.__pathways.append(layer.resolved_pathways)
+    def finished(self, show_files=False):
+    #====================================
+        for filename in self.__geojson_files:
+            if show_files:
+                print(filename)
+            else:
+                os.remove(filename)
 
     def make_background_tiles(self, pdf_bytes, pdf_source_name):
     #===========================================================
@@ -397,7 +402,7 @@ class Flatmap(object):
         # Save layer details in metadata
         tile_db.add_metadata(layers=json.dumps(self.map_layers()))
         # Save pathway details in metadata
-        tile_db.add_metadata(pathways=pathways_to_json(self.__pathways))
+        tile_db.add_metadata(pathways=json.dumps(self.__mapmaker.resolved_pathways))
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(self.__annotations))
         # Save command used to run mapmaker
@@ -452,13 +457,5 @@ class Flatmap(object):
         cmd_stream = os.popen('tar -C {} -c -z {} | ssh {} "tar -C /flatmaps -x -z"'
                              .format(map_base, upload, host))
         return cmd_stream.read()
-
-    def finalise(self, show_files=False):
-    #====================================
-        for filename in self.__geojson_files:
-            if show_files:
-                print(filename)
-            else:
-                os.remove(filename)
 
 #===============================================================================

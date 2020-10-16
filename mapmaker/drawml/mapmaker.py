@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+from collections import defaultdict
 from math import sqrt, sin, cos, pi as PI
 import os
 
@@ -35,7 +36,7 @@ from tqdm import tqdm
 
 from flatmap import MapLayer
 from parser import Parser
-from properties import Properties
+from properties import JsonProperties
 
 #===============================================================================
 
@@ -100,15 +101,14 @@ class Transform(object):
 #===============================================================================
 
 class Feature(object):
-    def __init__(self, id, geometry, properties, has_children=False):
-        self.__id = id
+    def __init__(self, feature_id, geometry, properties, has_children=False):
+        self.__feature__id = feature_id
         self.__geometry = geometry
         self.__properties = properties.copy()
-        self.__properties['id'] = id
         self.__has_children = has_children
 
     def __str__(self):
-        return '{}: {}'.format(self.__geometry.geom_type, self.__properties)
+        return 'Feature {}: {}'.format(self.__geometry.geom_type, self.__properties)
 
     @property
     def annotated(self):
@@ -127,30 +127,31 @@ class Feature(object):
         return self.__geometry.geom_type if self.__geometry else None
 
     @property
+    def id(self):
+        return self.__properties.get('id')
+
+    @property
     def has_children(self):
         return self.__has_children
 
     @property
-    def id(self):
-        return self.__id
+    def properties(self):
+        return self.__properties
 
     @property
-    def feature_id(self):
-        return self.__id.split('#')[-1]
+    def shape_id(self):
+        return self.__feature__id.split('#')[-1]
 
     @property
     def shape_name(self):
         return self.__properties.get('shape_name', '')
 
     @property
-    def properties(self):
-        return self.__properties
+    def feature_id(self):
+        return self.__feature__id
 
-    def has(self, property):
+    def has_property(self, property):
         return self.__properties.get(property, '') != ''
-
-    def is_a(self, property):
-        return self.__properties.get(property, False)
 
     def property(self, property, default=None):
         return self.__properties.get(property, default)
@@ -165,14 +166,10 @@ class FeaturesValueError(ValueError):
 
 class SlideLayer(MapLayer):
     def __init__(self, mapmaker, slide, slide_number):
+        super().__init__(slide_number, mapmaker)
         self.__slide = slide
-        self.__mapmaker = mapmaker
         self.__slide_number = slide_number
-        self.__external_properties = mapmaker.external_properties
         self.__features = []
-
-
-        super().__init__(slide_number, self.__external_properties.pathways)
 
         # Find `layer-id` text boxes so we have a valid ID **before** using
         # it when setting a shape's `path_id`.
@@ -196,23 +193,7 @@ class SlideLayer(MapLayer):
                 self.zoom = layer_directive.get('zoom', None)
         self.__current_group = []
         # Cannot overlap with slide shape ids...
-        self.__next_local_id = 100001
-
-    def set_external_properties_feature_id(self, feature):
-    #=====================================================
-    ## Keep relationship between external_id/class and feature.id
-        if feature.has('external-id'):
-            self.__external_properties.set_feature_id(feature.property('external-id'), feature.id)
-        if feature.has('class'):
-            self.__external_properties.set_class_id(feature.property('class'), feature.id)
-
-    @property
-    def mapmaker(self):
-        return self.__mapmaker
-
-    @property
-    def settings(self):
-        return self.__mapmaker.settings
+        self.__next_shape_id = 100001
 
     @property
     def slide(self):
@@ -226,14 +207,14 @@ class SlideLayer(MapLayer):
     def slide_number(self):
         return self.__slide_number
 
-    def unique_id(self, id):
-    #=======================
-        return '{}#{}'.format(self.slide_id, id)
+    def feature_id(self, shape_id):
+    #==============================
+        return '{}#{}'.format(self.slide_id, shape_id)
 
-    def next_local_id(self):
-    #=======================
-        id = self.unique_id(self.__next_local_id)
-        self.__next_local_id += 1
+    def next_feature_id(self):
+    #=========================
+        id = self.feature_id(self.__next_shape_id)
+        self.__next_shape_id += 1
         return id
 
     def process_initialise(self):
@@ -244,10 +225,10 @@ class SlideLayer(MapLayer):
     #=================
         self.process_initialise()
         self.process_shape_list(self.slide.shapes, outermost=True)
-        self.process_finialise()
+        self.process_finalise()
 
-    def process_finialise(self):
-    #===========================
+    def process_finalise(self):
+    #==========================
         pass
 
     def save(self, filename=None):
@@ -276,27 +257,43 @@ class SlideLayer(MapLayer):
 
         features = []
         for shape in shapes:
-            properties = self.__external_properties.get_properties(shape,
-                            self.__current_group[-1],
-                            self.__slide_number)
+            properties = {
+                'shape-name': shape.name,
+                'tile-layer': 'features'
+                }
+            if shape.name.startswith('.'):
+                group_name = self.__current_group[-1]  # For error reporting
+                error = None
+                properties.update(Parser.shape_markup(shape.name))
+                if 'error' in properties:
+                    super().error('Shape in slide {}, group {}, has annotation syntax error: {}'
+                                  .format(self.__slide_number, group_name, shape.name))
+                if 'warning' in properties:
+                    super().error('Warning, slide {}, group {}: {}'
+                                  .format(self.__slide_number, group_name, properties['warning']))
+                for key in ['id', 'path']:
+                    if key in properties:
+                        if self.mapmaker.duplicate_id(properties[key]):
+                           super().error('Shape in slide {}, group {}, has a duplicate id: {}'
+                                         .format(self.__slide_number, group_name, shape.name))
             if 'error' in properties:
-                super().error('Slide {}: invalid shape markup: {}'
-                               .format(self.__slide_number, shape.name))
+                pass
             elif 'path' in properties:
                 pass
             elif (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or isinstance(shape, pptx.shapes.connector.Connector)):
                 geometry = self.process_shape(shape, properties, *args)
-                feature = Feature(self.unique_id(shape.shape_id), geometry, properties)
-                self.set_external_properties_feature_id(feature)
+                feature = Feature(self.feature_id(shape.shape_id), geometry, properties)
+                 # Save relationship between id/class and internal feature id
+                self.mapmaker.save_feature_id(feature)
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.__current_group.append(properties.get('shape_name', "''"))
                 grouped_feature = self.process_group(shape, properties, *args)
                 self.__current_group.pop()
                 if grouped_feature is not None:
-                    self.set_external_properties_feature_id(grouped_feature)
+                    self.mapmaker.save_feature_id(grouped_feature)
                     features.append(grouped_feature)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
                or shape.shape_type == MSO_SHAPE_TYPE.PICTURE):
@@ -314,7 +311,9 @@ class SlideLayer(MapLayer):
 
 class MapMaker(object):
     def __init__(self, pptx, settings):
-        self.__external_properties = Properties(settings)
+        self.__class_to_feature = defaultdict(list)
+        self.__id_to_feature = {}
+        self.__json_properties = JsonProperties(self, settings)
         self.__pptx = Presentation(pptx)
         self.__settings = settings
         self.__slides = self.__pptx.slides
@@ -324,8 +323,8 @@ class MapMaker(object):
         return len(self.__slides)
 
     @property
-    def external_properties(self):
-        return self.__external_properties
+    def resolved_pathways(self):
+        return self.__json_properties.resolved_pathways
 
     @property
     def settings(self):
@@ -338,6 +337,17 @@ class MapMaker(object):
     def bounds(self):
     #================
         return (0, 0, self.__slide_size[0], self.__slide_size[1])
+
+    def duplicate_id(self, id):
+    #==========================
+        return self.__id_to_feature.get(id, None) is not None
+
+    def get_properties(self, feature):
+    #=================================
+        properties = feature.properties.copy()
+        properties.update(self.__json_properties.get_properties(properties.get('id'),
+                                                                properties.get('class')))
+        return properties
 
     def get_slide(self, slide_number):
     #=================================
@@ -352,5 +362,18 @@ class MapMaker(object):
     #======================================
         # Override in sub-class
         pass
+
+    def resolve_pathways(self):
+    #==========================
+        print('Resolving paths...')
+        self.__json_properties.resolve_pathways(self.__id_to_feature, self.__class_to_feature)
+
+
+    def save_feature_id(self, feature):
+    #==================================
+        if feature.has_property('id'):
+            self.__id_to_feature[feature.property('id')] = feature.feature_id
+        if feature.has_property('class'):
+            self.__class_to_feature[feature.property('class')].append(feature.feature_id)
 
 #===============================================================================

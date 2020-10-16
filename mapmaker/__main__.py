@@ -176,7 +176,7 @@ def main():
         sys.exit('No map layers in Powerpoint...')
 
     # Finish mapmaking
-    flatmap.finialise()
+    flatmap.finalise()
 
     # Output all features (as GeoJSON)
     flatmap.output_layers()
@@ -209,7 +209,7 @@ def main():
 
     # Tidy up
     print('Cleaning up...')
-    flatmap.finalise(args.save_geojson)
+    flatmap.finished(args.save_geojson)
 
 #===============================================================================
 

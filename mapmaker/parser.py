@@ -119,27 +119,24 @@ class Parser(object):
 #===============================================================================
 
     @staticmethod
-    def shape_properties(name_text):
-        properties = {}
+    def shape_markup(name_text):
+        markup = {}
         try:
             parsed = Parser.SHAPE_MARKUP.parseString(name_text, parseAll=True)
             for prop in parsed[1:]:
                 if (Parser.FEATURE_FLAGS.matches(prop[0])
                  or Parser.SHAPE_FLAGS.matches(prop[0])):
-                    properties[prop[0]] = True
+                    markup[prop[0]] = True
                 elif Parser.DEPRECATED_FLAGS.matches(prop[0]):
-                    properties['warning'] = "'{}' property is deprecated".format(prop[0])
-                elif prop[0] == 'id':
-                    # Keep separate from feature's unique id
-                    properties['external-id'] = prop[1]
+                    markup['warning'] = "'{}' property is deprecated".format(prop[0])
                 elif prop[0] == 'details':
-                    properties[prop[0]] = prop[1]
-                    properties['maxzoom'] = int(prop[2]) - 1
+                    markup[prop[0]] = prop[1]
+                    markup['maxzoom'] = int(prop[2]) - 1
                 else:
-                    properties[prop[0]] = prop[1]
+                    markup[prop[0]] = prop[1]
         except ParseException:
-            properties['error'] = 'Syntax error in shape markup'
-        return properties
+            markup['error'] = 'Syntax error in shape markup'
+        return markup
 
     @staticmethod
     def ignore_property(name):

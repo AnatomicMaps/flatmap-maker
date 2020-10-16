@@ -90,14 +90,14 @@ class GeoJsonOutput(object):
     def save_geo_features(self, map_area):
     #=====================================
         for feature in self.geo_features:
-            properties = feature.properties
+            properties = self.mapmaker.get_properties(feature)
             source_layer = '{}-{}'.format(self.id, feature.properties['tile-layer'])
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
             geojson = {
                 'type': 'Feature',
-                'id': int(feature.feature_id),   # Must be numeric for tipeecanoe
+                'id': int(feature.shape_id),   # Must be numeric for tipeecanoe
                 'tippecanoe' : {
                     'layer' : source_layer
                 },
@@ -131,7 +131,7 @@ class GeoJsonOutput(object):
                 properties['centroid'] = geojson['properties']['centroid']
                 properties['geometry'] = geojson['geometry']['type']
                 properties['layer'] = self.id
-                self.annotations[feature.id] = properties
+                self.annotations[feature.feature_id] = properties
 
             if properties['tile-layer'] == 'pathways':
                 self.__geojson_layers['pathways'].append(geojson)
@@ -147,7 +147,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
 
     def new_feature_(self, geometry, properties, has_children=False):
     #================================================================
-        return Feature(self.next_local_id(), geometry, properties, has_children)
+        return Feature(self.next_feature_id(), geometry, properties, has_children)
 
     def process_initialise(self):
     #============================
@@ -159,7 +159,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
         self.process_initialise()
         features = self.process_shape_list(self.slide.shapes, self.__transform, outermost=True)
         self.add_geo_features_('Slide', features, True)
-        self.process_finialise()
+        self.process_finalise()
 
     def process_group(self, group, properties, transform):
     #=====================================================
@@ -189,7 +189,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
         debug_group = False
         single_features = [ feature for feature in features if not feature.has_children ]
         for feature in single_features:
-            if feature.is_a('boundary'):
+            if feature.property('boundary'):
                 if outermost:
                     raise ValueError('Boundary elements must be inside a group: {}'.format(feature))
                 if feature.geom_type == 'LineString':
@@ -206,23 +206,23 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
                         boundary_class = cls
                     else:
                         raise ValueError('Class of boundary shapes have changed in group{}: {}'.format(group_name, feature))
-            elif feature.is_a('group'):
+            elif feature.property('group'):
                 grouped_properties.update(feature.properties)
-            elif feature.is_a('region'):
-                regions.append(Feature(feature.id, feature.geometry.representative_point(), feature.properties))
-            elif not feature.annotated or feature.is_a('divider'):
+            elif feature.property('region'):
+                regions.append(Feature(feature.feature_id, feature.geometry.representative_point(), feature.properties))
+            elif not feature.annotated or feature.property('divider'):
                 if feature.geom_type == 'LineString':
                     dividers.append(feature.geometry)
                 elif feature.geom_type == 'Polygon':
                     dividers.append(feature.geometry.boundary)
                 if not feature.property('invisible'):
                     group_features.append(feature)
-            elif feature.has('class') or not feature.is_a('interior'):
+            elif feature.has_property('class') or not feature.property('interior'):
                 group_features.append(feature)
 
         interior_features = []
         for feature in features:
-            if feature.is_a('interior') and not feature.is_a('boundary'):
+            if feature.property('interior') and not feature.property('boundary'):
                 interior_features.append(feature)
 
         if boundary_polygon is not None and len(boundary_lines):
@@ -243,7 +243,6 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
                     base_properties))
 
             if len(dividers):
-
                 # For all line dividers, if the end of a line is 'close to' another line
                 # then extend the line end in about the same direction until it touches
                 # the other. NB. may need to 'bend towards' the other...
@@ -270,11 +269,11 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
                     region_properties = base_properties.copy()
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_properties.update(region.properties)
-                        group_features.append(Feature(region.id, polygon, region_properties))
+                        group_features.append(Feature(region.feature_id, polygon, region_properties))
                         break
         else:
             for feature in features:
-                if feature.is_a('region'):
+                if feature.property('region'):
                     raise ValueError('Region dividers in group {} must have a boundary: {}'.format(group_name, feature))
 
         if not outermost and interior_features:
@@ -287,7 +286,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
             interior_polygon = shapely.ops.unary_union(interior_polygons)
             for feature in group_features:
                 if (feature.annotated
-                and not feature.is_a('interior')
+                and not feature.property('interior')
                 and feature.geom_type in ['Polygon', 'MultiPolygon']):
                     feature.geometry = feature.geometry.buffer(0).difference(interior_polygon)
 
@@ -326,12 +325,10 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
         for feature in group_features:
             if (feature.properties.get('type') == 'nerve'
             and feature.geom_type == 'LineString'):
-                nerve_id = feature.id
                 nerve_polygon_feature = self.new_feature_(
                     shapely.geometry.Polygon(feature.geometry.coords), feature.properties)
                 if 'models' in nerve_polygon_feature.properties:
                     del nerve_polygon_feature.properties['models']
-                nerve_polygon_feature.properties['nerve-id'] = nerve_id
                 nerve_polygons.append(nerve_polygon_feature)
         group_features.extend(nerve_polygons)
 
@@ -435,8 +432,8 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
 #===============================================================================
 
 class DetailsLayer(GeoJsonOutput, MapLayer):
-    def __init__(self, id):
-        MapLayer.__init__(self, id)
+    def __init__(self, id, mapmaker):
+        MapLayer.__init__(self, id, mapmaker)
         self.initialise_geojson_output()
 
 #===============================================================================
@@ -513,16 +510,15 @@ class GeoJsonMaker(MapMaker):
 
             # The detail layer gets a scaled copy of each high-resolution feature
 
-            external_id = feature.properties.get('external-id', '')
             for f in hires_layer.geo_features:
-                hires_feature = Feature(layer.next_local_id(),
+                hires_feature = Feature(layer.next_feature_id(),
                                         shapely.affinity.affine_transform(f.geometry, transform),
                                         f.properties)
                 hires_feature.properties['layer'] = layer.id
                 hires_feature.properties['minzoom'] = minzoom
                 detail_layer.add_geo_feature(hires_feature)
-                layer.set_external_properties_feature_id(hires_feature)
-                if hires_feature.has('details'):
+                self.save_feature_id(hires_feature)
+                if hires_feature.has_property('details'):
                     extra_details.append(hires_feature)
 
         # If hires features that we've just added also have details then add them
@@ -547,7 +543,7 @@ class GeoJsonMaker(MapMaker):
         detail_layers = []
         for layer in layers_dict.values():
             if not layer.hidden and layer.detail_features:
-                detail_layer = DetailsLayer('{}-details'.format(layer.id))
+                detail_layer = DetailsLayer('{}-details'.format(layer.id), self)
                 detail_layers.append(detail_layer)
                 self.add_detail_features(layer, detail_layer, layer.detail_features, layers_dict)
         return detail_layers
