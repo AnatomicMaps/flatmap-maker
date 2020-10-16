@@ -341,6 +341,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
                     shapely.geometry.Polygon(feature.geometry.coords), feature.properties)
                 if 'models' in nerve_polygon_feature.properties:
                     del nerve_polygon_feature.properties['models']
+                nerve_polygon_feature.properties['nerve-id'] = feature.feature_id  # Used in map viewer
                 nerve_polygons.append(nerve_polygon_feature)
         group_features.extend(nerve_polygons)
 

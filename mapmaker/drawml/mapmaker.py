@@ -115,6 +115,10 @@ class Feature(object):
         return self.shape_name.startswith('.')
 
     @property
+    def feature_id(self):
+        return self.__feature__id
+
+    @property
     def geometry(self):
         return self.__geometry
 
