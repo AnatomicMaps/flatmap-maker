@@ -369,8 +369,10 @@ class Flatmap(object):
 
     def output_layers(self):
     #=======================
+        print('Outputting GeoJson features...')
         for layer in self.__layers.values():
             if not layer.hidden:
+                print('Layer:', layer.id)
                 layer.save_geo_features(self.__area)
                 self.__annotations.update(layer.annotations)
                 for (layer_name, filename) in layer.save(self.__output_dir).items():

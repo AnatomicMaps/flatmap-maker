@@ -39,6 +39,8 @@ import shapely.geometry
 import shapely.ops
 import shapely.prepared
 
+from tqdm import tqdm
+
 #===============================================================================
 
 from parser import Parser
@@ -89,6 +91,10 @@ class GeoJsonOutput(object):
 
     def save_geo_features(self, map_area):
     #=====================================
+        progress_bar = tqdm(total=len(self.geo_features),
+            unit='ftr', ncols=40,
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
+
         for feature in self.geo_features:
             properties = self.mapmaker.get_properties(feature)
             source_layer = '{}-{}'.format(self.id, feature.properties['tile-layer'])
@@ -137,6 +143,10 @@ class GeoJsonOutput(object):
                 self.__geojson_layers['pathways'].append(geojson)
             else:
                 self.__geojson_layers['features'].append(geojson)
+
+            progress_bar.update(1)
+
+        progress_bar.close()
 
 #===============================================================================
 
