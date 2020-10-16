@@ -187,6 +187,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
         regions = []
 
         debug_group = False
+        child_class = None
         single_features = [ feature for feature in features if not feature.has_children ]
         for feature in single_features:
             if feature.property('boundary'):
@@ -207,6 +208,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
                     else:
                         raise ValueError('Class of boundary shapes have changed in group{}: {}'.format(group_name, feature))
             elif feature.property('group'):
+                child_class = feature.properties.pop('children', None)
                 grouped_properties.update(feature.properties)
             elif feature.property('region'):
                 regions.append(Feature(feature.feature_id, feature.geometry.representative_point(), feature.properties))
@@ -332,10 +334,16 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
                 nerve_polygons.append(nerve_polygon_feature)
         group_features.extend(nerve_polygons)
 
+        # Feature specific properties have precedence over group's
+
+        default_properties = base_properties.copy()
+        if child_class is not None:
+            # Default class for all of the group's child shapes
+            default_properties['class'] = child_class
+
         for feature in group_features:
             if feature.geometry is not None:
-                # Feature specific properties have precedence over group's
-                for (key, value) in base_properties.items():
+                for (key, value) in default_properties.items():
                     if key not in feature.properties:
                         feature.properties[key] = value
                 feature.properties['geometry'] = feature.geometry.geom_type

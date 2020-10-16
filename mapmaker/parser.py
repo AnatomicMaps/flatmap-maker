@@ -87,14 +87,14 @@ class Parser(object):
     ## fill layer. Say positioned on an invisible place holder that is grouped with the polygon??
 
     CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
+    CHILDCLASSES = Group(Keyword('children') + Suppress('(') + ID_TEXT + Suppress(')'))
     DETAILS = Group(Keyword('details') + Suppress('(') + ID_TEXT + Suppress(',') + ZOOM_LEVEL + Suppress(')'))
     PATH = Group(Keyword('path') + Suppress('(') + ID_TEXT + Suppress(')'))
     STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
 
-    FEATURE_PROPERTIES = CLASS | IDENTIFIER | STYLE
+    FEATURE_PROPERTIES = CLASS | CHILDCLASSES | IDENTIFIER | STYLE
 
     SHAPE_FLAGS = Group(Keyword('boundary')
-                      | Keyword('children')
                       | Keyword('closed')
                       | Keyword('interior')
                       )
