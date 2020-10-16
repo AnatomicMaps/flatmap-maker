@@ -29,7 +29,9 @@ import requests
 #===============================================================================
 
 ILX_ENDPOINT = 'http://uri.interlex.org/base/ilx_{:0>7}.json'
+
 VOCAB_ENDPOINT = 'https://scigraph.olympiangods.org/scigraph/vocabulary/id/{}.json'
+SCIGRAPH_ONTOLOGIES = ['UBERON']
 
 #===============================================================================
 
@@ -55,7 +57,8 @@ class LabelData(object):
         if row is not None:
             return row[0]
         label = entity
-        if not entity.startswith('ILX:'):
+        ontology = entity.split(':')[0]
+        if ontology in SCIGRAPH_ONTOLOGIES:
             try:
                 response = requests.get(VOCAB_ENDPOINT.format(entity))
                 if response:
@@ -63,7 +66,7 @@ class LabelData(object):
                     self.set_label(entity, label)
             except:
                 print("Couldn't access", VOCAB_ENDPOINT.format(entity))
-        else:
+        elif ontology == 'ILX':
             endpoint = ILX_ENDPOINT.format(entity.strip().split(':')[-1])
             try:
                 response = requests.get(endpoint)
