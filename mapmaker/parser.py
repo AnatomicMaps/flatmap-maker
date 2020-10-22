@@ -146,10 +146,11 @@ class Parser(object):
 
     NERVES = delimitedList(ID_TEXT)
 
-    PATH_LINES_GROUP = ID_TEXT  | Group(Suppress('(') +  delimitedList(ID_TEXT) + Suppress(')'))
-    PATH_LINES = delimitedList(PATH_LINES_GROUP)
+    LINE_ID = ID_TEXT
+    PATH_LINES = delimitedList(LINE_ID)
 
-    ROUTE_NODE_GROUP = ID_TEXT  | Group(Suppress('(') +  delimitedList(ID_TEXT) + Suppress(')'))
+    NODE_ID = ID_TEXT
+    ROUTE_NODE_GROUP = NODE_ID  | Group(Suppress('(') +  delimitedList(NODE_ID) + Suppress(')'))
     ROUTE_NODES = delimitedList(ROUTE_NODE_GROUP)
 
 #===============================================================================
@@ -157,7 +158,10 @@ class Parser(object):
     @staticmethod
     def path_lines(line_ids):
         try:
-            path_lines = Parser.PATH_LINES.parseString(line_ids, parseAll=True)
+            if isinstance(line_ids, str):
+                path_lines = Parser.PATH_LINES.parseString(line_ids, parseAll=True)
+            else:
+                path_lines = [Parser.LINE_ID.parseString(line_id)[0] for line_id in line_ids]
         except ParseException:
             raise ValueError('Syntax error in path lines list: {}'.format(line_ids))
         return path_lines
@@ -165,7 +169,20 @@ class Parser(object):
     @staticmethod
     def route_nodes(node_ids):
         try:
-            route_nodes = Parser.ROUTE_NODES.parseString(node_ids, parseAll=True)
+            if isinstance(node_ids, str):
+                route_nodes = Parser.ROUTE_NODES.parseString(node_ids, parseAll=True)
+            else:
+                route_nodes = []
+                if isinstance(node_ids[0], str):
+                    route_nodes.append(Parser.NODE_ID.parseString(node_ids[0]))
+                else:
+                    route_nodes.append([Parser.NODE_ID.parseString(id)[0] for id in node_ids[0]])
+                for id in node_ids[1:-1]:
+                    route_nodes.append(Parser.NODE_ID.parseString(id)[0])
+                if isinstance(node_ids[-1], str):
+                    route_nodes.append(Parser.NODE_ID.parseString(node_ids[-1]))
+                else:
+                    route_nodes.append([Parser.NODE_ID.parseString(id)[0] for id in node_ids[-1]])
         except ParseException:
             raise ValueError('Syntax error in route node list: {}'.format(node_ids))
         return route_nodes

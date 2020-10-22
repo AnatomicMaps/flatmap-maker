@@ -160,7 +160,9 @@ class Pathways(object):
 
     @staticmethod
     def __make_list(lst):
-        return list(lst) if isinstance(lst, pyparsing.ParseResults) else [ lst ]
+        return (lst if isinstance(lst, list)
+           else list(lst) if isinstance(lst, pyparsing.ParseResults)
+           else [ lst ])
 
     @property
     def resolved_pathways(self):
