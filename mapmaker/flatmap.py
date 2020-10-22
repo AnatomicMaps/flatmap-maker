@@ -298,9 +298,6 @@ class Flatmap(object):
         for layer in self.__mapmaker.resolve_details(self.__layers):
             self.add_layer(layer)
 
-        # Set feature ids of path components
-        self.__mapmaker.resolve_pathways()
-
     def finished(self, show_files=False):
     #====================================
         for filename in self.__geojson_files:

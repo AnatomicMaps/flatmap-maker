@@ -34,8 +34,7 @@ except ImportError:
 #===============================================================================
 
 class JsonProperties(object):
-    def __init__(self, flatmap, settings):
-        self.__flatmap = flatmap
+    def __init__(self, settings):
         self.__anatomical_map = AnatomicalMap(settings.label_database,
                                               settings.anatomical_map)
         self.__properties_by_class = {}

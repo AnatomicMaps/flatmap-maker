@@ -105,6 +105,7 @@ class Feature(object):
         self.__feature__id = feature_id
         self.__geometry = geometry
         self.__properties = properties.copy()
+        self.__properties['featureId'] = feature_id   # Used by flatmap viewer
         self.__has_children = has_children
 
     def __str__(self):
@@ -149,10 +150,6 @@ class Feature(object):
     @property
     def shape_name(self):
         return self.__properties.get('shape_name', '')
-
-    @property
-    def feature_id(self):
-        return self.__feature__id
 
     def has_property(self, property):
         return self.__properties.get(property, '') != ''
@@ -317,7 +314,7 @@ class MapMaker(object):
     def __init__(self, pptx, settings):
         self.__class_to_feature = defaultdict(list)
         self.__id_to_feature = {}
-        self.__json_properties = JsonProperties(self, settings)
+        self.__json_properties = JsonProperties(settings)
         self.__pptx = Presentation(pptx)
         self.__settings = settings
         self.__slides = self.__pptx.slides
@@ -346,12 +343,12 @@ class MapMaker(object):
     #==========================
         return self.__id_to_feature.get(id, None) is not None
 
-    def get_properties(self, feature):
-    #=================================
+    def update_properties(self, feature):
+    #====================================
         properties = feature.properties.copy()
         properties.update(self.__json_properties.get_properties(properties.get('id'),
                                                                 properties.get('class')))
-        return properties
+        feature.properties.update(properties)
 
     def get_slide(self, slide_number):
     #=================================
@@ -369,7 +366,7 @@ class MapMaker(object):
 
     def resolve_pathways(self):
     #==========================
-        print('Resolving paths...')
+        # Set feature ids of path components
         self.__json_properties.resolve_pathways(self.__id_to_feature, self.__class_to_feature)
 
 

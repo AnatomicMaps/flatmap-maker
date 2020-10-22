@@ -95,9 +95,25 @@ class GeoJsonOutput(object):
             unit='ftr', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
 
+        # Update feature properties from JSON properties file
+        # and add polygon features for nerve cuffs
+        nerve_polygons = []
         for feature in self.geo_features:
-            properties = self.mapmaker.get_properties(feature)
-            source_layer = '{}-{}'.format(self.id, feature.properties['tile-layer'])
+            self.mapmaker.update_properties(feature)
+            if (feature.properties.get('type') == 'nerve'  ### but we don't know this because of deferred property setting...
+            and feature.geom_type == 'LineString'):
+                nerve_polygon_feature = self.new_feature_(
+                    shapely.geometry.Polygon(feature.geometry.coords), feature.properties)
+                if 'models' in nerve_polygon_feature.properties:
+                    del nerve_polygon_feature.properties['models']
+                nerve_polygon_feature.properties['nerveId'] = feature.feature_id  # Used in map viewer
+                nerve_polygon_feature.properties['tile-layer'] = 'pathways'
+                nerve_polygons.append(nerve_polygon_feature)
+        self.geo_features.extend(nerve_polygons)
+
+        for feature in self.geo_features:
+            properties = feature.properties
+            source_layer = '{}-{}'.format(self.id, properties['tile-layer'])
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
@@ -331,19 +347,6 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
                     shapely.geometry.MultiPolygon(grouped_polygons),
                     grouped_properties, True)
             group_features.append(feature_group)
-
-        # Add polygon features for nerve cuffs
-        nerve_polygons = []
-        for feature in group_features:
-            if (feature.properties.get('type') == 'nerve'
-            and feature.geom_type == 'LineString'):
-                nerve_polygon_feature = self.new_feature_(
-                    shapely.geometry.Polygon(feature.geometry.coords), feature.properties)
-                if 'models' in nerve_polygon_feature.properties:
-                    del nerve_polygon_feature.properties['models']
-                nerve_polygon_feature.properties['nerve-id'] = feature.feature_id  # Used in map viewer
-                nerve_polygons.append(nerve_polygon_feature)
-        group_features.extend(nerve_polygons)
 
         # Feature specific properties have precedence over group's
 

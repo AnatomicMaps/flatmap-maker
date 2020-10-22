@@ -191,6 +191,9 @@ def main():
             print('Running tippecanoe...')
             flatmap.make_vector_tiles()
 
+            print('Resolving paths...')
+            mapmaker.resolve_pathways()
+
             if args.tile_slide == 0:
                 print('Creating index and style files...')
                 flatmap.save_map_json()
