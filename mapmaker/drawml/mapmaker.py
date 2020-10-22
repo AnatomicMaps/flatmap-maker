@@ -120,6 +120,10 @@ class Feature(object):
         return self.__feature__id
 
     @property
+    def geom_type(self):
+        return self.__geometry.geom_type if self.__geometry else None
+
+    @property
     def geometry(self):
         return self.__geometry
 
@@ -128,16 +132,12 @@ class Feature(object):
         self.__geometry = geometry
 
     @property
-    def geom_type(self):
-        return self.__geometry.geom_type if self.__geometry else None
+    def has_children(self):
+        return self.__has_children
 
     @property
     def id(self):
         return self.__properties.get('id')
-
-    @property
-    def has_children(self):
-        return self.__has_children
 
     @property
     def properties(self):
@@ -264,7 +264,6 @@ class SlideLayer(MapLayer):
                 }
             if shape.name.startswith('.'):
                 group_name = self.__current_group[-1]  # For error reporting
-                error = None
                 properties.update(Parser.shape_markup(shape.name))
                 if 'error' in properties:
                     super().error('Shape in slide {}, group {}, has annotation syntax error: {}'

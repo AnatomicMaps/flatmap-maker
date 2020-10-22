@@ -69,7 +69,6 @@ def main():
     parser.add_argument('--min-zoom', dest='min_zoom', metavar='N', type=int, default=2,
                         help='minimum zoom level (defaults to 2)')
 
-
     parser.add_argument('-d', '--debug', dest='debug_xml', action='store_true',
                         help="save a slide's DrawML for debugging")
     parser.add_argument('-s', '--save-geojson', action='store_true',
