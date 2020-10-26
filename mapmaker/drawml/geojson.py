@@ -74,19 +74,26 @@ class GeoJsonOutput(object):
             'pathways': []
         }
 
-    def save(self, map_dir):
-    #=======================
-        return { layer_id: self.save_as_collection_(map_dir, layer_id)
+    def save(self, map_dir, pretty_print=False):
+    #===========================================
+        return { layer_id: self.save_as_collection_(map_dir, layer_id, pretty_print)
                     for layer_id in self.__geojson_layers}
 
-    def save_as_collection_(self, map_dir, layer_id):
-    #================================================
+    def save_as_collection_(self, map_dir, layer_id, pretty_print=False):
+    #====================================================================
         # Tippecanoe doesn't need a FeatureCollection
         # Delimit features with RS...LF   (RS = 0x1E)
         filename = os.path.join(map_dir, '{}_{}.json'.format(self.id, layer_id))
         with open(filename, 'w') as output_file:
-            for feature in self.__geojson_layers.get(layer_id, []):
-                output_file.write('\x1E{}\x0A'.format(json.dumps(feature)))
+            if pretty_print:
+                feature_collection = {
+                    'type': 'FeatureCollection',
+                    'features': self.__geojson_layers.get(layer_id, [])
+                }
+                output_file.write(json.dumps(feature_collection, indent=4))
+            else:
+                for feature in self.__geojson_layers.get(layer_id, []):
+                    output_file.write('\x1E{}\x0A'.format(json.dumps(feature)))
         return filename
 
     def save_geo_features(self, map_area):

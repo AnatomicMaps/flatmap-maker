@@ -372,7 +372,7 @@ class Flatmap(object):
                 print('Layer:', layer.id)
                 layer.save_geo_features(self.__area)
                 self.__annotations.update(layer.annotations)
-                for (layer_name, filename) in layer.save(self.__output_dir).items():
+                for (layer_name, filename) in layer.save(self.__output_dir, self.__settings.save_geojson).items():
                     self.__geojson_files.append(filename)
                     self.__tippe_inputs.append({
                         'file': filename,
