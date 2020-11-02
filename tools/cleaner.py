@@ -34,7 +34,7 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from properties import JsonProperties
+from mapmaker.properties import JsonProperties
 
 #===============================================================================
 
