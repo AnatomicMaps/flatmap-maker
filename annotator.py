@@ -29,13 +29,32 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from mapmaker.properties import Properties
+from mapmaker.parser import Parser
+from mapmaker.properties import JsonProperties
 
 #===============================================================================
+
+def shape_properties(shape):
+    properties = {}
+    if shape.name.startswith('.'):
+        group_name = self.__current_group[-1]  # For error reporting
+        properties.update(Parser.shape_markup(shape.name))
+        if 'error' in properties:
+            super().error('Shape in slide {}, group {}, has annotation syntax error: {}'
+                          .format(self.__slide_number, group_name, shape.name))
+        if 'warning' in properties:
+            super().error('Warning, slide {}, group {}: {}'
+                          .format(self.__slide_number, group_name, properties['warning']))
+        for key in ['id', 'path']:
+            if key in properties:
+                if self.mapmaker.duplicate_id(properties[key]):
+                   super().error('Shape in slide {}, group {}, has a duplicate id: {}'
+                                 .format(self.__slide_number, group_name, shape.name))
 
 class Slide(object):
     def __init__(self, slide, properties, options):
         self.__properties = properties
+        self.__options = options
         self.__names_only = options.names_only
         self.__slide_id = slide.slide_id
         if slide.has_notes_slide:
@@ -49,21 +68,24 @@ class Slide(object):
         self.process_shape_list_(slide.shapes, True)
 
     def process_shape_list_(self, shapes, outermost):
-        if outermost:
+        if outermost and self.__options.verbose:
             progress_bar = tqdm(total=len(shapes),
                 unit='shp', ncols=40,
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for shape in shapes:
+            unique_id = '{}#{}'.format(self.__slide_id, shape.shape_id)
             if shape.shape_type == MSO_SHAPE_TYPE.GROUP:
+                shape_type = 'G'
                 self.__current_group.append(shape.name)
                 self.process_shape_list_(shape.shapes, False)
                 self.__current_group.pop()
             else:
-                unique_id = '{}#{}'.format(self.__slide_id, shape.shape_id)
-                self.__properties_by_id[unique_id] = self.__properties.get_properties(shape, self.__current_group[-1])
-            if outermost:
+                shape_type = 'S'
+            print('{} {:10} {}'.format(shape_type, unique_id, shape.name))
+##                self.__properties_by_id[unique_id] = self.__properties.get_properties(shape, self.__current_group[-1])
+            if outermost and self.__options.verbose:
                 progress_bar.update(1)
-        if outermost:
+        if outermost and self.__options.verbose:
             progress_bar.close()
 
     def list(self):
@@ -82,7 +104,11 @@ class Presentation(object):
         self.__pptx = pptx.Presentation(powerpoint)
         self.__slides_by_id = OrderedDict()
         self.__seen = []
-        for slide in self.__pptx.slides:
+        for slide_number, slide in enumerate(self.__pptx.slides):
+            if options.debug_xml:
+                xml = open(os.path.join(options.output_dir, 'layer{:02d}.xml'.format(slide_number)), 'w')
+                xml.write(slide.element.xml)
+                xml.close()
             self.__slides_by_id[slide.slide_id] = Slide(slide, properties, options)
 
     def list(self):
@@ -92,10 +118,12 @@ class Presentation(object):
 #===============================================================================
 
 if __name__ == '__main__':
-    import argparse
+    import configargparse
     import os, sys
 
-    parser = argparse.ArgumentParser(description='Modify annotations in Powerpoint slides.')
+    parser = configargparse.ArgumentParser() ## description='Modify annotations in Powerpoint slides.'
+
+    parser.add_argument('-c', '--conf', is_config_file=True, help='configuration file containing arguments.')
 
 #    parser.add_argument('-l', '--list', action='store_true',
 #                        help='list shape annotations')
@@ -108,6 +136,11 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--names-only', action='store_true',
                         help='Only list shape names')
 
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Show progress while running')
+    parser.add_argument('-d', '--debug', dest='debug_xml', action='store_true',
+                        help="save a slide's DrawML for debugging")
+
     # Options `--replace`
     # specify slide
     #         shape by id/class
@@ -115,11 +148,22 @@ if __name__ == '__main__':
     #parser.add_argument('-r', '--replace', nargs=2, action='append',
     #                    help='find and replace text using ')
 
-    parser.add_argument('powerpoint', help='Powerpoint file')
+    required = parser.add_argument_group('required arguments')
 
-    args = parser.parse_args()
+    required.add_argument('-o', '--output-dir', dest='map_base', metavar='OUTPUT_DIR', required=True,
+                        help='base directory for generated flatmaps')
+    required.add_argument('--id', dest='map_id', metavar='MAP_ID', required=True,
+                        help='a unique identifier for the map')
+    required.add_argument('--slides', dest='source', metavar='POWERPOINT', required=True,
+                        help='Name of Powerpoint file to clean. The name of the resulting cleaned'
+                        ' Powerpoint has `_cleaned` added to the source name.')
+
+    args, unknown_args = parser.parse_known_args()
+
     args.label_database = 'labels.sqlite'
-    external_properties = Properties(args)
+    json_properties = JsonProperties(args)
 
-    presentation = Presentation(args.powerpoint, external_properties, args)
-    presentation.list()
+    args.output_dir = os.path.join(args.map_base, args.map_id)
+
+    presentation = Presentation(args.source, json_properties, args)
+    ##presentation.list()
