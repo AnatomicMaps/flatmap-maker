@@ -15,7 +15,7 @@ def load_requirements(fname):
     reqs = parse_requirements(fname, session=False)
     return [str(ir.req) for ir in reqs]
 
-setup(name="yourpackage", install_requires=load_requirements("requirements.txt"))
+setup(name="mapmaker", install_requires=load_requirements("requirements.txt"))
 
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
