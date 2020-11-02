@@ -34,7 +34,7 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from properties import Properties
+from properties import JsonProperties
 
 #===============================================================================
 
@@ -72,7 +72,8 @@ class NameChecker(object):
         self.__properties = properties
 
     def valid(self, shape):
-        for key, value in self.__properties.get_properties(shape).items():
+        ## Parse shape.name to get id and class
+        for key, value in self.__properties.get_properties(id, cls).items():
             if key in EXCLUDE_SHAPE_TYPES:
                 return False
             elif key == 'tile-layer' and value in EXCLUDE_TILE_LAYERS:
@@ -301,25 +302,37 @@ def clean_presentation(source, target, properties):
 #===============================================================================
 
 if __name__ == '__main__':
-    import argparse
+    import configargparse
+    import os
 
-    parser = argparse.ArgumentParser(description='Clean Powerpoint slides for generating flatmap image tiles.')
+    parser = configargparse.ArgumentParser() ## description='Clean Powerpoint slides for generating flatmap image tiles.')
+
+    parser.add_argument('-c', '--conf', is_config_file=True, help='configuration file containing arguments.')
 
     parser.add_argument('--anatomical-map',
-                        help='Excel spreadsheet file for mapping shape classes to anatomical entities')
+                        help='Excel spreadsheet file for mapping shape classes to anatomical entities.')
     parser.add_argument('--properties',
-                    help='JSON file specifying pathways')
+                    help='JSON file specifying pathways.')
 
-    parser.add_argument('source_ppt', help='Powerpoint file to clean')
-    parser.add_argument('cleaned_ppt', help='Cleaned Powerpoint to create')
-    args = parser.parse_args()
+    required = parser.add_argument_group('required arguments')
+
+    required.add_argument('-o', '--output-dir', dest='map_base', metavar='OUTPUT_DIR', required=True,
+                        help='base directory for generated flatmaps.')
+    required.add_argument('--slides', dest='source', metavar='POWERPOINT', required=True,
+                        help='Name of Powerpoint file to clean. The name of the resulting cleaned'
+                        ' Powerpoint has `_cleaned` added to the source name.')
 
     ## Option to remove paths??
     ## Then properties file only when removing paths
-    args = parser.parse_args()
-    args.label_database = 'labels.sqlite'
-    external_properties = Properties(args)
 
-    clean_presentation(args.source_ppt, args.cleaned_ppt, external_properties)
+    args, unknown_args = parser.parse_known_args()
+
+    args.label_database = os.path.join(args.map_base, 'labels.sqlite')
+    json_properties = JsonProperties(args)
+
+    (root, ext) = os.path.splitext(args.source)
+    cleaned_ppt = root + '_cleaned' + ext
+
+    clean_presentation(args.source, cleaned_ppt, json_properties)
 
 #===============================================================================
