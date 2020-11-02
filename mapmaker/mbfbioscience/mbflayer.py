@@ -31,9 +31,9 @@ import shapely.geometry
 
 #===============================================================================
 
-from flatmap import Flatmap, MapLayer
-from geometry import mercator_transform, mercator_transformer, transform_point
-from tilemaker import make_background_tiles_from_image
+from mapmaker.flatmap import MapLayer
+from mapmaker.geometry import mercator_transform, mercator_transformer, transform_point
+from mapmaker.tilemaker import make_background_tiles_from_image
 
 #===============================================================================
 
@@ -83,8 +83,8 @@ class MBFLayer(MapLayer):
     def species(self):
         return self.__species
 
-    def image_area(self):
-    #====================
+    def map_area(self):
+    #==================
         top_left = transform_point(self.__transform, (self.__bounds[0], self.__bounds[1]))
         bottom_right = transform_point(self.__transform, (self.__bounds[2], self.__bounds[3]))
         return abs(bottom_right[0] - top_left[0]) * (top_left[1] - bottom_right[1])
@@ -162,82 +162,5 @@ class MBFLayer(MapLayer):
             for feature in self.geojson_features(tile_layer):
                 output_file.write('\x1E{}\x0A'.format(json.dumps(feature)))
         return {tile_layer: filename}
-
-#===============================================================================
-
-def main():
-#==========
-    import argparse
-    import sys
-
-    parser = argparse.ArgumentParser(description='Convert a segmented MBF image to a flatmap.')
-
-    parser.add_argument('-z', '--initial-zoom', metavar='N', type=int, default=4,
-                        help='initial zoom level (defaults to 4)')
-    parser.add_argument('--max-zoom', dest='max_zoom', metavar='N', type=int, default=10,
-                        help='maximum zoom level (defaults to 10)')
-    parser.add_argument('--min-zoom', dest='min_zoom', metavar='N', type=int, default=2,
-                        help='minimum zoom level (defaults to 2)')
-    parser.add_argument('-u', '--upload', metavar='USER@SERVER',
-                        help='Upload generated map to server')
-
-    required = parser.add_argument_group('required arguments')
-    required.add_argument('--map-dir', dest='map_base', metavar='MAP_DIR', required=True,
-                        help='base directory for generated flatmaps')
-    required.add_argument('--id', dest='map_id', metavar='MAP_ID', required=True,
-                        help='a unique identifier for the map')
-    required.add_argument('--mbf', dest='mbf_file', metavar='MBF_XML', required=True,
-                        help='File or URL of MBF XML file of segmented image')
-
-    args = parser.parse_args()
-
-    if args.min_zoom < 0 or args.min_zoom > args.max_zoom:
-        sys.exit('--min-zoom must be between 0 and {}'.format(args.max_zoom))
-    if args.max_zoom < args.min_zoom or args.max_zoom > 15:
-        sys.exit('--max-zoom must be between {} and 15'.format(args.min_zoom))
-    if args.initial_zoom < args.min_zoom or args.initial_zoom > args.max_zoom:
-        sys.exit('--initial-zoom must be between {} and {}'.format(args.min_zoom, args.max_zoom))
-
-    map_zoom = (args.min_zoom, args.max_zoom, args.initial_zoom)
-
-    map_dir = os.path.join(args.map_base, args.map_id)
-    if not os.path.exists(map_dir):
-        os.makedirs(map_dir)
-
-    if not os.path.exists(args.mbf_file):
-        sys.exit('Missing MBF XML file')
-
-    mbf_layer = MBFLayer(os.path.abspath(args.mbf_file), 'vagus')
-    flatmap = Flatmap(args.map_id, args.mbf_file, ' '.join(sys.argv),
-                      map_dir, map_zoom, mbf_layer.latlng_bounds())
-    flatmap.add_layer(mbf_layer)
-
-    print('Running tippecanoe...')
-    flatmap.make_vector_tiles()
-
-    print('Creating index and style files...')
-    flatmap.save_map_json(True)
-
-    """
-    Only if no os.path.isfile(os.path.join(map_dir, '{}.mbtiles'.format(args.map_id)))) ??
-    force with --background-tiles option ??
-
-    """
-    print('Generating background tiles (may take a while...)')
-    image_tile_files = make_background_tiles_from_image(flatmap.bounds, map_zoom, map_dir,
-                                                        mbf_layer.image, args.mbf_file, args.map_id)
-    flatmap.add_upload_files(image_tile_files)
-
-    if args.upload:
-        print('Uploaded map...', flatmap.upload(args.map_base, args.upload))
-
-    # Tidy up
-    print('Cleaning up...')
-    flatmap.finalise(True)
-
-#===============================================================================
-
-if __name__ == '__main__':
-    main()
 
 #===============================================================================

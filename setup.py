@@ -92,7 +92,7 @@ setup(
     #
     #   py_modules=["my_module"],
     #
-    packages=["mapmaker", "mapmaker.drawml", "mapmaker.geometry"],  # Required
+    packages=["mapmaker", "mapmaker.drawml", "mapmaker.geometry", "mapmaker.mbfbioscience"],  # Required
     # Specify which Python versions you support. In contrast to the
     # 'Programming Language' classifiers above, 'pip install' will check this
     # and refuse to install the project if the version does not match.
