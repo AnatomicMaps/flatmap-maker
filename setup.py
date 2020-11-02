@@ -9,6 +9,14 @@ Modified by Madoshakalaka@Github (dependency links added)
 from setuptools import setup, find_packages
 from os import path
 
+from pip._internal.req import parse_requirements
+
+def load_requirements(fname):
+    reqs = parse_requirements(fname, session=False)
+    return [str(ir.req) for ir in reqs]
+
+setup(name="yourpackage", install_requires=load_requirements("requirements.txt"))
+
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
 
@@ -84,7 +92,7 @@ setup(
     #
     #   py_modules=["my_module"],
     #
-    packages=["mapmaker", "mapmaker.drawml"],  # Required
+    packages=["mapmaker", "mapmaker.drawml", "mapmaker.geometry"],  # Required
     # Specify which Python versions you support. In contrast to the
     # 'Programming Language' classifiers above, 'pip install' will check this
     # and refuse to install the project if the version does not match.
@@ -95,41 +103,7 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=[
-        "alembic==1.4.0",
-        "beziers==0.0.1",
-        "certifi==2019.11.28",
-        "chardet==3.0.4",
-        "click==7.0",
-        "commentjson==0.8.3",
-        "idna==2.9",
-        "isodate==0.6.0",
-        "lark-parser==0.7.8",
-        "lxml==4.5.0",
-        "mako==1.1.1",
-        "markupsafe==1.1.1",
-        "mbutil==0.3.0",
-        "mercantile==1.1.2",
-        "numpy==1.18.1",
-        "owlready2==0.23",
-        "pillow==7.2.0",
-        "pymupdf==1.16.10",
-        "pyparsing==2.4.6",
-        "pyproj==2.4.2.post1",
-        "python-dateutil==2.8.1",
-        "python-editor==1.0.4",
-        "python-pptx==0.6.18",
-        "pyyaml==5.3",
-        "rdflib==4.2.2",
-        "rdflib-sqlalchemy==0.4.0",
-        "requests==2.23.0",
-        "shapely==1.7.0",
-        "six==1.14.0",
-        "sqlalchemy==1.3.13",
-        "svgwrite==1.3.1",
-        "urllib3==1.25.8",
-        "xlsxwriter==1.2.7",
-    ],  # Optional
+    install_requires=load_requirements("requirements.txt"),
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
     # syntax, for example:

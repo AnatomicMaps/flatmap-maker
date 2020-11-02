@@ -27,10 +27,10 @@ import sys
 
 #===============================================================================
 
-from mbtiles import MBTiles
-from styling import Style
-from tilejson import tile_json
-from tilemaker import TileMaker
+from mapmaker.mbtiles import MBTiles
+from mapmaker.styling import Style
+from mapmaker.tilejson import tile_json
+from mapmaker.tilemaker import TileMaker
 
 #===============================================================================
 

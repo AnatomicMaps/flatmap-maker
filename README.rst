@@ -13,10 +13,22 @@ Requirements
 Installation
 ------------
 
-Clone this repository and then run::
+Clone this repository.
 
-    pipenv install
+pipenv
+~~~~~~
 
+::
+
+    $ pipenv install
+
+
+VERSUS setup.py
+~~~~~~~~
+
+::
+
+    $ python setup.py develop
 
 Running
 -------

@@ -37,7 +37,7 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from mbtiles import MBTiles, ExtractionError
+from mapmaker.mbtiles import MBTiles, ExtractionError
 
 #===============================================================================
 
