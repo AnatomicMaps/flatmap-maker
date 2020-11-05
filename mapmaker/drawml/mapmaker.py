@@ -327,10 +327,6 @@ class MapMaker(object):
         return self.__json_properties.resolved_pathways
 
     @property
-    def settings(self):
-        return self.__settings
-
-    @property
     def slide_size(self):
         return self.__slide_size
 

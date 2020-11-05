@@ -163,10 +163,6 @@ class Layer(object):
         self.__selectable = value
 
     @property
-    def settings(self):
-        return self.__mapmaker.settings
-
-    @property
     def slide_id(self):
         return None
 
