@@ -45,7 +45,7 @@ from tqdm import tqdm
 
 from parser import Parser
 
-from flatmap import MapLayer
+from flatmap import Layer
 
 from geometry import connect_dividers, extend_line, make_boundary
 from geometry import mercator_transform, mercator_transformer
@@ -460,9 +460,9 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
 
 #===============================================================================
 
-class DetailsLayer(GeoJsonOutput, MapLayer):
+class DetailsLayer(GeoJsonOutput, Layer):
     def __init__(self, id, mapmaker):
-        MapLayer.__init__(self, id, mapmaker)
+        Layer.__init__(self, id, mapmaker)
         self.initialise_geojson_output()
 
 #===============================================================================

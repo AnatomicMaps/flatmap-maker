@@ -31,7 +31,7 @@ import shapely.geometry
 
 #===============================================================================
 
-from mapmaker.flatmap import MapLayer
+from mapmaker.flatmap import Layer
 from mapmaker.geometry import mercator_transform, mercator_transformer, transform_point
 from mapmaker.tilemaker import make_background_tiles_from_image
 
@@ -41,7 +41,7 @@ METRES_PER_UM = 100
 
 #===============================================================================
 
-class MBFLayer(MapLayer):
+class MBFLayer(Layer):
     def __init__(self, xml_file, id):
         super().__init__(id)
         self.__xml_file = xml_file

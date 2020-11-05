@@ -34,7 +34,7 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from flatmap import MapLayer
+from flatmap import Layer
 from parser import Parser
 from properties import JsonProperties
 
@@ -165,7 +165,7 @@ class FeaturesValueError(ValueError):
 
 #===============================================================================
 
-class SlideLayer(MapLayer):
+class SlideLayer(Layer):
     def __init__(self, mapmaker, slide, slide_number):
         super().__init__(slide_number, mapmaker)
         self.__slide = slide

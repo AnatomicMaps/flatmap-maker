@@ -38,7 +38,7 @@ FLATMAP_VERSION  = 1.1
 
 #===============================================================================
 
-class MapLayer(object):
+class Layer(object):
     def __init__(self, id, mapmaker):
         self.__annotations = {}
         self.__background_for = None
