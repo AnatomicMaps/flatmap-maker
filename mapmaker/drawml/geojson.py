@@ -52,7 +52,7 @@ from geometry import mercator_transform, mercator_transformer
 from geometry import transform_bezier_samples, transform_point
 from geometry import save_geometry
 
-from .arc_to_bezier import cubic_beziers_from_arc, tuple2
+from .arc_to_bezier import path_from_arc, tuple2
 from .mapmaker import Feature, FeaturesValueError
 from .mapmaker import MapMaker, SlideLayer, Transform
 from .mapmaker import ellipse_point
@@ -399,10 +399,9 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
                     pt = (current_point[0] - p1[0] + p2[0],
                           current_point[1] - p1[1] + p2[1])
                     large_arc_flag = 1 if swAng >= math.pi else 0
-                    beziers = cubic_beziers_from_arc(tuple2(wR, hR), 0, large_arc_flag, 1,
-                                                     tuple2(*current_point), tuple2(*pt))
-                    for bz in beziers:
-                        coordinates.extend(transform_bezier_samples(T, bz))
+                    path = path_from_arc(tuple2(wR, hR), 0, large_arc_flag, 1,
+                                         tuple2(*current_point), tuple2(*pt))
+                    coordinates.extend(transform_bezier_samples(T, path))
                     current_point = pt
 
                 elif c.tag == DML('close'):

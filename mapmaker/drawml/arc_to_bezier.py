@@ -13,6 +13,7 @@ import math
 #===============================================================================
 
 from beziers.cubicbezier import CubicBezier
+from beziers.path import BezierPath
 from beziers.point import Point as BezierPoint
 
 #===============================================================================
@@ -56,8 +57,8 @@ def cubic_bezier_control_points(c, r, phi, eta1, eta2):
     Q2 = tuple2(P2.x - alpha*d2.x, P2.y - alpha*d2.y)
     return (P1, Q1, Q2, P2)
 
-def cubic_beziers_from_arc(r, phi, flagA, flagS, p1, p2):
-#========================================================
+def path_from_arc(r, phi, flagA, flagS, p1, p2):
+#===============================================
     r_abs = tuple2(abs(r.x), abs(r.y))
     d = tuple2((p1.x - p2.x), (p1.y - p2.y))
     p = tuple2(math.cos(phi)*d.x/2 + math.sin(phi)*d.y/2,
@@ -93,14 +94,14 @@ def cubic_beziers_from_arc(r, phi, flagA, flagS, p1, p2):
 
     t = lambda1
     dt = math.pi/4
-    curves = []
+    segments = []
     while (t + dt) < lambda2:
         control_points = (BezierPoint(*cp) for cp in cubic_bezier_control_points(c, r_abs, phi, t, t + dt))
-        curves.append(CubicBezier(*control_points))
+        segments.append(CubicBezier(*control_points))
         t += dt
     control_points = (BezierPoint(*cp) for cp in cubic_bezier_control_points(c, r_abs, phi, t, lambda2))
-    curves.append(CubicBezier(*(tuple(control_points)[:3]), BezierPoint(*p2)))
-    return curves
+    segments.append(CubicBezier(*(tuple(control_points)[:3]), BezierPoint(*p2)))
+    return BezierPath.fromSegments(segments)
 
 #===============================================================================
 
