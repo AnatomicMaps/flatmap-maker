@@ -311,27 +311,32 @@ class Flatmap(object):
         tilemaker.wait_for_processes()
         return tilemaker.database_names
 
-    def make_vector_tiles(self):
-    #===========================
+    def make_vector_tiles(self, compressed=True):
+    #============================================
         # Generate Mapbox vector tiles
         if len(self.__tippe_inputs) == 0:
             sys.exit('No selectable layers found...')
-        subprocess.run(['tippecanoe', '--projection=EPSG:4326', '--force',
-                        # No compression results in a smaller `mbtiles` file
-                        # and is also required to serve tile directories
-                        '--no-tile-compression',
-                        '--buffer=100',
-                        '--minimum-zoom={}'.format(self.__zoom[0]),
-                        '--maximum-zoom={}'.format(self.__zoom[1]),
-                        '--output={}'.format(self.__mbtiles_file),
+
+        tippe_command = ['tippecanoe',
+                            '--force',
+                            '--projection=EPSG:4326',
+                            '--buffer=100',
+                            '--minimum-zoom={}'.format(self.__zoom[0]),
+                            '--maximum-zoom={}'.format(self.__zoom[1]),
+                            '--no-tile-size-limit',
+                            '--output={}'.format(self.__mbtiles_file),
                         ]
-                        + list(["-L{}".format(json.dumps(input)) for input in self.__tippe_inputs])
-                       )
+        if not compressed:
+            tippe_command.append('--no-tile-compression')
+        subprocess.run(tippe_command
+                       + list(["-L{}".format(json.dumps(input)) for input in self.__tippe_inputs])
+                      )
 
         # `tippecanoe` uses the bounding box containing all features as the
         # map bounds, which is not the same as the extracted bounds, so update
         # the map's metadata
         tile_db = MBTiles(self.__mbtiles_file)
+        tile_db.add_metadata(compressed=compressed)
         tile_db.update_metadata(center=','.join([str(x) for x in self.__centre]),
                                 bounds=','.join([str(x) for x in self.__bounds]))
         tile_db.execute("COMMIT")
