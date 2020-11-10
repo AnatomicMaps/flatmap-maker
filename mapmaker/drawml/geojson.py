@@ -54,10 +54,11 @@ from geometry import save_geometry
 
 from .arc_to_bezier import path_from_arc, tuple2
 from .mapmaker import Feature, FeaturesValueError
-from .mapmaker import MapMaker, SlideLayer, Transform
 from .mapmaker import ellipse_point
 from .formula import Geometry, radians
+from .mapmaker import MapMaker, SlideLayer
 from .presets import DML
+from .transform import DrawMLTransform
 
 #===============================================================================
 
@@ -196,7 +197,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
 
     def process_group(self, group, properties, transform):
     #=====================================================
-        features = self.process_shape_list(group.shapes, transform@Transform(group).matrix())
+        features = self.process_shape_list(group.shapes, transform@DrawMLTransform(group).matrix())
         return self.add_geo_features_(properties.get('shape_name', ''), features)
 
     def add_geo_features_(self, group_name, features, outermost=False):
@@ -381,7 +382,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
         pptx_geometry = Geometry(shape)
         for path in pptx_geometry.path_list:
             bbox = (shape.width, shape.height) if path.w is None or path.h is None else (path.w, path.h)
-            T = transform@Transform(shape, bbox).matrix()
+            T = transform@DrawMLTransform(shape, bbox).matrix()
 
             moved = False
             first_point = None
