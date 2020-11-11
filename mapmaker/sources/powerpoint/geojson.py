@@ -50,8 +50,8 @@ from mapmaker.geometry import ellipse_point
 from mapmaker.geometry import mercator_transform, mercator_transformer
 from mapmaker.geometry import transform_bezier_samples, transform_point
 from mapmaker.geometry import save_geometry
+from mapmaker.geometry.arc_to_bezier import path_from_arc, tuple2
 
-from .arc_to_bezier import path_from_arc, tuple2
 from .formula import Geometry, radians
 from .mapmaker import Feature, FeaturesValueError
 from .mapmaker import MapMaker, SlideLayer
