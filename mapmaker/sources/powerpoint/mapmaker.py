@@ -158,15 +158,17 @@ class SlideLayer(Layer):
              or isinstance(shape, pptx.shapes.connector.Connector)):
                 geometry = self.process_shape(shape, properties, *args)
                 feature = Feature(self.feature_id(shape.shape_id), geometry, properties)
-                 # Save relationship between id/class and internal feature id
-                self.mapmaker.save_feature_id(feature)
+                if not (self.hidden or feature.property('group')):
+                    # Save relationship between id/class and internal feature id
+                    self.mapmaker.save_feature_id(feature)
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.__current_group.append(properties.get('shape_name', "''"))
                 grouped_feature = self.process_group(shape, properties, *args)
                 self.__current_group.pop()
                 if grouped_feature is not None:
-                    self.mapmaker.save_feature_id(grouped_feature)
+                    if not self.hidden:
+                        self.mapmaker.save_feature_id(grouped_feature)
                     features.append(grouped_feature)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
                or shape.shape_type == MSO_SHAPE_TYPE.PICTURE):
