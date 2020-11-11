@@ -97,10 +97,6 @@ class GeoJsonOutput(object):
 
     def save_geo_features(self, map_area):
     #=====================================
-        progress_bar = tqdm(total=len(self.geo_features),
-            unit='ftr', ncols=40,
-            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
-
         # Update feature properties from JSON properties file
         # and add polygon features for nerve cuffs
         nerve_polygons = []
@@ -116,6 +112,10 @@ class GeoJsonOutput(object):
                 nerve_polygon_feature.properties['tile-layer'] = 'pathways'
                 nerve_polygons.append(nerve_polygon_feature)
         self.geo_features.extend(nerve_polygons)
+
+        progress_bar = tqdm(total=len(self.geo_features),
+            unit='ftr', ncols=40,
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
 
         for feature in self.geo_features:
             properties = feature.properties
