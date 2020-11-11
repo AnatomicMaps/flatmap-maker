@@ -43,7 +43,7 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from mapmaker.flatmap import Feature, FeaturesValueError, Layer
+from mapmaker.flatmap import Feature, GroupValueError, Layer
 
 from mapmaker.geometry import connect_dividers, extend_line, make_boundary
 from mapmaker.geometry import ellipse_point
@@ -229,7 +229,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
                     boundary_lines.append(extend_line(feature.geometry))
                 elif feature.geom_type == 'Polygon':
                     if boundary_polygon is not None:
-                        raise FeaturesValueError('Group {} can only have one boundary shape:'.format(group_name), features)
+                        raise GroupValueError('Group {} can only have one boundary shape:'.format(group_name), features)
                     boundary_polygon = feature.geometry
                     if not feature.property('invisible'):
                         group_features.append(feature)
@@ -260,7 +260,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
                 interior_features.append(feature)
 
         if boundary_polygon is not None and len(boundary_lines):
-            raise FeaturesValueError("Group {} can't be bounded by both a closed shape and lines:".format(group_name), features)
+            raise GroupValueError("Group {} can't be bounded by both a closed shape and lines:".format(group_name), features)
 
         elif boundary_polygon is not None or len(boundary_lines):
             if len(boundary_lines):
@@ -269,7 +269,7 @@ class GeoJsonLayer(GeoJsonOutput, SlideLayer):
                 try:
                     boundary_polygon = make_boundary(boundary_lines)
                 except ValueError as err:
-                    raise FeaturesValueError('Group {}: {}'.format(group_name, str(err)), features)
+                    raise GroupValueError('Group {}: {}'.format(group_name, str(err)), features)
 
             group_features.append(
                 self.new_feature_(
