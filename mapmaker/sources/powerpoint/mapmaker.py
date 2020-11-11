@@ -38,23 +38,6 @@ from .parser import parse_layer_directive, parse_shape_markup
 
 #===============================================================================
 
-# Internal PPT units are EMUs (English Metric Units)
-
-EMU_PER_CM  = 360000
-EMU_PER_IN  = 914400
-
-DOTS_PER_IN = 96
-
-EMU_PER_DOT = EMU_PER_IN/DOTS_PER_IN
-
-#===============================================================================
-
-def cm_coords(x, y):
-#===================
-    return (x/EMU_PER_CM, y/EMU_PER_CM)
-
-#===============================================================================
-
 class SlideLayer(Layer):
     def __init__(self, mapmaker, slide, slide_number):
         super().__init__(slide_number, mapmaker)
