@@ -43,7 +43,7 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from mapmaker.flatmap import Layer
+from mapmaker.flatmap import Feature, FeaturesValueError, Layer
 
 from mapmaker.geometry import connect_dividers, extend_line, make_boundary
 from mapmaker.geometry import ellipse_point
@@ -53,7 +53,6 @@ from mapmaker.geometry import save_geometry
 from mapmaker.geometry.arc_to_bezier import path_from_arc, tuple2
 
 from .formula import Geometry, radians
-from .mapmaker import Feature, FeaturesValueError
 from .mapmaker import MapMaker, SlideLayer
 from .parser import ignore_property
 from .presets import DML

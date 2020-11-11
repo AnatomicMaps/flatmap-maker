@@ -38,6 +38,73 @@ FLATMAP_VERSION  = 1.1
 
 #===============================================================================
 
+#===============================================================================
+
+class Feature(object):
+    def __init__(self, feature_id, geometry, properties, has_children=False):
+        self.__feature__id = feature_id
+        self.__geometry = geometry
+        self.__properties = properties.copy()
+        self.__properties['featureId'] = feature_id   # Used by flatmap viewer
+        self.__has_children = has_children
+
+    def __str__(self):
+        return 'Feature {}: {}'.format(self.__geometry.geom_type, self.__properties)
+
+    @property
+    def annotated(self):
+        return self.shape_name.startswith('.')
+
+    @property
+    def feature_id(self):
+        return self.__feature__id
+
+    @property
+    def geom_type(self):
+        return self.__geometry.geom_type if self.__geometry else None
+
+    @property
+    def geometry(self):
+        return self.__geometry
+
+    @geometry.setter
+    def geometry(self, geometry):
+        self.__geometry = geometry
+
+    @property
+    def has_children(self):
+        return self.__has_children
+
+    @property
+    def id(self):
+        return self.__properties.get('id')
+
+    @property
+    def properties(self):
+        return self.__properties
+
+    @property
+    def shape_id(self):
+        return self.__feature__id.split('#')[-1]
+
+    @property
+    def shape_name(self):
+        return self.__properties.get('shape_name', '')
+
+    def has_property(self, property):
+        return self.__properties.get(property, '') != ''
+
+    def property(self, property, default=None):
+        return self.__properties.get(property, default)
+
+#===============================================================================
+
+class FeaturesValueError(ValueError):
+    def __init__(self, msg, features):
+        super().__init__('\n  '.join([msg] + [str(f) for f in features]))
+
+#===============================================================================
+
 class Layer(object):
     def __init__(self, id, mapmaker):
         self.__annotations = {}
