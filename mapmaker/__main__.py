@@ -34,7 +34,7 @@ import requests
 
 #===============================================================================
 
-from drawml import GeoJsonMaker
+from sources.powerpoint import GeoJsonMaker
 from flatmap import Flatmap
 
 #===============================================================================

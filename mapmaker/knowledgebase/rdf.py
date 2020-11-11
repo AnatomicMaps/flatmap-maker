@@ -26,8 +26,7 @@ import rdflib
 
 #===============================================================================
 
-from knowledgebase import KnowledgeBase
-from parser import Parser
+from mapmaker.knowledgebase import KnowledgeBase
 
 #===============================================================================
 

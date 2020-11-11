@@ -20,14 +20,64 @@
 
 from collections import defaultdict
 import json
-import pyparsing
 
 #===============================================================================
 
-try:
-    from parser import Parser
-except ImportError:
-    from mapmaker.parser import Parser
+from pyparsing import delimitedList, Group, ParseResults, Suppress
+
+#===============================================================================
+
+from .markup import *
+
+#===============================================================================
+
+NERVES = delimitedList(ID_TEXT)
+
+LINE_ID = ID_TEXT
+PATH_LINES = delimitedList(LINE_ID)
+
+NODE_ID = ID_TEXT
+ROUTE_NODE_GROUP = NODE_ID  | Group(Suppress('(') +  delimitedList(NODE_ID) + Suppress(')'))
+ROUTE_NODES = delimitedList(ROUTE_NODE_GROUP)
+
+#===============================================================================
+
+def parse_path_lines(line_ids):
+    try:
+        if isinstance(line_ids, str):
+            path_lines = PATH_LINES.parseString(line_ids, parseAll=True)
+        else:
+            path_lines = [LINE_ID.parseString(line_id)[0] for line_id in line_ids]
+    except ParseException:
+        raise ValueError('Syntax error in path lines list: {}'.format(line_ids))
+    return path_lines
+
+def parse_route_nodes(node_ids):
+    try:
+        if isinstance(node_ids, str):
+            route_nodes = ROUTE_NODES.parseString(node_ids, parseAll=True)
+        else:
+            route_nodes = []
+            if isinstance(node_ids[0], str):
+                route_nodes.append(NODE_ID.parseString(node_ids[0]))
+            else:
+                route_nodes.append([NODE_ID.parseString(id)[0] for id in node_ids[0]])
+            for id in node_ids[1:-1]:
+                route_nodes.append(NODE_ID.parseString(id)[0])
+            if isinstance(node_ids[-1], str):
+                route_nodes.append(NODE_ID.parseString(node_ids[-1]))
+            else:
+                route_nodes.append([NODE_ID.parseString(id)[0] for id in node_ids[-1]])
+    except ParseException:
+        raise ValueError('Syntax error in route node list: {}'.format(node_ids))
+    return route_nodes
+
+def parse_nerves(node_ids):
+    try:
+        nerves = NERVES.parseString(node_ids, parseAll=True)
+    except ParseException:
+        raise ValueError('Syntax error in nerve list: {}'.format(node_ids))
+    return nerves
 
 #===============================================================================
 
@@ -129,10 +179,10 @@ class Pathways(object):
         for path in paths_list:
             path_id = path['id']
             self.__lines_by_path_id[path_id] = []
-            for line_group in Parser.path_lines(path['path']):
+            for line_group in parse_path_lines(path['path']):
                 self.__lines_by_path_id[path_id] += Pathways.__make_list(line_group)
             if 'route' in path:
-                routing = list(Parser.route_nodes(path['route']))
+                routing = list(parse_route_nodes(path['route']))
                 if len(routing) < 2:
                     raise ValueError('Route definition is too short for path {}'.format(path_id))
                 through_nodes = []
@@ -144,7 +194,7 @@ class Pathways(object):
                     'end-nodes': Pathways.__make_list(routing[-1]),
                 }
             if 'nerves' in path:
-                self.__nerves_by_path_id[path_id] = list(Parser.nerves(path['nerves']))
+                self.__nerves_by_path_id[path_id] = list(parse_nerves(path['nerves']))
             if 'type' in path:
                 self.__types_by_path_id[path_id] = path['type']
 
@@ -161,7 +211,7 @@ class Pathways(object):
     @staticmethod
     def __make_list(lst):
         return (lst if isinstance(lst, list)
-           else list(lst) if isinstance(lst, pyparsing.ParseResults)
+           else list(lst) if isinstance(lst, ParseResults)
            else [ lst ])
 
     @property

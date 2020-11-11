@@ -43,20 +43,19 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from parser import Parser
+from mapmaker.flatmap import Layer
 
-from flatmap import Layer
-
-from geometry import connect_dividers, extend_line, make_boundary
-from geometry import mercator_transform, mercator_transformer
-from geometry import transform_bezier_samples, transform_point
-from geometry import save_geometry
+from mapmaker.geometry import connect_dividers, extend_line, make_boundary
+from mapmaker.geometry import ellipse_point
+from mapmaker.geometry import mercator_transform, mercator_transformer
+from mapmaker.geometry import transform_bezier_samples, transform_point
+from mapmaker.geometry import save_geometry
 
 from .arc_to_bezier import path_from_arc, tuple2
-from .mapmaker import Feature, FeaturesValueError
-from .mapmaker import ellipse_point
 from .formula import Geometry, radians
+from .mapmaker import Feature, FeaturesValueError
 from .mapmaker import MapMaker, SlideLayer
+from .parser import ignore_property
 from .presets import DML
 from .transform import DrawMLTransform
 
@@ -155,7 +154,7 @@ class GeoJsonOutput(object):
 
             if properties:
                 for (key, value) in properties.items():
-                    if not Parser.ignore_property(key):
+                    if not ignore_property(key):
                         geojson['properties'][key] = value
                 properties['bounds'] = geojson['properties']['bounds']
                 properties['centroid'] = geojson['properties']['centroid']

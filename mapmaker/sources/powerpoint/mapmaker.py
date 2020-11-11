@@ -31,9 +31,10 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from flatmap import Layer
-from parser import Parser
-from properties import JsonProperties
+from mapmaker.flatmap import Layer
+from mapmaker.properties import JsonProperties
+
+from .parser import parse_layer_directive, parse_shape_markup
 
 #===============================================================================
 
@@ -51,13 +52,6 @@ EMU_PER_DOT = EMU_PER_IN/DOTS_PER_IN
 def cm_coords(x, y):
 #===================
     return (x/EMU_PER_CM, y/EMU_PER_CM)
-
-def ellipse_point(a, b, theta):
-#==============================
-    a_sin_theta = a*sin(theta)
-    b_cos_theta = b*cos(theta)
-    circle_radius = sqrt(a_sin_theta**2 + b_cos_theta**2)
-    return (a*b_cos_theta/circle_radius, b*a_sin_theta/circle_radius)
 
 #===============================================================================
 
@@ -139,7 +133,7 @@ class SlideLayer(Layer):
             notes_slide = slide.notes_slide
             notes_text = notes_slide.notes_text_frame.text
             if notes_text.startswith('.'):
-                layer_directive = Parser.layer_directive(notes_text)
+                layer_directive = parse_layer_directive(notes_text)
                 if 'error' in layer_directive:
                     super().error('Slide {}: invalid layer directive: {}'
                                    .format(slide_number, notes_text))
@@ -225,7 +219,7 @@ class SlideLayer(Layer):
                 }
             if shape.name.startswith('.'):
                 group_name = self.__current_group[-1]  # For error reporting
-                properties.update(Parser.shape_markup(shape.name))
+                properties.update(parse_shape_markup(shape.name))
                 if 'error' in properties:
                     super().error('Shape in slide {}, group {}, has annotation syntax error: {}'
                                   .format(self.__slide_number, group_name, shape.name))

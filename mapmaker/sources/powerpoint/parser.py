@@ -18,182 +18,116 @@
 #
 #===============================================================================
 
-from pyparsing import alphanums, nums, printables, Combine, delimitedList, Group, Keyword
-from pyparsing import Optional, ParseException, Suppress, Word, ZeroOrMore, ParseResults
+from pyparsing import Combine, delimitedList, Group, Keyword
+from pyparsing import Optional, Suppress, ZeroOrMore
+from pyparsing import ParseException, ParseResults
 
 #===============================================================================
 
-class Parser(object):
-    FREE_TEXT = Word(printables + ' ', excludeChars='()')
-    INTEGER = Word(nums)
-
-    ID_TEXT = Word(alphanums, alphanums+':/_-.')
-
-    ONTOLOGY_SUFFIX = (Keyword('ABI')
-                     | Keyword('FM')
-                     | Keyword('FMA')
-                     | Keyword('ILX')
-                     | Keyword('MA')
-                     | Keyword('NCBITaxon')
-                     | Keyword('UBERON')
-                     )
-    ONTOLOGY_ID = Combine(ONTOLOGY_SUFFIX + ':' + ID_TEXT)
-
-    IDENTIFIER = Group(Keyword('id') + Suppress('(') + ID_TEXT + Suppress(')'))
-    MODELS = Group(Keyword('models') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
-    ZOOM_LEVEL = INTEGER
+from mapmaker.properties.markup import *
 
 #===============================================================================
 
-    BACKGROUND = Group(Keyword('background-for') + Suppress('(') + ID_TEXT + Suppress(')'))
-    DESCRIPTION = Group(Keyword('description') + Suppress('(') + FREE_TEXT + Suppress(')'))
-    OUTLINE = Group(Keyword('outline') + Suppress('(') + ID_TEXT + Suppress(')'))
-    SELECTION_FLAGS = Group(Keyword('not-selectable') | Keyword('selected') | Keyword('queryable'))
-    ZOOM = Group(Keyword('zoom') + Suppress('(')
-                                   + Group(ZOOM_LEVEL + Suppress(',') + ZOOM_LEVEL + Suppress(',') + ZOOM_LEVEL)
-                                 + Suppress(')'))
+IDENTIFIER = Group(Keyword('id') + Suppress('(') + ID_TEXT + Suppress(')'))
+MODELS = Group(Keyword('models') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
 
-    LAYER_DIRECTIVES = BACKGROUND | DESCRIPTION | IDENTIFIER | MODELS | OUTLINE | SELECTION_FLAGS | ZOOM
-    LAYER_DIRECTIVE = '.' + ZeroOrMore(LAYER_DIRECTIVES)
+BACKGROUND = Group(Keyword('background-for') + Suppress('(') + ID_TEXT + Suppress(')'))
+DESCRIPTION = Group(Keyword('description') + Suppress('(') + FREE_TEXT + Suppress(')'))
+OUTLINE = Group(Keyword('outline') + Suppress('(') + ID_TEXT + Suppress(')'))
+SELECTION_FLAGS = Group(Keyword('not-selectable') | Keyword('selected') | Keyword('queryable'))
 
-#===============================================================================
+ZOOM_LEVEL = INTEGER
+ZOOM = Group(Keyword('zoom') + Suppress('(')
+                               + Group(ZOOM_LEVEL + Suppress(',') + ZOOM_LEVEL + Suppress(',') + ZOOM_LEVEL)
+                             + Suppress(')'))
 
-    @staticmethod
-    def layer_directive(s):
-        result = {}
-        try:
-            parsed = Parser.LAYER_DIRECTIVE.parseString(s, parseAll=True)
-            result['selectable'] = True
-            for directive in parsed[1:]:
-                if directive[0] == 'not-selectable':
-                    result['selectable'] = False
-                elif Parser.SELECTION_FLAGS.matches(directive[0]):
-                    result[directive[0]] = True
-                elif directive[0] == 'zoom':
-                    result['zoom'] = [int(z) for z in directive[1]]
-                else:
-                    result[directive[0]] = directive[1]
-
-        except ParseException:
-            result['error'] = 'Syntax error in layer directive'
-        return result
+LAYER_DIRECTIVES = BACKGROUND | DESCRIPTION | IDENTIFIER | MODELS | OUTLINE | SELECTION_FLAGS | ZOOM
+LAYER_DIRECTIVE = '.' + ZeroOrMore(LAYER_DIRECTIVES)
 
 #===============================================================================
 
 #    LABEL = Group(Keyword('label') + Suppress('(') + FREE_TEXT + Suppress(')'))
 #    LAYER = Group(Keyword('layer') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
-    ## WIP: DETAILS = Group(Keyword('details') + Suppress('(') + Suppress(')'))  ## Zoom start, slide/layer ID
-    ## Details are positioned within polygon's boundary on a layer "above" the polygon's
-    ## fill layer. Say positioned on an invisible place holder that is grouped with the polygon??
+## WIP: DETAILS = Group(Keyword('details') + Suppress('(') + Suppress(')'))  ## Zoom start, slide/layer ID
+## Details are positioned within polygon's boundary on a layer "above" the polygon's
+## fill layer. Say positioned on an invisible place holder that is grouped with the polygon??
 
-    CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
-    CHILDCLASSES = Group(Keyword('children') + Suppress('(') + ID_TEXT + Suppress(')'))
-    DETAILS = Group(Keyword('details') + Suppress('(') + ID_TEXT + Suppress(',') + ZOOM_LEVEL + Suppress(')'))
-    PATH = Group(Keyword('path') + Suppress('(') + ID_TEXT + Suppress(')'))
-    STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
+CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
+CHILDCLASSES = Group(Keyword('children') + Suppress('(') + ID_TEXT + Suppress(')'))
+DETAILS = Group(Keyword('details') + Suppress('(') + ID_TEXT + Suppress(',') + ZOOM_LEVEL + Suppress(')'))
+PATH = Group(Keyword('path') + Suppress('(') + ID_TEXT + Suppress(')'))
+STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
 
-    FEATURE_PROPERTIES = CLASS | CHILDCLASSES | IDENTIFIER | STYLE
+FEATURE_PROPERTIES = CLASS | CHILDCLASSES | IDENTIFIER | STYLE
 
-    SHAPE_FLAGS = Group(Keyword('boundary')
-                      | Keyword('closed')
-                      | Keyword('interior')
-                      )
+SHAPE_FLAGS = Group(Keyword('boundary')
+                  | Keyword('closed')
+                  | Keyword('interior')
+                  )
 
-    DEPRECATED_FLAGS = Group(Keyword('siblings')
-                           | Keyword('marker')
-                           )
+DEPRECATED_FLAGS = Group(Keyword('siblings')
+                       | Keyword('marker')
+                       )
 
-    FEATURE_FLAGS = Group(Keyword('group')
-                        | Keyword('invisible')
-                        | Keyword('divider')
-                        | Keyword('region')
-                      )
+FEATURE_FLAGS = Group(Keyword('group')
+                    | Keyword('invisible')
+                    | Keyword('divider')
+                    | Keyword('region')
+                  )
 
-    SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS
-                                  | DETAILS
-                                  | FEATURE_FLAGS
-                                  | FEATURE_PROPERTIES
-                                  | PATH
-                                  | SHAPE_FLAGS)
-
-#===============================================================================
-
-    @staticmethod
-    def shape_markup(name_text):
-        markup = {}
-        try:
-            parsed = Parser.SHAPE_MARKUP.parseString(name_text, parseAll=True)
-            for prop in parsed[1:]:
-                if (Parser.FEATURE_FLAGS.matches(prop[0])
-                 or Parser.SHAPE_FLAGS.matches(prop[0])):
-                    markup[prop[0]] = True
-                elif Parser.DEPRECATED_FLAGS.matches(prop[0]):
-                    markup['warning'] = "'{}' property is deprecated".format(prop[0])
-                elif prop[0] == 'details':
-                    markup[prop[0]] = prop[1]
-                    markup['maxzoom'] = int(prop[2]) - 1
-                else:
-                    markup[prop[0]] = prop[1]
-        except ParseException:
-            markup['error'] = 'Syntax error in shape markup'
-        return markup
-
-    @staticmethod
-    def ignore_property(name):
-        return Parser.DEPRECATED_FLAGS.matches(name) or Parser.SHAPE_FLAGS.matches(name)
+SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS
+                              | DETAILS
+                              | FEATURE_FLAGS
+                              | FEATURE_PROPERTIES
+                              | PATH
+                              | SHAPE_FLAGS)
 
 #===============================================================================
 
-    NERVES = delimitedList(ID_TEXT)
-
-    LINE_ID = ID_TEXT
-    PATH_LINES = delimitedList(LINE_ID)
-
-    NODE_ID = ID_TEXT
-    ROUTE_NODE_GROUP = NODE_ID  | Group(Suppress('(') +  delimitedList(NODE_ID) + Suppress(')'))
-    ROUTE_NODES = delimitedList(ROUTE_NODE_GROUP)
-
-#===============================================================================
-
-    @staticmethod
-    def path_lines(line_ids):
-        try:
-            if isinstance(line_ids, str):
-                path_lines = Parser.PATH_LINES.parseString(line_ids, parseAll=True)
+def parse_layer_directive(s):
+    result = {}
+    try:
+        parsed = LAYER_DIRECTIVE.parseString(s, parseAll=True)
+        result['selectable'] = True
+        for directive in parsed[1:]:
+            if directive[0] == 'not-selectable':
+                result['selectable'] = False
+            elif SELECTION_FLAGS.matches(directive[0]):
+                result[directive[0]] = True
+            elif directive[0] == 'zoom':
+                result['zoom'] = [int(z) for z in directive[1]]
             else:
-                path_lines = [Parser.LINE_ID.parseString(line_id)[0] for line_id in line_ids]
-        except ParseException:
-            raise ValueError('Syntax error in path lines list: {}'.format(line_ids))
-        return path_lines
+                result[directive[0]] = directive[1]
 
-    @staticmethod
-    def route_nodes(node_ids):
-        try:
-            if isinstance(node_ids, str):
-                route_nodes = Parser.ROUTE_NODES.parseString(node_ids, parseAll=True)
+    except ParseException:
+        result['error'] = 'Syntax error in layer directive'
+    return result
+
+#===============================================================================
+
+def parse_shape_markup(name_text):
+    markup = {}
+    try:
+        parsed = SHAPE_MARKUP.parseString(name_text, parseAll=True)
+        for prop in parsed[1:]:
+            if (FEATURE_FLAGS.matches(prop[0])
+             or SHAPE_FLAGS.matches(prop[0])):
+                markup[prop[0]] = True
+            elif DEPRECATED_FLAGS.matches(prop[0]):
+                markup['warning'] = "'{}' property is deprecated".format(prop[0])
+            elif prop[0] == 'details':
+                markup[prop[0]] = prop[1]
+                markup['maxzoom'] = int(prop[2]) - 1
             else:
-                route_nodes = []
-                if isinstance(node_ids[0], str):
-                    route_nodes.append(Parser.NODE_ID.parseString(node_ids[0]))
-                else:
-                    route_nodes.append([Parser.NODE_ID.parseString(id)[0] for id in node_ids[0]])
-                for id in node_ids[1:-1]:
-                    route_nodes.append(Parser.NODE_ID.parseString(id)[0])
-                if isinstance(node_ids[-1], str):
-                    route_nodes.append(Parser.NODE_ID.parseString(node_ids[-1]))
-                else:
-                    route_nodes.append([Parser.NODE_ID.parseString(id)[0] for id in node_ids[-1]])
-        except ParseException:
-            raise ValueError('Syntax error in route node list: {}'.format(node_ids))
-        return route_nodes
+                markup[prop[0]] = prop[1]
+    except ParseException:
+        markup['error'] = 'Syntax error in shape markup'
+    return markup
 
-    @staticmethod
-    def nerves(node_ids):
-        try:
-            nerves = Parser.NERVES.parseString(node_ids, parseAll=True)
-        except ParseException:
-            raise ValueError('Syntax error in nerve list: {}'.format(node_ids))
-        return nerves
+#===============================================================================
+
+def ignore_property(name):
+    return DEPRECATED_FLAGS.matches(name) or SHAPE_FLAGS.matches(name)
 
 #===============================================================================
 

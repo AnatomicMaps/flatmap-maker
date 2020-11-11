@@ -22,14 +22,8 @@ import json
 
 #===============================================================================
 
-try:
-    from labels import AnatomicalMap
-    from parser import Parser
-    from pathways import Pathways
-except ImportError:
-    from mapmaker.labels import AnatomicalMap
-    from mapmaker.parser import Parser
-    from mapmaker.pathways import Pathways
+from mapmaker.knowledgebase.labels import AnatomicalMap
+from .pathways import Pathways
 
 #===============================================================================
 

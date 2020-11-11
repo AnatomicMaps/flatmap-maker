@@ -33,7 +33,7 @@ import shapely.geometry
 
 from mapmaker.flatmap import Layer
 from mapmaker.geometry import mercator_transform, mercator_transformer, transform_point
-from mapmaker.tilemaker import make_background_tiles_from_image
+from mapmaker.output.tilemaker import make_background_tiles_from_image
 
 #===============================================================================
 

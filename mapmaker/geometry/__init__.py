@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-import math
+from math import cos, sin, sqrt
 import warnings
 
 #===============================================================================
@@ -72,6 +72,15 @@ def transform_bezier_samples(transform, bz):
 
 #===============================================================================
 
+def ellipse_point(a, b, theta):
+#==============================
+    a_sin_theta = a*sin(theta)
+    b_cos_theta = b*cos(theta)
+    circle_radius = sqrt(a_sin_theta**2 + b_cos_theta**2)
+    return (a*b_cos_theta/circle_radius, b*a_sin_theta/circle_radius)
+
+#===============================================================================
+
 def extend_(p0, p1):
 #===================
     """
@@ -80,7 +89,7 @@ def extend_(p0, p1):
     """
     dx = p1[0] - p0[0]
     dy = p1[1] - p0[1]
-    l = math.sqrt(dx*dx + dy*dy)
+    l = sqrt(dx*dx + dy*dy)
     scale = (LINE_EXTENSION + l)/l if l > 0 else 0.0
     return (p0[0] + scale*dx, p0[1] + scale*dy)
 

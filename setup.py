@@ -13,7 +13,7 @@ from pip._internal.req import parse_requirements
 
 def load_requirements(fname):
     reqs = parse_requirements(fname, session=False)
-    return [str(ir.req) for ir in reqs]
+    return [str(ir.requirement) for ir in reqs]
 
 setup(name="mapmaker", install_requires=load_requirements("requirements.txt"))
 
@@ -92,7 +92,16 @@ setup(
     #
     #   py_modules=["my_module"],
     #
-    packages=["mapmaker", "mapmaker.drawml", "mapmaker.geometry", "mapmaker.mbfbioscience"],  # Required
+    packages=["mapmaker",
+              "mapmaker.flatmap",
+              "mapmaker.geometry",
+              "mapmaker.knowledgebase",
+              "mapmaker.output",
+              "mapmaker.properties",
+              "mapmaker.sources",
+              "mapmaker.sources.mbfbioscience",
+              "mapmaker.sources.powerpoint",
+              ],  # Required
     # Specify which Python versions you support. In contrast to the
     # 'Programming Language' classifiers above, 'pip install' will check this
     # and refuse to install the project if the version does not match.
