@@ -58,7 +58,6 @@ class PowerpointSource(MapSource):
 
         self.__pptx = Presentation(pptx_file)
         pptx_file.close()
-
         self.__slides = self.__pptx.slides
 
         (width, height) = (self.__pptx.slide_width, self.__pptx.slide_height)

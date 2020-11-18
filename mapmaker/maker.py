@@ -225,6 +225,7 @@ class Flatmap(object):
                     self.__map_area = source.map_area()
                 else:
                     raise ValueError("Multiple 'base' and 'slides' source kinds")
+
         if self.__visible_layer_count == 0:
             raise ValueError('No map layers in sources...')
 
@@ -262,7 +263,7 @@ class Flatmap(object):
     def __add_details(self):
     #=======================
         # Add details of high-resolution features by adding a details layer
-        # for feature with details
+        # for features with details
 
         ## Need image layers...
         ##
