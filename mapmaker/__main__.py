@@ -87,7 +87,7 @@ def main():
         'properties': args.properties,
         'sources': [
             {
-                'id': 'test-source',  # Layer id's for slides are `${id}-01`, etc.
+                'id': args.mapId,  # Layer id's for slides are `${id}-01`, etc.
                 'href': args.powerpoint,  # URL of PPT, SVG, or MBF
                 'kind': 'slides',   # or 'base', 'details', 'image'
             }
