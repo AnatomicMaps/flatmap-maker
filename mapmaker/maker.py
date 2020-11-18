@@ -282,7 +282,9 @@ class Flatmap(object):
             hires_layer_id = '{}-{}'.format(layer.source.id, feature.get_property('details'))
             hires_layer = self.__layer_dict.get(hires_layer_id)
             if hires_layer is None:
-                raise KeyError("Cannot find details' layer '{}'".format(feature.get_property('details')))
+                print("Cannot find details' layer '{}'".format(feature.get_property('details')))
+                return
+                #raise KeyError("Cannot find details' layer '{}'".format(feature.get_property('details')))
 
             outline_feature = hires_layer.features_with_id.get(hires_layer.outline_feature_id)
             if outline_feature is None:
@@ -415,9 +417,9 @@ class Flatmap(object):
         print('Creating index and style files...')
         tile_db = MBTiles(self.__mbtiles_file)
 
-        # Save path of the Powerpoint source
-        ## FIX tile_db.add_metadata(source=self.__source)    ## We don't always want this updated...
-                                                   ## e.g. if re-running after tile generation
+        # Save the name of the map specification file
+        tile_db.add_metadata(source=self.__id) ## TEMP   ## FIX
+
         # What the map models
         if self.__models is not None:
             tile_db.add_metadata(describes=self.__models)
