@@ -198,12 +198,14 @@ class Flatmap(object):
 
     def __process_sources(self):
     #===========================
+        background_tiles = self.__options.get('backgroundTiles', False)
         for source in self.__specification.get('sources', []):
             source_id = source.get('id')
             source_kind = source.get('kind')
             source_href = source.get('href')
             if source_kind == 'slides':
-                source = PowerpointSource(self, source_id, source_href)
+                source = PowerpointSource(self, source_id, source_href,
+                                          get_background=background_tiles)
             elif source_kind == 'image':
                 source = MBFImageSource(self, source_id, source_href)
             elif source_kind in ['base', 'details']:
@@ -213,8 +215,8 @@ class Flatmap(object):
                 raise ValueError('Unsupported source kind: {}'.format(source_kind))
 
             source.process()
-            for layer in source.layers:
-                self.__add_layer(layer)
+            self.__add_source_layers(source)
+
             if source_kind in ['base', 'slides']:
                 if self.__extent is None:
                     self.__extent = source.extent()
@@ -249,7 +251,13 @@ class Flatmap(object):
         self.__layer_dict[layer.id] = layer
         if not layer.hidden:
             self.__visible_layer_count += 1
-###            layer.add_image_layer(layer.id, slide_number, self.__zoom[0])
+
+    def __add_source_layers(self, source):
+    #=====================================
+        for layer in source.layers:
+            self.__add_layer(layer)
+            if not layer.hidden:
+                layer.add_image_source(layer.id, source.image_tile_source, self.__zoom[0], source.extent())
 
     def __add_details(self):
     #=======================
@@ -326,15 +334,14 @@ class Flatmap(object):
         if extra_details:
             self.__add_detail_features(layer, detail_layer, extra_details)
 
-    def __make_image_tiles(self, pdf_bytes, pdf_source_name):
-    #========================================================
+    def __make_image_tiles(self):
+    #============================
         print('Generating background tiles (may take a while...)')
-        tilemaker = TileMaker(pdf_source_name, self.__extent, self.__map_dir, self.__zoom)
         for layer in self.__layer_dict.values():
-            for image_layer in layer.image_layers:
-                tilemaker.start_tiles_from_pdf_process(pdf_bytes, image_layer)
-        tilemaker.wait_for_processes()
-        self.__upload_files.extend(tilemaker.database_names)
+            for source in layer.image_sources:
+                tilemaker = TileMaker(source.extent, self.__map_dir, source.min_zoom, self.__zoom[1])
+                tilemaker.make_tiles(source.tile_source, source.id)
+                self.__upload_files.extend(tilemaker.database_names)
 
     def __make_vector_tiles(self, compressed=True):
     #==============================================
@@ -381,7 +388,7 @@ class Flatmap(object):
                     'selected': layer.selected,
                     'queryable-nodes': layer.queryable_nodes,
                     'features': layer.feature_types,
-                    'image-layers': [l.id for l in layer.image_layers]
+                    'image-layers': [source.id for source in layer.image_sources]
                 }
 ## FIX ??               if layer.slide_id is not None:
 ## layer source v's map source v's spec info.
@@ -439,9 +446,10 @@ class Flatmap(object):
 #*        ## TODO: set ``layer.properties`` for annotations...
 #*        ##update_RDF(options['map_base'], options['map_id'], source, annotations)
 
-        image_layers = []
+        # Get list of all image sources from all layers
+        image_sources = []
         for layer in self.__layer_dict.values():
-            image_layers.extend(layer.image_layers)
+            image_sources.extend(layer.image_sources)
 
         map_index = {
             'id': self.__id,
@@ -449,7 +457,7 @@ class Flatmap(object):
             'max-zoom': self.__zoom[1],
             'bounds': self.__extent,
             'version': FLATMAP_VERSION,
-            'image_layer': len(image_layers) > 0  ## For compatibility
+            'image_layer': len(image_sources) > 0  ## For compatibility
         }
         if self.__models is not None:
             map_index['describes'] = self.__models
@@ -459,7 +467,7 @@ class Flatmap(object):
 
         # Create style file
         metadata = tile_db.metadata()
-        style_dict = Style.style(image_layers, metadata, self.__zoom)
+        style_dict = Style.style(image_sources, metadata, self.__zoom)
         with open(os.path.join(self.__map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 

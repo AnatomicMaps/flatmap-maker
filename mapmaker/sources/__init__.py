@@ -39,6 +39,10 @@ class MapSource(object):
         return self.__id
 
     @property
+    def image_tile_source(self):
+        return None
+
+    @property
     def layers(self):
         return self.__layers
 
@@ -53,5 +57,20 @@ class MapSource(object):
     def process(self):
     #=================
         raise TypeError('`process()` must be implemented by `MapSource` sub-class')
+
+#===============================================================================
+
+class ImageTileSource(object):
+    def __init__(self, source_kind, source_bytes):
+        self.__source_kind = source_kind
+        self.__source_bytes = source_bytes
+
+    @property
+    def source_bytes(self):
+        return self.__source_bytes
+
+    @property
+    def source_kind(self):
+        return self.__source_kind
 
 #===============================================================================

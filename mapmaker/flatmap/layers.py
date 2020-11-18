@@ -26,7 +26,7 @@ class FeatureLayer(object):
         self.__description = 'Layer {}'.format(id)
         self.__features = []
         self.__features_with_id = {}
-        self.__image_layers = []
+        self.__image_sources = []
         self.__detail_features = []
         self.__feature_types = []
 #*        self.__ontology_data = self.options.ontology_data
@@ -76,8 +76,8 @@ class FeatureLayer(object):
         self.__id = id
 
     @property
-    def image_layers(self):
-        return self.__image_layers
+    def image_sources(self):
+        return self.__image_sources
 
     @property
     def feature_types(self):
@@ -139,9 +139,9 @@ class FeatureLayer(object):
             'type': feature.get_property('geometry')
         })
 
-    def add_image_layer(self, id, slide_number, zoom, bounding_box=None, image_transform=None):
-    #==========================================================================================
-        self.__image_layers.append(ImageLayer(id, slide_number, zoom, bounding_box, image_transform))
+    def add_image_source(self, id, tile_source, min_zoom, extent, bounding_box=None, image_transform=None):
+    #======================================================================================================
+        self.__image_sources.append(ImageLayerSource(id, tile_source, min_zoom, extent, bounding_box, image_transform))
 
     def extend_nerve_cuffs(self):
     #============================
@@ -165,17 +165,22 @@ class FeatureLayer(object):
 
 #===============================================================================
 
-class ImageLayer(object):
-    def __init__(self, id, slide_number, zoom, bounding_box=None, image_transform=None):
-        self.__bounding_box = bounding_box
+class ImageLayerSource(object):
+    def __init__(self, id, tile_source, min_zoom, extent, bounding_box=None, image_transform=None):
         self.__id = '{}-image'.format(id)
-        self.__slide_number = slide_number
+        self.__tile_source = tile_source
+        self.__min_zoom = min_zoom
+        self.__extent = extent
+        self.__bounding_box = bounding_box
         self.__image_transform = image_transform
-        self.__zoom = zoom
 
     @property
     def bounding_box(self):
         return self.__bounding_box
+
+    @property
+    def extent(self):
+        return self.__extent
 
     @property
     def id(self):
@@ -186,11 +191,11 @@ class ImageLayer(object):
         return self.__image_transform
 
     @property
-    def slide_number(self):
-        return self.__slide_number
+    def min_zoom(self):
+        return self.__min_zoom
 
     @property
-    def zoom(self):
-        return self.__zoom
+    def tile_source(self):
+        return self.__tile_source
 
 #===============================================================================

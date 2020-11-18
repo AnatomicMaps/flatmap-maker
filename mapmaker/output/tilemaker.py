@@ -20,11 +20,7 @@
 
 import io
 import math
-import multiprocessing
 import os
-import shutil
-import subprocess
-import tempfile
 
 #===============================================================================
 
@@ -152,7 +148,7 @@ def check_image_size(dimension, max_dim, lower, upper, bounds, scale):
 
 #===============================================================================
 
-class TileSource(object):
+class TileExtractor(object):
     def __init__(self, tile_pixel_rect, image_rect):
         self.__image_rect = image_rect
         sx = image_rect.width/tile_pixel_rect.width
@@ -189,7 +185,7 @@ class TileSource(object):
 
 #===============================================================================
 
-class ImageTileSource(TileSource):
+class ImageTileExtractor(TileExtractor):
     def __init__(self, tile_pixel_rect, image):
         if image.shape[2] == 3:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
@@ -210,7 +206,7 @@ class ImageTileSource(TileSource):
 
 #===============================================================================
 
-class PDFTileSource(TileSource):
+class PDFTileExtractor(TileExtractor):
     def __init__(self, tile_pixel_rect, pdf_page):
         super().__init__(tile_pixel_rect, pdf_page.rect)
         self.__pdf_page = pdf_page
@@ -247,8 +243,6 @@ class TileMaker(object):
     coordinates to tile pixel coordinates and the the location of the map in
     terms of tile pixels.
 
-    :param source_name: The file name or URL for the source image data
-    :type source_name: str
     :param extent: The map's extent as in latitude and longitude
     :type extent: tuple(south, west, north, east)
     :param output_dir: The directory in which to store image tiles
@@ -256,17 +250,12 @@ class TileMaker(object):
     :param map_zoom: The range of zoom levels to generate tiles
     :type map_zoom: tuple, optional, defaults to (`MIN_ZOOM`, `MAX_ZOOM`)
     """
-    def __init__(self, source_name, extent, output_dir, map_zoom=(MIN_ZOOM, MAX_ZOOM)):
-        self.__source_name = source_name
+    def __init__(self, extent, output_dir, min_zoom=MIN_ZOOM, max_zoom=MAX_ZOOM):
         self.__output_dir = output_dir
-        self.__min_zoom = map_zoom[0]
-        self.__max_zoom = map_zoom[1]
+        self.__min_zoom = min_zoom
+        self.__max_zoom = max_zoom
 
-        # We need a manager to share the list of database names between processes
-
-        self.__manager = multiprocessing.Manager()
-        self.__database_names = self.__manager.list()
-        self.__processes = []
+        self.__database_names = []
 
         # Get the set of tiles that span the map
 
@@ -306,32 +295,30 @@ class TileMaker(object):
     def database_names(self):
         return self.__database_names
 
-    def make_tiles(self, tile_source, layer_id):
-    #===========================================
+    def __make_zoomed_tiles(self, tile_extractor, layer_id):
+    #=======================================================
         database_name = '{}.mbtiles'.format(layer_id)
         self.__database_names.append(database_name)
         mbtiles = MBTiles(os.path.join(self.__output_dir, database_name), True, True)
-        mbtiles.add_metadata(id='{}#{}'.format(self.__source_name, layer_id),
-                             source=self.__source_name)
-
+        mbtiles.add_metadata(id=layer_id)
         zoom = self.__max_zoom
         print('Tiling zoom level {} for {}'.format(zoom, layer_id))
         progress_bar = tqdm(total=len(self.__tiles),
             unit='tiles', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for tile in self.__tiles:
-            image = tile_source.get_tile(tile.x - self.__tile_start_coords[0],
-                                         tile.y - self.__tile_start_coords[1])
+            image = tile_extractor.get_tile(tile.x - self.__tile_start_coords[0],
+                                            tile.y - self.__tile_start_coords[1])
             if not_transparent(image):
                 mbtiles.save_tile_as_png(zoom, tile.x, tile.y, image)
             progress_bar.update(1)
         progress_bar.close()
 
-        self.make_overview_tiles(mbtiles, layer_id, zoom, self.__tile_start_coords, self.__tile_end_coords)
+        self.__make_overview_tiles(mbtiles, layer_id, zoom, self.__tile_start_coords, self.__tile_end_coords)
         mbtiles.close() #True)
 
-    def make_overview_tiles(self, mbtiles, layer_id, zoom, start_coords, end_coords):
-    #================================================================================
+    def __make_overview_tiles(self, mbtiles, layer_id, zoom, start_coords, end_coords):
+    #==================================================================================
         if zoom > self.__min_zoom:
             zoom -= 1
             print('Tiling zoom level {} for {}'.format(zoom, layer_id))
@@ -357,68 +344,26 @@ class TileMaker(object):
                         mbtiles.save_tile_as_png(zoom, x, y, overview_tile)
                     progress_bar.update(1)
             progress_bar.close()
-            self.make_overview_tiles(mbtiles, layer_id, zoom, half_start, half_end)
+            self.__make_overview_tiles(mbtiles, layer_id, zoom, half_start, half_end)
 
-    def wait_for_processes(self):
-    #============================
-        for process in self.__processes:
-            process.join()
-
-###
-
-    def make_tiles_from_image(self, image, source_id, layer_id):
-    #===========================================================
-        self.make_tiles(source_id, ImageTileSource(self.__map_rect, image), layer_id)
-
-    def start_make_tiles_from_image(self, image, source_id, layer_id):
-    #=================================================================
-        process = multiprocessing.Process(target=self.make_tiles_from_image, args=(image, source_id, layer_id))
-        self.__processes.append(process)
-        process.start()
-
-###
-
-    def make_tiles_from_pdf_(self, pdf_page, image_layer):
-    #=====================================================
-        tile_source = PDFTileSource(self.__map_rect, pdf_page)
-        self.make_tiles(tile_source, image_layer.id)
-
-    def start_tiles_from_pdf_process(self, pdf_bytes, image_layer):
-    #==============================================================
-        page_no = image_layer.slide_number
-        print('Page {}: {}'.format(page_no, image_layer.id))
-        pdf = fitz.Document(stream=pdf_bytes, filetype='application/pdf')
-        process = multiprocessing.Process(target=self.make_tiles_from_pdf_, args=(pdf[page_no - 1], image_layer))
-        self.__processes.append(process)
-        process.start()
-
-
-"""
-    if options['background_tiles']:
-        pdf_source = '{}.pdf'.format(os.path.splitext(pptx_source)[0])
-        if pdf_source.startswith('http:') or pdf_source.startswith('https:'):
-            response = requests.get(pdf_source)
-            if response.status_code != requests.codes.ok:
-                pptx_bytes.close()
-                raise ValueError('Cannot retrieve PDF of Powerpoint (needed to generate background tiles)')
-            pdf_bytes = io.BytesIO(response.content)
+    def make_tiles(self, source, layer_id):
+    #======================================
+        print('Tiling {}...'.format(layer_id))
+        if source.source_kind == 'image':
+            tile_extractor = ImageTileExtractor(self.__map_rect, source.source_bytes)
+        elif source.source_kind == 'pdf':
+            pdf = fitz.Document(stream=source.source_bytes, filetype='application/pdf')
+            # Tile the first page of a PDF
+            tile_extractor = PDFTileExtractor(self.__map_rect, pdf[0])
         else:
-            if not os.path.exists(pdf_source):
-                pptx_bytes.close()
-                raise ValueError('Missing PDF of Powerpoint (needed to generate background tiles)')
-            if os.path.getmtime(pdf_source) < pptx_modified:
-                pptx_bytes.close()
-                raise ValueError('PDF of Powerpoint is too old...')
-            with open(pdf_source, 'rb') as f:
-                pdf_bytes = f.read()
+            raise TypeError('Unsupported kind of background tile source: {}'.format(source.source_kind))
+        self.__make_zoomed_tiles(tile_extractor, layer_id)
 
-"""
 #===============================================================================
 
 def make_background_tiles_from_image(map_bounds, map_zoom, output_dir, image, source_name, layer_id):
     tile_maker = TileMaker(map_bounds, output_dir, map_zoom)
-    tile_maker.start_make_tiles_from_image(image, source_name, layer_id)
-    tile_maker.wait_for_processes()
+    tile_maker.make_tiles_from_image(image, source_name, layer_id)
     return tile_maker.database_names
 
 #===============================================================================

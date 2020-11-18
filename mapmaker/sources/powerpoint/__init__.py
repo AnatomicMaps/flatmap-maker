@@ -28,7 +28,7 @@ from pptx import Presentation
 
 #===============================================================================
 
-from .. import MapSource
+from .. import MapSource, ImageTileSource
 
 from mapmaker.geometry import mercator_transform, mercator_transformer, transform_point
 
@@ -42,16 +42,18 @@ METRES_PER_EMU = 0.1   ## This to become a command line parameter...
 #===============================================================================
 
 class PowerpointSource(MapSource):
-    def __init__(self, flatmap, id, source_path):
+    def __init__(self, flatmap, id, source_path, get_background=False):
         super().__init__(flatmap, id, source_path)
         if source_path.startswith('http:') or source_path.startswith('https:'):
             response = requests.get(source_path)
             if response.status_code != requests.codes.ok:
                 raise ValueError('Cannot retrieve remote Powerpoint')
+            pptx_modified = 0   ## Can we get timestamp from PMR metadata??
             pptx_file = io.BytesIO(response.content)
         else:
             if not os.path.exists(source_path):
                 raise ValueErrort('Missing Powerpoint file')
+            pptx_modified = os.path.getmtime(source_path)
             pptx_file = open(source_path, 'rb')
 
         self.__pptx = Presentation(pptx_file)
@@ -66,6 +68,31 @@ class PowerpointSource(MapSource):
                                     [              0,               0, 1]])@np.array([[1, 0, -width/2.0],
                                                                                       [0, 1, -height/2.0],
                                                                                       [0, 0,         1.0]])
+        if get_background:
+            pdf_source = '{}.pdf'.format(os.path.splitext(source_path)[0])
+            if pdf_source.startswith('http:') or pdf_source.startswith('https:'):
+                response = requests.get(pdf_source)
+                if response.status_code != requests.codes.ok:
+                    pptx_bytes.close()
+                    raise ValueError('Cannot retrieve PDF of Powerpoint (needed to generate background tiles)')
+                pdf_bytes = io.BytesIO(response.content)
+            else:
+                if not os.path.exists(pdf_source):
+                    pptx_bytes.close()
+                    raise ValueError('Missing PDF of Powerpoint (needed to generate background tiles)')
+                if os.path.getmtime(pdf_source) < pptx_modified:
+                    pptx_bytes.close()
+                    raise ValueError('PDF of Powerpoint is too old...')
+                with open(pdf_source, 'rb') as f:
+                    pdf_bytes = f.read()
+            self.__image_tile_source = ImageTileSource('pdf', pdf_bytes)
+        else:
+            self.__image_tile_source = None
+
+    @property
+    def image_tile_source(self):
+        return self.__image_tile_source
+
     @property
     def transform(self):
         return self.__transform
