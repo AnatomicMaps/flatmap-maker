@@ -2,7 +2,7 @@
 #
 #  Flatmap viewer and annotation tools
 #
-#  Copyright (c) 2019, 2020  David Brooks
+#  Copyright (c) 2019  David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -16,4 +16,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+#===============================================================================
+
+class GroupValueError(ValueError):
+    def __init__(self, msg, features):
+        super().__init__('\n  '.join([msg] + [str(f) for f in features]))
+
 #===============================================================================

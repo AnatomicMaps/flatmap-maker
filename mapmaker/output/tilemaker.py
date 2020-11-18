@@ -37,7 +37,7 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from mapmaker.output.mbtiles import MBTiles, ExtractionError
+from .mbtiles import MBTiles, ExtractionError
 
 #===============================================================================
 
@@ -380,7 +380,6 @@ class TileMaker(object):
 
     def make_tiles_from_pdf_(self, pdf_page, image_layer):
     #=====================================================
-        bounds = image_layer.bounding_box
         tile_source = PDFTileSource(self.__map_rect, pdf_page)
         self.make_tiles(tile_source, image_layer.id)
 
@@ -393,6 +392,27 @@ class TileMaker(object):
         self.__processes.append(process)
         process.start()
 
+
+"""
+    if options['background_tiles']:
+        pdf_source = '{}.pdf'.format(os.path.splitext(pptx_source)[0])
+        if pdf_source.startswith('http:') or pdf_source.startswith('https:'):
+            response = requests.get(pdf_source)
+            if response.status_code != requests.codes.ok:
+                pptx_bytes.close()
+                raise ValueError('Cannot retrieve PDF of Powerpoint (needed to generate background tiles)')
+            pdf_bytes = io.BytesIO(response.content)
+        else:
+            if not os.path.exists(pdf_source):
+                pptx_bytes.close()
+                raise ValueError('Missing PDF of Powerpoint (needed to generate background tiles)')
+            if os.path.getmtime(pdf_source) < pptx_modified:
+                pptx_bytes.close()
+                raise ValueError('PDF of Powerpoint is too old...')
+            with open(pdf_source, 'rb') as f:
+                pdf_bytes = f.read()
+
+"""
 #===============================================================================
 
 def make_background_tiles_from_image(map_bounds, map_zoom, output_dir, image, source_name, layer_id):

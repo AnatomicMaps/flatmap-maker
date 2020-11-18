@@ -35,8 +35,14 @@ SCIGRAPH_ONTOLOGIES = ['UBERON']
 
 #===============================================================================
 
-class LabelData(object):
-    def __init__(self, database):
+class LabelDatabase(object):
+    def __init__(self, map_base, refresh=False):
+        database = os.path.join(map_base, 'labels.sqlite')
+        if refresh:
+            try:
+                os.remove(database)
+            except FileNotFoundError:
+                pass
         new_db = not os.path.exists(database)
         self.__db = sqlite3.connect(database)
         self.__cursor = self.__db.cursor()
@@ -92,8 +98,8 @@ class AnatomicalMap(object):
         - If no ``Preferred ID`` is defined then the UBERON identifier is used.
         - The shape's label is set from its anatomical identifier; if none was assigned then the label is set to the shape's class.
     """
-    def __init__(self, label_database, mapping_spreadsheet=None):
-        self.__label_data = LabelData(label_database)
+    def __init__(self, mapping_spreadsheet, label_database):
+        self.__label_data = label_database
         self.__map = {}
         if mapping_spreadsheet is not None:
             for sheet in openpyxl.load_workbook(mapping_spreadsheet):

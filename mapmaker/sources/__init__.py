@@ -18,14 +18,40 @@
 #
 #===============================================================================
 
-__version__ = '0.11.0-devel'
+class MapSource(object):
+    def __init__(self, flatmap, id, source_path):
+        self.__flatmap = flatmap
+        self.__id = id
+        self.__errors = []
+        self.__path = source_path
+        self.__layers = []
 
-#===============================================================================
+    @property
+    def errors(self):
+        return self.__errors
 
-FLATMAP_VERSION  = 1.1
+    @property
+    def flatmap(self):
+        return self.__flatmap
 
-#===============================================================================
+    @property
+    def id(self):
+        return self.__id
 
-from .maker import Flatmap
+    @property
+    def layers(self):
+        return self.__layers
+
+    def add_layer(self, layer):
+    #==========================
+        self.__layers.append(layer)
+
+    def error(self, msg):
+    #====================
+        self.__errors.append(msg)
+
+    def process(self):
+    #=================
+        raise TypeError('`process()` must be implemented by `MapSource` sub-class')
 
 #===============================================================================

@@ -28,15 +28,13 @@ from .pathways import Pathways
 #===============================================================================
 
 class JsonProperties(object):
-    def __init__(self, settings):
-        self.__anatomical_map = AnatomicalMap(settings.label_database,
-                                              settings.anatomical_map)
+    def __init__(self, properties_file, anatomical_map_file, label_database):
+        self.__anatomical_map = AnatomicalMap(anatomical_map_file, label_database)
         self.__properties_by_class = {}
         self.__properties_by_id = {}
-        self.__shape_ids_by_feature_id = {}     # shape_id: unique_feature_id
         properties_dict = {}
-        if settings.properties:
-            with open(settings.properties) as fp:
+        if properties_file is not None:
+            with open(properties_file) as fp:
                 try:
                     properties_dict = json.loads(fp.read())
                 except json.decoder.JSONDecodeError as err:

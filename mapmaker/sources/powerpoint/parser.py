@@ -106,7 +106,7 @@ def parse_layer_directive(s):
 #===============================================================================
 
 def parse_shape_markup(name_text):
-    markup = {}
+    markup = {'markup': name_text}
     try:
         parsed = SHAPE_MARKUP.parseString(name_text, parseAll=True)
         for prop in parsed[1:]:
