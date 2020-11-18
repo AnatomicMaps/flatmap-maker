@@ -61,12 +61,16 @@ class PowerpointSource(MapSource):
         self.__slides = self.__pptx.slides
 
         (width, height) = (self.__pptx.slide_width, self.__pptx.slide_height)
-        self.__bounds = (0, 0, width, height)
         self.__transform = np.array([[METRES_PER_EMU,               0, 0],
                                     [              0, -METRES_PER_EMU, 0],
                                     [              0,               0, 1]])@np.array([[1, 0, -width/2.0],
                                                                                       [0, 1, -height/2.0],
                                                                                       [0, 0,         1.0]])
+        top_left = transform_point(self.__transform, (0, 0))
+        bottom_right = transform_point(self.__transform, (width, height))
+        # southwest and northeast corners
+        self.__bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
+
         if get_background:
             pdf_source = '{}.pdf'.format(os.path.splitext(source_path)[0])
             if pdf_source.startswith('http:') or pdf_source.startswith('https:'):
@@ -116,18 +120,14 @@ class PowerpointSource(MapSource):
 
     def map_area(self):
     #==================
-        bounds = self.__bounds
-        top_left = transform_point(self.__transform, (bounds[0], bounds[1]))
-        bottom_right = transform_point(self.__transform, (bounds[2], bounds[3]))
-        return abs(bottom_right[0] - top_left[0]) * (top_left[1] - bottom_right[1])
+        return abs(self.__bounds[2] - self.__bounds[0]) * (self.__bounds[3] - self.__bounds[1])
 
     def extent(self):
     #================
         bounds = self.__bounds
-        top_left = mercator_transformer.transform(*transform_point(self.__transform, (bounds[0], bounds[1])))
-        bottom_right = mercator_transformer.transform(*transform_point(self.__transform, (bounds[2], bounds[3])))
-        # southwest and northeast corners
-        return (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
+        sw = mercator_transformer.transform(self.__bounds[0], self.__bounds[1])
+        ne = mercator_transformer.transform(self.__bounds[2], self.__bounds[3])
+        return (sw[0], sw[1], ne[0], ne[1])
 
 #===============================================================================
 
