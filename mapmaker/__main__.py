@@ -26,7 +26,6 @@ from mapmaker.maker import Flatmap
 def main():
     import configargparse
     import os, sys
-    import shutil
 
     parser = configargparse.ArgumentParser() ## description='Convert Powerpoint slides to a flatmap.')
 
