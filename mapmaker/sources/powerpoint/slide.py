@@ -47,7 +47,6 @@ from tqdm import tqdm
 
 from mapmaker.exceptions import GroupValueError
 
-from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import FeatureLayer
 
 from mapmaker.geometry import connect_dividers, extend_line, make_boundary
@@ -208,8 +207,8 @@ class PowerpointSlide(object):
                     region_id = None
                     region_properties = base_properties.copy()
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
-                        region_properties.update(region.properties)
-                        group_features.append(Feature(region.feature_id, polygon, region_properties))
+                        region_properties.update(region.copy_properties())
+                        group_features.append(self.__flatmap.new_feature(polygon, region_properties))
                         break
         else:
             for feature in features:
