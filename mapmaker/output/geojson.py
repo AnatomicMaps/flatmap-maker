@@ -38,9 +38,9 @@ from mapmaker.sources.powerpoint.parser import ignore_property
 #===============================================================================
 
 class GeoJSONOutput(object):
-    def __init__(self, layer_id, map_area, output_dir):
+    def __init__(self, layer, map_area, output_dir):
     #================================================
-        self.__layer_id = layer_id
+        self.__layer = layer
         self.__map_area = map_area
         self.__output_dir = output_dir
         self.__geojson_layers = {
@@ -53,7 +53,7 @@ class GeoJSONOutput(object):
         self.__save_features(features)
         saved_filenames = {}
         for geojson_id in self.__geojson_layers:
-            filename = os.path.join(self.__output_dir, '{}_{}.json'.format(self.__layer_id, geojson_id))
+            filename = os.path.join(self.__output_dir, '{}_{}.json'.format(self.__layer.id, geojson_id))
             saved_filenames[geojson_id] = filename
             with open(filename, 'w') as output_file:
                 if pretty_print:
@@ -77,7 +77,7 @@ class GeoJSONOutput(object):
 
         for feature in features:
             properties = feature.copy_properties()
-            source_layer = '{}-{}'.format(self.__layer_id, properties['tile-layer'])
+            source_layer = '{}-{}'.format(self.__layer.id, properties['tile-layer'])
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
@@ -116,10 +116,10 @@ class GeoJSONOutput(object):
                 properties['bounds'] = geojson['properties']['bounds']
                 properties['centroid'] = geojson['properties']['centroid']
                 properties['geometry'] = geojson['geometry']['type']
-                properties['layer'] = self.__layer_id
+                properties['layer'] = self.__layer.id
 
-                ###   FIX
-                ## self.annotations[feature.feature_id] = properties   ###
+                # The layer's annotation had property details for each feature
+                self.__layer.annotations[feature.feature_id] = properties
 
             if properties['tile-layer'] == 'pathways':
                 self.__geojson_layers['pathways'].append(geojson)
