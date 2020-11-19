@@ -124,6 +124,6 @@ class MBFSource(MapSource):
             feature = self.flatmap.new_feature(geometry, properties)
             self.__layer.add_feature(feature)
             if anatomical_id == self.__boundary_id:
-                self.__layer.outline_feature_id = feature.id
+                self.__layer.outline_feature_id = feature.feature_id
 
 #===============================================================================
