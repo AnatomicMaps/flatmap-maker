@@ -68,20 +68,20 @@ class JsonProperties(object):
         if self.__pathways is not None:
             self.__pathways.resolve_pathways(id_map, class_map)
 
-    def get_properties(self, id=None, cls=None):
-    #===========================================
+    def update_properties(self, feature):
+    #====================================
         properties = {}
+        cls = feature.get_property('class')
         if cls is not None:
             properties.update(self.__anatomical_map.properties(cls))
             properties.update(self.__properties_by_class.get(cls, {}))
             if self.__pathways is not None:
                 properties.update(self.__pathways.add_path(cls))
-
+        id = feature.get_property('id')
         if id is not None:
             properties.update(self.__properties_by_id.get(id, {}))
             if self.__pathways is not None:
                 properties.update(self.__pathways.add_path(id))
-
         if 'marker' in properties:
             properties['type'] = 'marker'
             if 'datasets' in properties:
@@ -90,10 +90,9 @@ class JsonProperties(object):
                 properties['kind'] = 'scaffold'
             elif 'simulations' in properties:
                 properties['kind'] = 'simulation'
-
         if 'models' in properties and 'label' not in properties:
             properties['label'] = self.__anatomical_map.label(properties['models'])
-
-        return properties
+        for key, value in properties.items():
+            feature.set_property(key, value)
 
 #===============================================================================

@@ -138,16 +138,17 @@ class FeatureLayer(object):
     #======================================================================================================
         self.__image_sources.append(ImageLayerSource(id, tile_source, min_zoom, extent, bounding_box, image_transform))
 
-    def extend_nerve_cuffs(self):
-    #============================
+    def set_feature_properties(self, property_data):
+    #===============================================
         # Update feature properties from JSON properties file
-        # and add polygon features for nerve cuffs
+        for feature in self.__features:
+            property_data.update_properties(feature)
+
+    def add_nerve_cuffs(self):
+    #=========================
+        # Add polygon features for nerve cuffs
         nerve_polygons = []
         for feature in self.__features:
-            ###
-            ### Needs to be in a separate method (in Flatmap class??)
-            ###self.mapmaker.update_properties(feature)   ### MAPMAKER...
-
             if (feature.get_property('type') == 'nerve'  ### but we don't know this because of deferred property setting...
             and feature.geom_type == 'LineString'):
                 nerve_polygon_feature = self.__source.flatmap.new_feature_(

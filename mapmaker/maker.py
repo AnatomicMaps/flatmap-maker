@@ -162,6 +162,8 @@ class Flatmap(object):
         if not self.__options.get('errorCheck', False):
             # Add high-resolution features showing details
             self.__add_details()
+            # Set additional properties from properties file
+            self.__set_feature_properties()
             # Generate metadata with connection information
             self.__resolve_paths()
             # Output all features (as GeoJSON)
@@ -262,6 +264,12 @@ class Flatmap(object):
             self.__add_layer(layer)
             if layer.output_layer:
                 layer.add_image_source(layer.id, source.image_tile_source, self.__zoom[0], source.extent())
+
+    def __set_feature_properties(self):
+    #==================================
+        for layer in self.__layer_dict.values():
+            layer.set_feature_properties(self.__property_data)
+            layer.add_nerve_cuffs()
 
     def __add_details(self):
     #=======================
@@ -406,7 +414,6 @@ class Flatmap(object):
         for layer in self.__layer_dict.values():
             if layer.output_layer:
                 print('Layer:', layer.id)
-                layer.extend_nerve_cuffs()
                 geojson_output = GeoJSONOutput(layer.id, self.__map_area, self.__map_dir)
                 saved_layer = geojson_output.save(layer.features, self.__options['saveGeoJSON'])
                 for (layer_name, filename) in saved_layer.items():
