@@ -127,7 +127,7 @@ class FeatureLayer(object):
     def add_feature(self, feature):
     #==============================
         self.__features.append(feature)
-        self.__features_by_id[feature.id] = feature
+        self.__features_by_id[feature.feature_id] = feature
         if feature.has_property('details'):
             self.__detail_features.append(feature)
         self.__feature_types.append({

@@ -419,7 +419,7 @@ class PowerpointSlide(object):
                     # Save relationship between id/class and internal feature id
                     self.__flatmap.save_feature_id(feature)
                 if properties.get('id', '') == self.__outline_feature_id:
-                    self.__feature_layer.outline_feature_id = feature.id
+                    self.__feature_layer.outline_feature_id = feature.feature_id
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.__current_group.append(properties.get('shape_name', "''"))
