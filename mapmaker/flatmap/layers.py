@@ -18,6 +18,10 @@
 #
 #===============================================================================
 
+import shapely.geometry
+
+#===============================================================================
+
 class FeatureLayer(object):
     def __init__(self, id, source, output_layer=False):
         self.__id = id
@@ -151,7 +155,7 @@ class FeatureLayer(object):
         for feature in self.__features:
             if (feature.get_property('type') == 'nerve'  ### but we don't know this because of deferred property setting...
             and feature.geom_type == 'LineString'):
-                nerve_polygon_feature = self.__source.flatmap.new_feature_(
+                nerve_polygon_feature = self.__source.flatmap.new_feature(
                     shapely.geometry.Polygon(feature.geometry.coords), feature.copy_properties())
                 nerve_polygon_feature.del_property('models')
                 nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
