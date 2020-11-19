@@ -69,8 +69,9 @@ class PowerpointSlide(object):
         self.__slide = slide
         self.__slide_number = slide_number
         self.__transform = source.transform
-        self.__id = '{}-slide-{:02d}'.format(source.id, slide_number)
-        self.__feature_layer = FeatureLayer(self.__id, source)
+        self.__id = 'slide-{:02d}'.format(slide_number)
+        self.__feature_layer = FeatureLayer(self.__id, source, output_layer=(slide_number==1))
+        self.__outline_feature_id = None
         # Get any layer directives
         if slide.has_notes_slide:
             notes_slide = slide.notes_slide
@@ -80,7 +81,7 @@ class PowerpointSlide(object):
                 if 'error' in layer_directive:
                     source.error('Slide {}: invalid layer directive: {}'
                                  .format(slide_number, notes_text))
-                self.__feature_layer.outline_feature_id = layer_directive.get('outline')
+                self.__outline_feature_id = layer_directive.get('outline')
         self.__current_group = []
 
     @property
@@ -412,16 +413,18 @@ class PowerpointSlide(object):
              or isinstance(shape, pptx.shapes.connector.Connector)):
                 geometry = self.process_shape(shape, properties, transform)
                 feature = self.__flatmap.new_feature(geometry, properties)
-                if not (self.__feature_layer.hidden or feature.get_property('group')):
+                if self.__feature_layer.output_layer and not feature.get_property('group'):
                     # Save relationship between id/class and internal feature id
                     self.__flatmap.save_feature_id(feature)
+                if properties.get('id', '') == self.__outline_feature_id:
+                    self.__feature_layer.outline_feature_id = feature.id
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.__current_group.append(properties.get('shape_name', "''"))
                 grouped_feature = self.process_group(shape, properties, transform)
                 self.__current_group.pop()
                 if grouped_feature is not None:
-                    if not self.__feature_layer.hidden:
+                    if self.__feature_layer.output_layer:
                         self.__flatmap.save_feature_id(grouped_feature)
                     features.append(grouped_feature)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX

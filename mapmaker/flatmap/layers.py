@@ -19,18 +19,18 @@
 #===============================================================================
 
 class FeatureLayer(object):
-    def __init__(self, id, source):
+    def __init__(self, id, source, output_layer=False):
         self.__id = id
         self.__source = source
         self.__annotations = {}
         self.__description = 'Layer {}'.format(id)
         self.__features = []
-        self.__features_with_id = {}
+        self.__features_by_id = {}
         self.__image_sources = []
         self.__detail_features = []
         self.__feature_types = []
 #*        self.__ontology_data = self.options.ontology_data
-        self.__outline_feature_id = None
+        self.__output_layer = output_layer
         self.__queryable_nodes = False
         self.__selectable = True
         self.__selected = False
@@ -57,16 +57,16 @@ class FeatureLayer(object):
         return self.__details_layer
 
     @property
-    def features_with_id(self):
-        return self.__features_with_id
+    def features_by_id(self):
+        return self.__features_by_id
 
     @property
     def features(self):
         return self.__features
 
     @property
-    def hidden(self):
-        return self.__outline_feature_id is not None
+    def feature_types(self):
+        return self.__feature_types
 
     @property
     def id(self):
@@ -90,6 +90,10 @@ class FeatureLayer(object):
     @outline_feature_id.setter
     def outline_feature_id(self, value):
         self.__outline_feature_id = value
+
+    @property
+    def output_layer(self):
+        return self.__output_layer
 
     @property
     def queryable_nodes(self):
@@ -130,11 +134,9 @@ class FeatureLayer(object):
     def add_feature(self, feature):
     #==============================
         self.__features.append(feature)
+        self.__features_by_id[feature.id] = feature
         if feature.has_property('details'):
             self.__detail_features.append(feature)
-        id = feature.get_property('id')
-        if id is not None:
-            self.__features_with_id[id] = feature
         self.__feature_types.append({
             'type': feature.get_property('geometry')
         })

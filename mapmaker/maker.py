@@ -250,14 +250,14 @@ class Flatmap(object):
         if layer.id in self.__layer_dict:
             raise KeyError('Duplicate layer id: {}'.format(layer.id))
         self.__layer_dict[layer.id] = layer
-        if not layer.hidden:
+        if layer.output_layer:
             self.__visible_layer_count += 1
 
     def __add_source_layers(self, source):
     #=====================================
         for layer in source.layers:
             self.__add_layer(layer)
-            if not layer.hidden:
+            if layer.output_layer:
                 layer.add_image_source(layer.id, source.image_tile_source, self.__zoom[0], source.extent())
 
     def __add_details(self):
@@ -276,8 +276,8 @@ class Flatmap(object):
         print('Adding details...')
         detail_layers = []
         for layer in self.__layer_dict.values():
-            if not layer.hidden and layer.detail_features:
-                detail_layer = FeatureLayer('{}-details'.format(layer.id), layer.source)
+            if layer.output_layer and layer.detail_features:
+                detail_layer = FeatureLayer('{}_details'.format(layer.id), layer.source, output_layer=True)
                 detail_layers.append(detail_layer)
                 self.__add_detail_features(layer, detail_layer, layer.detail_features)
         for layer in detail_layers:
@@ -288,14 +288,14 @@ class Flatmap(object):
     #=====================================================================
         extra_details = []
         for feature in lowres_features:
-            hires_layer_id = '{}-{}'.format(layer.source.id, feature.get_property('details'))
+            hires_layer_id = feature.get_property('details')
             hires_layer = self.__layer_dict.get(hires_layer_id)
             if hires_layer is None:
                 print("Cannot find details' layer '{}'".format(feature.get_property('details')))
-                return
+                continue
                 #raise KeyError("Cannot find details' layer '{}'".format(feature.get_property('details')))
 
-            outline_feature = hires_layer.features_with_id.get(hires_layer.outline_feature_id)
+            outline_feature = hires_layer.features_by_id.get(hires_layer.outline_feature_id)
             if outline_feature is None:
                 raise KeyError("Cannot find outline feature '{}'".format(hires_layer.outline_feature_id))
 
@@ -381,7 +381,7 @@ class Flatmap(object):
     #==========================
         metadata = []
         for layer in self.__layer_dict.values():
-            if not layer.hidden:
+            if layer.output_layer:
                 map_layer = {
                     'id': layer.id,
                     'description': layer.description,
@@ -401,7 +401,7 @@ class Flatmap(object):
     #==========================
         print('Outputting GeoJson features...')
         for layer in self.__layer_dict.values():
-            if not layer.hidden:
+            if layer.output_layer:
                 print('Layer:', layer.id)
                 layer.extend_nerve_cuffs()
                 geojson_output = GeoJSONOutput(layer.id, self.__map_area, self.__map_dir)
