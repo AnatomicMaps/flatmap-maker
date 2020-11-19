@@ -81,10 +81,8 @@ class PowerpointSource(MapSource):
                 pdf_bytes = io.BytesIO(response.content)
             else:
                 if not os.path.exists(pdf_source):
-                    pptx_bytes.close()
                     raise ValueError('Missing PDF of Powerpoint (needed to generate background tiles)')
                 if os.path.getmtime(pdf_source) < pptx_modified:
-                    pptx_bytes.close()
                     raise ValueError('PDF of Powerpoint is too old...')
                 with open(pdf_source, 'rb') as f:
                     pdf_bytes = f.read()
