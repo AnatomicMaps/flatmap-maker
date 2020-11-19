@@ -52,7 +52,7 @@ class PowerpointSource(MapSource):
             pptx_file = io.BytesIO(response.content)
         else:
             if not os.path.exists(source_path):
-                raise ValueErrort('Missing Powerpoint file')
+                raise ValueError('Missing Powerpoint file')
             pptx_modified = os.path.getmtime(source_path)
             pptx_file = open(source_path, 'rb')
 
