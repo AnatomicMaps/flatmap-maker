@@ -55,7 +55,7 @@ def main():
     parser.add_argument('-s', '--save-geojson', dest='saveGeoJSON', action='store_true',
                         help='Save GeoJSON files for each layer')
 
-    parser.add_argument('--clear', action='store_true',
+    parser.add_argument('--clean', action='store_true',
                         help="Remove all files from generated map's directory before generating new map")
     parser.add_argument('--refresh-labels', dest='refreshLabels', action='store_true',
                         help='Clear the label text cache before map making')

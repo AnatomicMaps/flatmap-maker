@@ -90,7 +90,7 @@ class Flatmap(object):
         if not os.path.exists(map_base):
             os.makedirs(map_base)
         self.__map_dir = os.path.join(map_base, self.__id)
-        if options.get('clear', False):
+        if options.get('clean', False):
             shutil.rmtree(self.__map_dir, True)
         if not os.path.exists(self.__map_dir):
             os.makedirs(self.__map_dir)
