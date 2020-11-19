@@ -30,7 +30,7 @@ from pptx import Presentation
 
 from .. import MapSource, ImageTileSource
 
-from mapmaker.geometry import mercator_transform, mercator_transformer, transform_point
+from mapmaker.geometry import transform_point
 
 from .slide import PowerpointSlide
 
@@ -69,7 +69,7 @@ class PowerpointSource(MapSource):
         top_left = transform_point(self.__transform, (0, 0))
         bottom_right = transform_point(self.__transform, (width, height))
         # southwest and northeast corners
-        self.__bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
+        self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
         if get_background:
             pdf_source = '{}.pdf'.format(os.path.splitext(source_path)[0])
@@ -117,17 +117,6 @@ class PowerpointSource(MapSource):
                 print(error)
             else:
                 self.add_layer(slide_layer.feature_layer)
-
-    def map_area(self):
-    #==================
-        return abs(self.__bounds[2] - self.__bounds[0]) * (self.__bounds[3] - self.__bounds[1])
-
-    def extent(self):
-    #================
-        bounds = self.__bounds
-        sw = mercator_transformer.transform(self.__bounds[0], self.__bounds[1])
-        ne = mercator_transformer.transform(self.__bounds[2], self.__bounds[3])
-        return (sw[0], sw[1], ne[0], ne[1])
 
 #===============================================================================
 
