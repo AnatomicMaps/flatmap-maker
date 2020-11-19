@@ -228,7 +228,7 @@ class PowerpointSlide(object):
             interior_polygon = shapely.ops.unary_union(interior_polygons)
             for feature in group_features:
                 if (feature.has_property('markup')
-                and not feature.get_property('interior')
+                and feature.get_property('exterior')
                 and feature.geom_type in ['Polygon', 'MultiPolygon']):
                     feature.geometry = feature.geometry.buffer(0).difference(interior_polygon)
 

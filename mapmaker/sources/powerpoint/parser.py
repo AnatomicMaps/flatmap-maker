@@ -62,6 +62,7 @@ FEATURE_PROPERTIES = CLASS | CHILDCLASSES | IDENTIFIER | STYLE
 
 SHAPE_FLAGS = Group(Keyword('boundary')
                   | Keyword('closed')
+                  | Keyword('exterior')
                   | Keyword('interior')
                   )
 
