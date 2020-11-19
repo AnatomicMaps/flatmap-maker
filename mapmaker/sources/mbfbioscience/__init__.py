@@ -32,7 +32,9 @@ import shapely.geometry
 #===============================================================================
 
 from .. import MapSource
-from mapmaker.geometry import mercator_transform, mercator_transformer, transform_point
+
+from mapmaker.flatmap.layers import FeatureLayer
+from mapmaker.geometry import transform_point
 from mapmaker.output.tilemaker import make_background_tiles_from_image
 
 #===============================================================================
@@ -42,11 +44,14 @@ METRES_PER_UM = 100
 #===============================================================================
 
 class MBFSource(MapSource):
-    def __init__(self, xml_file, id):
-        super().__init__(id)
-        self.__xml_file = xml_file
+    def __init__(self, flatmap, id, source_path, boundary_id=None):
+        super().__init__(flatmap, id)
+        self.__boundary_id = boundary_id
 
-        self.__mbf = etree.parse(xml_file).getroot()
+        self.__layer = FeatureLayer(id, source_path)
+        self.add_layer(self.__layer)
+
+        self.__mbf = etree.parse(source_path).getroot()
         self.__ns = self.__mbf.nsmap[None]
 
         sparcdata = self.__mbf.find(self.ns_tag('sparcdata'))
@@ -60,17 +65,22 @@ class MBFSource(MapSource):
         offset = (float(coord_element.get('x', 0.0)), float(coord_element.get('y', 0.0)))
 
         filename = image_element.find(self.ns_tag('filename')).text
-        image_file = Path(xml_file).with_name(filename.split('\\')[-1])
+        image_file = Path(source_path).with_name(filename.split('\\')[-1])
         #self.__image = Image.open(image_file)
         self.__image = cv2.imread(image_file.as_posix(), cv2.IMREAD_UNCHANGED)
 
         image_size = (self.__image.shape[1], self.__image.shape[0])
-        self.__bounds = (0, 0, scaling[0]*image_size[0], -scaling[1]*image_size[1])  # um
+        (width, height) = (scaling[0]*image_size[0], -scaling[1]*image_size[1])               # um
         self.__transform = np.array([[METRES_PER_UM,             0, 0],
                                      [            0, METRES_PER_UM, 0],
-                                     [            0,             0, 1]])@np.array([[1, 0, -self.__bounds[2]/2.0],
-                                                                                   [0, 1, -self.__bounds[3]/2.0],
-                                                                                   [0, 0,                   1.0]])
+                                     [            0,             0, 1]])@np.array([[1, 0, -width/2.0],
+                                                                                   [0, 1, -height/2.0],
+                                                                                   [0, 0,         1.0]])
+        top_left = transform_point(self.__transform, (0, 0))
+        bottom_right = transform_point(self.__transform, (width, height))
+        # southwest and northeast corners
+        self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
+
     @property
     def image(self):
         return self.__image
@@ -83,27 +93,12 @@ class MBFSource(MapSource):
     def species(self):
         return self.__species
 
-    def map_area(self):
-    #==================
-        top_left = transform_point(self.__transform, (self.__bounds[0], self.__bounds[1]))
-        bottom_right = transform_point(self.__transform, (self.__bounds[2], self.__bounds[3]))
-        return abs(bottom_right[0] - top_left[0]) * (top_left[1] - bottom_right[1])
-
-    def latlng_bounds(self):
-    #=======================
-        top_left = mercator_transformer.transform(*transform_point(self.__transform, (self.__bounds[0], self.__bounds[1])))
-        bottom_right = mercator_transformer.transform(*transform_point(self.__transform, (self.__bounds[2], self.__bounds[3])))
-        # southwest and northeast corners
-        return (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-
     def ns_tag(self, tag):
     #=====================
         return '{{{}}}{}'.format(self.__ns, tag)
 
-    def geojson_features(self, tile_layer):
-    #======================================
-        features = []
-        next_id = 1
+    def process(self):
+    #=================
         for contour in self.__mbf.findall(self.ns_tag('contour')):
             label = contour.get('name')
             association = contour.xpath('ns:property[@name="TraceAssociation"]/ns:s', namespaces={'ns': self.__ns})
@@ -115,52 +110,20 @@ class MBFSource(MapSource):
                 points.append(transform_point(self.__transform, (x, y)))
 
             if contour.get('closed'):
-                if points[0] != points[-1]:
+                if (points[0] != points[-1]).all():
                     points.append(points[-1])
                 geometry = shapely.geometry.Polygon((points))
             else:
                 geometry = shapely.geometry.LineString(points)
-            mercator_geometry = mercator_transform(geometry)
 
-            source_layer = '{}-{}'.format(self.id, tile_layer)
-            feature = {
-                'type': 'Feature',
-                'id': next_id,   # Must be numeric for tipeecanoe
-                'tippecanoe' : {
-                    'layer' : source_layer
-                },
-                'geometry': shapely.geometry.mapping(mercator_geometry),
-                'properties': {
-                    'area': geometry.area,
-                    'bounds': list(mercator_geometry.bounds),
-                    # The viewer requires `centroid`
-                    'centroid': list(list(mercator_geometry.centroid.coords)[0]),
-                    'id': '{}#{}'.format(self.id, next_id),
-                    'length': geometry.length,
-                    'layer': self.id,
-                    'source-layer': source_layer,
-                    'tile-layer': 'features',
-                    'scale': 1,
-                }
-            }
+            properties = {'tile-layer': 'features'}
             if label is not None:
-                feature['properties']['label'] = label
+                properties['label'] = label
             if anatomical_id is not None:
-                feature['properties']['models'] = anatomical_id
-            features.append(feature)
-            next_id += 1
-
-        return features
-
-    def save(self, map_dir):
-    #=======================
-        tile_layer = 'features'
-        filename = os.path.join(map_dir, '{}_{}.json'.format(self.id, tile_layer))
-        # Tippecanoe doesn't need a FeatureCollection
-        # Delimit features with RS...LF   (RS = 0x1E)
-        with open(filename, 'w') as output_file:
-            for feature in self.geojson_features(tile_layer):
-                output_file.write('\x1E{}\x0A'.format(json.dumps(feature)))
-        return {tile_layer: filename}
+                properties['models'] = anatomical_id
+            feature = self.flatmap.new_feature(geometry, properties)
+            self.__layer.add_feature(feature)
+            if anatomical_id == self.__boundary_id:
+                self.__layer.outline_feature_id = feature.id
 
 #===============================================================================

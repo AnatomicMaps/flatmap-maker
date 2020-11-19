@@ -47,6 +47,7 @@ from output.tilemaker import TileMaker
 
 from properties import JsonProperties
 
+from sources.mbfbioscience import MBFSource
 from sources.powerpoint import PowerpointSource
 
 #===============================================================================
@@ -207,7 +208,8 @@ class Flatmap(object):
                 source = PowerpointSource(self, source_id, source_href,
                                           get_background=background_tiles)
             elif source_kind == 'image':
-                source = MBFImageSource(self, source_id, source_href)
+                source = MBFSource(self, source_id, source_href,
+                                   boundary_id=source.get('boundary'))
             elif source_kind in ['base', 'details']:
                 # source = SVGSource(self, source_id, source_href)
                 pass

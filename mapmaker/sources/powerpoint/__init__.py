@@ -43,7 +43,7 @@ METRES_PER_EMU = 0.1   ## This to become a command line parameter...
 
 class PowerpointSource(MapSource):
     def __init__(self, flatmap, id, source_path, get_background=False):
-        super().__init__(flatmap, id, source_path)
+        super().__init__(flatmap, id)
         if source_path.startswith('http:') or source_path.startswith('https:'):
             response = requests.get(source_path)
             if response.status_code != requests.codes.ok:

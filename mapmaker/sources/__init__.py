@@ -23,11 +23,10 @@ from mapmaker.geometry import mercator_transformer
 #===============================================================================
 
 class MapSource(object):
-    def __init__(self, flatmap, id, source_path):
+    def __init__(self, flatmap, id):
         self.__flatmap = flatmap
         self.__id = id
         self.__errors = []
-        self.__path = source_path
         self.__layers = []
         self.__bounds = (0, 0, 0, 0)
 
