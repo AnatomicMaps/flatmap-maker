@@ -72,16 +72,9 @@ class FeatureLayer(object):
     def id(self):
         return self.__id
 
-    def set_id(self, id):
-        self.__id = id
-
     @property
     def image_sources(self):
         return self.__image_sources
-
-    @property
-    def feature_types(self):
-        return self.__feature_types
 
     @property
     def outline_feature_id(self):
