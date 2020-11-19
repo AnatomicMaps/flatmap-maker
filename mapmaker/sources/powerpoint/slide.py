@@ -126,6 +126,7 @@ class PowerpointSlide(object):
 
         debug_group = False
         child_class = None
+        generate_group = False
         single_features = [ feature for feature in features if not feature.has_children ]
         for feature in single_features:
             if feature.get_property('boundary'):
@@ -146,6 +147,7 @@ class PowerpointSlide(object):
                     else:
                         raise ValueError('Class of boundary shapes have changed in group{}: {}'.format(group_name, feature))
             elif feature.get_property('group'):
+                generate_group = True
                 child_class = feature.del_property('children')
                 grouped_properties.update(feature.copy_properties())
             elif feature.get_property('region'):
@@ -231,37 +233,37 @@ class PowerpointSlide(object):
                     feature.geometry = feature.geometry.buffer(0).difference(interior_polygon)
 
         # Construct a MultiPolygon containing all of the group's polygons
-
-        ### But only if the group contains a `.group` element...
-
-        grouped_polygon_features = [ feature for feature in features if feature.has_children ]
-        for feature in group_features:
-            grouped_polygon_features.append(feature)
+        # But only if the group contains a `.group` element...
 
         feature_group = None  # Our returned Feature
-        grouped_lines = []
-        for feature in grouped_polygon_features:
-            if feature.get_property('tile-layer') != 'pathways':
-                if feature.geom_type == 'LineString':
-                    grouped_lines.append(feature.geometry)
-                elif feature.geom_type == 'MultiLineString':
-                    grouped_lines.extend(list(feature.geometry))
-        if len(grouped_lines):
-            feature_group = self.__flatmap.new_feature(
-                  shapely.geometry.MultiLineString(grouped_lines),
-                  grouped_properties, True)
-            group_features.append(feature_group)
-        grouped_polygons = []
-        for feature in grouped_polygon_features:
-            if feature.geom_type == 'Polygon':
-                grouped_polygons.append(feature.geometry)
-            elif feature.geom_type == 'MultiPolygon':
-                grouped_polygons.extend(list(feature.geometry))
-        if len(grouped_polygons):
-            feature_group = self.__flatmap.new_feature(
-                    shapely.geometry.MultiPolygon(grouped_polygons),
-                    grouped_properties, True)
-            group_features.append(feature_group)
+        if generate_group:
+            grouped_polygon_features = [ feature for feature in features if feature.has_children ]
+            for feature in group_features:
+                grouped_polygon_features.append(feature)
+
+            grouped_lines = []
+            for feature in grouped_polygon_features:
+                if feature.get_property('tile-layer') != 'pathways':
+                    if feature.geom_type == 'LineString':
+                        grouped_lines.append(feature.geometry)
+                    elif feature.geom_type == 'MultiLineString':
+                        grouped_lines.extend(list(feature.geometry))
+            if len(grouped_lines):
+                feature_group = self.__flatmap.new_feature(
+                      shapely.geometry.MultiLineString(grouped_lines),
+                      grouped_properties, True)
+                group_features.append(feature_group)
+            grouped_polygons = []
+            for feature in grouped_polygon_features:
+                if feature.geom_type == 'Polygon':
+                    grouped_polygons.append(feature.geometry)
+                elif feature.geom_type == 'MultiPolygon':
+                    grouped_polygons.extend(list(feature.geometry))
+            if len(grouped_polygons):
+                feature_group = self.__flatmap.new_feature(
+                        shapely.geometry.MultiPolygon(grouped_polygons),
+                        grouped_properties, True)
+                group_features.append(feature_group)
 
         # Feature specific properties have precedence over group's
 
