@@ -51,7 +51,7 @@ class MapSource(object):
         return self.__id
 
     @property
-    def image_tile_source(self):
+    def tiled_raster_source(self):
         return None
 
     @property
@@ -83,7 +83,7 @@ class MapSource(object):
 
 #===============================================================================
 
-class ImageTileSource(object):
+class RasterSource(object):
     def __init__(self, source_kind, source_bytes):
         self.__source_kind = source_kind
         self.__source_bytes = source_bytes

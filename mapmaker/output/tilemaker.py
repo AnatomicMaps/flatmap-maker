@@ -185,7 +185,7 @@ class TileExtractor(object):
 
 #===============================================================================
 
-class ImageTileExtractor(TileExtractor):
+class RasterTileExtractor(TileExtractor):
     def __init__(self, tile_pixel_rect, image):
         if image.shape[2] == 3:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
@@ -232,7 +232,7 @@ class PDFTileExtractor(TileExtractor):
 
 #===============================================================================
 
-class TileMaker(object):
+class RasterTileMaker(object):
     """
     A class for generating image tiles for a map
 
@@ -349,8 +349,8 @@ class TileMaker(object):
     def make_tiles(self, source, layer_id):
     #======================================
         print('Tiling {}...'.format(layer_id))
-        if source.source_kind == 'image':
-            tile_extractor = ImageTileExtractor(self.__map_rect, source.source_bytes)
+        if source.source_kind == 'raster':
+            tile_extractor = RasterTileExtractor(self.__map_rect, source.source_bytes)
         elif source.source_kind == 'pdf':
             pdf = fitz.Document(stream=source.source_bytes, filetype='application/pdf')
             # Tile the first page of a PDF

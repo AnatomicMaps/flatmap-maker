@@ -31,7 +31,7 @@ import shapely.geometry
 
 #===============================================================================
 
-from .. import MapSource
+from .. import MapSource, RasterSource
 
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import transform_point
@@ -82,8 +82,8 @@ class MBFSource(MapSource):
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
     @property
-    def image(self):
-        return self.__image
+    def tiled_raster_source(self):
+        return self.__tiled_raster_source
 
     @property
     def organ(self):

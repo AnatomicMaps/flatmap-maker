@@ -28,7 +28,7 @@ from pptx import Presentation
 
 #===============================================================================
 
-from .. import MapSource, ImageTileSource
+from .. import MapSource, RasterSource
 
 from mapmaker.geometry import transform_point
 
@@ -86,13 +86,13 @@ class PowerpointSource(MapSource):
                     raise ValueError('PDF of Powerpoint is too old...')
                 with open(pdf_source, 'rb') as f:
                     pdf_bytes = f.read()
-            self.__image_tile_source = ImageTileSource('pdf', pdf_bytes)
+            self.__tiled_raster_source = RasterSource('pdf', pdf_bytes)
         else:
-            self.__image_tile_source = None
+            self.__tiled_raster_source = None
 
     @property
-    def image_tile_source(self):
-        return self.__image_tile_source
+    def tiled_raster_source(self):
+        return self.__tiled_raster_source
 
     @property
     def transform(self):

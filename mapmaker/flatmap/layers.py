@@ -30,12 +30,12 @@ class FeatureLayer(object):
         self.__description = 'Layer {}'.format(id)
         self.__features = []
         self.__features_by_id = {}
-        self.__image_sources = []
         self.__detail_features = []
         self.__feature_types = []
 #*        self.__ontology_data = self.options.ontology_data
         self.__output_layer = output_layer
         self.__queryable_nodes = False
+        self.__raster_sources = []
         self.__selectable = True
         self.__selected = False
         self.__zoom = None
@@ -77,8 +77,8 @@ class FeatureLayer(object):
         return self.__id
 
     @property
-    def image_sources(self):
-        return self.__image_sources
+    def raster_sources(self):
+        return self.__raster_sources
 
     @property
     def outline_feature_id(self):
@@ -138,9 +138,9 @@ class FeatureLayer(object):
             'type': feature.get_property('geometry')
         })
 
-    def add_image_source(self, id, tile_source, min_zoom, extent, bounding_box=None, image_transform=None):
+    def add_raster_source(self, id, tile_source, min_zoom, extent, bounding_box=None, image_transform=None):
     #======================================================================================================
-        self.__image_sources.append(ImageLayerSource(id, tile_source, min_zoom, extent, bounding_box, image_transform))
+        self.__raster_sources.append(RasterLayerSource(id, tile_source, min_zoom, extent, bounding_box, image_transform))
 
     def set_feature_properties(self, property_data):
     #===============================================
@@ -167,7 +167,7 @@ class FeatureLayer(object):
 
 #===============================================================================
 
-class ImageLayerSource(object):
+class RasterLayerSource(object):
     def __init__(self, id, tile_source, min_zoom, extent, bounding_box=None, image_transform=None):
         self.__id = '{}_image'.format(id)
         self.__tile_source = tile_source

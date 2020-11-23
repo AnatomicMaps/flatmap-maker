@@ -44,7 +44,7 @@ from output.geojson import GeoJSONOutput
 from output.mbtiles import MBTiles
 from output.styling import Style
 from output.tilejson import tile_json
-from output.tilemaker import TileMaker
+from output.tilemaker import RasterTileMaker
 
 from properties import JsonProperties
 
@@ -172,7 +172,7 @@ class Flatmap(object):
             self.__make_vector_tiles()
             # Generate image tiles
             if self.__options.get('backgroundTiles', False):
-                self.__make_image_tiles()
+                self.__make_raster_tiles()
             # Save the flatmap's metadata
             self.__save_metadata()
             # Upload the generated map to a server
@@ -263,7 +263,7 @@ class Flatmap(object):
         for layer in source.layers:
             self.__add_layer(layer)
             if layer.output_layer:
-                layer.add_image_source(layer.id, source.image_tile_source, self.__zoom[0], source.extent())
+                layer.add_raster_source(layer.id, source.tiled_raster_source, self.__zoom[0], source.extent())
 
     def __set_feature_properties(self):
     #==================================
@@ -355,12 +355,12 @@ class Flatmap(object):
         if extra_details:
             self.__add_detail_features(layer, detail_layer, extra_details)
 
-    def __make_image_tiles(self):
+    def __make_raster_tiles(self):
     #============================
         print('Generating background tiles (may take a while...)')
         for layer in self.__layer_dict.values():
-            for source in layer.image_sources:
-                tilemaker = TileMaker(source.extent, self.__map_dir, source.min_zoom, self.__zoom[1])
+            for source in layer.raster_sources:
+                tilemaker = RasterTileMaker(source.extent, self.__map_dir, source.min_zoom, self.__zoom[1])
                 tilemaker.make_tiles(source.tile_source, source.id)
                 self.__upload_files.extend(tilemaker.database_names)
 
@@ -409,7 +409,7 @@ class Flatmap(object):
                     'selected': layer.selected,
                     'queryable-nodes': layer.queryable_nodes,
                     'features': layer.feature_types,
-                    'image-layers': [source.id for source in layer.image_sources]
+                    'image-layers': [source.id for source in layer.raster_sources]
                 }
 ## FIX ??               if layer.slide_id is not None:
 ## layer source v's map source v's spec info.
@@ -467,9 +467,9 @@ class Flatmap(object):
 #*        ##update_RDF(options['map_base'], options['map_id'], source, annotations)
 
         # Get list of all image sources from all layers
-        image_sources = []
+        raster_sources = []
         for layer in self.__layer_dict.values():
-            image_sources.extend(layer.image_sources)
+            raster_sources.extend(layer.raster_sources)
 
         map_index = {
             'id': self.__id,
@@ -477,7 +477,7 @@ class Flatmap(object):
             'max-zoom': self.__zoom[1],
             'bounds': self.__extent,
             'version': FLATMAP_VERSION,
-            'image_layer': len(image_sources) > 0  ## For compatibility
+            'image_layer': len(raster_sources) > 0  ## For compatibility
         }
         if self.__models is not None:
             map_index['describes'] = self.__models
@@ -487,7 +487,7 @@ class Flatmap(object):
 
         # Create style file
         metadata = tile_db.metadata()
-        style_dict = Style.style(image_sources, metadata, self.__zoom)
+        style_dict = Style.style(raster_sources, metadata, self.__zoom)
         with open(os.path.join(self.__map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
