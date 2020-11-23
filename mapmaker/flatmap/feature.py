@@ -33,6 +33,7 @@ class Feature(object):
         self.__geometry = geometry
         self.__properties = properties
         self.__properties['featureId'] = feature_id   # Used by flatmap viewer
+        self.__properties['geometry'] = geometry.geom_type
         self.__has_children = has_children
 
     def __str__(self):

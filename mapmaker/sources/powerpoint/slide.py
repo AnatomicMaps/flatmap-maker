@@ -277,7 +277,6 @@ class PowerpointSlide(object):
                 for (key, value) in default_properties.items():
                     if not feature.has_property(key):
                         feature.set_property(key, value)
-                feature.set_property('geometry', feature.geometry.geom_type)
                 self.__feature_layer.add_feature(feature)
 
         return feature_group
