@@ -77,7 +77,6 @@ class GeoJSONOutput(object):
 
         for feature in features:
             properties = feature.copy_properties()
-            source_layer = '{}_{}'.format(self.__layer.id, properties['tile-layer'])
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
@@ -85,7 +84,7 @@ class GeoJSONOutput(object):
                 'type': 'Feature',
                 'id': feature.feature_id,
                 'tippecanoe' : {
-                    'layer' : source_layer
+                    'layer' : properties['tile-layer']
                 },
                 'geometry': shapely.geometry.mapping(mercator_geometry),
                 'properties': {
@@ -94,7 +93,7 @@ class GeoJSONOutput(object):
                     'centroid': list(list(mercator_geometry.centroid.coords)[0]),
                     'area': area,
                     'length': geometry.length,
-                    'layer': source_layer,
+                    'layer': self.__layer.id,
                 }
             }
             if 'maxzoom' in properties:
