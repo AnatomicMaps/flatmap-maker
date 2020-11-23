@@ -388,10 +388,7 @@ class PowerpointSlide(object):
 
         features = []
         for shape in shapes:
-            properties = {
-                'shape-name': shape.name,
-                'tile-layer': 'features'
-                }
+            properties = {'tile-layer': 'features'}   # Passed through to map viewer
             if shape.name.startswith('.'):
                 group_name = self.__current_group[-1]  # For error reporting
                 properties.update(parse_shape_markup(shape.name))

@@ -232,12 +232,10 @@ class Pathways(object):
                 properties['type'] = 'line-dash' if properties['kind'].endswith('-post') else 'line'
             else:
                 properties['type'] = 'line'
-            properties['path-id'] = path_id
             properties['tile-layer'] = 'pathways'
             self.__layer_paths.add(path_id)
         elif id in self.__paths_by_nerve_id:
             path_id = self.__paths_by_nerve_id[id][0]
-            properties['path-id'] = path_id
             properties['tile-layer'] = 'pathways'
             properties['type'] = 'nerve'
             self.__layer_paths.add(path_id)
