@@ -48,7 +48,7 @@ class MBFSource(MapSource):
         super().__init__(flatmap, id)
         self.__boundary_id = boundary_id
 
-        self.__layer = FeatureLayer(id, source_path)
+        self.__layer = FeatureLayer(id, self)
         self.add_layer(self.__layer)
 
         self.__mbf = etree.parse(source_path).getroot()
