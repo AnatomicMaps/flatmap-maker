@@ -35,7 +35,7 @@ class FeatureLayer(object):
 #*        self.__ontology_data = self.options.ontology_data
         self.__output_layer = output_layer
         self.__queryable_nodes = False
-        self.__raster_sources = []
+        self.__raster_layers = []
         self.__selectable = True
         self.__selected = False
         self.__zoom = None
@@ -77,8 +77,8 @@ class FeatureLayer(object):
         return self.__id
 
     @property
-    def raster_sources(self):
-        return self.__raster_sources
+    def raster_layers(self):
+        return self.__raster_layers
 
     @property
     def outline_feature_id(self):
@@ -138,9 +138,9 @@ class FeatureLayer(object):
             'type': feature.get_property('geometry')
         })
 
-    def add_raster_source(self, id, tile_source, min_zoom, extent, bounding_box=None, image_transform=None):
-    #======================================================================================================
-        self.__raster_sources.append(RasterLayerSource(id, tile_source, min_zoom, extent, bounding_box, image_transform))
+    def add_raster_layer(self, id, raster_source, min_zoom, extent, **kwargs):
+    #=======================================================================
+        self.__raster_layers.append(RasterTileLayer(id, raster_source, min_zoom, extent, **kwargs))
 
     def set_feature_properties(self, property_data):
     #===============================================
@@ -167,10 +167,10 @@ class FeatureLayer(object):
 
 #===============================================================================
 
-class RasterLayerSource(object):
-    def __init__(self, id, tile_source, min_zoom, extent, bounding_box=None, image_transform=None):
+class RasterTileLayer(object):
+    def __init__(self, id, raster_source, min_zoom, extent, bounding_box=None, image_transform=None):
         self.__id = '{}_image'.format(id)
-        self.__tile_source = tile_source
+        self.__raster_source = raster_source
         self.__min_zoom = min_zoom
         self.__extent = extent
         self.__bounding_box = bounding_box
@@ -197,7 +197,7 @@ class RasterLayerSource(object):
         return self.__min_zoom
 
     @property
-    def tile_source(self):
-        return self.__tile_source
+    def raster_source(self):
+        return self.__raster_source
 
 #===============================================================================

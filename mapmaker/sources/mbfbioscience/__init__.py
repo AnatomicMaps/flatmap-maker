@@ -67,7 +67,7 @@ class MBFSource(MapSource):
         filename = image_element.find(self.ns_tag('filename')).text
         image_file = Path(source_path).with_name(filename.split('\\')[-1])
         image = cv2.imread(image_file.as_posix(), cv2.IMREAD_UNCHANGED)
-        self.__tiled_raster_source = RasterSource('raster', image)
+        self.__raster_source = RasterSource('raster', image)
 
         image_size = (image.shape[1], image.shape[0])
         (width, height) = (scaling[0]*image_size[0], -scaling[1]*image_size[1])               # um
@@ -82,8 +82,8 @@ class MBFSource(MapSource):
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
     @property
-    def tiled_raster_source(self):
-        return self.__tiled_raster_source
+    def raster_source(self):
+        return self.__raster_source
 
     @property
     def organ(self):

@@ -86,13 +86,13 @@ class PowerpointSource(MapSource):
                     raise ValueError('PDF of Powerpoint is too old...')
                 with open(pdf_source, 'rb') as f:
                     pdf_bytes = f.read()
-            self.__tiled_raster_source = RasterSource('pdf', pdf_bytes)
+            self.__raster_source = RasterSource('pdf', pdf_bytes)
         else:
-            self.__tiled_raster_source = None
+            self.__raster_source = None
 
     @property
-    def tiled_raster_source(self):
-        return self.__tiled_raster_source
+    def raster_source(self):
+        return self.__raster_source
 
     @property
     def transform(self):

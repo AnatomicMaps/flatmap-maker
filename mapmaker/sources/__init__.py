@@ -55,7 +55,7 @@ class MapSource(object):
         return self.__id
 
     @property
-    def tiled_raster_source(self):
+    def raster_source(self):
         return None
 
     @property

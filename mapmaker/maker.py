@@ -263,7 +263,7 @@ class Flatmap(object):
         for layer in source.layers:
             self.__add_layer(layer)
             if layer.output_layer:
-                layer.add_raster_source(layer.id, source.tiled_raster_source, self.__zoom[0], source.extent)
+                layer.add_raster_layer(layer.id, source.raster_source, self.__zoom[0], source.extent)
 
     def __set_feature_properties(self):
     #==================================
@@ -325,9 +325,9 @@ class Flatmap(object):
                 # Set the feature's geometry to that of the high-resolution outline
                 feature.geometry = shapely.affinity.affine_transform(outline_feature.geometry, transform)
 
-            layer.add_raster_source('{}_{}'.format(detail_layer.id, hires_layer.id),
-                                   hires_layer.source.tiled_raster_source,
-                                   minzoom, hires_layer.source.extent)
+            layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
+                                    hires_layer.source.raster_source,
+                                    minzoom, hires_layer.source.extent)
 
             # The detail layer gets a scaled copy of each high-resolution feature
             for hires_feature in hires_layer.features:
@@ -355,9 +355,9 @@ class Flatmap(object):
     #============================
         print('Generating background tiles (may take a while...)')
         for layer in self.__layer_dict.values():
-            for source in layer.raster_sources:
-                tilemaker = RasterTileMaker(source.extent, self.__map_dir, source.min_zoom, self.__zoom[1])
-                tilemaker.make_tiles(source.tile_source, source.id)
+            for raster_layer in layer.raster_layers:
+                tilemaker = RasterTileMaker(raster_layer.extent, self.__map_dir, raster_layer.min_zoom, self.__zoom[1])
+                tilemaker.make_tiles(raster_layer.raster_source, raster_layer.id)
                 self.__upload_files.extend(tilemaker.database_names)
 
     def __make_vector_tiles(self, compressed=True):
@@ -407,7 +407,7 @@ class Flatmap(object):
                     'selected': layer.selected,
                     'queryable-nodes': layer.queryable_nodes,
                     'features': layer.feature_types,
-                    'image-layers': [source.id for source in layer.raster_sources]
+                    'image-layers': [source.id for source in layer.raster_layers]
                 }
 ## FIX ??               if layer.slide_id is not None:
 ## layer source v's map source v's spec info.
@@ -465,9 +465,9 @@ class Flatmap(object):
 #*        ##update_RDF(options['map_base'], options['map_id'], source, annotations)
 
         # Get list of all image sources from all layers
-        raster_sources = []
+        raster_layers = []
         for layer in self.__layer_dict.values():
-            raster_sources.extend(layer.raster_sources)
+            raster_layers.extend(layer.raster_layers)
 
         map_index = {
             'id': self.__id,
@@ -475,7 +475,7 @@ class Flatmap(object):
             'max-zoom': self.__zoom[1],
             'bounds': self.__extent,
             'version': FLATMAP_VERSION,
-            'image_layer': len(raster_sources) > 0  ## For compatibility
+            'image_layer': len(raster_layers) > 0  ## For compatibility
         }
         if self.__models is not None:
             map_index['describes'] = self.__models
@@ -485,7 +485,7 @@ class Flatmap(object):
 
         # Create style file
         metadata = tile_db.metadata()
-        style_dict = Style.style(raster_sources, metadata, self.__zoom)
+        style_dict = Style.style(raster_layers, metadata, self.__zoom)
         with open(os.path.join(self.__map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
