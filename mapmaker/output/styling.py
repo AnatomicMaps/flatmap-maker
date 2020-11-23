@@ -77,11 +77,11 @@ class VectorSource(object):
 
 class Sources(object):
     @staticmethod
-    def style(image_sources, vector_layer_dict, bounds, map_zoom):
+    def style(raster_sources, vector_layer_dict, bounds, map_zoom):
         sources = {
             'vector-tiles': VectorSource.style(vector_layer_dict, bounds, map_zoom)
         }
-        for source in image_sources:
+        for source in raster_sources:
             sources[source.id] = RasterSource.style(source.id, bounds, source.min_zoom, map_zoom[1])
         return sources
 
@@ -89,14 +89,14 @@ class Sources(object):
 
 class Style(object):
     @staticmethod
-    def style(image_sources, metadata, map_zoom):
+    def style(raster_sources, metadata, map_zoom):
         if 'json' not in metadata:
             raise ValueError('Invalid metadata for tiles -- no geometry?')
         vector_layer_dict = json.loads(metadata['json'])
         bounds = [float(x) for x in metadata['bounds'].split(',')]
         return {
             'version': 8,
-            'sources': Sources.style(image_sources, vector_layer_dict, bounds, map_zoom),
+            'sources': Sources.style(raster_sources, vector_layer_dict, bounds, map_zoom),
             'glyphs': 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
             'zoom': map_zoom[2],
             'center': [float(x) for x in metadata['center'].split(',')],

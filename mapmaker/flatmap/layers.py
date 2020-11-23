@@ -169,7 +169,7 @@ class FeatureLayer(object):
 
 class ImageLayerSource(object):
     def __init__(self, id, tile_source, min_zoom, extent, bounding_box=None, image_transform=None):
-        self.__id = '{}-image'.format(id)
+        self.__id = '{}_image'.format(id)
         self.__tile_source = tile_source
         self.__min_zoom = min_zoom
         self.__extent = extent
