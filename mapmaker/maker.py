@@ -269,7 +269,7 @@ class Flatmap(object):
     #==================================
         for layer in self.__layer_dict.values():
             layer.set_feature_properties(self.__property_data)
-            layer.add_nerve_cuffs()
+            layer.add_nerve_details()
 
     def __add_details(self):
     #=======================
@@ -299,6 +299,7 @@ class Flatmap(object):
     #=====================================================================
         extra_details = []
         for feature in lowres_features:
+            self.__property_data.update_properties(feature)
             hires_layer_id = feature.get_property('details')
             hires_layer = self.__layer_dict.get(hires_layer_id)
             if hires_layer is None:
@@ -320,9 +321,10 @@ class Flatmap(object):
             M = cv2.getPerspectiveTransform(src, dst)
             transform = np.concatenate((M[0][0:2], M[1][0:2], M[0][2], M[1][2]), axis=None).tolist()
 
-            # Set the feature's geometry to that of the high-resolution outline
-            feature.geometry = shapely.affinity.affine_transform(outline_feature.geometry, transform)
             minzoom = feature.get_property('maxzoom') + 1
+            if feature.get_property('type') != 'nerve':
+                # Set the feature's geometry to that of the high-resolution outline
+                feature.geometry = shapely.affinity.affine_transform(outline_feature.geometry, transform)
 
 ##            layer.add_image_layer('{}-{}'.format(hires_layer.id, feature.id).replace('#', '_'),
 ##                                  hires_layer.slide_number,
@@ -336,6 +338,13 @@ class Flatmap(object):
                                                hires_feature.copy_properties())
                 new_feature.set_property('layer', layer.id)
                 new_feature.set_property('minzoom', minzoom)
+
+                if feature.get_property('type') == 'nerve':
+                #and hires_feature.feature_id == hires_layer.outline_feature_id):
+                    new_feature.set_property('type', 'nerve-section')
+                    new_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
+                    new_feature.set_property('tile-layer', 'pathways')
+
                 detail_layer.add_feature(new_feature)
                 self.save_feature_id(new_feature)
                 if new_feature.has_property('details'):

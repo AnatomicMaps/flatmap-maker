@@ -148,19 +148,21 @@ class FeatureLayer(object):
         for feature in self.__features:
             property_data.update_properties(feature)
 
-    def add_nerve_cuffs(self):
-    #=========================
+    def add_nerve_details(self):
+    #===========================
         # Add polygon features for nerve cuffs
         nerve_polygons = []
         for feature in self.__features:
-            if (feature.get_property('type') == 'nerve'  ### but we don't know this because of deferred property setting...
-            and feature.geom_type == 'LineString'):
-                nerve_polygon_feature = self.__source.flatmap.new_feature(
-                    shapely.geometry.Polygon(feature.geometry.coords), feature.copy_properties())
-                nerve_polygon_feature.del_property('models')
-                nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
-                nerve_polygon_feature.set_property('tile-layer', 'pathways')
-                nerve_polygons.append(nerve_polygon_feature)
+            if feature.get_property('type') == 'nerve':
+                if not feature.has_property('nerveId'):
+                    feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
+                if feature.geom_type == 'LineString':
+                    nerve_polygon_feature = self.__source.flatmap.new_feature(
+                        shapely.geometry.Polygon(feature.geometry.coords), feature.copy_properties())
+                    nerve_polygon_feature.del_property('models')
+                    nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
+                    nerve_polygon_feature.set_property('tile-layer', 'pathways')
+                    nerve_polygons.append(nerve_polygon_feature)
         self.__features.extend(nerve_polygons)
 
 #===============================================================================

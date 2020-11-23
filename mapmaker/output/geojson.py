@@ -77,7 +77,7 @@ class GeoJSONOutput(object):
 
         for feature in features:
             properties = feature.copy_properties()
-            source_layer = '{}-{}'.format(self.__layer.id, properties['tile-layer'])
+            source_layer = '{}_{}'.format(self.__layer.id, properties['tile-layer'])
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
@@ -109,23 +109,18 @@ class GeoJSONOutput(object):
             else:
                 geojson['properties']['scale'] = 10
 
-            if properties:
-                for (key, value) in properties.items():
-                    if not ignore_property(key):
-                        geojson['properties'][key] = value
-                properties['bounds'] = geojson['properties']['bounds']
-                properties['centroid'] = geojson['properties']['centroid']
-                properties['geometry'] = geojson['geometry']['type']
-                properties['layer'] = self.__layer.id
+            for (key, value) in properties.items():
+                if not ignore_property(key):
+                    geojson['properties'][key] = value
+            properties['bounds'] = geojson['properties']['bounds']
+            properties['centroid'] = geojson['properties']['centroid']
+            properties['geometry'] = geojson['geometry']['type']
+            properties['layer'] = self.__layer.id
 
-                # The layer's annotation had property details for each feature
-                self.__layer.annotations[feature.feature_id] = properties
+            # The layer's annotation had property details for each feature
+            self.__layer.annotations[feature.feature_id] = properties
 
-            if properties['tile-layer'] == 'pathways':
-                self.__geojson_layers['pathways'].append(geojson)
-            else:
-                self.__geojson_layers['features'].append(geojson)
-
+            self.__geojson_layers[properties['tile-layer']].append(geojson)
             progress_bar.update(1)
 
         progress_bar.close()
