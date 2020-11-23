@@ -66,10 +66,10 @@ class MBFSource(MapSource):
 
         filename = image_element.find(self.ns_tag('filename')).text
         image_file = Path(source_path).with_name(filename.split('\\')[-1])
-        #self.__image = Image.open(image_file)
-        self.__image = cv2.imread(image_file.as_posix(), cv2.IMREAD_UNCHANGED)
+        image = cv2.imread(image_file.as_posix(), cv2.IMREAD_UNCHANGED)
+        self.__tiled_raster_source = RasterSource('raster', image)
 
-        image_size = (self.__image.shape[1], self.__image.shape[0])
+        image_size = (image.shape[1], image.shape[0])
         (width, height) = (scaling[0]*image_size[0], -scaling[1]*image_size[1])               # um
         self.__transform = np.array([[METRES_PER_UM,             0, 0],
                                      [            0, METRES_PER_UM, 0],

@@ -326,11 +326,9 @@ class Flatmap(object):
                 # Set the feature's geometry to that of the high-resolution outline
                 feature.geometry = shapely.affinity.affine_transform(outline_feature.geometry, transform)
 
-##            layer.add_image_layer('{}-{}'.format(hires_layer.id, feature.id).replace('#', '_'),
-##                                  hires_layer.slide_number,
-##                                  minzoom,
-##                                  bounding_box=outline_feature.geometry.bounds,
-##                                  image_transform=M)
+            layer.add_raster_source('{}_{}'.format(detail_layer.id, hires_layer.id),
+                                   hires_layer.source.tiled_raster_source,
+                                   minzoom, hires_layer.source.extent())
 
             # The detail layer gets a scaled copy of each high-resolution feature
             for hires_feature in hires_layer.features:
