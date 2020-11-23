@@ -358,6 +358,7 @@ class Flatmap(object):
             for raster_layer in layer.raster_layers:
                 tilemaker = RasterTileMaker(raster_layer.extent, self.__map_dir, raster_layer.min_zoom, self.__zoom[1])
                 tilemaker.make_tiles(raster_layer.raster_source, raster_layer.id)
+                tilemaker.make_tiles(raster_layer.id, raster_layer.raster_source)
                 self.__upload_files.extend(tilemaker.database_names)
 
     def __make_vector_tiles(self, compressed=True):

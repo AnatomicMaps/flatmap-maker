@@ -346,7 +346,7 @@ class RasterTileMaker(object):
             progress_bar.close()
             self.__make_overview_tiles(mbtiles, layer_id, zoom, half_start, half_end)
 
-    def make_tiles(self, source, layer_id):
+    def make_tiles(self, layer_id, source):
     #======================================
         print('Tiling {}...'.format(layer_id))
         if source.source_kind == 'raster':
