@@ -380,9 +380,11 @@ class Flatmap(object):
                         ]
         if not compressed:
             tippe_command.append('--no-tile-compression')
-        subprocess.run(tippe_command
-                       + list(["-L{}".format(json.dumps(input)) for input in self.__tippe_inputs])
-                      )
+        tippe_command += list(["-L{}".format(json.dumps(input)) for input in self.__tippe_inputs])
+
+        if self.__options.get('showTippe', False):
+            print('  \\\n    '.join(tippe_command))
+        subprocess.run(tippe_command)
 
         # `tippecanoe` uses the bounding box containing all features as the
         # map bounds, which is not the same as the extracted bounds, so update

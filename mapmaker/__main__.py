@@ -54,6 +54,8 @@ def main():
                         help="save a slide's DrawML for debugging")
     parser.add_argument('-s', '--save-geojson', dest='saveGeoJSON', action='store_true',
                         help='Save GeoJSON files for each layer')
+    parser.add_argument('-t', '--tippecanoe', dest='showTippe', action='store_true',
+                        help='Show command used to run Tippecanoe')
 
     parser.add_argument('--clean', action='store_true',
                         help="Remove all files from generated map's directory before generating new map")
