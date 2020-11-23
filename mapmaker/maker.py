@@ -224,7 +224,7 @@ class Flatmap(object):
 
             if source_kind in ['base', 'slides']:
                 if self.__extent is None:
-                    self.__extent = source.extent()
+                    self.__extent = source.extent
                     self.__centre = ((self.__extent[0] + self.__extent[2])/2,
                                      (self.__extent[1] + self.__extent[3])/2)
                     self.__map_area = source.map_area()
@@ -263,7 +263,7 @@ class Flatmap(object):
         for layer in source.layers:
             self.__add_layer(layer)
             if layer.output_layer:
-                layer.add_raster_source(layer.id, source.tiled_raster_source, self.__zoom[0], source.extent())
+                layer.add_raster_source(layer.id, source.tiled_raster_source, self.__zoom[0], source.extent)
 
     def __set_feature_properties(self):
     #==================================
@@ -327,7 +327,7 @@ class Flatmap(object):
 
             layer.add_raster_source('{}_{}'.format(detail_layer.id, hires_layer.id),
                                    hires_layer.source.tiled_raster_source,
-                                   minzoom, hires_layer.source.extent())
+                                   minzoom, hires_layer.source.extent)
 
             # The detail layer gets a scaled copy of each high-resolution feature
             for hires_feature in hires_layer.features:

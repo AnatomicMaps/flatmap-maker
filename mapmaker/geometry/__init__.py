@@ -54,6 +54,17 @@ mercator_transformer = pyproj.Transformer.from_proj(
 
 warnings.simplefilter(action='default', category=FutureWarning)
 
+def bounds_to_extent(bounds):
+#============================
+    sw = mercator_transformer.transform(*bounds[:2])
+    ne = mercator_transformer.transform(*bounds[2:])
+    return (sw[0], sw[1], ne[0], ne[1])
+
+def extent_to_bounds(extent):
+#============================
+    sw = mercator_transformer.transform(*extent[:2], direction=pyproj.enums.TransformDirection.INVERSE)
+    ne = mercator_transformer.transform(*extent[2:], direction=pyproj.enums.TransformDirection.INVERSE)
+    return (sw[0], sw[1], ne[0], ne[1])
 
 def mercator_transform(geometry):
 #================================

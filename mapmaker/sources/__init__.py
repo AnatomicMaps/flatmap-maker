@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from mapmaker.geometry import mercator_transformer
+from mapmaker.geometry import bounds_to_extent
 
 #===============================================================================
 
@@ -41,6 +41,10 @@ class MapSource(object):
     @property
     def errors(self):
         return self.__errors
+
+    @property
+    def extent(self):
+        return bounds_to_extent(self.__bounds)
 
     @property
     def flatmap(self):
@@ -69,13 +73,6 @@ class MapSource(object):
     def map_area(self):
     #==================
         return abs(self.__bounds[2] - self.__bounds[0]) * (self.__bounds[3] - self.__bounds[1])
-
-    def extent(self):
-    #================
-        bounds = self.__bounds
-        sw = mercator_transformer.transform(self.__bounds[0], self.__bounds[1])
-        ne = mercator_transformer.transform(self.__bounds[2], self.__bounds[3])
-        return (sw[0], sw[1], ne[0], ne[1])
 
     def process(self):
     #=================
