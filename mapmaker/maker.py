@@ -305,7 +305,6 @@ class Flatmap(object):
             if hires_layer is None:
                 print("Cannot find details' layer '{}'".format(feature.get_property('details')))
                 continue
-                #raise KeyError("Cannot find details' layer '{}'".format(feature.get_property('details')))
 
             outline_feature = hires_layer.features_by_id.get(hires_layer.outline_feature_id)
             if outline_feature is None:
@@ -338,7 +337,6 @@ class Flatmap(object):
                 new_feature.set_property('minzoom', minzoom)
 
                 if feature.get_property('type') == 'nerve':
-                #and hires_feature.feature_id == hires_layer.outline_feature_id):
                     new_feature.set_property('type', 'nerve-section')
                     new_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
                     new_feature.set_property('tile-layer', 'pathways')
