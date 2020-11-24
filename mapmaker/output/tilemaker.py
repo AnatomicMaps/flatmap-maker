@@ -250,7 +250,9 @@ class RasterTileMaker(object):
     :param map_zoom: The range of zoom levels to generate tiles
     :type map_zoom: tuple, optional, defaults to (`MIN_ZOOM`, `MAX_ZOOM`)
     """
-    def __init__(self, extent, output_dir, min_zoom=MIN_ZOOM, max_zoom=MAX_ZOOM):
+    def __init__(self, extent, output_dir,
+                 min_zoom=MIN_ZOOM, max_zoom=MAX_ZOOM,
+                 bounding_box=None, image_transform=None):
         self.__output_dir = output_dir
         self.__min_zoom = min_zoom
         self.__max_zoom = max_zoom

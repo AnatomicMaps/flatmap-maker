@@ -327,7 +327,9 @@ class Flatmap(object):
 
             layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
                                     hires_layer.source.raster_source,
-                                    minzoom, hires_layer.source.extent)
+                                    minzoom, hires_layer.source.extent,
+                                    bounding_box=outline_feature.geometry.bounds,
+                                    image_transform=M)
 
             # The detail layer gets a scaled copy of each high-resolution feature
             for hires_feature in hires_layer.features:
@@ -356,8 +358,8 @@ class Flatmap(object):
         print('Generating background tiles (may take a while...)')
         for layer in self.__layer_dict.values():
             for raster_layer in layer.raster_layers:
-                tilemaker = RasterTileMaker(raster_layer.extent, self.__map_dir, raster_layer.min_zoom, self.__zoom[1])
-                tilemaker.make_tiles(raster_layer.raster_source, raster_layer.id)
+                tilemaker = RasterTileMaker(raster_layer.extent, self.__map_dir, raster_layer.min_zoom, self.__zoom[1],
+                                            bounding_box=raster_layer.bounding_box, image_transform=raster_layer.image_transform)
                 tilemaker.make_tiles(raster_layer.id, raster_layer.raster_source)
                 self.__upload_files.extend(tilemaker.database_names)
 
