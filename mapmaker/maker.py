@@ -35,21 +35,23 @@ import shapely.affinity
 
 #===============================================================================
 
-from flatmap.feature import Feature
-from flatmap.layers import FeatureLayer
+from .flatmap.feature import Feature
+from .flatmap.layers import FeatureLayer
 
-from knowledgebase.labels import LabelDatabase
+from .geometry import bounds_to_extent, extent_to_bounds
 
-from output.geojson import GeoJSONOutput
-from output.mbtiles import MBTiles
-from output.styling import Style
-from output.tilejson import tile_json
-from output.tilemaker import RasterTileMaker
+from .knowledgebase.labels import LabelDatabase
 
-from properties import JsonProperties
+from .output.geojson import GeoJSONOutput
+from .output.mbtiles import MBTiles
+from .output.styling import Style
+from .output.tilejson import tile_json
+from .output.tilemaker import RasterTileMaker
 
-from sources.mbfbioscience import MBFSource
-from sources.powerpoint import PowerpointSource
+from .properties import JsonProperties
+
+from .sources.mbfbioscience import MBFSource
+from .sources.powerpoint import PowerpointSource
 
 #===============================================================================
 
