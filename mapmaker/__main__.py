@@ -68,7 +68,7 @@ def main():
 
     required = parser.add_argument_group('required arguments')
 
-    required.add_argument('-o', '--output-dir', dest='mapBase', metavar='OUTPUT_DIR', required=True,
+    required.add_argument('--map-base', dest='mapBase', metavar='MAP_BASE_DIR', required=True,
                         help='base directory for generated flatmaps')
     required.add_argument('--manifest', dest='manifest', metavar='MANIFEST', required=True,
                         help='File or URL of JSON manifest specifying map sources')
