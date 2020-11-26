@@ -72,18 +72,18 @@ class PowerpointSource(MapSource):
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
         if get_background:
-            pdf_source = '{}.pdf'.format(os.path.splitext(source_path)[0])
+            pdf_source = '{}_cleaned.pdf'.format(os.path.splitext(source_path)[0])
             if pdf_source.startswith('http:') or pdf_source.startswith('https:'):
                 response = requests.get(pdf_source)
                 if response.status_code != requests.codes.ok:
                     pptx_bytes.close()
-                    raise ValueError('Cannot retrieve PDF of Powerpoint (needed to generate background tiles)')
+                    raise ValueError('Cannot retrieve PDF of cleaned Powerpoint (needed to generate background tiles)')
                 pdf_bytes = io.BytesIO(response.content)
             else:
                 if not os.path.exists(pdf_source):
-                    raise ValueError('Missing PDF of Powerpoint (needed to generate background tiles)')
+                    raise ValueError('Missing PDF of cleaned Powerpoint (needed to generate background tiles)')
                 if os.path.getmtime(pdf_source) < pptx_modified:
-                    raise ValueError('PDF of Powerpoint is too old...')
+                    raise ValueError('PDF of cleaned Powerpoint is too old...')
                 with open(pdf_source, 'rb') as f:
                     pdf_bytes = f.read()
             self.__raster_source = RasterSource('pdf', pdf_bytes)
