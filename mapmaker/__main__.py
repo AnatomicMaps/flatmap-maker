@@ -61,7 +61,7 @@ def main():
                         help="Remove all files from generated map's directory before generating new map")
     parser.add_argument('--refresh-labels', dest='refreshLabels', action='store_true',
                         help='Clear the label text cache before map making')
-    parser.add_argument('-u', '--upload', dest='uploadHost', metavar='USER@SERVER',
+    parser.add_argument('--upload', dest='uploadHost', metavar='USER@SERVER',
                         help='Upload generated map to server')
 
     parser.add_argument('-v', '--version', action='version', version=__version__)
