@@ -33,7 +33,8 @@ from tqdm import tqdm
 
 #===============================================================================
 
-from .mbtiles import MBTiles, ExtractionError
+from mapmaker.output.mbtiles import MBTiles, ExtractionError
+from mapmaker.sources import RasterSource
 
 #===============================================================================
 
@@ -379,11 +380,10 @@ if __name__ == '__main__':
     mode = 'PDF' if len(sys.argv) < 2 else sys.argv[1].upper()
 
     if mode == 'PDF':
-        pdf_file = '../map_sources/body_demo.pdf'
+        pdf_file = '../../tests/sources/rat-test.pdf'
         with open(pdf_file, 'rb') as f:
-            make_background_tiles_from_pdf(map_extent, [MIN_ZOOM, max_zoom],
-                                           '../maps/demo', f.read(),
-                                           pdf_file, ['base'], 1)
+            tm = RasterTileMaker(map_extent, '../../maps')
+            tm.make_tiles('test', RasterSource('pdf', f.read()))
     elif mode == 'JPEG':
         jpeg_file = './mbf/pig/sub-10sam-1P10-1Slide2p3MT10x.jp2'
         make_background_tiles_from_image(map_extent, [MIN_ZOOM, max_zoom],
