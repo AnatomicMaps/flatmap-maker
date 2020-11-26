@@ -60,7 +60,7 @@ from mapmaker import FLATMAP_VERSION
 #===============================================================================
 
 class Flatmap(object):
-    def __init__(self, specification, options):
+    def __init__(self, manifest, options):
         # Check options for validity and set defaults
         if options.get('backgroundOnly', False):
             options['backgroundTiles'] = True
@@ -78,14 +78,14 @@ class Flatmap(object):
 
         self.__options = options
 
-        self.__specification = specification
+        self.__manifest = manifest
 
         try:
-            self.__id = specification['id']
+            self.__id = manifest['id']
         except KeyError:
-            raise ValueError('Map specification requires an `id` field')
+            raise ValueError('Map manifest requires an `id` field')
 
-        self.__models = specification.get('models')
+        self.__models = manifest.get('models')
 
         # Make sure our output directories exist
         map_base = options.get('mapBase', 'maps')
@@ -108,8 +108,8 @@ class Flatmap(object):
         label_database = LabelDatabase(map_base, options.get('refreshLabels', False))
 
         # Properties about map features
-        self.__property_data = JsonProperties(specification.get('properties'),
-                                              specification.get('anatomicalMap'),
+        self.__property_data = JsonProperties(manifest.get('properties'),
+                                              manifest.get('anatomicalMap'),
                                               label_database)
 
         self.__layer_dict = OrderedDict()
@@ -205,7 +205,7 @@ class Flatmap(object):
     def __process_sources(self):
     #===========================
         background_tiles = self.__options.get('backgroundTiles', False)
-        for source in self.__specification.get('sources', []):
+        for source in self.__manifest.get('sources', []):
             source_id = source.get('id')
             source_kind = source.get('kind')
             source_href = source.get('href')
@@ -449,7 +449,7 @@ class Flatmap(object):
         print('Creating index and style files...')
         tile_db = MBTiles(self.__mbtiles_file)
 
-        # Save the name of the map specification file
+        # Save the name of the map's manifest file
         tile_db.add_metadata(source=self.__id) ## TEMP   ## FIX
 
         # What the map models

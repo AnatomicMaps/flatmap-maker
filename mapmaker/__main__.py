@@ -18,6 +18,11 @@
 #
 #===============================================================================
 
+import json
+import requests
+
+#===============================================================================
+
 from mapmaker import __version__
 from mapmaker.maker import Flatmap
 
@@ -35,11 +40,6 @@ def main():
                         help="generate image tiles of map's layers (may take a while...)")
     parser.add_argument('--background-only', dest='backgroundOnly', action='store_true',
                         help="don't generate vector tiles (sets --background-tiles)")
-
-    parser.add_argument('--anatomical-map', dest='anatomicalMap',
-                        help='Excel spreadsheet file for mapping shape classes to anatomical entities')
-    parser.add_argument('--properties',
-                        help='JSON file specifying additional properties of shapes')
 
     parser.add_argument('--check-errors', dest='errorCheck', action='store_true',
                         help='check for errors without generating a map')
@@ -70,10 +70,8 @@ def main():
 
     required.add_argument('-o', '--output-dir', dest='mapBase', metavar='OUTPUT_DIR', required=True,
                         help='base directory for generated flatmaps')
-    required.add_argument('--id', dest='mapId', metavar='MAP_ID', required=True,
-                        help='a unique identifier for the map')
-    required.add_argument('--slides', dest='powerpoint', metavar='POWERPOINT', required=True,
-                        help='File or URL of Powerpoint slides')
+    required.add_argument('--manifest', dest='manifest', metavar='MANIFEST', required=True,
+                        help='File or URL of JSON manifest specifying map sources')
 
     # --force option
 
@@ -82,21 +80,20 @@ def main():
     # Unless quiet...
     print('Mapmaker {}'.format(__version__))
 
-    spec = {
-        'id': args.mapId,
-        'anatomicalMap': args.anatomicalMap,
-        'properties': args.properties,
-        'sources': [
-            {
-                'id': args.mapId,  # Layer id's for slides are `${id}-01`, etc.
-                'href': args.powerpoint,  # URL of PPT, SVG, or MBF
-                'kind': 'slides',   # or 'base', 'details', 'image'
-            }
-        ]
-    }
+    if args.manifest.startswith('http:') or args.manifest.startswith('https:'):
+        response = requests.get(args.manifest)
+        if response.status_code != requests.codes.ok:
+            sys.exit('Cannot retrieve remote manifest')
+        manifest = json.loads(response.content)
+    else:
+        if not os.path.exists(args.manifest):
+            sys.exit('Missing manifest file')
+        with open(args.manifest) as fp:
+            manifest = json.loads(fp.read())
+
 
     try:
-        flatmap = Flatmap(spec, vars(args))
+        flatmap = Flatmap(manifest, vars(args))
         flatmap.make()
     except ValueError as error:
         sys.exit(error)

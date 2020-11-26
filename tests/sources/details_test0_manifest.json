@@ -1,0 +1,17 @@
+{
+    "id": "details-test0",
+    "properties": "/Users/dave/build/Flatmaps/new-maker/tests/sources/details_test0.json",
+    "sources": [
+        {
+            "id": "test-source",
+            "href": "/Users/dave/build/Flatmaps/new-maker/tests/sources/details_test0.pptx",
+            "kind": "slides"
+        },
+        {
+            "id": "vagus",
+            "href": "/Users/dave/build/Flatmaps/new-maker/MBF/pig/sub-10_sam-1_P10-1MergeMask.xml",
+            "kind": "image",
+            "boundary": "http://purl.org/sig/ont/fma/fma5731"
+        }
+    ]
+}
