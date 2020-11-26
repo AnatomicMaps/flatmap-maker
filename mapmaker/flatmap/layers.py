@@ -159,7 +159,6 @@ class FeatureLayer(object):
                 if feature.geom_type == 'LineString':
                     nerve_polygon_feature = self.__source.flatmap.new_feature(
                         shapely.geometry.Polygon(feature.geometry.coords), feature.copy_properties())
-                    nerve_polygon_feature.del_property('models')
                     nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
