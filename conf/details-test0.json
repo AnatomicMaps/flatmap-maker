@@ -1,0 +1,21 @@
+{
+    "id": "details-test0",
+    "sources": [
+        {
+            "id": "test-source",
+            "href": "../tests/sources/details_test0.pptx",
+            "kind": "slides"
+        },
+        {
+            "id": "vagus",
+            "href": "../MBF/pig/sub-10_sam-1_P10-1MergeMask.xml",
+            "kind": "image",
+            "boundary": "http://purl.org/sig/ont/fma/fma5731"
+        }
+    ]
+}
+// Pig is annotated with FMA:5731 as Vagus and ILX:0738443 as fasicicles
+//
+// MAP_ID/SOURCE_ID/FEATURE_ID
+
+// For slides, SOURCE_ID = ID-slide-NN

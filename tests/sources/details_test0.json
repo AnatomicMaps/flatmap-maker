@@ -1,0 +1,41 @@
+{
+    "features": [
+        {
+            "id": "N1",
+            "models": "ABI:0001"
+        },
+        {
+            "id": "N2",
+            "models": "ABI:0002"
+        },
+        {
+            "id": "N3",
+            "models": "ABI:0003"
+        },
+        {
+            "id": "N4",
+            "models": "ABI:0004"
+        },
+        {
+            "id": "N5",
+            "models": "ABI:0005"
+        },
+        {
+            "id": "nerve_1",
+            "models": "ABI:0100"
+        },
+        {
+            "id": "nerve_track",
+            "models": "ABI:0100"
+        }
+    ],
+    "paths": [
+        {
+            "id": "Path_1",
+            "type": "symp-pre",
+            "path": ["L1", "L2", "L3", "L4"],
+            "route": [["ABI:0001", "ABI:0002"], "ABI:0003", "ABI:0004", "ABI:0005"],
+            "nerves": "nerve_1"
+        }
+    ]
+}
