@@ -1,0 +1,18 @@
+{
+    "id": "rat-test",
+    "anatomicalMap": "/Users/dave/build/Flatmaps/map-maker/map_sources/naz/anatomical-map/flatmap_annotation.xlsx",
+    "properties": "/Users/dave/build/Flatmaps/map-maker/map_sources/naz/properties/rat_flatmap_properties.json",
+    "sources": [
+        {
+            "id": "test-source",
+            "href": "/Users/dave/build/Flatmaps/new-maker/tests/sources/rat-test.pptx",
+            "kind": "slides"
+        },
+        {
+            "id": "vagus",
+            "href": "/Users/dave/build/Flatmaps/new-maker/MBF/pig/sub-10_sam-1_P10-1MergeMask.xml",
+            "kind": "image",
+            "boundary": "http://purl.org/sig/ont/fma/fma5731"
+        }
+    ]
+}
