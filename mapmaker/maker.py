@@ -326,6 +326,8 @@ class Flatmap(object):
             if feature.get_property('type') != 'nerve':
                 # Set the feature's geometry to that of the high-resolution outline
                 feature.geometry = shapely.affinity.affine_transform(outline_feature.geometry, transform)
+            else:
+                feature.del_property('maxzoom')
 
             layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
                                     hires_layer.source.raster_source,
