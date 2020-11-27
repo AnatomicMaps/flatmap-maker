@@ -1,0 +1,82 @@
+#===============================================================================
+#
+#  Flatmap viewer and annotation tools
+#
+#  Copyright (c) 2020  David Brooks
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+#===============================================================================
+
+import re
+import string
+##from pyparsing import
+
+#===============================================================================
+
+from .. import PIXELS_PER_INCH
+
+#===============================================================================
+
+CM_PER_INCH = 2.54
+MM_PER_INCH = 10*CM_PER_INCH
+
+POINTS_PER_INCH = 72
+PICAS_PER_INCH = 6
+
+#===============================================================================
+
+def get_pixels(length):
+    return 2000
+
+###    'em': 10,  # EM/PT depends on current font size
+###    'ex': 5,   # EX/PT depends on current font size
+
+unit_scale = {
+    None: 1,
+    'px': 1,
+    'in': PIXELS_PER_INCH,
+    'cm': PIXELS_PER_INCH/CM_PER_INCH,
+    'mm': PIXELS_PER_INCH/MM_PER_INCH,
+    'pt': PIXELS_PER_INCH/POINTS_PER_INCH,
+    'pc': PIXELS_PER_INCH/PICAS_PER_INCH,
+    '%' : 1/100.0
+    }
+
+#===============================================================================
+
+# Helpers for encoding names for Adobe Illustrator
+
+def match_to_text(m):
+#====================
+    c = m[0]
+    return (c   if c in (string.ascii_letters + string.digits) else
+            '_' if c in string.whitespace else
+            '_x{:02X}_'.format(ord(c)))
+
+def adobe_decode(s):
+#===================
+    return re.sub('.', match_to_text, s)
+
+def match_to_hex(m):
+#===================
+    c = m[0]
+    return (c   if c in (string.ascii_letters + string.digits) else
+            '_' if c in string.whitespace else
+            '_x{:02X}_'.format(ord(c)))
+
+def adobe_encode(s):
+#===================
+    return re.sub('.', match_to_hex, s)
+
+#===============================================================================

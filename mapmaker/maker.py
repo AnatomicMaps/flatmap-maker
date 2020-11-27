@@ -50,7 +50,7 @@ from .output.tilemaker import RasterTileMaker
 
 from .properties import JsonProperties
 
-from .sources import MBFSource, PowerpointSource
+from .sources import MBFSource, PowerpointSource, SVGSource
 
 #===============================================================================
 
@@ -215,8 +215,9 @@ class Flatmap(object):
                 source_layer = MBFSource(self, source_id, source_href,
                                          boundary_id=source.get('boundary'))
             elif source_kind in ['base', 'details']:
-                # source = SVGSource(self, source_id, source_href)
-                pass
+                source_layer = SVGSource(self, source_id, source_href,
+                                         boundary_id=source.get('boundary'),
+                                         output_layer=(source_kind=='base'))
             else:
                 raise ValueError('Unsupported source kind: {}'.format(source_kind))
 
