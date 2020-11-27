@@ -110,7 +110,7 @@ class PowerpointSource(MapSource):
             for error in self.errors:
                 print(error)
             else:
-                self.add_layer(slide_layer.feature_layer)
+                self.add_layer(slide_layer)
 
 #===============================================================================
 

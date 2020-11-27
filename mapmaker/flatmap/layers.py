@@ -22,10 +22,16 @@ import shapely.geometry
 
 #===============================================================================
 
+from mapmaker.geometry import connect_dividers, extend_line, make_boundary
+from mapmaker.geometry import save_geometry
+
+#===============================================================================
+
 class FeatureLayer(object):
     def __init__(self, id, source, output_layer=False):
         self.__id = id
         self.__source = source
+        self.__flatmap = source.flatmap
         self.__annotations = {}
         self.__description = 'Layer {}'.format(id)
         self.__features = []
@@ -71,6 +77,10 @@ class FeatureLayer(object):
     @property
     def feature_types(self):
         return self.__feature_types
+
+    @property
+    def flatmap(self):
+        return self.__flatmap
 
     @property
     def id(self):
@@ -163,6 +173,183 @@ class FeatureLayer(object):
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
         self.__features.extend(nerve_polygons)
+
+    def add_features(self, group_name, features, outermost=False):
+    #=============================================================
+        base_properties = {
+            'tile-layer': 'features'
+            }
+
+        group_features = []
+        grouped_properties = {
+            'group': True,
+            'interior': True,
+            'tile-layer': 'features'
+        }
+
+        # We first find our boundary polygon(s)
+        boundary_class = None
+        boundary_lines = []
+        boundary_polygon = None
+        dividers = []
+        regions = []
+
+        debug_group = False
+        child_class = None
+        generate_group = False
+        single_features = [ feature for feature in features if not feature.has_children ]
+        for feature in single_features:
+            if feature.get_property('boundary'):
+                if outermost:
+                    raise ValueError('Boundary elements must be inside a group: {}'.format(feature))
+                if feature.geom_type == 'LineString':
+                    boundary_lines.append(extend_line(feature.geometry))
+                elif feature.geom_type == 'Polygon':
+                    if boundary_polygon is not None:
+                        raise GroupValueError('Group {} can only have one boundary shape:'.format(group_name), features)
+                    boundary_polygon = feature.geometry
+                    if not feature.get_property('invisible'):
+                        group_features.append(feature)
+                cls = feature.get_property('class')
+                if cls is not None:
+                    if cls != boundary_class:
+                        boundary_class = cls
+                    else:
+                        raise ValueError('Class of boundary shapes have changed in group{}: {}'.format(group_name, feature))
+            elif feature.get_property('group'):
+                generate_group = True
+                child_class = feature.del_property('children')
+                grouped_properties.update(feature.copy_properties())
+            elif feature.get_property('region'):
+                regions.append(self.__flatmap.new_feature(feature.geometry.representative_point(), feature.copy_properties()))
+            elif not feature.has_property('markup') or feature.get_property('divider'):
+                if feature.geom_type == 'LineString':
+                    dividers.append(feature.geometry)
+                elif feature.geom_type == 'Polygon':
+                    dividers.append(feature.geometry.boundary)
+                if not feature.get_property('invisible'):
+                    group_features.append(feature)
+            elif feature.has_property('class') or not feature.get_property('interior'):
+                group_features.append(feature)
+
+        interior_features = []
+        for feature in features:
+            if feature.get_property('interior') and not feature.get_property('boundary'):
+                interior_features.append(feature)
+
+        if boundary_polygon is not None and len(boundary_lines):
+            raise GroupValueError("Group {} can't be bounded by both a closed shape and lines:".format(group_name), features)
+
+        elif boundary_polygon is not None or len(boundary_lines):
+            if len(boundary_lines):
+                if debug_group:
+                    save_geometry(shapely.geometry.MultiLineString(boundary_lines), 'boundary_lines.wkt')
+                try:
+                    boundary_polygon = make_boundary(boundary_lines)
+                except ValueError as err:
+                    raise GroupValueError('Group {}: {}'.format(group_name, str(err)), features)
+
+            group_features.append(
+                self.__flatmap.new_feature(
+                    boundary_polygon,
+                    base_properties))
+
+            if len(dividers):
+                # For all line dividers, if the end of a line is 'close to' another line
+                # then extend the line end in about the same direction until it touches
+                # the other. NB. may need to 'bend towards' the other...
+                #
+                # And then only add these cleaned up lines as features, not the original dividers
+
+                dividers.append(boundary_polygon.boundary)
+                if debug_group:
+                    save_geometry(shapely.geometry.MultiLineString(dividers), 'dividers.wkt')
+
+                divider_lines = connect_dividers(dividers, debug_group)
+                if debug_group:
+                    save_geometry(shapely.geometry.MultiLineString(divider_lines), 'divider_lines.wkt')
+
+                polygon_boundaries = shapely.ops.unary_union(divider_lines)
+                if debug_group:
+                    save_geometry(polygon_boundaries, 'polygon_boundaries.wkt')
+
+                polygons = list(shapely.ops.polygonize(polygon_boundaries))
+
+                for n, polygon in enumerate(polygons):
+                    prepared_polygon = shapely.prepared.prep(polygon)
+                    region_id = None
+                    region_properties = base_properties.copy()
+                    for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
+                        region_properties.update(region.copy_properties())
+                        group_features.append(self.__flatmap.new_feature(polygon, region_properties))
+                        break
+        else:
+            for feature in features:
+                if feature.get_property('region'):
+                    raise ValueError('Region dividers in group {} must have a boundary: {}'.format(group_name, feature))
+
+        if not outermost and interior_features:
+            interior_polygons = []
+            for feature in interior_features:
+                if feature.geom_type == 'Polygon':
+                    interior_polygons.append(feature.geometry)
+                elif feature.geom_type == 'MultiPolygon':
+                    interior_polygons.extend(list(feature.geometry))
+            interior_polygon = shapely.ops.unary_union(interior_polygons)
+            for feature in group_features:
+                if (feature.has_property('markup')
+                and feature.get_property('exterior')
+                and feature.geom_type in ['Polygon', 'MultiPolygon']):
+                    feature.geometry = feature.geometry.buffer(0).difference(interior_polygon)
+
+        # Construct a MultiPolygon containing all of the group's polygons
+        # But only if the group contains a `.group` element...
+
+        feature_group = None  # Our returned Feature
+        if generate_group:
+            grouped_polygon_features = [ feature for feature in features if feature.has_children ]
+            for feature in group_features:
+                grouped_polygon_features.append(feature)
+
+            grouped_lines = []
+            for feature in grouped_polygon_features:
+                if feature.get_property('tile-layer') != 'pathways':
+                    if feature.geom_type == 'LineString':
+                        grouped_lines.append(feature.geometry)
+                    elif feature.geom_type == 'MultiLineString':
+                        grouped_lines.extend(list(feature.geometry))
+            if len(grouped_lines):
+                feature_group = self.__flatmap.new_feature(
+                      shapely.geometry.MultiLineString(grouped_lines),
+                      grouped_properties, True)
+                group_features.append(feature_group)
+            grouped_polygons = []
+            for feature in grouped_polygon_features:
+                if feature.geom_type == 'Polygon':
+                    grouped_polygons.append(feature.geometry)
+                elif feature.geom_type == 'MultiPolygon':
+                    grouped_polygons.extend(list(feature.geometry))
+            if len(grouped_polygons):
+                feature_group = self.__flatmap.new_feature(
+                        shapely.geometry.MultiPolygon(grouped_polygons),
+                        grouped_properties, True)
+                group_features.append(feature_group)
+
+        # Feature specific properties have precedence over group's
+
+        default_properties = base_properties.copy()
+        if child_class is not None:
+            # Default class for all of the group's child shapes
+            default_properties['class'] = child_class
+
+        for feature in group_features:
+            if feature.geometry is not None:
+                for (key, value) in default_properties.items():
+                    if not feature.has_property(key):
+                        feature.set_property(key, value)
+                self.add_feature(feature)
+
+        return feature_group
 
 #===============================================================================
 
