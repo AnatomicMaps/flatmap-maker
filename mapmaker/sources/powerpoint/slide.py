@@ -55,8 +55,9 @@ from mapmaker.geometry import transform_bezier_samples, transform_point
 from mapmaker.geometry import save_geometry
 from mapmaker.geometry.arc_to_bezier import path_from_arc, tuple2
 
+from ..markup import parse_layer_directive, parse_shape_markup
+
 from .formula import Geometry, radians
-from .parser import parse_layer_directive, parse_shape_markup
 from .presets import DML
 from .transform import DrawMLTransform
 

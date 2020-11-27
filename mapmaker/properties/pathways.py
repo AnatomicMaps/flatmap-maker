@@ -27,7 +27,7 @@ from pyparsing import delimitedList, Group, ParseResults, Suppress
 
 #===============================================================================
 
-from .markup import *
+from mapmaker.sources.markup import ID_TEXT
 
 #===============================================================================
 

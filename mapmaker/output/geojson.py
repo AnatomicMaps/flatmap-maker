@@ -32,8 +32,7 @@ from tqdm import tqdm
 
 from mapmaker.geometry import mercator_transform
 
-### FIX...
-from mapmaker.sources.powerpoint.parser import ignore_property
+from mapmaker.sources.markup import ignore_property
 
 #===============================================================================
 

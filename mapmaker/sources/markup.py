@@ -18,13 +18,27 @@
 #
 #===============================================================================
 
+from pyparsing import alphanums, nums, printables
 from pyparsing import Combine, delimitedList, Group, Keyword
-from pyparsing import Optional, Suppress, ZeroOrMore
+from pyparsing import Optional, Suppress, Word, ZeroOrMore
 from pyparsing import ParseException, ParseResults
 
 #===============================================================================
 
-from mapmaker.properties.markup import *
+FREE_TEXT = Word(printables + ' ', excludeChars='()')
+INTEGER = Word(nums)
+
+ID_TEXT = Word(alphanums, alphanums+':/_-.')
+
+ONTOLOGY_SUFFIX = (Keyword('ABI')
+                 | Keyword('FM')
+                 | Keyword('FMA')
+                 | Keyword('ILX')
+                 | Keyword('MA')
+                 | Keyword('NCBITaxon')
+                 | Keyword('UBERON')
+                 )
+ONTOLOGY_ID = Combine(ONTOLOGY_SUFFIX + ':' + ID_TEXT)
 
 #===============================================================================
 
