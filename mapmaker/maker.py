@@ -50,8 +50,7 @@ from .output.tilemaker import RasterTileMaker
 
 from .properties import JsonProperties
 
-from .sources.mbfbioscience import MBFSource
-from .sources.powerpoint import PowerpointSource
+from .sources import MBFSource, PowerpointSource
 
 #===============================================================================
 
@@ -204,32 +203,32 @@ class Flatmap(object):
 
     def __process_sources(self):
     #===========================
-        background_tiles = self.__options.get('backgroundTiles', False)
+        tile_background = self.__options.get('backgroundTiles', False)
         for source in self.__manifest.get('sources', []):
             source_id = source.get('id')
             source_kind = source.get('kind')
             source_href = source.get('href')
             if source_kind == 'slides':
-                source = PowerpointSource(self, source_id, source_href,
-                                          get_background=background_tiles)
+                source_layer = PowerpointSource(self, source_id, source_href,
+                                                get_background=tile_background)
             elif source_kind == 'image':
-                source = MBFSource(self, source_id, source_href,
-                                   boundary_id=source.get('boundary'))
+                source_layer = MBFSource(self, source_id, source_href,
+                                         boundary_id=source.get('boundary'))
             elif source_kind in ['base', 'details']:
                 # source = SVGSource(self, source_id, source_href)
                 pass
             else:
                 raise ValueError('Unsupported source kind: {}'.format(source_kind))
 
-            source.process()
-            self.__add_source_layers(source)
+            source_layer.process()
+            self.__add_source_layers(source_layer)
 
             if source_kind in ['base', 'slides']:
                 if self.__extent is None:
-                    self.__extent = source.extent
+                    self.__extent = source_layer.extent
                     self.__centre = ((self.__extent[0] + self.__extent[2])/2,
                                      (self.__extent[1] + self.__extent[3])/2)
-                    self.__map_area = source.map_area()
+                    self.__map_area = source_layer.map_area()
                 else:
                     raise ValueError("Multiple 'base' and 'slides' source kinds")
 

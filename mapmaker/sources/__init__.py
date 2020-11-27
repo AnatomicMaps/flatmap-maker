@@ -112,3 +112,10 @@ class RasterSource(object):
         return self.__source_kind
 
 #===============================================================================
+
+# Export our sources here to avoid circular imports
+
+from .mbfbioscience import MBFSource
+from .powerpoint import PowerpointSource
+
+#===============================================================================

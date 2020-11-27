@@ -30,18 +30,12 @@ from beziers.cubicbezier import CubicBezier
 from beziers.point import Point as BezierPoint
 from beziers.quadraticbezier import QuadraticBezier
 
-import cv2
-
 import numpy as np
+import shapely.geometry
+from tqdm import tqdm
 
 import pptx.shapes.connector
 from pptx.enum.shapes import MSO_SHAPE_TYPE
-
-import shapely.geometry
-import shapely.ops
-import shapely.prepared
-
-from tqdm import tqdm
 
 #===============================================================================
 
@@ -53,7 +47,7 @@ from mapmaker.geometry import ellipse_point
 from mapmaker.geometry import transform_bezier_samples, transform_point
 from mapmaker.geometry.arc_to_bezier import path_from_arc, tuple2
 
-from ..markup import parse_layer_directive, parse_shape_markup
+from ..markup import parse_layer_directive, parse_markup
 
 from .formula import Geometry, radians
 from .presets import DML
@@ -97,16 +91,75 @@ class PowerpointSlide(FeatureLayer):
     def process(self):
     #=================
         self.__current_group.append('SLIDE')
-        features = self.process_shape_list(self.slide.shapes, self.__transform, outermost=True)
+        features = self.__process_shape_list(self.slide.shapes, self.__transform, outermost=True)
         self.add_features('Slide', features, True)
 
-    def process_group(self, group, properties, transform):
-    #=====================================================
-        features = self.process_shape_list(group.shapes, transform@DrawMLTransform(group).matrix())
-        return self.add_features(properties.get('shape_name', ''), features)
+    def __process_group(self, group, properties, transform):
+    #=======================================================
+        features = self.__process_shape_list(group.shapes, transform@DrawMLTransform(group).matrix())
+        return self.add_features(properties.get('markup', ''), features)
 
-    def process_shape(self, shape, properties, transform):
-    #=====================================================
+    def __process_shape_list(self, shapes, transform, outermost=False):
+    #==================================================================
+        if outermost:
+            progress_bar = tqdm(total=len(shapes),
+                unit='shp', ncols=40,
+                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
+
+        features = []
+        for shape in shapes:
+            properties = {'tile-layer': 'features'}   # Passed through to map viewer
+            if shape.name.startswith('.'):
+                group_name = self.__current_group[-1]  # For error reporting
+                properties.update(parse_markup(shape.name))
+                if 'error' in properties:
+                    self.source.error('Shape in slide {}, group {}, has annotation syntax error: {}'
+                                        .format(self.__slide_number, group_name, shape.name))
+                if 'warning' in properties:
+                    self.source.error('Warning, slide {}, group {}: {}'
+                                        .format(self.__slide_number, group_name, properties['warning']))
+                for key in ['id', 'path']:
+                    if key in properties:
+                        if self.flatmap.is_duplicate_feature_id(properties[key]):
+                           self.source.error('Shape in slide {}, group {}, has a duplicate id: {}'
+                                               .format(self.__slide_number, group_name, shape.name))
+            if 'error' in properties:
+                pass
+            elif 'path' in properties:
+                pass
+            elif (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
+             or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
+             or isinstance(shape, pptx.shapes.connector.Connector)):
+                geometry = self.__get_geometry(shape, properties, transform)
+                feature = self.flatmap.new_feature(geometry, properties)
+                if self.output_layer and not feature.get_property('group'):
+                    # Save relationship between id/class and internal feature id
+                    self.flatmap.save_feature_id(feature)
+                if properties.get('id', '') == self.__outline_feature_id:
+                    self.outline_feature_id = feature.feature_id
+                features.append(feature)
+            elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
+                self.__current_group.append(properties.get('markup', "''"))
+                grouped_feature = self.__process_group(shape, properties, transform)
+                self.__current_group.pop()
+                if grouped_feature is not None:
+                    if self.output_layer:
+                        self.flatmap.save_feature_id(grouped_feature)
+                    features.append(grouped_feature)
+            elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
+               or shape.shape_type == MSO_SHAPE_TYPE.PICTURE):
+                pass
+            else:
+                print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
+            if outermost:
+                progress_bar.update(1)
+
+        if outermost:
+            progress_bar.close()
+        return features
+
+    def __get_geometry(self, shape, properties, transform):
+    #======================================================
     ##
     ## Returns shape's geometry as `shapely` object.
     ##
@@ -190,62 +243,4 @@ class PowerpointSlide(FeatureLayer):
                 return shapely.geometry.Polygon(coordinates)
         return geometry
 
-
-    def process_shape_list(self, shapes, transform, outermost=False):
-    #================================================================
-        if outermost:
-            progress_bar = tqdm(total=len(shapes),
-                unit='shp', ncols=40,
-                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
-
-        features = []
-        for shape in shapes:
-            properties = {'tile-layer': 'features'}   # Passed through to map viewer
-            if shape.name.startswith('.'):
-                group_name = self.__current_group[-1]  # For error reporting
-                properties.update(parse_shape_markup(shape.name))
-                if 'error' in properties:
-                    self.source.error('Shape in slide {}, group {}, has annotation syntax error: {}'
-                                        .format(self.__slide_number, group_name, shape.name))
-                if 'warning' in properties:
-                    self.source.error('Warning, slide {}, group {}: {}'
-                                        .format(self.__slide_number, group_name, properties['warning']))
-                for key in ['id', 'path']:
-                    if key in properties:
-                        if self.flatmap.is_duplicate_feature_id(properties[key]):
-                           self.source.error('Shape in slide {}, group {}, has a duplicate id: {}'
-                                               .format(self.__slide_number, group_name, shape.name))
-            if 'error' in properties:
-                pass
-            elif 'path' in properties:
-                pass
-            elif (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
-             or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
-             or isinstance(shape, pptx.shapes.connector.Connector)):
-                geometry = self.process_shape(shape, properties, transform)
-                feature = self.flatmap.new_feature(geometry, properties)
-                if self.output_layer and not feature.get_property('group'):
-                    # Save relationship between id/class and internal feature id
-                    self.flatmap.save_feature_id(feature)
-                if properties.get('id', '') == self.__outline_feature_id:
-                    self.outline_feature_id = feature.feature_id
-                features.append(feature)
-            elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
-                self.__current_group.append(properties.get('shape_name', "''"))
-                grouped_feature = self.process_group(shape, properties, transform)
-                self.__current_group.pop()
-                if grouped_feature is not None:
-                    if self.output_layer:
-                        self.flatmap.save_feature_id(grouped_feature)
-                    features.append(grouped_feature)
-            elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
-               or shape.shape_type == MSO_SHAPE_TYPE.PICTURE):
-                pass
-            else:
-                print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
-            if outermost:
-                progress_bar.update(1)
-
-        if outermost:
-            progress_bar.close()
-        return features
+#===============================================================================
