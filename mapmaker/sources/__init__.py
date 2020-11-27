@@ -22,6 +22,24 @@ from mapmaker.geometry import bounds_to_extent
 
 #===============================================================================
 
+# Internal PPT units are EMUs (English Metric Units)
+EMU_PER_IN  = 914400
+
+# EPSG:3857 Mercator projection meters
+WORLD_METRES_PER_EMU = 0.1   ## This to become a command line parameter...
+                             ## Or in a configuration file...
+
+# SVG pixel resolution
+PIXELS_PER_IN = 96
+EMU_PER_PIXEL = EMU_PER_IN/PIXELS_PER_IN
+
+WORLD_METRES_PER_PIXEL = WORLD_METRES_PER_EMU*EMU_PER_PIXEL
+
+# MBF Bioscience units to EPSG:3857 coordinates
+WORLD_METRES_PER_UM = 100
+
+#===============================================================================
+
 class MapSource(object):
     def __init__(self, flatmap, id):
         self.__flatmap = flatmap

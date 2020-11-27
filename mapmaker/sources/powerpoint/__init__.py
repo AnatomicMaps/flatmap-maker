@@ -29,15 +29,11 @@ from pptx import Presentation
 #===============================================================================
 
 from .. import MapSource, RasterSource
+from .. import WORLD_METRES_PER_EMU
 
 from mapmaker.geometry import transform_point
 
 from .slide import PowerpointSlide
-
-#===============================================================================
-
-METRES_PER_EMU = 0.1   ## This to become a command line parameter...
-                       ## Or in a specification file...
 
 #===============================================================================
 
@@ -61,11 +57,11 @@ class PowerpointSource(MapSource):
         self.__slides = self.__pptx.slides
 
         (width, height) = (self.__pptx.slide_width, self.__pptx.slide_height)
-        self.__transform = np.array([[METRES_PER_EMU,               0, 0],
-                                    [              0, -METRES_PER_EMU, 0],
-                                    [              0,               0, 1]])@np.array([[1, 0, -width/2.0],
-                                                                                      [0, 1, -height/2.0],
-                                                                                      [0, 0,         1.0]])
+        self.__transform = np.array([[WORLD_METRES_PER_EMU,                     0, 0],
+                                    [                    0, -WORLD_METRES_PER_EMU, 0],
+                                    [                    0,                     0, 1]])@np.array([[1, 0, -width/2.0],
+                                                                                                  [0, 1, -height/2.0],
+                                                                                                  [0, 0,         1.0]])
         top_left = transform_point(self.__transform, (0, 0))
         bottom_right = transform_point(self.__transform, (width, height))
         # southwest and northeast corners

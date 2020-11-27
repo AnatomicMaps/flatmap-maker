@@ -32,13 +32,10 @@ import shapely.geometry
 #===============================================================================
 
 from .. import MapSource, RasterSource
+from .. import WORLD_METRES_PER_UM
 
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import transform_point
-
-#===============================================================================
-
-METRES_PER_UM = 100
 
 #===============================================================================
 
@@ -59,7 +56,7 @@ class MBFSource(MapSource):
 
         image_element = self.__mbf.find('{}/{}'.format(self.ns_tag('images'), self.ns_tag('image')))
         scale_element = image_element.find(self.ns_tag('scale'))
-        scaling = (float(scale_element.get('x', 1.0)), float(scale_element.get('y', 1.0)))     # um/px
+        scaling = (float(scale_element.get('x', 1.0)), float(scale_element.get('y', 1.0)))    # um/px
         coord_element = image_element.find(self.ns_tag('coord'))
         offset = (float(coord_element.get('x', 0.0)), float(coord_element.get('y', 0.0)))
 
@@ -69,14 +66,14 @@ class MBFSource(MapSource):
         self.__raster_source = RasterSource('raster', image)
 
         image_size = (image.shape[1], image.shape[0])
-        (width, height) = (scaling[0]*image_size[0], -scaling[1]*image_size[1])               # um
-        self.__transform = np.array([[METRES_PER_UM,             0, 0],
-                                     [            0, METRES_PER_UM, 0],
-                                     [            0,             0, 1]])@np.array([[1, 0, -width/2.0],
-                                                                                   [0, 1, -height/2.0],
-                                                                                   [0, 0,         1.0]])
+        (width, height) = (scaling[0]*image_size[0], scaling[1]*image_size[1])               # um
+        self.__transform = np.array([[WORLD_METRES_PER_UM,                   0, 0],
+                                     [                  0, WORLD_METRES_PER_UM, 0],
+                                     [                  0,                   0, 1]])@np.array([[1, 0, -width/2.0],
+                                                                                               [0, 1, height/2.0],
+                                                                                               [0, 0,        1.0]])
         top_left = transform_point(self.__transform, (0, 0))
-        bottom_right = transform_point(self.__transform, (width, height))
+        bottom_right = transform_point(self.__transform, (width, -height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
