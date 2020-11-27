@@ -35,7 +35,6 @@ from .. import MapSource, RasterSource
 
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import transform_point
-from mapmaker.output.tilemaker import make_background_tiles_from_image
 
 #===============================================================================
 
