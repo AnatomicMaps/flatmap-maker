@@ -65,9 +65,9 @@ class SVGSource(MapSource):
 
         self.__transform = np.array([[WORLD_METRES_PER_PIXEL,                      0, 0],
                                      [                     0, WORLD_METRES_PER_PIXEL, 0],
-                                     [                     0,                         0, 1]])@np.array([[1, 0, -width/2.0],
-                                                                                                        [0, 1, -height/2.0],
-                                                                                                        [0, 0,         1.0]])
+                                     [                     0,                         0, 1]])@np.array([[1,  0, -width/2.0],
+                                                                                                        [0, -1,  height/2.0],
+                                                                                                        [0,  0,         1.0]])
         top_left = transform_point(self.__transform, (0, 0))
         bottom_right = transform_point(self.__transform, (width, height))
         # southwest and northeast corners
