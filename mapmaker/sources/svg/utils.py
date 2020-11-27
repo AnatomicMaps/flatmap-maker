@@ -20,7 +20,6 @@
 
 import re
 import string
-##from pyparsing import
 
 #===============================================================================
 
@@ -36,22 +35,27 @@ PICAS_PER_INCH = 6
 
 #===============================================================================
 
-def get_pixels(length):
-    return 2000
-
-###    'em': 10,  # EM/PT depends on current font size
-###    'ex': 5,   # EX/PT depends on current font size
-
-unit_scale = {
-    None: 1,
+unit_scaling = {
     'px': 1,
     'in': PIXELS_PER_INCH,
     'cm': PIXELS_PER_INCH/CM_PER_INCH,
     'mm': PIXELS_PER_INCH/MM_PER_INCH,
     'pt': PIXELS_PER_INCH/POINTS_PER_INCH,
     'pc': PIXELS_PER_INCH/PICAS_PER_INCH,
-    '%' : 1/100.0
+    '%' : None,      # 1/100.0 of viewport dimension
+    'em': None,      # em/pt depends on current font size
+    'ex': None,      # ex/pt depends on current font size
     }
+
+def get_pixels(length):
+    match = re.search(r'(.*)(em|ex|px|in|cm|mm|pt|pc|%)', length)
+    if match is None:
+        return float(length)
+    else:
+        scaling = unit_scaling[match.group(2)]
+        if scaling is None:
+            raise ValueError('Unsupported units: {}'.format(length))
+        return scaling*float(match.group(1))
 
 #===============================================================================
 
