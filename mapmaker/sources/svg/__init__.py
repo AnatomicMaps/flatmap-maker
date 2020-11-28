@@ -21,6 +21,7 @@
 import json
 import os
 from pathlib import Path
+import re
 
 #===============================================================================
 
@@ -46,6 +47,7 @@ from .utils import adobe_decode, length_as_pixels
 
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import transform_bezier_samples, transform_point
+from mapmaker.geometry.arc_to_bezier import path_from_arc, tuple2
 
 #===============================================================================
 
@@ -169,6 +171,16 @@ class SVGLayer(FeatureLayer):
             progress_bar.close()
         return features
 
+    @staticmethod
+    def __path_matcher(m):
+    #=====================
+    # Helper for parsing `d` attrib of a path
+        c = m[0]
+        if c.isalpha(): return ' ' + c + ' '
+        if c == '-': return ' -'
+        if c == ',': return ' '
+        return c
+
     def __get_geometry(self, element, properties, transform):
     #=====================================================
     ##
@@ -181,11 +193,11 @@ class SVGLayer(FeatureLayer):
         closed = False
 
         T = transform@SVGTransform(element).matrix()
-        tokens = element.attrib.get('d', '').replace(',', ' ').split()
+        path_tokens = re.sub('.', SVGLayer.__path_matcher, element.attrib.get('d', '')).split()
         pos = 0
-        while pos < len(tokens):
-            if tokens[pos].isalpha():
-                cmd = tokens[pos]
+        while pos < len(path_tokens):
+            if isinstance(path_tokens[pos], str) and path_tokens[pos].isalpha():
+                cmd = path_tokens[pos]
                 pos += 1
             # Else repeat previous command with new coordinates
             # with `moveTo` becoming `lineTo`
@@ -195,7 +207,7 @@ class SVGLayer(FeatureLayer):
                 cmd = 'l'
 
             if cmd in ['a', 'A']:
-                params = tuple(float(x) for x in tokens[pos:pos+7])
+                params = [float(x) for x in path_tokens[pos:pos+7]]
                 pos += 7
                 pt = params[5:7]
                 if cmd == 'a':
@@ -207,7 +219,7 @@ class SVGLayer(FeatureLayer):
                 current_point = pt
 
             elif cmd in ['c', 'C']:
-                params = tuple(float(x) for x in tokens[pos:pos+6])
+                params = [float(x) for x in path_tokens[pos:pos+6]]
                 pos += 6
                 coords = [BezierPoint(*current_point)]
                 for n in [0, 2, 4]:
@@ -216,25 +228,29 @@ class SVGLayer(FeatureLayer):
                         pt[0] += current_point[0]
                         pt[1] += current_point[1]
                     coords.append(BezierPoint(*pt))
-                    current_point = pt
+                current_point = pt
                 bz = CubicBezier(*coords)
                 coordinates.extend(transform_bezier_samples(T, bz))
 
             elif cmd in ['l', 'L', 'h', 'H', 'v', 'V']:
                 if cmd in ['l', 'L']:
-                    params = tuple(float(x) for x in tokens[pos:pos+2])
+                    params = [float(x) for x in path_tokens[pos:pos+2]]
                     pos += 2
                     pt = params[0:2]
+                    if cmd == 'l':
+                        pt[0] += current_point[0]
+                        pt[1] += current_point[1]
                 else:
-                    param = float(tokens[pos])
+                    param = float(path_tokens[pos])
                     pos += 1
+                    if cmd == 'h':
+                        param += current_point[0]
+                    elif cmd == 'v':
+                        param += current_point[1]
                     if cmd in ['h', 'H']:
-                        pt = (param, 0.0)
+                        pt = [param, current_point[1]]
                     else:
-                        pt = (0.0, param)
-                if cmd.islower():
-                    pt[0] += current_point[0]
-                    pt[1] += current_point[1]
+                        pt = [current_point[0], param]
                 if moved:
                     coordinates.append(transform_point(T, current_point))
                     moved = False
@@ -242,7 +258,7 @@ class SVGLayer(FeatureLayer):
                 current_point = pt
 
             elif cmd in ['m', 'M']:
-                params = tuple(float(x) for x in tokens[pos:pos+2])
+                params = [float(x) for x in path_tokens[pos:pos+2]]
                 pos += 2
                 pt = params[0:2]
                 if first_point is None:
@@ -257,7 +273,7 @@ class SVGLayer(FeatureLayer):
                 moved = True
 
             elif cmd in ['q', 'Q']:
-                params = tuple(float(x) for x in tokens[pos:pos+4])
+                params = [float(x) for x in path_tokens[pos:pos+4]]
                 pos += 4
                 coords = [BezierPoint(*current_point)]
                 for n in [0, 2]:
@@ -266,7 +282,7 @@ class SVGLayer(FeatureLayer):
                         pt[0] += current_point[0]
                         pt[1] += current_point[1]
                     coords.append(BezierPoint(*pt))
-                    current_point = pt
+                current_point = pt
                 bz = QuadraticBezier(*coords)
                 coordinates.extend(transform_bezier_samples(T, bz))
 
