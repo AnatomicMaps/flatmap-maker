@@ -61,19 +61,16 @@ def get_pixels(length):
 
 # Helpers for encoding names for Adobe Illustrator
 
-def match_to_text(m):
-#====================
-    c = m[0]
-    return (c   if c in (string.ascii_letters + string.digits) else
-            '_' if c in string.whitespace else
-            '_x{:02X}_'.format(ord(c)))
+def __match_to_char(m):
+#======================
+    return chr(int(m[0][2:4], 16))
 
 def adobe_decode(s):
 #===================
-    return re.sub('.', match_to_text, s)
+    return re.sub('_x.._', __match_to_char, s).replace('_', ' ')
 
-def match_to_hex(m):
-#===================
+def __match_to_hex(m):
+#=====================
     c = m[0]
     return (c   if c in (string.ascii_letters + string.digits) else
             '_' if c in string.whitespace else
@@ -81,6 +78,6 @@ def match_to_hex(m):
 
 def adobe_encode(s):
 #===================
-    return re.sub('.', match_to_hex, s)
+    return re.sub('.', __match_to_hex, s)
 
 #===============================================================================

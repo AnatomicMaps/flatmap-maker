@@ -120,10 +120,10 @@ class SVGLayer(FeatureLayer):
         features = []
         for element in elements:
             properties = {'tile-layer': 'features'}   # Passed through to map viewer
-            markup = adobe_decode(element.attrib.get('id', ''))
-            if markup.startswith('.'):
-                group_name = self.__current_group[-1]  # For error reporting
+            if element.attrib.get('id', '').startswith('_x2E_'):
+                markup = adobe_decode(element.attrib['id'])
                 properties.update(parse_markup(markup))
+                group_name = self.__current_group[-1]  # For error reporting
                 if 'error' in properties:
                     self.source.error('Shape in slide {}, group {}, has annotation syntax error: {}'
                                         .format(self.__slide_number, group_name, shape.name))
@@ -135,6 +135,8 @@ class SVGLayer(FeatureLayer):
                         if self.flatmap.is_duplicate_feature_id(properties[key]):
                            self.source.error('Shape in slide {}, group {}, has a duplicate id: {}'
                                                .format(self.__slide_number, group_name, shape.name))
+            else:
+                markup = ''
             if 'error' in properties:
                 pass
             elif 'path' in properties:
