@@ -35,7 +35,7 @@ PICAS_PER_INCH = 6
 
 #===============================================================================
 
-unit_scaling = {
+__unit_scaling = {
     'px': 1,
     'in': PIXELS_PER_INCH,
     'cm': PIXELS_PER_INCH/CM_PER_INCH,
@@ -47,12 +47,15 @@ unit_scaling = {
     'ex': None,      # ex/pt depends on current font size
     }
 
-def get_pixels(length):
+def length_as_pixels(length):
+#============================
+    if not isinstance(length, str):
+        return length
     match = re.search(r'(.*)(em|ex|px|in|cm|mm|pt|pc|%)', length)
     if match is None:
         return float(length)
     else:
-        scaling = unit_scaling[match.group(2)]
+        scaling = __unit_scaling[match.group(2)]
         if scaling is None:
             raise ValueError('Unsupported units: {}'.format(length))
         return scaling*float(match.group(1))

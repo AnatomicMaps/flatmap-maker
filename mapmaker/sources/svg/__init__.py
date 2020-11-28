@@ -42,7 +42,7 @@ from .. import WORLD_METRES_PER_PIXEL
 from ..markup import parse_markup
 
 from .transform import SVGTransform
-from .utils import adobe_decode, get_pixels
+from .utils import adobe_decode, length_as_pixels
 
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import transform_bezier_samples, transform_point
@@ -64,8 +64,8 @@ class SVGSource(MapSource):
         if 'viewBox' in self.__svg.attrib:
             (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
         else:
-            width = get_pixels(self.__svg.attrib['width'])
-            height = get_pixels(self.__svg.attrib['height'])
+            width = length_as_pixels(self.__svg.attrib['width'])
+            height = length_as_pixels(self.__svg.attrib['height'])
 
         self.__transform = np.array([[WORLD_METRES_PER_PIXEL,                      0, 0],
                                      [                     0, WORLD_METRES_PER_PIXEL, 0],
