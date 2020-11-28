@@ -143,8 +143,12 @@ class SVGLayer(FeatureLayer):
                 pass
             elif 'path' in properties:
                 pass
-            elif element.tag == SVG('path'):
+            elif element.tag in [SVG('circle'), SVG('ellipse'), SVG('line'),
+                                 SVG('path'), SVG('polyline'), SVG('polygon'),
+                                 SVG('rect')]:
                 geometry = self.__get_geometry(element, properties, transform)
+                if geometry is None:
+                    continue
                 feature = self.flatmap.new_feature(geometry, properties)
                 if self.output_layer and not feature.get_property('group'):
                     # Save relationship between id/class and internal feature id
@@ -193,7 +197,82 @@ class SVGLayer(FeatureLayer):
         closed = False
 
         T = transform@SVGTransform(element).matrix()
-        path_tokens = re.sub('.', SVGLayer.__path_matcher, element.attrib.get('d', '')).split()
+
+        if element.tag == SVG('path'):
+            path_tokens = re.sub('.', SVGLayer.__path_matcher, element.attrib.get('d', '')).split()
+
+        elif element.tag == SVG('rect'):
+            x = length_as_pixels(element.attrib.get('x', 0))
+            y = length_as_pixels(element.attrib.get('y', 0))
+            width = length_as_pixels(element.attrib.get('width', 0))
+            height = length_as_pixels(element.attrib.get('height', 0))
+            rx = length_as_pixels(element.attrib.get('rx'))
+            ry = length_as_pixels(element.attrib.get('ry'))
+            if width == 0 or height == 0: return None
+
+            if rx is None and ry is None:
+                rx = ry = 0
+            elif ry is None:
+                ry = rx
+            elif rx is None:
+                rx = ry
+            rx = min(rx, width/2)
+            ry = min(ry, height/2)
+            if rx == 0 and ry == 0:
+                path_tokens = ['M', x, y,
+                               'H', x+width,
+                               'V', y+height,
+                               'H', x,
+                               'V', y,
+                               'Z']
+            else:
+                path_tokens = ['M', x+rx, y,
+                               'H', x+width-rx,
+                               'A', rx, ry, 0, 0, 1, x+width, y+ry,
+                               'V', y+height-ry,
+                               'A', rx, ry, 0, 0, 1, x+width-rx, y+height,
+                               'H', x+rx,
+                               'A', rx, ry, 0, 0, 1, x, y+height-ry,
+                               'V', y+ry,
+                               'A', rx, ry, 0, 0, 1, x+rx, y,
+                               'Z']
+
+        elif element.tag == SVG('line'):
+            x1 = length_as_pixels(element.attrib.get('x1', 0))
+            y1 = length_as_pixels(element.attrib.get('y1', 0))
+            x2 = length_as_pixels(element.attrib.get('x2', 0))
+            y2 = length_as_pixels(element.attrib.get('y2', 0))
+            path_tokens = ['M', x1, y1, x2, y2]
+
+        elif element.tag == SVG('polyline'):
+            points = element.attrib.get('points', '').replace(',', ' ').split()
+            path_tokens = ['M'] + points
+
+        elif element.tag == SVG('polygon'):
+            points = element.attrib.get('points', '').replace(',', ' ').split()
+            path_tokens = ['M'] + points + ['Z']
+
+        elif element.tag == SVG('circle'):
+            cx = length_as_pixels(element.attrib.get('cx', 0))
+            cy = length_as_pixels(element.attrib.get('cy', 0))
+            r = length_as_pixels(element.attrib.get('r', 0))
+            if r == 0: return None
+            path_tokens = ['M', cx+r, cy,
+                           'A', r, r, 0, 0, 0, cx-r, cy,
+                           'A', r, r, 0, 0, 0, cx+r, cy,
+                           'Z']
+
+        elif element.tag == SVG('ellipse'):
+            cx = length_as_pixels(element.attrib.get('cx', 0))
+            cy = length_as_pixels(element.attrib.get('cy', 0))
+            rx = length_as_pixels(element.attrib.get('rx', 0))
+            ry = length_as_pixels(element.attrib.get('ry', 0))
+            if rx == 0 or ry == 0: return None
+            path_tokens = ['M', cx+rx, cy,
+                           'A', rx, ry, 0, 0, 0, cx-rx, cy,
+                           'A', rx, ry, 0, 0, 0, cx+rx, cy,
+                           'Z']
+
         pos = 0
         while pos < len(path_tokens):
             if isinstance(path_tokens[pos], str) and path_tokens[pos].isalpha():
