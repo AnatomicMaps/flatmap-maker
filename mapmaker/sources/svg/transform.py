@@ -32,7 +32,7 @@ class SVGTransform(object):
         transform = element.attrib.get('transform', '')
         if transform != '':
             # A simple parser, assuming well-formed SVG
-            tokens = transform.replace(',', ' ').replace(',', ' ').replace(',', ' ').split()
+            tokens = transform.replace('(', ' ').replace(')', ' ').replace(',', ' ').split()
             pos = 0
             while pos < len(tokens):
                 xfm = tokens[pos]
