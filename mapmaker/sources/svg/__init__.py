@@ -258,7 +258,9 @@ class SVGLayer(FeatureLayer):
             r = length_as_pixels(element.attrib.get('r', 0))
             if r == 0: return None
             path_tokens = ['M', cx+r, cy,
+                           'A', r, r, 0, 0, 0, cx, cy-r,
                            'A', r, r, 0, 0, 0, cx-r, cy,
+                           'A', r, r, 0, 0, 0, cx, cy+r,
                            'A', r, r, 0, 0, 0, cx+r, cy,
                            'Z']
 
@@ -269,7 +271,9 @@ class SVGLayer(FeatureLayer):
             ry = length_as_pixels(element.attrib.get('ry', 0))
             if rx == 0 or ry == 0: return None
             path_tokens = ['M', cx+rx, cy,
+                           'A', rx, ry, 0, 0, 0, cx, cy-ry,
                            'A', rx, ry, 0, 0, 0, cx-rx, cy,
+                           'A', rx, ry, 0, 0, 0, cx, cy+ry,
                            'A', rx, ry, 0, 0, 0, cx+rx, cy,
                            'Z']
 
