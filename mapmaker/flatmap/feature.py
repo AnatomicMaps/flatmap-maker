@@ -31,7 +31,7 @@ class Feature(object):
                        has_children:bool=False):
         self.__feature__id = feature_id     # Must be numeric for tipeecanoe
         self.__geometry = geometry
-        self.__properties = properties
+        self.__properties = properties.copy()
         self.__properties['featureId'] = feature_id   # Used by flatmap viewer
         self.__properties['geometry'] = geometry.geom_type
         self.__has_children = has_children
@@ -63,8 +63,9 @@ class Feature(object):
     def id(self) -> str:
         return self.__properties.get('id')
 
-    def copy_properties(self) -> dict:
-        return self.__properties.copy()
+    @property
+    def properties(self):
+        return self.__properties
 
     def del_property(self, property: str):
         if property in self.__properties:

@@ -152,11 +152,11 @@ class FeatureLayer(object):
     #=======================================================================
         self.__raster_layers.append(RasterTileLayer(id, raster_source, min_zoom, extent, **kwargs))
 
-    def set_feature_properties(self, property_data):
+    def set_feature_properties(self, map_properties):
     #===============================================
         # Update feature properties from JSON properties file
         for feature in self.__features:
-            property_data.update_properties(feature)
+            map_properties.update_feature_properties(feature.properties)
 
     def add_nerve_details(self):
     #===========================
@@ -168,7 +168,7 @@ class FeatureLayer(object):
                     feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
                 if feature.geom_type == 'LineString':
                     nerve_polygon_feature = self.__source.flatmap.new_feature(
-                        shapely.geometry.Polygon(feature.geometry.coords), feature.copy_properties())
+                        shapely.geometry.Polygon(feature.geometry.coords), feature.properties)
                     nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
@@ -219,9 +219,9 @@ class FeatureLayer(object):
             elif feature.get_property('group'):
                 generate_group = True
                 child_class = feature.del_property('children')
-                grouped_properties.update(feature.copy_properties())
+                grouped_properties.update(feature.properties)
             elif feature.get_property('region'):
-                regions.append(self.__flatmap.new_feature(feature.geometry.representative_point(), feature.copy_properties()))
+                regions.append(self.__flatmap.new_feature(feature.geometry.representative_point(), feature.properties))
             elif not feature.has_property('markup') or feature.get_property('divider'):
                 if feature.geom_type == 'LineString':
                     dividers.append(feature.geometry)
@@ -280,7 +280,7 @@ class FeatureLayer(object):
                     region_id = None
                     region_properties = base_properties.copy()
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
-                        region_properties.update(region.copy_properties())
+                        region_properties.update(region.properties)
                         group_features.append(self.__flatmap.new_feature(polygon, region_properties))
                         break
         else:

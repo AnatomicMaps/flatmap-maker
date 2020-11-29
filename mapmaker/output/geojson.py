@@ -75,7 +75,7 @@ class GeoJSONOutput(object):
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
 
         for feature in features:
-            properties = feature.copy_properties()
+            properties = feature.properties.copy()
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)

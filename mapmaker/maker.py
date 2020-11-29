@@ -301,7 +301,7 @@ class Flatmap(object):
     #=====================================================================
         extra_details = []
         for feature in lowres_features:
-            self.__property_data.update_properties(feature)
+            self.__map_properties.update_feature_properties(feature.properties)
             hires_layer_id = feature.get_property('details')
             hires_layer = self.__layer_dict.get(hires_layer_id)
             if hires_layer is None:
@@ -442,7 +442,7 @@ class Flatmap(object):
     def __resolve_paths(self):
     #=========================
         # Set feature ids of path components
-        self.__property_data.resolve_pathways(self.__id_to_feature, self.__class_to_feature)
+        self.__map_properties.resolve_pathways(self.__id_to_feature, self.__class_to_feature)
 
     def __save_metadata(self):
     #=========================
@@ -458,7 +458,7 @@ class Flatmap(object):
         # Save layer details in metadata
         tile_db.add_metadata(layers=json.dumps(self.__layer_metadata()))
         # Save pathway details in metadata
-        tile_db.add_metadata(pathways=json.dumps(self.__property_data.resolved_pathways))
+        tile_db.add_metadata(pathways=json.dumps(self.__map_properties.resolved_pathways))
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(self.__annotations))
         # Save command used to run mapmaker
