@@ -42,6 +42,7 @@ from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_PIXEL
 from ..markup import parse_markup
 
+from .cleaner import SVGCleaner
 from .transform import SVGTransform
 from .utils import adobe_decode, length_as_pixels
 
@@ -60,9 +61,8 @@ class SVGSource(MapSource):
     def __init__(self, flatmap, id, source_path, boundary_id=None, output_layer=True):
         super().__init__(flatmap, id)
         self.__boundary_id = boundary_id
-
+        self.__source_path = source_path
         self.__svg = etree.parse(source_path).getroot()
-
         if 'viewBox' in self.__svg.attrib:
             (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
         else:

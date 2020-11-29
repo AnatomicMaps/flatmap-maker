@@ -40,6 +40,13 @@ WORLD_METRES_PER_UM = 100
 
 #===============================================================================
 
+# Shapes/pathe with these marked up types and tile layers are excluded when
+# image tiling.
+EXCLUDE_SHAPE_TYPES = ['group', 'invisible', 'marker', 'path', 'region']
+EXCLUDE_TILE_LAYERS = ['pathways']
+
+#===============================================================================
+
 class MapSource(object):
     def __init__(self, flatmap, id):
         self.__flatmap = flatmap
