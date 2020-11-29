@@ -26,6 +26,8 @@ import sqlite3
 import openpyxl
 import requests
 
+from mapmaker.settings import settings
+
 #===============================================================================
 
 ILX_ENDPOINT = 'http://uri.interlex.org/base/ilx_{:0>7}.json'
@@ -36,9 +38,9 @@ SCIGRAPH_ONTOLOGIES = ['UBERON']
 #===============================================================================
 
 class LabelDatabase(object):
-    def __init__(self, map_base, refresh=False):
-        database = os.path.join(map_base, 'labels.sqlite')
-        if refresh:
+    def __init__(self):
+        database = os.path.join(settings.get('mapBase'), 'labels.sqlite')
+        if settings.get('refreshLabels', False):
             try:
                 os.remove(database)
             except FileNotFoundError:
@@ -98,8 +100,9 @@ class AnatomicalMap(object):
         - If no ``Preferred ID`` is defined then the UBERON identifier is used.
         - The shape's label is set from its anatomical identifier; if none was assigned then the label is set to the shape's class.
     """
-    def __init__(self, mapping_spreadsheet, label_database):
-        self.__label_data = label_database
+    def __init__(self, mapping_spreadsheet):
+        # Use a local database to cache labels retrieved from knowledgebase
+        self.__label_cache = LabelDatabase()
         self.__map = {}
         if mapping_spreadsheet is not None:
             for sheet in openpyxl.load_workbook(mapping_spreadsheet):
@@ -130,10 +133,10 @@ class AnatomicalMap(object):
         props = {}
         if cls in self.__map:
             props['models'] = self.__map[cls]
-            props['label'] = self.__label_data.get_label(props['models'])
+            props['label'] = self.__label_cache.get_label(props['models'])
         else:
             props['label'] = cls
         return props
 
     def label(self, entity):
-        return self.__label_data.get_label(entity)
+        return self.__label_cache.get_label(entity)

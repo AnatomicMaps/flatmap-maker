@@ -50,6 +50,7 @@ from .output.tilemaker import RasterTileMaker
 
 from .properties import JsonProperties
 
+from .settings import settings
 from .sources import MBFSource, PowerpointSource, SVGSource
 
 #===============================================================================
@@ -60,6 +61,8 @@ from mapmaker import FLATMAP_VERSION
 
 class Flatmap(object):
     def __init__(self, manifest, options):
+        self.__manifest = manifest
+
         # Check options for validity and set defaults
         if options.get('backgroundOnly', False):
             options['backgroundTiles'] = True
@@ -74,10 +77,7 @@ class Flatmap(object):
         if initial_zoom < min_zoom or initial_zoom > max_zoom:
             raise ValueError('Initial zoom must be between {} and {}'.format(min_zoom, max_zoom))
         self.__zoom = (min_zoom, max_zoom, initial_zoom)
-
-        self.__options = options
-
-        self.__manifest = manifest
+        settings.update(options)
 
         try:
             self.__id = manifest['id']
@@ -103,13 +103,8 @@ class Flatmap(object):
         self.__tippe_inputs = []
         self.__upload_files = []
 
-        # Use a local database to cache labels retrieved from knowledgebase
-        label_database = LabelDatabase(map_base, options.get('refreshLabels', False))
-
         # Properties about map features
-        self.__property_data = JsonProperties(manifest.get('properties'),
-                                              manifest.get('anatomicalMap'),
-                                              label_database)
+        self.__map_properties = JsonProperties(manifest)
 
         self.__layer_dict = OrderedDict()
         self.__visible_layer_count = 0
@@ -145,13 +140,12 @@ class Flatmap(object):
         return self.__map_dir
 
     @property
-    def models(self):
-        return self.__models
+    def map_properties(self):
+        return self.__map_properties
 
     @property
-    def options(self):
-        return self.__options
-
+    def models(self):
+        return self.__models
 
     def make(self):
     #==============
@@ -160,7 +154,7 @@ class Flatmap(object):
         # Process flatmap's sources to create FeatureLayers
         self.__process_sources()
 
-        if not self.__options.get('errorCheck', False):
+        if not settings.get('errorCheck', False):
             # Add high-resolution features showing details
             self.__add_details()
             # Set additional properties from properties file
@@ -172,13 +166,13 @@ class Flatmap(object):
             # Generate vector tiles from GeoJSON
             self.__make_vector_tiles()
             # Generate image tiles
-            if self.__options.get('backgroundTiles', False):
+            if settings.get('backgroundTiles', False):
                 self.__make_raster_tiles()
             # Save the flatmap's metadata
             self.__save_metadata()
             # Upload the generated map to a server
-            if self.__options.get('uploadHost') is not None:
-                self.__upload_map(self.__options.get('uploadHost'))
+            if settings.get('uploadHost') is not None:
+                self.__upload_map(settings.get('uploadHost'))
 
         # All done so clean up
         self.__finish_make()
@@ -196,14 +190,14 @@ class Flatmap(object):
             print('Generated map for {}'.format(flatmap.models))
         ## FIX v's errorCheck
         for filename in self.__geojson_files:
-            if self.__options.get('saveGeoJSON', False):
+            if settings.get('saveGeoJSON', False):
                 print(filename)
             else:
                 os.remove(filename)
 
     def __process_sources(self):
     #===========================
-        tile_background = self.__options.get('backgroundTiles', False)
+        tile_background = settings.get('backgroundTiles', False)
         for source in self.__manifest.get('sources', []):
             source_id = source.get('id')
             source_kind = source.get('kind')
@@ -270,7 +264,7 @@ class Flatmap(object):
     def __set_feature_properties(self):
     #==================================
         for layer in self.__layer_dict.values():
-            layer.set_feature_properties(self.__property_data)
+            layer.set_feature_properties(self.__map_properties)
             layer.add_nerve_details()
 
     def __add_details(self):
@@ -387,7 +381,7 @@ class Flatmap(object):
             tippe_command.append('--no-tile-compression')
         tippe_command += list(["-L{}".format(json.dumps(input)) for input in self.__tippe_inputs])
 
-        if self.__options.get('showTippe', False):
+        if settings.get('showTippe', False):
             print('  \\\n    '.join(tippe_command))
         subprocess.run(tippe_command)
 
@@ -429,7 +423,7 @@ class Flatmap(object):
             if layer.output_layer:
                 print('Layer:', layer.id)
                 geojson_output = GeoJSONOutput(layer, self.__map_area, self.__map_dir)
-                saved_layer = geojson_output.save(layer.features, self.__options['saveGeoJSON'])
+                saved_layer = geojson_output.save(layer.features, settings['saveGeoJSON'])
                 for (layer_name, filename) in saved_layer.items():
                     self.__geojson_files.append(filename)
                     self.__tippe_inputs.append({
