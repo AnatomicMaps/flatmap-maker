@@ -22,9 +22,11 @@ from collections import defaultdict, OrderedDict
 import datetime
 import json
 import os
+import pathlib
 import shutil
 import subprocess
 import sys
+from urllib.parse import urljoin
 
 #===============================================================================
 
@@ -52,10 +54,24 @@ from .properties import JsonProperties
 
 from .settings import settings
 from .sources import MBFSource, PowerpointSource, SVGSource
+from .utils import http_scheme
 
 #===============================================================================
 
 from mapmaker import FLATMAP_VERSION
+# Change property and source hrefs into absolute paths...
+def resolve_manifest_paths(manifest_path, manifest):
+#===================================================
+    if http_scheme(manifest_path):
+        base = manifest_path
+    else:
+        base = str(pathlib.Path(manifest_path).resolve())
+    if 'anatomicalMap' in manifest:
+        manifest['anatomicalMap'] = urljoin(base, manifest['anatomicalMap'])
+    if 'properties' in manifest:
+        manifest['properties'] = urljoin(base, manifest['properties'])
+    for source in manifest['sources']:
+        source['href'] = urljoin(base, source['href'])
 
 #===============================================================================
 
