@@ -290,7 +290,22 @@ class Flatmap(object):
         for layer in detail_layers:
             self.__add_layer(layer)
 
-## Put this into 'features.py' as a function??
+## Put all this into 'features.py' as a function??
+    def __new_detail_feature(self, layer_id, detail_layer, minzoom, geometry, properties):
+    #=====================================================================================
+        new_feature = self.new_feature(geometry, properties)
+        new_feature.set_property('layer', layer_id)
+        new_feature.set_property('minzoom', minzoom)
+        if properties.get('type') == 'nerve':
+            new_feature.set_property('type', 'nerve-section')
+            new_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
+            ## Need to link outline feature of nerve into paths through the nerve so it is highlighted
+            ## when mouse over a path through the nerve
+            new_feature.set_property('tile-layer', 'pathways')
+        detail_layer.add_feature(new_feature)
+        self.save_feature_id(new_feature)
+        return new_feature
+
     def __add_detail_features(self, layer, detail_layer, lowres_features):
     #=====================================================================
         extra_details = []
@@ -331,18 +346,9 @@ class Flatmap(object):
 
             # The detail layer gets a scaled copy of each high-resolution feature
             for hires_feature in hires_layer.features:
-                new_feature = self.new_feature(shapely.affinity.affine_transform(hires_feature.geometry, transform),
-                                               hires_feature.copy_properties())
-                new_feature.set_property('layer', layer.id)
-                new_feature.set_property('minzoom', minzoom)
-
-                if feature.get_property('type') == 'nerve':
-                    new_feature.set_property('type', 'nerve-section')
-                    new_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
-                    new_feature.set_property('tile-layer', 'pathways')
-
-                detail_layer.add_feature(new_feature)
-                self.save_feature_id(new_feature)
+                new_feature = self.__new_detail_feature(layer.id, detail_layer, minzoom,
+                                                        shapely.affinity.affine_transform(hires_feature.geometry, transform),
+                                                        hires_feature.properties)
                 if new_feature.has_property('details'):
                     extra_details.append(new_feature)
 
