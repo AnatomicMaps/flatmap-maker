@@ -95,26 +95,24 @@ class SVGSource(MapSource):
 class SVGLayer(FeatureLayer):
     def __init__(self, id, source, output_layer=True):
         super().__init__(id, source, output_layer=output_layer)
-
         self.__transform = source.transform
-
         self.__outline_feature_id = None
         self.__current_group = []
 
     def process(self, svg):
     #======================
         self.__current_group.append('ROOT')
-        features = self.__process_element_list(svg, self.__transform, outermost=True)
-        self.add_features('SVG', features, True)
+        features = self.__process_element_list(svg, self.__transform, show_progress=True)
+        self.add_features('SVG', features, outermost=True)
 
     def __process_group(self, group, properties, transform):
     #=======================================================
         features = self.__process_element_list(group, transform@SVGTransform(group).matrix())
         return self.add_features(properties.get('markup', ''), features)
 
-    def __process_element_list(self, elements, transform, outermost=False):
-    #======================================================================
-        if outermost:
+    def __process_element_list(self, elements, transform, show_progress=False):
+    #==========================================================================
+        if show_progress:
             progress_bar = tqdm(total=len(elements),
                 unit='shp', ncols=40,
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
@@ -168,10 +166,10 @@ class SVGLayer(FeatureLayer):
                 pass
             else:
                 print('"{}" {} not processed...'.format(markup, element.tag))
-            if outermost:
+            if show_progress:
                 progress_bar.update(1)
 
-        if outermost:
+        if show_progress:
             progress_bar.close()
         return features
 

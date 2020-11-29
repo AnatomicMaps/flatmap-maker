@@ -91,17 +91,17 @@ class PowerpointSlide(FeatureLayer):
     def process(self):
     #=================
         self.__current_group.append('SLIDE')
-        features = self.__process_shape_list(self.slide.shapes, self.__transform, outermost=True)
-        self.add_features('Slide', features, True)
+        features = self.__process_shape_list(self.slide.shapes, self.__transform, show_progress=True)
+        self.add_features('Slide', features, outermost=True)
 
     def __process_group(self, group, properties, transform):
     #=======================================================
         features = self.__process_shape_list(group.shapes, transform@DrawMLTransform(group).matrix())
         return self.add_features(properties.get('markup', ''), features)
 
-    def __process_shape_list(self, shapes, transform, outermost=False):
-    #==================================================================
-        if outermost:
+    def __process_shape_list(self, shapes, transform, show_progress=False):
+    #======================================================================
+        if show_progress:
             progress_bar = tqdm(total=len(shapes),
                 unit='shp', ncols=40,
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
@@ -151,10 +151,10 @@ class PowerpointSlide(FeatureLayer):
                 pass
             else:
                 print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
-            if outermost:
+            if show_progress:
                 progress_bar.update(1)
 
-        if outermost:
+        if show_progress:
             progress_bar.close()
         return features
 
