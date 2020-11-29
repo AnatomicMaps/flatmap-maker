@@ -338,6 +338,11 @@ class Flatmap(object):
             else:
                 feature.del_property('maxzoom')
 
+            ### Put this into geometry module
+            hires_bounds = extent_to_bounds(hires_layer.source.extent)
+            lores_bounds = shapely.affinity.affine_transform(shapely.geometry.box(*hires_bounds), transform).bounds
+            extent = bounds_to_extent(lores_bounds)
+
             layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
                                     hires_layer.source.raster_source,
                                     minzoom, hires_layer.source.extent,
