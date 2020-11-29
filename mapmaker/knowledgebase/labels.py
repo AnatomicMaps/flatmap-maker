@@ -127,7 +127,6 @@ class AnatomicalMap(object):
 
                         if pp_id and (preferred or uberon):
                             self.__map[pp_id.strip()] = (preferred if preferred else uberon).strip()
-        #print(self.__map)
 
     def properties(self, cls):
         props = {}
