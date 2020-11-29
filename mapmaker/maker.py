@@ -37,6 +37,10 @@ import shapely.affinity
 
 #===============================================================================
 
+from mapmaker import FLATMAP_VERSION
+
+#===============================================================================
+
 from .flatmap.feature import Feature
 from .flatmap.layers import FeatureLayer
 
@@ -58,7 +62,6 @@ from .utils import http_scheme
 
 #===============================================================================
 
-from mapmaker import FLATMAP_VERSION
 # Change property and source hrefs into absolute paths...
 def resolve_manifest_paths(manifest_path, manifest):
 #===================================================
