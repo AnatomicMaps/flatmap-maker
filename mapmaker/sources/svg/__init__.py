@@ -108,7 +108,7 @@ class SVGLayer(FeatureLayer):
     def __process_group(self, group, properties, transform):
     #=======================================================
         features = self.__process_element_list(group, transform@SVGTransform(group).matrix())
-        return self.add_features(properties.get('markup', ''), features)
+        return self.add_features(adobe_decode(group.attrib.get('id', '')), features)
 
     def __process_element_list(self, elements, transform, show_progress=False):
     #==========================================================================
