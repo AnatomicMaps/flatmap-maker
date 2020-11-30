@@ -106,13 +106,13 @@ class MapSource(object):
 #===============================================================================
 
 class RasterSource(object):
-    def __init__(self, source_kind, source_bytes):
+    def __init__(self, source_kind, source_data):
         self.__source_kind = source_kind
-        self.__source_bytes = source_bytes
+        self.__source_data = source_data
 
     @property
-    def source_bytes(self):
-        return self.__source_bytes
+    def source_data(self):
+        return self.__source_data
 
     @property
     def source_kind(self):

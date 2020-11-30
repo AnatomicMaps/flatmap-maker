@@ -353,9 +353,9 @@ class RasterTileMaker(object):
     #======================================
         print('Tiling {}...'.format(layer_id))
         if source.source_kind == 'raster':
-            tile_extractor = RasterTileExtractor(self.__map_rect, source.source_bytes)
+            tile_extractor = RasterTileExtractor(self.__map_rect, source.source_data)
         elif source.source_kind == 'pdf':
-            pdf = fitz.Document(stream=source.source_bytes, filetype='application/pdf')
+            pdf = fitz.Document(stream=source.source_data, filetype='application/pdf')
             # Tile the first page of a PDF
             tile_extractor = PDFTileExtractor(self.__map_rect, pdf[0])
         else:
