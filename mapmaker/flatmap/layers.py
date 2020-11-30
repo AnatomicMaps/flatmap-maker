@@ -55,6 +55,10 @@ class FeatureLayer(object):
     def boundary_id(self):
         return self.__boundary_id
 
+    @boundary_id.setter
+    def boundary_id(self, value):
+        self.__boundary_id = value
+
     @property
     def description(self):
         return self.__description
