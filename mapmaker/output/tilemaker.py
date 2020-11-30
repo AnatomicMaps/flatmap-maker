@@ -358,6 +358,13 @@ class RasterTileMaker(object):
             pdf = fitz.Document(stream=source.source_data, filetype='application/pdf')
             # Tile the first page of a PDF
             tile_extractor = PDFTileExtractor(self.__map_rect, pdf[0])
+        elif source.source_kind == 'svg':
+            drawing = svg2rlg(source.source_data)
+            pdf_bytes = io.BytesIO()
+            renderPDF.drawToFile(drawing, pdf_bytes)
+            pdf_bytes.seek(0)
+            pdf = fitz.Document(stream=pdf_bytes, filetype='application/pdf')
+            tile_extractor = PDFTileExtractor(self.__map_rect, pdf[0])
         else:
             raise TypeError('Unsupported kind of background tile source: {}'.format(source.source_kind))
         self.__make_zoomed_tiles(tile_extractor, layer_id)

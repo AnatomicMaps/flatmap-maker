@@ -27,6 +27,8 @@ tqdm = "*"
 lxml = "*"
 opencv-python-headless = "*"
 configargparse = "*"
+svglib = "*"
+reportlab = "*"
 
 [requires]
 python_version = "3.8"

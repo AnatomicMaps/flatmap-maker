@@ -31,9 +31,10 @@ from beziers.point import Point as BezierPoint
 from beziers.quadraticbezier import QuadraticBezier
 
 from lxml import etree
-
 import numpy as np
+from reportlab.graphics import renderPDF
 import shapely.geometry
+from svglib.svglib import svg2rlg
 from tqdm import tqdm
 
 #===============================================================================
@@ -49,6 +50,7 @@ from .utils import adobe_decode, length_as_pixels
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import transform_bezier_samples, transform_point
 from mapmaker.geometry.arc_to_bezier import path_from_arc, tuple2
+from mapmaker.settings import settings
 
 #===============================================================================
 
@@ -60,8 +62,9 @@ def SVG(tag):
 class SVGSource(MapSource):
     def __init__(self, flatmap, id, source_path, boundary_id=None, output_layer=True):
         super().__init__(flatmap, id)
-        self.__boundary_id = boundary_id
         self.__source_path = source_path
+        self.__boundary_id = boundary_id
+        self.__output_layer = output_layer
         self.__svg = etree.parse(source_path).getroot()
         if 'viewBox' in self.__svg.attrib:
             (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
@@ -83,12 +86,24 @@ class SVGSource(MapSource):
         self.add_layer(self.__layer)
 
     @property
+    def raster_source(self):
+        return self.__raster_source
+
+    @property
     def transform(self):
         return self.__transform
 
     def process(self):
     #=================
         self.__layer.process(self.__svg)
+        if self.__output_layer:
+            # Save a cleaned copy of the SVG in the map's output directory
+            cleaner = SVGCleaner(self.__source_path, self.flatmap.map_properties)
+            cleaner.clean()
+            cleaned_svg = os.path.join(settings.get('mapBase'), self.flatmap.id,
+                                       '{}.svg'.format(self.id))
+            cleaner.save(cleaned_svg)
+            self.__raster_source = RasterSource('svg', cleaned_svg)
 
 #===============================================================================
 
