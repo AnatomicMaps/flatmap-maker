@@ -45,8 +45,6 @@ class FeatureLayer(object):
         self.__output_layer = output_layer
         self.__queryable_nodes = False
         self.__raster_layers = []
-        self.__selectable = True
-        self.__selected = False
         self.__zoom = None
 
     @property
@@ -98,14 +96,6 @@ class FeatureLayer(object):
         return self.__raster_layers
 
     @property
-    def outline_feature_id(self):
-        return self.__outline_feature_id
-
-    @outline_feature_id.setter
-    def outline_feature_id(self, value):
-        self.__outline_feature_id = value
-
-    @property
     def output_layer(self):
         return self.__output_layer
 
@@ -116,22 +106,6 @@ class FeatureLayer(object):
     @queryable_nodes.setter
     def queryable_nodes(self, value):
         self.__queryable_nodes = value
-
-    @property
-    def selected(self):
-        return self.__selected
-
-    @selected.setter
-    def selected(self, value):
-        self.__selected = value
-
-    @property
-    def selectable(self):
-        return self.__selectable
-
-    @selectable.setter
-    def selectable(self, value):
-        self.__selectable = value
 
     @property
     def source(self):

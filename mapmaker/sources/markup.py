@@ -45,17 +45,12 @@ ONTOLOGY_ID = Combine(ONTOLOGY_SUFFIX + ':' + ID_TEXT)
 IDENTIFIER = Group(Keyword('id') + Suppress('(') + ID_TEXT + Suppress(')'))
 MODELS = Group(Keyword('models') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
 
-BACKGROUND = Group(Keyword('background-for') + Suppress('(') + ID_TEXT + Suppress(')'))
-DESCRIPTION = Group(Keyword('description') + Suppress('(') + FREE_TEXT + Suppress(')'))
-OUTLINE = Group(Keyword('outline') + Suppress('(') + ID_TEXT + Suppress(')'))
-SELECTION_FLAGS = Group(Keyword('not-selectable') | Keyword('selected') | Keyword('queryable'))
-
 ZOOM_LEVEL = INTEGER
 ZOOM = Group(Keyword('zoom') + Suppress('(')
                                + Group(ZOOM_LEVEL + Suppress(',') + ZOOM_LEVEL + Suppress(',') + ZOOM_LEVEL)
                              + Suppress(')'))
 
-LAYER_DIRECTIVES = BACKGROUND | DESCRIPTION | IDENTIFIER | MODELS | OUTLINE | SELECTION_FLAGS | ZOOM
+LAYER_DIRECTIVES = IDENTIFIER | MODELS | ZOOM
 LAYER_DIRECTIVE = '.' + ZeroOrMore(LAYER_DIRECTIVES)
 
 #===============================================================================
@@ -103,17 +98,11 @@ def parse_layer_directive(s):
     result = {}
     try:
         parsed = LAYER_DIRECTIVE.parseString(s, parseAll=True)
-        result['selectable'] = True
         for directive in parsed[1:]:
-            if directive[0] == 'not-selectable':
-                result['selectable'] = False
-            elif SELECTION_FLAGS.matches(directive[0]):
-                result[directive[0]] = True
-            elif directive[0] == 'zoom':
+            if directive[0] == 'zoom':
                 result['zoom'] = [int(z) for z in directive[1]]
             else:
                 result[directive[0]] = directive[1]
-
     except ParseException:
         result['error'] = 'Syntax error in layer directive'
     return result
