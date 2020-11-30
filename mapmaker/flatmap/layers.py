@@ -22,6 +22,8 @@ import shapely.geometry
 
 #===============================================================================
 
+from mapmaker.exceptions import GroupValueError
+
 from mapmaker.geometry import connect_dividers, extend_line, make_boundary
 from mapmaker.geometry import save_geometry
 
@@ -206,7 +208,7 @@ class FeatureLayer(object):
                     boundary_lines.append(extend_line(feature.geometry))
                 elif feature.geom_type == 'Polygon':
                     if boundary_polygon is not None:
-                        raise GroupValueError('Group {} can only have one boundary shape:'.format(group_name), features)
+                        raise GroupValueError('{} can only have one boundary shape:'.format(group_name), features)
                     boundary_polygon = feature.geometry
                     if not feature.get_property('invisible'):
                         group_features.append(feature)
@@ -215,7 +217,7 @@ class FeatureLayer(object):
                     if cls != boundary_class:
                         boundary_class = cls
                     else:
-                        raise ValueError('Class of boundary shapes have changed in group{}: {}'.format(group_name, feature))
+                        raise ValueError('Class of boundary shapes have changed in {}: {}'.format(group_name, feature))
             elif feature.get_property('group'):
                 generate_group = True
                 child_class = feature.del_property('children')
@@ -238,7 +240,7 @@ class FeatureLayer(object):
                 interior_features.append(feature)
 
         if boundary_polygon is not None and len(boundary_lines):
-            raise GroupValueError("Group {} can't be bounded by both a closed shape and lines:".format(group_name), features)
+            raise GroupValueError("{} can't be bounded by both a closed shape and lines:".format(group_name), features)
 
         elif boundary_polygon is not None or len(boundary_lines):
             if len(boundary_lines):
@@ -247,7 +249,7 @@ class FeatureLayer(object):
                 try:
                     boundary_polygon = make_boundary(boundary_lines)
                 except ValueError as err:
-                    raise GroupValueError('Group {}: {}'.format(group_name, str(err)), features)
+                    raise GroupValueError('{}: {}'.format(group_name, str(err)), features)
 
             group_features.append(
                 self.__flatmap.new_feature(

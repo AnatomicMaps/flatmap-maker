@@ -39,8 +39,6 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 #===============================================================================
 
-from mapmaker.exceptions import GroupValueError
-
 from mapmaker.flatmap.layers import FeatureLayer
 
 from mapmaker.geometry import ellipse_point
