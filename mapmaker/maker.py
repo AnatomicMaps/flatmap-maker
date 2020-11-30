@@ -205,8 +205,8 @@ class Flatmap(object):
     def __finish_make(self):
     #=======================
         # Show what the map is about
-        if self.models:
-            print('Generated map for {}'.format(flatmap.models))
+        if self.models is not None:
+            print('Generated map for {}'.format(self.models))
         ## FIX v's errorCheck
         for filename in self.__geojson_files:
             if settings.get('saveGeoJSON', False):
