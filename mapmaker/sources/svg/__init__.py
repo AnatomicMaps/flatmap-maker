@@ -42,6 +42,7 @@ from .. import WORLD_METRES_PER_PIXEL
 from ..markup import parse_markup
 
 from .cleaner import SVGCleaner
+from .definitions import DefinitionStore
 from .transform import SVGTransform
 from .utils import adobe_decode, length_as_pixels
 
@@ -111,6 +112,7 @@ class SVGLayer(FeatureLayer):
         super().__init__(id, source, output_layer=output_layer)
         self.__transform = source.transform
         self.__current_group = []
+        self.__definitions = DefinitionStore()
 
     def process(self, svg):
     #======================
@@ -129,59 +131,66 @@ class SVGLayer(FeatureLayer):
             progress_bar = tqdm(total=len(elements),
                 unit='shp', ncols=40,
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
-
         features = []
         for element in elements:
-            properties = {'tile-layer': 'features'}   # Passed through to map viewer
-            markup = adobe_decode(element.attrib.get('id', ''))
-            if markup.startswith('.'):
-                markup = adobe_decode(element.attrib['id'])
-                properties.update(parse_markup(markup))
-                group_name = self.__current_group[-1]  # For error reporting
-                if 'error' in properties:
-                    self.source.error('{} error: {}: annotation syntax error: {}'
-                                        .format(self.id, group_name, markup))
-                if 'warning' in properties:
-                    self.source.error('{} warning: {}: {}'
-                                        .format(self.id, group_name, properties['warning']))
-                for key in ['id', 'path']:
-                    if key in properties:
-                        if self.flatmap.is_duplicate_feature_id(properties[key]):
-                           self.source.error('{} error: {}: duplicate id: {}'
-                                               .format(self.id, group_name, markup))
-            if 'error' in properties:
-                pass
-            elif 'path' in properties:
-                pass
-            elif element.tag in [SVG('circle'), SVG('ellipse'), SVG('line'),
-                                 SVG('path'), SVG('polyline'), SVG('polygon'),
-                                 SVG('rect')]:
-                geometry = self.__get_geometry(element, properties, transform)
-                if geometry is None:
-                    continue
-                feature = self.flatmap.new_feature(geometry, properties)
-                if self.output_layer and not feature.get_property('group'):
-                    # Save relationship between id/class and internal feature id
-                    self.flatmap.save_feature_id(feature)
-                features.append(feature)
-            elif element.tag == SVG('g'):
-                self.__current_group.append(properties.get('markup', "''"))
-                grouped_feature = self.__process_group(element, properties, transform)
-                self.__current_group.pop()
-                if grouped_feature is not None:
-                    if self.output_layer:
-                        self.flatmap.save_feature_id(grouped_feature)
-                    features.append(grouped_feature)
-            elif element.tag in [SVG('image'), SVG('text')]:
-                pass
-            else:
-                print('"{}" {} not processed...'.format(markup, element.tag))
+            if element.tag == SVG('defs'):
+                self.__definitions.add_definitions(element)
+                continue
+            elif element.tag == SVG('use'):
+                element = self.__definitions.use(element)
+            self.__process_element(element, transform, features)
             if show_progress:
                 progress_bar.update(1)
-
         if show_progress:
             progress_bar.close()
         return features
+
+    def __process_element(self, element, transform, features):
+    #=========================================================
+        properties = {'tile-layer': 'features'}   # Passed through to map viewer
+        markup = adobe_decode(element.attrib.get('id', ''))
+        if markup.startswith('.'):
+            markup = adobe_decode(element.attrib['id'])
+            properties.update(parse_markup(markup))
+            group_name = self.__current_group[-1]  # For error reporting
+            if 'error' in properties:
+                self.source.error('{} error: {}: annotation syntax error: {}'
+                                    .format(self.id, group_name, markup))
+            if 'warning' in properties:
+                self.source.error('{} warning: {}: {}'
+                                    .format(self.id, group_name, properties['warning']))
+            for key in ['id', 'path']:
+                if key in properties:
+                    if self.flatmap.is_duplicate_feature_id(properties[key]):
+                       self.source.error('{} error: {}: duplicate id: {}'
+                                           .format(self.id, group_name, markup))
+        if 'error' in properties:
+            pass
+        elif 'path' in properties:
+            pass
+        elif element.tag in [SVG('circle'), SVG('ellipse'), SVG('line'),
+                             SVG('path'), SVG('polyline'), SVG('polygon'),
+                             SVG('rect')]:
+            geometry = self.__get_geometry(element, properties, transform)
+            if geometry is None:
+                return
+            feature = self.flatmap.new_feature(geometry, properties)
+            if self.output_layer and not feature.get_property('group'):
+                # Save relationship between id/class and internal feature id
+                self.flatmap.save_feature_id(feature)
+            features.append(feature)
+        elif element.tag == SVG('g'):
+            self.__current_group.append(properties.get('markup', "''"))
+            grouped_feature = self.__process_group(element, properties, transform)
+            self.__current_group.pop()
+            if grouped_feature is not None:
+                if self.output_layer:
+                    self.flatmap.save_feature_id(grouped_feature)
+                features.append(grouped_feature)
+        elif element.tag in [SVG('image'), SVG('text')]:
+            pass
+        else:
+            print('"{}" {} not processed...'.format(markup, element.tag))
 
     @staticmethod
     def __path_matcher(m):
