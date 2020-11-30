@@ -81,6 +81,7 @@ class SVGSource(MapSource):
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
         self.__layer = SVGLayer(id, self, output_layer)
+        self.__raster_source = None
         self.add_layer(self.__layer)
 
     @property
