@@ -89,19 +89,15 @@ class FeatureIdMap(object):
     def map(self, id):
         feature_id = self.__id_map.get(id)
         if feature_id is None:
-            feature_ids = self.__class_map.get(id, [])
-            if len(feature_ids) > 1:
-                raise ValueError('Route has node with duplicated class: {}'.format(id))
-            elif len(feature_ids) == 1:
-                feature_id = feature_ids[0]
-        return feature_id
+            return self.__class_map.get(id, [])
+        return [feature_id]
 
     def map_list(self, ids):
         feature_ids = []
         for id in ids:
             feature_id = self.map(id)
             if feature_id is not None:
-                feature_ids.append(feature_id)
+                feature_ids.extend(feature_id)
         return feature_ids
 
 #===============================================================================
@@ -123,8 +119,7 @@ class NodePaths(object):
 
     def __add_paths(self, path_id, nodes, paths_dict):
         for id in nodes:
-            node_id = self.__feature_map.map(id)
-            if node_id is not None:
+            for node_id in self.__feature_map.map(id):
                 paths_dict[node_id].append(path_id)
 
     def add_route(self, path_id, route_nodes):
