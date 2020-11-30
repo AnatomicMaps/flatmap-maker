@@ -55,12 +55,7 @@ from .transform import DrawMLTransform
 
 class PowerpointSlide(FeatureLayer):
     def __init__(self, source, slide, slide_number):
-        super().__init__('slide-{:02d}'.format(slide_number), source, output_layer=(slide_number==1))
-
-        self.__slide = slide
-        self.__slide_number = slide_number
-        self.__transform = source.transform
-
+        id = 'slide-{:02d}'.format(slide_number)
         # Get any layer directives
         if slide.has_notes_slide:
             notes_slide = slide.notes_slide
@@ -70,6 +65,12 @@ class PowerpointSlide(FeatureLayer):
                 if 'error' in layer_directive:
                     source.error('Slide {}: invalid layer directive: {}'
                                  .format(slide_number, notes_text))
+                if 'id' in layer_directive:
+                    id = layer_directive['id']
+        super().__init__(id, source, output_layer=(slide_number==1))
+        self.__slide = slide
+        self.__slide_number = slide_number
+        self.__transform = source.transform
         self.__current_group = []
 
     @property
