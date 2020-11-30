@@ -32,9 +32,7 @@ from beziers.quadraticbezier import QuadraticBezier
 
 from lxml import etree
 import numpy as np
-from reportlab.graphics import renderPDF
 import shapely.geometry
-from svglib.svglib import svg2rlg
 from tqdm import tqdm
 
 #===============================================================================

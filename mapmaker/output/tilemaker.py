@@ -28,7 +28,8 @@ import cv2
 import fitz
 import mercantile
 import numpy as np
-
+from reportlab.graphics import renderPDF
+from svglib.svglib import svg2rlg
 from tqdm import tqdm
 
 #===============================================================================
