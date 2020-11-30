@@ -335,17 +335,16 @@ class Flatmap(object):
             if hires_layer is None:
                 print("Cannot find details' layer '{}'".format(feature.get_property('details')))
                 continue
-
-            outline_feature = hires_layer.features_by_id.get(hires_layer.outline_feature_id)
-            if outline_feature is None:
-                raise KeyError("Cannot find outline feature '{}'".format(hires_layer.outline_feature_id))
+            boundary_feature = hires_layer.features_by_id.get(hires_layer.boundary_id)
+            if boundary_feature is None:
+                raise KeyError("Cannot find boundary of '{}' layer".format(hires_layer.id))
 
             # Calculate ``shapely.affinity`` 2D affine transform matrix to map source shapes to the destination
 
             # NOTE: We have no way of ensuring that the vertices of the source and destination rectangles
             #       align as intended. As a result, output features might be rotated by some multiple
             #       of 90 degrees.
-            src = np.array(outline_feature.geometry.minimum_rotated_rectangle.exterior.coords, dtype = "float32")[:-1]
+            src = np.array(boundary_feature.geometry.minimum_rotated_rectangle.exterior.coords, dtype = "float32")[:-1]
             dst = np.array(feature.geometry.minimum_rotated_rectangle.exterior.coords, dtype = "float32")[:-1]
             M = cv2.getPerspectiveTransform(src, dst)
             transform = np.concatenate((M[0][0:2], M[1][0:2], M[0][2], M[1][2]), axis=None).tolist()
@@ -353,7 +352,7 @@ class Flatmap(object):
             minzoom = feature.get_property('maxzoom') + 1
             if feature.get_property('type') != 'nerve':
                 # Set the feature's geometry to that of the high-resolution outline
-                feature.geometry = shapely.affinity.affine_transform(outline_feature.geometry, transform)
+                feature.geometry = shapely.affinity.affine_transform(boundary_feature.geometry, transform)
             else:
                 feature.del_property('maxzoom')
 
@@ -365,7 +364,7 @@ class Flatmap(object):
             layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
                                     hires_layer.source.raster_source,
                                     minzoom, hires_layer.source.extent,
-                                    bounding_box=outline_feature.geometry.bounds,
+                                    bounding_box=boundary_feature.geometry.bounds,
                                     image_transform=M)
 
             # The detail layer gets a scaled copy of each high-resolution feature

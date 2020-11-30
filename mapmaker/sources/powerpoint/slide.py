@@ -61,7 +61,6 @@ class PowerpointSlide(FeatureLayer):
         self.__slide_number = slide_number
         self.__transform = source.transform
 
-        self.__outline_feature_id = None
         # Get any layer directives
         if slide.has_notes_slide:
             notes_slide = slide.notes_slide
@@ -71,7 +70,6 @@ class PowerpointSlide(FeatureLayer):
                 if 'error' in layer_directive:
                     source.error('Slide {}: invalid layer directive: {}'
                                  .format(slide_number, notes_text))
-                self.__outline_feature_id = layer_directive.get('outline')
         self.__current_group = []
 
     @property
@@ -133,8 +131,6 @@ class PowerpointSlide(FeatureLayer):
                 if self.output_layer and not feature.get_property('group'):
                     # Save relationship between id/class and internal feature id
                     self.flatmap.save_feature_id(feature)
-                if properties.get('id', '') == self.__outline_feature_id:
-                    self.outline_feature_id = feature.feature_id
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.__current_group.append(properties.get('markup', "''"))

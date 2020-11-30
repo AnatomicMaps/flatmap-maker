@@ -111,7 +111,6 @@ class SVGLayer(FeatureLayer):
     def __init__(self, id, source, output_layer=True):
         super().__init__(id, source, output_layer=output_layer)
         self.__transform = source.transform
-        self.__outline_feature_id = None
         self.__current_group = []
 
     def process(self, svg):
@@ -165,8 +164,6 @@ class SVGLayer(FeatureLayer):
                 if self.output_layer and not feature.get_property('group'):
                     # Save relationship between id/class and internal feature id
                     self.flatmap.save_feature_id(feature)
-                if properties.get('id', '') == self.__outline_feature_id:
-                    self.outline_feature_id = feature.feature_id
                 features.append(feature)
             elif element.tag == SVG('g'):
                 self.__current_group.append(properties.get('markup', "''"))

@@ -35,6 +35,7 @@ class FeatureLayer(object):
         self.__source = source
         self.__flatmap = source.flatmap
         self.__annotations = {}
+        self.__boundary_id = None
         self.__description = 'Layer {}'.format(id)
         self.__features = []
         self.__features_by_id = {}
@@ -51,6 +52,10 @@ class FeatureLayer(object):
     @property
     def annotations(self):
         return self.__annotations
+
+    @property
+    def boundary_id(self):
+        return self.__boundary_id
 
     @property
     def description(self):
@@ -203,8 +208,11 @@ class FeatureLayer(object):
         for feature in single_features:
             if feature.get_property('boundary'):
                 if outermost:
-                    raise ValueError('Boundary elements must be inside a group: {}'.format(feature))
-                if feature.geom_type == 'LineString':
+                    if self.__boundary_id is not None:
+                        raise ValueError('Layer cannot have multiple boundaries: {}'.format(feature))
+                    self.__boundary_id = feature.feature_id
+                    group_features.append(feature)
+                elif feature.geom_type == 'LineString':
                     boundary_lines.append(extend_line(feature.geometry))
                 elif feature.geom_type == 'Polygon':
                     if boundary_polygon is not None:
