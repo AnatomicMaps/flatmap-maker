@@ -33,6 +33,7 @@ from .. import WORLD_METRES_PER_EMU
 
 from mapmaker.geometry import transform_point
 from mapmaker.settings import settings
+from mapmaker.utils import open_bytes, read_bytes
 
 from .slide import PowerpointSlide
 
@@ -41,20 +42,7 @@ from .slide import PowerpointSlide
 class PowerpointSource(MapSource):
     def __init__(self, flatmap, id, source_path, get_background=False):
         super().__init__(flatmap, id)
-        if source_path.startswith('http:') or source_path.startswith('https:'):
-            response = requests.get(source_path)
-            if response.status_code != requests.codes.ok:
-                raise ValueError('Cannot retrieve remote Powerpoint')
-            pptx_modified = 0   ## Can we get timestamp from PMR metadata??
-            pptx_file = io.BytesIO(response.content)
-        else:
-            if not os.path.exists(source_path):
-                raise ValueError('Missing Powerpoint file')
-            pptx_modified = os.path.getmtime(source_path)
-            pptx_file = open(source_path, 'rb')
-
-        self.__pptx = Presentation(pptx_file)
-        pptx_file.close()
+        self.__pptx = Presentation(open_bytes(source_path))
         self.__slides = self.__pptx.slides
 
         (width, height) = (self.__pptx.slide_width, self.__pptx.slide_height)
@@ -70,19 +58,7 @@ class PowerpointSource(MapSource):
 
         if get_background:
             pdf_source = '{}_cleaned.pdf'.format(os.path.splitext(source_path)[0])
-            if pdf_source.startswith('http:') or pdf_source.startswith('https:'):
-                response = requests.get(pdf_source)
-                if response.status_code != requests.codes.ok:
-                    pptx_bytes.close()
-                    raise ValueError('Cannot retrieve PDF of cleaned Powerpoint (needed to generate background tiles)')
-                pdf_bytes = io.BytesIO(response.content)
-            else:
-                if not os.path.exists(pdf_source):
-                    raise ValueError('Missing PDF of cleaned Powerpoint (needed to generate background tiles)')
-                if os.path.getmtime(pdf_source) < pptx_modified:
-                    raise ValueError('PDF of cleaned Powerpoint is too old...')
-                with open(pdf_source, 'rb') as f:
-                    pdf_bytes = f.read()
+            pdf_bytes = read_bytes(pdf_source)
             self.__raster_source = RasterSource('pdf', pdf_bytes)
         else:
             self.__raster_source = None

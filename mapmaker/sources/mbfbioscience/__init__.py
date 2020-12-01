@@ -20,7 +20,7 @@
 
 import json
 import os
-from pathlib import Path
+from urllib.parse import urljoin
 
 #===============================================================================
 
@@ -36,6 +36,7 @@ from .. import WORLD_METRES_PER_UM
 
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import transform_point
+from mapmaker.utils import read_bytes
 
 #===============================================================================
 
@@ -61,8 +62,9 @@ class MBFSource(MapSource):
         offset = (float(coord_element.get('x', 0.0)), float(coord_element.get('y', 0.0)))
 
         filename = image_element.find(self.ns_tag('filename')).text
-        image_file = Path(source_path).with_name(filename.split('\\')[-1])
-        image = cv2.imread(image_file.as_posix(), cv2.IMREAD_UNCHANGED)
+        image_file = urljoin(source_path, filename.split('\\')[-1])
+        image_array = np.frombuffer(read_bytes(image_file), dtype=np.uint8)
+        image = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
         self.__raster_source = RasterSource('raster', image)
 
         image_size = (image.shape[1], image.shape[0])

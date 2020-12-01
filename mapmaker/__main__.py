@@ -25,7 +25,7 @@ import requests
 
 from mapmaker import __version__
 from mapmaker.maker import Flatmap, resolve_manifest_paths
-from mapmaker.utils import http_scheme
+from mapmaker.utils import read_json
 
 #===============================================================================
 
@@ -82,16 +82,7 @@ def main():
     print('Mapmaker {}'.format(__version__))
 
     manifest_path = args.manifest
-    if http_scheme(manifest_path):
-        response = requests.get(manifest_path)
-        if response.status_code != requests.codes.ok:
-            sys.exit('Cannot retrieve remote manifest')
-        manifest = json.loads(response.content)
-    else:
-        if not os.path.exists(manifest_path):
-            sys.exit('Missing manifest file')
-        with open(args.manifest) as fp:
-            manifest = json.loads(fp.read())
+    manifest = read_json(manifest_path)
     resolve_manifest_paths(manifest_path, manifest)
 
 

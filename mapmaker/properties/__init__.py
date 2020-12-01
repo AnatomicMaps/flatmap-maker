@@ -18,11 +18,9 @@
 #
 #===============================================================================
 
-import json
-
-#===============================================================================
-
 from mapmaker.knowledgebase.labels import AnatomicalMap
+from mapmaker.utils import read_json
+
 from .pathways import Pathways
 
 #===============================================================================
@@ -35,11 +33,7 @@ class JsonProperties(object):
         properties_dict = {}
         properties_file = manifest.get('properties')
         if properties_file is not None:
-            with open(properties_file) as fp:
-                try:
-                    properties_dict = json.loads(fp.read())
-                except json.decoder.JSONDecodeError as err:
-                    raise ValueError('Error in properties file, {}'.format(err))
+            properties_dict = read_json(properties_file)
         self.__set_properties(properties_dict.get('features', []))
         self.__pathways = Pathways(properties_dict.get('paths', []))
 

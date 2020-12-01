@@ -58,23 +58,20 @@ from .properties import JsonProperties
 
 from .settings import settings
 from .sources import MBFSource, PowerpointSource, SVGSource
-from .utils import http_scheme
+from .utils import make_url
 
 #===============================================================================
 
 # Change property and source hrefs into absolute paths...
 def resolve_manifest_paths(manifest_path, manifest):
 #===================================================
-    if http_scheme(manifest_path):
-        base = manifest_path
-    else:
-        base = str(pathlib.Path(manifest_path).resolve())
+    manifest_url = make_url(manifest_path)
     if 'anatomicalMap' in manifest:
-        manifest['anatomicalMap'] = urljoin(base, manifest['anatomicalMap'])
+        manifest['anatomicalMap'] = urljoin(manifest_url, manifest['anatomicalMap'])
     if 'properties' in manifest:
-        manifest['properties'] = urljoin(base, manifest['properties'])
+        manifest['properties'] = urljoin(manifest_url, manifest['properties'])
     for source in manifest['sources']:
-        source['href'] = urljoin(base, source['href'])
+        source['href'] = urljoin(manifest_url, source['href'])
 
 #===============================================================================
 
