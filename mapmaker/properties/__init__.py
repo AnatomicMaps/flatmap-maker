@@ -27,11 +27,11 @@ from .pathways import Pathways
 
 class JsonProperties(object):
     def __init__(self, manifest):
-        self.__anatomical_map = AnatomicalMap(manifest.get('anatomicalMap'))
+        self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
         self.__properties_by_class = {}
         self.__properties_by_id = {}
         properties_dict = {}
-        properties_file = manifest.get('properties')
+        properties_file = manifest.properties
         if properties_file is not None:
             properties_dict = read_json(properties_file)
         self.__set_properties(properties_dict.get('features', []))

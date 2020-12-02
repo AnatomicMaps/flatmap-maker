@@ -24,8 +24,7 @@ import requests
 #===============================================================================
 
 from mapmaker import __version__
-from mapmaker.maker import Flatmap, resolve_manifest_paths
-from mapmaker.utils import read_json
+from mapmaker.maker import Flatmap
 
 #===============================================================================
 
@@ -69,10 +68,10 @@ def main():
 
     required = parser.add_argument_group('required arguments')
 
-    required.add_argument('--map-base', dest='mapBase', metavar='MAP_BASE_DIR', required=True,
+    required.add_argument('--output-dir', dest='outputDir', metavar='OUTPUT_DIR', required=True,
                         help='base directory for generated flatmaps')
-    required.add_argument('--manifest', dest='manifest', metavar='MANIFEST', required=True,
-                        help='File or URL of JSON manifest specifying map sources')
+    required.add_argument('--map', dest='mapDir', metavar='MAP_DIR', required=True,
+                        help='Directory containing a flatmap manifest specifying sources')
 
     # --force option
 
@@ -81,13 +80,9 @@ def main():
     # Unless quiet...
     print('Mapmaker {}'.format(__version__))
 
-    manifest_path = args.manifest
-    manifest = read_json(manifest_path)
-    resolve_manifest_paths(manifest_path, manifest)
-
 
     try:
-        flatmap = Flatmap(manifest, vars(args))
+        flatmap = Flatmap(vars(args))
         flatmap.make()
     except ValueError as error:
         sys.exit(error)

@@ -58,26 +58,47 @@ from .properties import JsonProperties
 
 from .settings import settings
 from .sources import MBFSource, PowerpointSource, SVGSource
-from .utils import make_url
+from .utils import make_url, path_json
 
 #===============================================================================
 
-# Change property and source hrefs into absolute paths...
-def resolve_manifest_paths(manifest_path, manifest):
-#===================================================
-    manifest_url = make_url(manifest_path)
-    if 'anatomicalMap' in manifest:
-        manifest['anatomicalMap'] = urljoin(manifest_url, manifest['anatomicalMap'])
-    if 'properties' in manifest:
-        manifest['properties'] = urljoin(manifest_url, manifest['properties'])
-    for source in manifest['sources']:
-        source['href'] = urljoin(manifest_url, source['href'])
+class Manifest(object):
+    def __init__(self, manifest_dir):
+        manifest_path = os.path.join(manifest_dir, 'manifest.json')
+        self.__manifest = path_json(manifest_path)
+        manifest_url = make_url(manifest_path)
+        if 'anatomicalMap' in self.__manifest:
+            self.__manifest['anatomicalMap'] = urljoin(manifest_url, self.__manifest['anatomicalMap'])
+        if 'properties' in self.__manifest:
+            self.__manifest['properties'] = urljoin(manifest_url, self.__manifest['properties'])
+        for source in self.__manifest['sources']:
+            source['href'] = urljoin(manifest_url, source['href'])
+
+    @property
+    def anatomical_map(self):
+        return self.__manifest.get('anatomicalMap')
+
+    @property
+    def id(self):
+        return self.__manifest.get('id')
+
+    @property
+    def models(self):
+        return self.__manifest.get('models')
+
+    @property
+    def properties(self):
+        return self.__manifest.get('properties')
+
+    @property
+    def sources(self):
+        return self.__manifest['sources']
 
 #===============================================================================
 
 class Flatmap(object):
-    def __init__(self, manifest, options):
-        self.__manifest = manifest
+    def __init__(self, options):
+        self.__manifest = Manifest(options['mapDir'])
 
         # Check options for validity and set defaults
         if options.get('backgroundOnly', False):
@@ -96,14 +117,14 @@ class Flatmap(object):
         settings.update(options)
 
         try:
-            self.__id = manifest['id']
+            self.__id = self.__manifest.id
         except KeyError:
             raise ValueError('Map manifest requires an `id` field')
 
-        self.__models = manifest.get('models')
+        self.__models = self.__manifest.models
 
         # Make sure our output directories exist
-        map_base = options.get('mapBase', 'maps')
+        map_base = options.get('outputDir', 'maps')
         if not os.path.exists(map_base):
             os.makedirs(map_base)
         self.__map_dir = os.path.join(map_base, self.__id)
@@ -120,7 +141,7 @@ class Flatmap(object):
         self.__upload_files = []
 
         # Properties about map features
-        self.__map_properties = JsonProperties(manifest)
+        self.__map_properties = JsonProperties(self.__manifest)
 
         self.__layer_dict = OrderedDict()
         self.__visible_layer_count = 0
@@ -214,7 +235,7 @@ class Flatmap(object):
     def __process_sources(self):
     #===========================
         tile_background = settings.get('backgroundTiles', False)
-        for source in self.__manifest.get('sources', []):
+        for source in self.__manifest.sources:
             source_id = source.get('id')
             source_kind = source.get('kind')
             source_href = source.get('href')

@@ -100,7 +100,7 @@ class SVGSource(MapSource):
             # Save a cleaned copy of the SVG in the map's output directory
             cleaner = SVGCleaner(self.__source_path, self.flatmap.map_properties)
             cleaner.clean()
-            cleaned_svg = os.path.join(settings.get('mapBase'), self.flatmap.id,
+            cleaned_svg = os.path.join(settings.get('outputDir'), self.flatmap.id,
                                        '{}.svg'.format(self.id))
             cleaner.save(cleaned_svg)
             self.__raster_source = RasterSource('svg', cleaned_svg)
