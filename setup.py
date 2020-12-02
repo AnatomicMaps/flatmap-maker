@@ -92,16 +92,19 @@ setup(
     #
     #   py_modules=["my_module"],
     #
-    packages=["mapmaker",
-              "mapmaker.flatmap",
-              "mapmaker.geometry",
-              "mapmaker.knowledgebase",
-              "mapmaker.output",
-              "mapmaker.properties",
-              "mapmaker.sources",
-              "mapmaker.sources.mbfbioscience",
-              "mapmaker.sources.powerpoint",
-              ],  # Required
+    packages=[
+        "mapmaker",
+        "mapmaker.flatmap",
+        "mapmaker.geometry",
+        "mapmaker.knowledgebase",
+        "mapmaker.output",
+        "mapmaker.properties",
+        "mapmaker.sources",
+        "mapmaker.sources.mbfbioscience",
+        "mapmaker.sources.powerpoint",
+        "mapmaker.sources.svg",
+        "mapmaker.utils",
+    ],  # Required
     # Specify which Python versions you support. In contrast to the
     # 'Programming Language' classifiers above, 'pip install' will check this
     # and refuse to install the project if the version does not match.
