@@ -18,8 +18,8 @@
 #
 #===============================================================================
 
-from mapmaker.knowledgebase.labels import AnatomicalMap
-from mapmaker.utils import path_json
+from ..knowledgebase import AnatomicalMap
+from ..utils import path_json
 
 from .pathways import Pathways
 

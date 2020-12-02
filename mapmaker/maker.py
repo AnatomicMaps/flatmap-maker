@@ -46,7 +46,7 @@ from .flatmap.layers import FeatureLayer
 
 from .geometry import bounds_to_extent, extent_to_bounds
 
-from .knowledgebase.labels import LabelDatabase
+from .knowledgebase import LabelDatabase
 
 from .output.geojson import GeoJSONOutput
 from .output.mbtiles import MBTiles
