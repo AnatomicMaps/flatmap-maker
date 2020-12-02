@@ -9,14 +9,6 @@ Modified by Madoshakalaka@Github (dependency links added)
 from setuptools import setup, find_packages
 from os import path
 
-from pip._internal.req import parse_requirements
-
-def load_requirements(fname):
-    reqs = parse_requirements(fname, session=False)
-    return [str(ir.requirement) for ir in reqs]
-
-setup(name="mapmaker", install_requires=load_requirements("requirements.txt"))
-
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
 
@@ -115,7 +107,50 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=load_requirements("requirements.txt"),
+    install_requires=[
+        "alembic==1.4.3; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+        "beziers==0.1.0",
+        "certifi==2020.11.8",
+        "chardet==3.0.4",
+        "click==7.1.2; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'",
+        "configargparse==1.2.3",
+        "cssselect2==0.4.1; python_version >= '3.6'",
+        "et-xmlfile==1.0.1",
+        "idna==2.10; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+        "isodate==0.6.0",
+        "jdcal==1.4.1",
+        "lxml==4.6.2",
+        "mako==1.1.3; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+        "markupsafe==1.1.1; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+        "mbutil==0.3.0",
+        "mercantile==1.1.6",
+        "numpy==1.19.4",
+        "opencv-python-headless==4.4.0.46",
+        "openpyxl==3.0.5",
+        "pillow==8.0.1; python_version >= '3.6'",
+        "pyclipper==1.2.0",
+        "pymupdf==1.18.4",
+        "pyparsing==2.4.7",
+        "pyproj==3.0.0.post1",
+        "python-dateutil==2.8.1; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+        "python-editor==1.0.4",
+        "python-pptx==0.6.18",
+        "pyyaml==5.3.1",
+        "rdflib==5.0.0",
+        "rdflib-sqlalchemy==0.4.0",
+        "reportlab==3.5.56",
+        "requests==2.25.0",
+        "shapely==1.7.1",
+        "six==1.15.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+        "sqlalchemy==1.3.20; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+        "svglib==1.0.1",
+        "svgwrite==1.4",
+        "tinycss2==1.1.0; python_version >= '3.6'",
+        "tqdm==4.54.0",
+        "urllib3==1.26.2; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'",
+        "webencodings==0.5.1",
+        "xlsxwriter==1.3.7",
+    ],
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
     # syntax, for example:
