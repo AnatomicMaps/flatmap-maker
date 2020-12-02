@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import io
 import json
 import pathlib
 import urllib.request
@@ -33,15 +34,20 @@ def make_url(path):
 
 #===============================================================================
 
-def open_bytes(path):
+def path_open(path):
     return urllib.request.urlopen(make_url(path))
 
-def read_bytes(path):
-    with open_bytes(path) as fp:
+def path_BytesIO(path):  # Return seekable file
+    bytesio = io.BytesIO(path_data(path))
+    bytesio.seek(0)
+    return bytesio
+
+def path_data(path):
+    with path_open(path) as fp:
         return fp.read()
 
-def read_json(path):
-    data = read_bytes(path)
+def path_json(path):
+    data = path_data(path)
     try:
         return json.loads(data)
     except json.decoder.JSONDecodeError as err:

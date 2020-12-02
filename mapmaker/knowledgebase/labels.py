@@ -27,7 +27,7 @@ import openpyxl
 import requests
 
 from mapmaker.settings import settings
-from mapmaker.utils import open_bytes
+from mapmaker.utils import path_BytesIO
 
 #===============================================================================
 
@@ -106,7 +106,7 @@ class AnatomicalMap(object):
         self.__label_cache = LabelDatabase()
         self.__map = {}
         if mapping_spreadsheet is not None:
-            for sheet in openpyxl.load_workbook(open_bytes(mapping_spreadsheet)):
+            for sheet in openpyxl.load_workbook(path_BytesIO(mapping_spreadsheet)):
                 col_indices = {}
                 for (n, row) in enumerate(sheet.rows):
                     if n == 0:

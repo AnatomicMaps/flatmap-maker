@@ -19,7 +19,7 @@
 #===============================================================================
 
 from mapmaker.knowledgebase.labels import AnatomicalMap
-from mapmaker.utils import read_json
+from mapmaker.utils import path_json
 
 from .pathways import Pathways
 
@@ -33,7 +33,7 @@ class JsonProperties(object):
         properties_dict = {}
         properties_file = manifest.properties
         if properties_file is not None:
-            properties_dict = read_json(properties_file)
+            properties_dict = path_json(properties_file)
         self.__set_properties(properties_dict.get('features', []))
         self.__pathways = Pathways(properties_dict.get('paths', []))
 

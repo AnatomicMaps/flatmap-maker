@@ -36,7 +36,7 @@ from .. import WORLD_METRES_PER_UM
 
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import transform_point
-from mapmaker.utils import read_bytes
+from mapmaker.utils import path_data
 
 #===============================================================================
 
@@ -63,7 +63,7 @@ class MBFSource(MapSource):
 
         filename = image_element.find(self.ns_tag('filename')).text
         image_file = urljoin(source_path, filename.split('\\')[-1])
-        image_array = np.frombuffer(read_bytes(image_file), dtype=np.uint8)
+        image_array = np.frombuffer(path_data(image_file), dtype=np.uint8)
         image = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
         self.__raster_source = RasterSource('raster', image)
 

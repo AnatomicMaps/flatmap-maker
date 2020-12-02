@@ -33,7 +33,7 @@ from .. import WORLD_METRES_PER_EMU
 
 from mapmaker.geometry import transform_point
 from mapmaker.settings import settings
-from mapmaker.utils import open_bytes, read_bytes
+from mapmaker.utils import path_BytesIO, path_data
 
 from .slide import PowerpointSlide
 
@@ -42,7 +42,7 @@ from .slide import PowerpointSlide
 class PowerpointSource(MapSource):
     def __init__(self, flatmap, id, source_path, get_background=False):
         super().__init__(flatmap, id)
-        self.__pptx = Presentation(open_bytes(source_path))
+        self.__pptx = Presentation(path_BytesIO(source_path))
         self.__slides = self.__pptx.slides
 
         (width, height) = (self.__pptx.slide_width, self.__pptx.slide_height)
@@ -58,7 +58,7 @@ class PowerpointSource(MapSource):
 
         if get_background:
             pdf_source = '{}_cleaned.pdf'.format(os.path.splitext(source_path)[0])
-            pdf_bytes = read_bytes(pdf_source)
+            pdf_bytes = path_data(pdf_source)
             self.__raster_source = RasterSource('pdf', pdf_bytes)
         else:
             self.__raster_source = None
