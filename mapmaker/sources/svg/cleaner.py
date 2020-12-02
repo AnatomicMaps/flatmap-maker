@@ -35,15 +35,16 @@ from .utils import adobe_decode
 #===============================================================================
 
 class SVGCleaner(object):
-    def __init__(self, svg_file, map_properties):
+    def __init__(self, svg_file, map_properties, all_layers=True):
         self.__svg = etree.parse(svg_file)
         self.__map_properties = map_properties
+        self.__all_layers = all_layers
 
     def clean(self):
     #===============
         self.__filter(self.__svg.getroot())
 
-    def save(self, output_file):
+    def save(self, file_object):
     #===========================
         header = ' Generator: mapmaker {} at {} '.format(__version__, datetime.now(timezone.utc).isoformat())
         comments = self.__svg.xpath('/comment()')
@@ -51,8 +52,7 @@ class SVGCleaner(object):
             comments[0].text = header
         else:
             self.__svg.getroot().addprevious(etree.Comment(header))
-        with open(output_file, 'wb') as f:
-            self.__svg.write(f, encoding='utf-8', pretty_print=True, xml_declaration=True)
+        self.__svg.write(file_object, encoding='utf-8', pretty_print=True, xml_declaration=True)
 
     def __filter(self, element, parent=None):
     #========================================
@@ -72,7 +72,7 @@ class SVGCleaner(object):
             for key, value in properties.items():
                 if key in EXCLUDE_SHAPE_TYPES:
                     return True
-                elif key == 'tile-layer' and value in EXCLUDE_TILE_LAYERS:
+                elif not self.__all_layers and key == 'tile-layer' and value in EXCLUDE_TILE_LAYERS:
                     return True
         return False
 

@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import io
 import json
 import os
 from pathlib import Path
@@ -100,10 +101,17 @@ class SVGSource(MapSource):
             # Save a cleaned copy of the SVG in the map's output directory
             cleaner = SVGCleaner(self.__source_path, self.flatmap.map_properties)
             cleaner.clean()
-            cleaned_svg = os.path.join(settings.get('outputDir'), self.flatmap.id,
-                                       '{}.svg'.format(self.id))
-            cleaner.save(cleaned_svg)
-            self.__raster_source = RasterSource('svg', cleaned_svg)
+            with open(os.path.join(settings.get('outputDir'),
+                      self.flatmap.id,
+                      '{}.svg'.format(self.id)), 'wb') as fp:
+                cleaner.save(fp)
+            if settings.get('backgroundTiles', False):
+                cleaner = SVGCleaner(self.__source_path, self.flatmap.map_properties, all_layers=False)
+                cleaner.clean()
+                cleaned_svg = io.BytesIO()
+                cleaner.save(cleaned_svg)
+                cleaned_svg.seek(0)
+                self.__raster_source = RasterSource('svg', cleaned_svg)
 
 #===============================================================================
 
