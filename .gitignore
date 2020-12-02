@@ -1,4 +1,5 @@
 .DS_Store
+build/
 docs/_build/
 docs/ECMA*
 map_sources/
