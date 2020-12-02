@@ -374,16 +374,17 @@ class Flatmap(object):
             else:
                 feature.del_property('maxzoom')
 
-            ### Put this into geometry module
-            hires_bounds = extent_to_bounds(hires_layer.source.extent)
-            lores_bounds = shapely.affinity.affine_transform(shapely.geometry.box(*hires_bounds), transform).bounds
-            extent = bounds_to_extent(lores_bounds)
-
-            layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
-                                    hires_layer.source.raster_source,
-                                    minzoom, hires_layer.source.extent,
-                                    bounding_box=boundary_feature.geometry.bounds,
-                                    image_transform=M)
+            if hires_layer.source.raster_source is not None:
+                ### Put this into geometry module
+                hires_bounds = extent_to_bounds(hires_layer.source.extent)
+                lores_bounds = shapely.affinity.affine_transform(shapely.geometry.box(*hires_bounds), transform).bounds
+                extent = bounds_to_extent(lores_bounds)
+                ### Above into geometry module
+                layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
+                                        hires_layer.source.raster_source,
+                                        minzoom, hires_layer.source.extent,
+                                        bounding_box=boundary_feature.geometry.bounds,
+                                        image_transform=M)
 
             # The detail layer gets a scaled copy of each high-resolution feature
             for hires_feature in hires_layer.features:
