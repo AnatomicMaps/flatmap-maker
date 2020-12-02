@@ -53,19 +53,8 @@ setup(
     # Note that this is a string of words separated by whitespace, not a list.
     #keywords="TODO...",  # Optional
     #
-    packages=[
-        "mapmaker",
-        "mapmaker.flatmap",
-        "mapmaker.geometry",
-        "mapmaker.knowledgebase",
-        "mapmaker.output",
-        "mapmaker.properties",
-        "mapmaker.sources",
-        "mapmaker.sources.mbfbioscience",
-        "mapmaker.sources.powerpoint",
-        "mapmaker.sources.svg",
-        "mapmaker.utils",
-    ],
+    packages=find_packages(),
+    package_data={'mapmaker': ['sources/powerpoint/presetShapeDefinitions.xml']},
     python_requires=">=3.7, <4",
     install_requires=[
         "alembic==1.4.3; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
