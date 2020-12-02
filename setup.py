@@ -7,14 +7,23 @@ Modified by Madoshakalaka@Github (dependency links added)
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-from os import path
+import os.path
 
-# Arguments marked as "Required" below must be included for upload to PyPI.
-# Fields marked as "Optional" may be commented out.
+# Get mapmaker's version number
+# See https://packaging.python.org/guides/single-sourcing-package-version/
+def get_version(rel_path):
+    here = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(here, rel_path), 'r') as fp:
+        for line in fp.read().splitlines():
+            if line.startswith('__version__'):
+                delim = '"' if '"' in line else "'"
+                return line.split(delim)[1]
+        else:
+            raise RuntimeError("Unable to find version string.")
 
 setup(
-    version="0.7.0",  # Required
     name="mapmaker",
+    version=get_version('mapmaker/__init__.py'),
     description="Convert Powerpoint slides to Mapbox tiles",
     url="https://github.com/dbrnz/flatmap-maker",
     author="David Brooks",
