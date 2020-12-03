@@ -7,99 +7,78 @@ Mapmaker is a Python application for generating `Mapbox <https://www.mapbox.com/
 Requirements
 ------------
 
-* Python 3.7 with `pipenv <https://pipenv.pypa.io/en/latest/#install-pipenv-today>`_.
+* Python 3.8 with `pipenv <https://pipenv.pypa.io/en/latest/#install-pipenv-today>`_.
 * `Tippecanoe <https://github.com/mapbox/tippecanoe#installation>`_.
 
 Installation
 ------------
 
-Clone this repository.
-
-pipenv
-~~~~~~
+* Download the latest released Python wheel from https://github.com/dbrnz/flatmap-maker/releases/latest, currently ``mapmaker-0.11.0b1-py3-none-any.whl``.
+* Create a directory in which to install ``mapmaker`` and change into it.
 
 ::
 
-    $ pipenv install
-
-
-VERSUS setup.py
-~~~~~~~~
-
-::
-
-    $ python setup.py develop
+    $ pipenv install mapmaker-0.11.0b1-py3-none-any.whl
 
 Running
 -------
 
 Command line help::
 
-    $ pipenv run python mapmaker --help
-
+    $ pipenv run python -m mapmaker --help
 
 ::
 
-    usage: mapmaker [-h] [-c CONF] [-b] [-t N] [--background-only]
-                    [--anatomical-map ANATOMICAL_MAP] [--properties PROPERTIES]
-                    [--check-errors] [-z N] [--max-zoom N] [--min-zoom N] [-d]
-                    [-s] [--clear] [--refresh-labels] [-u USER@SERVER] [-v] -o
-                    OUTPUT_DIR --id MAP_ID --slides POWERPOINT
+    usage: __main__.py [-h] [-c CONF] [-b] [--background-only] [--check-errors] [-z N] [--max-zoom N]
+                       [--min-zoom N] [-d] [-s] [-t] [--clean] [--refresh-labels] [--upload USER@SERVER]
+                       [-v] --output-dir OUTPUT_DIR --map MAP_DIR
 
-    Args that start with '--' (eg. -b) can also be set in a config file (specified
-    via -c). Config file syntax allows: key=value, flag=true, stuff=[a,b,c] (for
-    details, see syntax at https://goo.gl/R74nmi). If an arg is specified in more
-    than one place, then commandline values override config file values which
+    Args that start with '--' (eg. -b) can also be set in a config file (specified via -c). Config file
+    syntax allows: key=value, flag=true, stuff=[a,b,c] (for details, see syntax at https://goo.gl/R74nmi).
+    If an arg is specified in more than one place, then commandline values override config file values which
     override defaults.
 
     optional arguments:
       -h, --help            show this help message and exit
       -c CONF, --conf CONF  configuration file containing arguments
       -b, --background-tiles
-                            generate image tiles of map's layers (may take a
-                            while...)
-      -t N, --tile N        only generate image tiles for this slide (1-origin);
-                            sets --background-tiles
+                            generate image tiles of map's layers (may take a while...)
       --background-only     don't generate vector tiles (sets --background-tiles)
-      --anatomical-map ANATOMICAL_MAP
-                            Excel spreadsheet file for mapping shape classes to
-                            anatomical entities
-      --properties PROPERTIES
-                            JSON file specifying additional properties of shapes
       --check-errors        check for errors without generating a map
-      -z N, --initial-zoom N
+      -z N, --initialZoom N
                             initial zoom level (defaults to 4)
       --max-zoom N          maximum zoom level (defaults to 10)
       --min-zoom N          minimum zoom level (defaults to 2)
       -d, --debug           save a slide's DrawML for debugging
       -s, --save-geojson    Save GeoJSON files for each layer
-      --clear               Remove all files from generated map's directory before
-                            generating new map
+      -t, --tippecanoe      Show command used to run Tippecanoe
+      --clean               Remove all files from generated map's directory before generating new map
       --refresh-labels      Clear the label text cache before map making
-      -u USER@SERVER, --upload USER@SERVER
-                            Upload generated map to server
+      --upload USER@SERVER  Upload generated map to server
       -v, --version         show program's version number and exit
 
     required arguments:
-      -o OUTPUT_DIR, --output-dir OUTPUT_DIR
+      --output-dir OUTPUT_DIR
                             base directory for generated flatmaps
-      --id MAP_ID           a unique identifier for the map
-      --slides POWERPOINT   File or URL of Powerpoint slides
+      --map MAP_DIR         Directory containing a flatmap manifest specifying sources
 
 For instance::
 
-    $ pipenv run python mapmaker --map-dir ./flatmaps --id rat-spine  \
-                      --anatomical-map ./sources/rat/Flatmap_Annotation_Rat.xlsx  \
-                      --slides ./sources/rat/Rat_flatmap_spinal_cord_V2.pptx
-
-
+    $ pipenv run python -m mapmaker --output-dir ./flatmaps   \
+                                    --map ../PMR/rat
 ::
 
-    Extracting layers...
-    Slide 1, layer rat-spine
+    Mapmaker 0.11.0.b1
+    100%|█████████████████████████▉| 678/679
+     98%|███████████████████████████▌| 65/66
+    Adding details...
+    Outputting GeoJson features...
+    Layer: whole-rat
+    100%|████████████████████████| 2477/2477
+    Layer: whole-rat_details
+    100%|██████████████████████████| 180/180
     Running tippecanoe...
-    794 features, 1641757 bytes of geometry, 480 bytes of separate metadata, 130840 bytes of string pool
-      99.9%  10/532/488
-    Creating style files...
-    Generated map for UBERON:2240
-    Cleaning up...
+    2657 features, 6439698 bytes of geometry, 25397 bytes of separate metadata, 485295 bytes of string pool
+      99.9%  10/528/531
+    Creating index and style files...
+    Generated map for NCBITaxon:10114
