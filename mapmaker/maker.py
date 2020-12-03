@@ -469,7 +469,7 @@ class Flatmap(object):
             if layer.output_layer:
                 print('Layer:', layer.id)
                 geojson_output = GeoJSONOutput(layer, self.__map_area, self.__map_dir)
-                saved_layer = geojson_output.save(layer.features, settings['saveGeoJSON'])
+                saved_layer = geojson_output.save(layer.features, settings.get('saveGeoJSON', False))
                 for (layer_name, filename) in saved_layer.items():
                     self.__geojson_files.append(filename)
                     self.__tippe_inputs.append({
