@@ -75,8 +75,6 @@ def main():
     required.add_argument('--map', dest='mapDir', metavar='MAP_DIR', required=True,
                         help='Directory containing a flatmap manifest specifying sources')
 
-    # --force option
-
     args = parser.parse_args()
     try:
         flatmap = Flatmap(vars(args))
