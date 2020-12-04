@@ -34,7 +34,6 @@ from beziers.quadraticbezier import QuadraticBezier
 from lxml import etree
 import numpy as np
 import shapely.geometry
-from tqdm import tqdm
 
 #===============================================================================
 
@@ -51,6 +50,7 @@ from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import transform_bezier_samples, transform_point
 from mapmaker.geometry.arc_to_bezier import path_from_arc, tuple2
 from mapmaker.settings import settings
+from mapmaker.utils import ProgressBar
 
 #===============================================================================
 
@@ -136,7 +136,7 @@ class SVGLayer(FeatureLayer):
     def __process_element_list(self, elements, transform, show_progress=False):
     #==========================================================================
         if show_progress:
-            progress_bar = tqdm(total=len(elements),
+            progress_bar = ProgressBar(total=len(elements),
                 unit='shp', ncols=40,
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         features = []

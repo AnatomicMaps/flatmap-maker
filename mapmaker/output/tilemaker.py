@@ -30,12 +30,12 @@ import mercantile
 import numpy as np
 from reportlab.graphics import renderPDF
 from svglib.svglib import svg2rlg
-from tqdm import tqdm
 
 #===============================================================================
 
 from mapmaker.output.mbtiles import MBTiles, ExtractionError
 from mapmaker.sources import RasterSource
+from mapmaker.utils import log, ProgressBar
 
 #===============================================================================
 
@@ -306,8 +306,8 @@ class RasterTileMaker(object):
         mbtiles = MBTiles(os.path.join(self.__output_dir, database_name), True, True)
         mbtiles.add_metadata(id=layer_id)
         zoom = self.__max_zoom
-        print('Tiling zoom level {} for {}'.format(zoom, layer_id))
-        progress_bar = tqdm(total=len(self.__tiles),
+        log('Tiling zoom level {} for {}'.format(zoom, layer_id))
+        progress_bar = ProgressBar(total=len(self.__tiles),
             unit='tiles', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for tile in self.__tiles:
@@ -325,11 +325,11 @@ class RasterTileMaker(object):
     #==================================================================================
         if zoom > self.__min_zoom:
             zoom -= 1
-            print('Tiling zoom level {} for {}'.format(zoom, layer_id))
+            log('Tiling zoom level {} for {}'.format(zoom, layer_id))
             HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
             half_start = (start_coords[0]//2, start_coords[1]//2)
             half_end = (end_coords[0]//2, end_coords[1]//2)
-            progress_bar = tqdm(total=(half_end[0]-half_start[0]+1)
+            progress_bar = ProgressBar(total=(half_end[0]-half_start[0]+1)
                                      *(half_end[1]-half_start[1]+1),
                 unit='tiles', ncols=40,
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
@@ -352,7 +352,7 @@ class RasterTileMaker(object):
 
     def make_tiles(self, layer_id, source):
     #======================================
-        print('Tiling {}...'.format(layer_id))
+        log('Tiling {}...'.format(layer_id))
         if source.source_kind == 'raster':
             tile_extractor = RasterTileExtractor(self.__map_rect, source.source_data)
         elif source.source_kind == 'pdf':

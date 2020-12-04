@@ -32,7 +32,6 @@ from beziers.quadraticbezier import QuadraticBezier
 
 import numpy as np
 import shapely.geometry
-from tqdm import tqdm
 
 import pptx.shapes.connector
 from pptx.enum.shapes import MSO_SHAPE_TYPE
@@ -40,10 +39,10 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 #===============================================================================
 
 from mapmaker.flatmap.layers import FeatureLayer
-
 from mapmaker.geometry import ellipse_point
 from mapmaker.geometry import transform_bezier_samples, transform_point
 from mapmaker.geometry.arc_to_bezier import path_from_arc, tuple2
+from mapmaker.utils import ProgressBar
 
 from ..markup import parse_layer_directive, parse_markup
 
@@ -99,7 +98,7 @@ class PowerpointSlide(FeatureLayer):
     def __process_shape_list(self, shapes, transform, show_progress=False):
     #======================================================================
         if show_progress:
-            progress_bar = tqdm(total=len(shapes),
+            progress_bar = ProgressBar(total=len(shapes),
                 unit='shp', ncols=40,
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
 

@@ -33,7 +33,7 @@ from .. import WORLD_METRES_PER_EMU
 
 from mapmaker.geometry import transform_point
 from mapmaker.settings import settings
-from mapmaker.utils import path_BytesIO, path_data
+from mapmaker.utils import log, path_BytesIO, path_data
 
 from .slide import PowerpointSlide
 
@@ -77,7 +77,7 @@ class PowerpointSource(MapSource):
             slide = self.__slides[n]
             slide_number = n + 1
             slide_layer = PowerpointSlide(self, slide, slide_number)
-            print('Slide {}, {}'.format(slide_number, slide_layer.id))
+            log('Slide {}, {}'.format(slide_number, slide_layer.id))
             if settings.get('debugXml'):
                 xml = open(os.path.join(self.flatmap.map_directory,
                                         '{}.xml'.format(slide_layer.id)), 'w')

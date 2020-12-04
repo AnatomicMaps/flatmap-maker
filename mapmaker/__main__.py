@@ -64,6 +64,8 @@ def main():
     parser.add_argument('--upload', dest='uploadHost', metavar='USER@SERVER',
                         help='Upload generated map to server')
 
+    parser.add_argument('-q', '--quiet', action='store_true',
+                        help="don't show progress messages")
     parser.add_argument('-v', '--version', action='version', version=__version__)
 
     required = parser.add_argument_group('required arguments')
@@ -76,11 +78,6 @@ def main():
     # --force option
 
     args = parser.parse_args()
-
-    # Unless quiet...
-    print('Mapmaker {}'.format(__version__))
-
-
     try:
         flatmap = Flatmap(vars(args))
         flatmap.make()

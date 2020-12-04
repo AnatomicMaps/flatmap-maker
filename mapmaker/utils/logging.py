@@ -18,43 +18,35 @@
 #
 #===============================================================================
 
-import io
-import json
-import pathlib
-import urllib.request
+import tqdm
 
 #===============================================================================
 
-from .logging import ProgressBar, log
+from mapmaker.settings import settings
 
 #===============================================================================
 
-def make_url(path):
-    if (path.startswith('file:')
-     or path.startswith('http:')
-     or path.startswith('https:')):
-        return path
-    return pathlib.Path(path).absolute().as_uri()
+def log(*args):
+    if not settings.get('quiet', False):
+        print(*args)
 
 #===============================================================================
 
-def path_open(path):
-    return urllib.request.urlopen(make_url(path))
+class ProgressBar(object):
+    def __init__(self, *args, **kwargs):
+        if not settings.get('quiet', False):
+            self.__progress_bar = tqdm.tqdm(*args, **kwargs)
+        else:
+            self.__progress_bar = None
 
-def path_BytesIO(path):  # Return seekable file
-    bytesio = io.BytesIO(path_data(path))
-    bytesio.seek(0)
-    return bytesio
+    def update(self, *args):
+    #=======================
+        if self.__progress_bar is not None:
+            self.__progress_bar.update(*args)
 
-def path_data(path):
-    with path_open(path) as fp:
-        return fp.read()
-
-def path_json(path):
-    data = path_data(path)
-    try:
-        return json.loads(data)
-    except json.decoder.JSONDecodeError as err:
-        raise ValueError('JSON decoder error: {}'.format(err))
+    def close(self):
+    #===============
+        if self.__progress_bar is not None:
+            self.__progress_bar.close()
 
 #===============================================================================

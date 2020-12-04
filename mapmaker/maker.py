@@ -37,7 +37,8 @@ import shapely.affinity
 
 #===============================================================================
 
-from mapmaker import FLATMAP_VERSION
+from mapmaker import FLATMAP_VERSION, __version__
+from mapmaker.utils import log
 
 #===============================================================================
 
@@ -115,6 +116,8 @@ class Flatmap(object):
             raise ValueError('Initial zoom must be between {} and {}'.format(min_zoom, max_zoom))
         self.__zoom = (min_zoom, max_zoom, initial_zoom)
         settings.update(options)
+
+        log('Mapmaker {}'.format(__version__))
 
         try:
             self.__id = self.__manifest.id
@@ -224,7 +227,7 @@ class Flatmap(object):
     #=======================
         # Show what the map is about
         if self.models is not None:
-            print('Generated map for {}'.format(self.models))
+            log('Generated map for {}'.format(self.models))
         ## FIX v's errorCheck
         for filename in self.__geojson_files:
             if settings.get('saveGeoJSON', False):
@@ -317,7 +320,7 @@ class Flatmap(object):
         ## set layer.__image from slide when first making??
         ## Also want image layers scaled and with minzoom set...
 
-        print('Adding details...')
+        log('Adding details...')
         detail_layers = []
         for layer in self.__layer_dict.values():
             if layer.output_layer and layer.detail_features:
@@ -401,7 +404,7 @@ class Flatmap(object):
 
     def __make_raster_tiles(self):
     #============================
-        print('Generating background tiles (may take a while...)')
+        log('Generating background tiles (may take a while...)')
         for layer in self.__layer_dict.values():
             for raster_layer in layer.raster_layers:
                 tilemaker = RasterTileMaker(raster_layer.extent, self.__map_dir, raster_layer.min_zoom, self.__zoom[1],
@@ -415,7 +418,7 @@ class Flatmap(object):
         if len(self.__tippe_inputs) == 0:
             raise ValueError('No selectable layers found...')
 
-        print('Running tippecanoe...')
+        log('Running tippecanoe...')
         tippe_command = ['tippecanoe',
                             '--force',
                             '--projection=EPSG:4326',
@@ -427,6 +430,8 @@ class Flatmap(object):
                         ]
         if not compressed:
             tippe_command.append('--no-tile-compression')
+        if settings.get('quiet', False):
+            tippe_command.append('--quiet')
         tippe_command += list(["-L{}".format(json.dumps(input)) for input in self.__tippe_inputs])
 
         if settings.get('showTippe', False):
@@ -464,10 +469,10 @@ class Flatmap(object):
 
     def __output_geojson(self):
     #==========================
-        print('Outputting GeoJson features...')
+        log('Outputting GeoJson features...')
         for layer in self.__layer_dict.values():
             if layer.output_layer:
-                print('Layer:', layer.id)
+                log('Layer:', layer.id)
                 geojson_output = GeoJSONOutput(layer, self.__map_area, self.__map_dir)
                 saved_layer = geojson_output.save(layer.features, settings.get('saveGeoJSON', False))
                 for (layer_name, filename) in saved_layer.items():
@@ -486,7 +491,7 @@ class Flatmap(object):
 
     def __save_metadata(self):
     #=========================
-        print('Creating index and style files...')
+        log('Creating index and style files...')
         tile_db = MBTiles(self.__mbtiles_file)
 
         # Save the name of the map's manifest file

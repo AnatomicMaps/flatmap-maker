@@ -26,13 +26,11 @@ import os
 
 import shapely.geometry
 
-from tqdm import tqdm
-
 #===============================================================================
 
 from mapmaker.geometry import mercator_transform
-
 from mapmaker.sources.markup import ignore_property
+from mapmaker.utils import ProgressBar
 
 #===============================================================================
 
@@ -70,7 +68,7 @@ class GeoJSONOutput(object):
 
     def __save_features(self, features):
     #===================================
-        progress_bar = tqdm(total=len(features),
+        progress_bar = ProgressBar(total=len(features),
             unit='ftr', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
 
