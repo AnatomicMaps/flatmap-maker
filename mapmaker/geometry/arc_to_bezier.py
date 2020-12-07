@@ -1,7 +1,7 @@
 #===============================================================================
 #
 # Code (as Javascript) came from
-# https://stackoverflow.com/questions/43953138/significant-error-when-approximating-elliptical-arcs-with-bezier-curves-on-canva
+# https://stackoverflow.com/questions/43953138/significant-error-when-approximating-elliptical-arcs-with-bezier-curves-on-canvas
 # which was based on https://mortoray.com/2017/02/16/rendering-an-svg-elliptical-arc-as-bezier-curves/
 #
 # Original paper is at http://www.spaceroots.org/documents/ellipse/elliptical-arc.pdf
@@ -57,8 +57,8 @@ def cubic_bezier_control_points(c, r, phi, eta1, eta2):
     Q2 = tuple2(P2.x - alpha*d2.x, P2.y - alpha*d2.y)
     return (P1, Q1, Q2, P2)
 
-def path_from_arc(r, phi, flagA, flagS, p1, p2):
-#===============================================
+def transformed_path_from_arc(r, phi, flagA, flagS, p1, p2, T):
+#==============================================================
     r_abs = tuple2(abs(r.x), abs(r.y))
     d = tuple2((p1.x - p2.x), (p1.y - p2.y))
     p = tuple2(math.cos(phi)*d.x/2 + math.sin(phi)*d.y/2,
@@ -96,12 +96,14 @@ def path_from_arc(r, phi, flagA, flagS, p1, p2):
     dt = math.pi/4
     segments = []
     while (t + dt) < lambda2:
-        control_points = (BezierPoint(*cp) for cp in cubic_bezier_control_points(c, r_abs, phi, t, t + dt))
+        control_points = (BezierPoint(*T.transform_point(cp)) for cp in cubic_bezier_control_points(c, r_abs, phi, t, t + dt))
         segments.append(CubicBezier(*control_points))
         t += dt
-    control_points = (BezierPoint(*cp) for cp in cubic_bezier_control_points(c, r_abs, phi, t, lambda2))
-    segments.append(CubicBezier(*(tuple(control_points)[:3]), BezierPoint(*p2)))
-    return BezierPath.fromSegments(segments)
+    control_points = (BezierPoint(*T.transform_point(cp)) for cp in cubic_bezier_control_points(c, r_abs, phi, t, lambda2))
+    segments.append(CubicBezier(*(tuple(control_points)[:3]), BezierPoint(*T.transform_point(p2))))
+    path = BezierPath.fromSegments(segments)
+    path.closed = False
+    return path
 
 #===============================================================================
 

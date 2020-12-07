@@ -47,8 +47,8 @@ from .transform import SVGTransform
 from .utils import adobe_decode, length_as_pixels
 
 from mapmaker.flatmap.layers import FeatureLayer
-from mapmaker.geometry import transform_bezier_samples, transform_point
-from mapmaker.geometry.arc_to_bezier import path_from_arc, tuple2
+from mapmaker.geometry import bezier_sample, Transform
+from mapmaker.geometry.arc_to_bezier import transformed_path_from_arc, tuple2
 from mapmaker.settings import settings
 from mapmaker.utils import ProgressBar
 
@@ -72,13 +72,13 @@ class SVGSource(MapSource):
             width = length_as_pixels(self.__svg.attrib['width'])
             height = length_as_pixels(self.__svg.attrib['height'])
 
-        self.__transform = np.array([[WORLD_METRES_PER_PIXEL,                      0, 0],
-                                     [                     0, WORLD_METRES_PER_PIXEL, 0],
-                                     [                     0,                         0, 1]])@np.array([[1,  0, -width/2.0],
-                                                                                                        [0, -1,  height/2.0],
-                                                                                                        [0,  0,         1.0]])
-        top_left = transform_point(self.__transform, (0, 0))
-        bottom_right = transform_point(self.__transform, (width, height))
+        self.__transform = Transform([[WORLD_METRES_PER_PIXEL,                      0, 0],
+                                      [                     0, WORLD_METRES_PER_PIXEL, 0],
+                                      [                     0,                         0, 1]])@np.array([[1,  0, -width/2.0],
+                                                                                                         [0, -1,  height/2.0],
+                                                                                                         [0,  0,         1.0]])
+        top_left = self.__transform.transform_point((0, 0))
+        bottom_right = self.__transform.transform_point((width, height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
@@ -321,24 +321,25 @@ class SVGLayer(FeatureLayer):
                 if cmd == 'a':
                     pt[0] += current_point[0]
                     pt[1] += current_point[1]
-                path = path_from_arc(tuple2(*params[0:2]), *params[2:5],
-                                     tuple2(*current_point), tuple2(*pt))
-                coordinates.extend(transform_bezier_samples(T, path))
+                path = transformed_path_from_arc(tuple2(*params[0:2]), *params[2:5],
+                                                 tuple2(*current_point), tuple2(*pt), T)
+                bezier_segments.extend(path.asSegments())
+                coordinates.extend(bezier_sample(path))
                 current_point = pt
 
             elif cmd in ['c', 'C']:
                 params = [float(x) for x in path_tokens[pos:pos+6]]
                 pos += 6
-                coords = [BezierPoint(*current_point)]
+                coords = [BezierPoint(*T.transform_point(current_point))]
                 for n in [0, 2, 4]:
                     pt = params[n:n+2]
                     if cmd == 'c':
                         pt[0] += current_point[0]
                         pt[1] += current_point[1]
-                    coords.append(BezierPoint(*pt))
-                current_point = pt
+                    coords.append(BezierPoint(*T.transform_point(pt)))
                 bz = CubicBezier(*coords)
-                coordinates.extend(transform_bezier_samples(T, bz))
+                coordinates.extend(bezier_sample(bz))
+                current_point = pt
 
             elif cmd in ['l', 'L', 'h', 'H', 'v', 'V']:
                 if cmd in ['l', 'L']:
@@ -360,9 +361,9 @@ class SVGLayer(FeatureLayer):
                     else:
                         pt = [current_point[0], param]
                 if moved:
-                    coordinates.append(transform_point(T, current_point))
+                    coordinates.append(T.transform_point(current_point))
                     moved = False
-                coordinates.append(transform_point(T, pt))
+                coordinates.append(T.transform_point(pt))
                 current_point = pt
 
             elif cmd in ['m', 'M']:
@@ -370,33 +371,32 @@ class SVGLayer(FeatureLayer):
                 pos += 2
                 pt = params[0:2]
                 if first_point is None:
-                    first_point = pt
                     # First `m` in a path is treated as `M`
-                    current_point = pt
+                    first_point = pt
                 else:
                     if cmd == 'm':
                         pt[0] += current_point[0]
                         pt[1] += current_point[1]
-                    current_point = pt
+                current_point = pt
                 moved = True
 
             elif cmd in ['q', 'Q']:
                 params = [float(x) for x in path_tokens[pos:pos+4]]
                 pos += 4
-                coords = [BezierPoint(*current_point)]
+                coords = [BezierPoint(*T.transform_point(current_point))]
                 for n in [0, 2]:
                     pt = params[n:n+2]
                     if cmd == 'q':
                         pt[0] += current_point[0]
                         pt[1] += current_point[1]
-                    coords.append(BezierPoint(*pt))
-                current_point = pt
+                    coords.append(BezierPoint(*T.transform_point(pt)))
                 bz = QuadraticBezier(*coords)
-                coordinates.extend(transform_bezier_samples(T, bz))
+                coordinates.extend(bezier_sample(bz))
+                current_point = pt
 
             elif cmd in ['z', 'Z']:
                 if first_point is not None and current_point != first_point:
-                    coordinates.append(transform_point(T, first_point))
+                    coordinates.append(T.transform_point(first_point))
                 closed = True
                 first_point = None
 

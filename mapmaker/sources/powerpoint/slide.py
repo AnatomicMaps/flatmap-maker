@@ -40,8 +40,8 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import ellipse_point
-from mapmaker.geometry import transform_bezier_samples, transform_point
-from mapmaker.geometry.arc_to_bezier import path_from_arc, tuple2
+from mapmaker.geometry import bezier_sample
+from mapmaker.geometry.arc_to_bezier import transformed_path_from_arc, tuple2
 from mapmaker.utils import ProgressBar
 
 from ..markup import parse_layer_directive, parse_markup
@@ -170,8 +170,8 @@ class PowerpointSlide(FeatureLayer):
 
             for c in path.getchildren():
                 if   c.tag == DML('arcTo'):
-                    wR = pptx_geometry.attrib_value(c, 'wR')
-                    hR = pptx_geometry.attrib_value(c, 'hR')
+                    (wR, hR) = ((pptx_geometry.attrib_value(c, 'wR'),
+                                 pptx_geometry.attrib_value(c, 'hR')))
                     stAng = radians(pptx_geometry.attrib_value(c, 'stAng'))
                     swAng = radians(pptx_geometry.attrib_value(c, 'swAng'))
                     p1 = ellipse_point(wR, hR, stAng)
@@ -179,33 +179,35 @@ class PowerpointSlide(FeatureLayer):
                     pt = (current_point[0] - p1[0] + p2[0],
                           current_point[1] - p1[1] + p2[1])
                     large_arc_flag = 1 if swAng >= math.pi else 0
-                    path = path_from_arc(tuple2(wR, hR), 0, large_arc_flag, 1,
-                                         tuple2(*current_point), tuple2(*pt))
-                    coordinates.extend(transform_bezier_samples(T, path))
+                    path = transformed_path_from_arc(tuple2(wR, hR),
+                                         0, large_arc_flag, 1,
+                                         tuple2(*current_point), tuple2(*pt),
+                                         T)
+                    coordinates.extend(bezier_sample(path))
                     current_point = pt
 
                 elif c.tag == DML('close'):
                     if first_point is not None and current_point != first_point:
-                        coordinates.append(transform_point(T, first_point))
+                        coordinates.append(first_point)
                     closed = True
                     first_point = None
                     # Close current pptx_geometry and start a new one...
 
                 elif c.tag == DML('cubicBezTo'):
-                    coords = [BezierPoint(*current_point)]
+                    coords = [BezierPoint(*T.transform_point(current_point))]
                     for p in c.getchildren():
                         pt = pptx_geometry.point(p)
-                        coords.append(BezierPoint(*pt))
+                        coords.append(BezierPoint(*T.transform_point(pt)))
                         current_point = pt
                     bz = CubicBezier(*coords)
-                    coordinates.extend(transform_bezier_samples(T, bz))
+                    coordinates.extend(bezier_sample(bz))
 
                 elif c.tag == DML('lnTo'):
                     pt = pptx_geometry.point(c.pt)
                     if moved:
-                        coordinates.append(transform_point(T, current_point))
+                        coordinates.append(T.transform_point(current_point))
                         moved = False
-                    coordinates.append(transform_point(T, pt))
+                    coordinates.append(T.transform_point(pt))
                     current_point = pt
 
                 elif c.tag == DML('moveTo'):
@@ -216,13 +218,13 @@ class PowerpointSlide(FeatureLayer):
                     moved = True
 
                 elif c.tag == DML('quadBezTo'):
-                    coords = [BezierPoint(*current_point)]
+                    coords = [BezierPoint(*T.transform_point(current_point))]
                     for p in c.getchildren():
                         pt = pptx_geometry.point(p)
-                        coords.append(BezierPoint(*pt))
+                        coords.append(BezierPoint(*T.transform_point(pt)))
                         current_point = pt
                     bz = QuadraticBezier(*coords)
-                    coordinates.extend(transform_bezier_samples(T, bz))
+                    coordinates.extend(bezier_sample(bz))
 
                 else:
                     print('Unknown path element: {}'.format(c.tag))

@@ -30,6 +30,7 @@ opencv-python-headless = "*"
 configargparse = "*"
 svglib = "*"
 reportlab = "*"
+transforms3d = "*"
 
 [requires]
 python_version = "3.8"

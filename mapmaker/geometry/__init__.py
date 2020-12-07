@@ -18,16 +18,20 @@
 #
 #===============================================================================
 
-from math import cos, sin, sqrt
+from math import acos, cos, sin, sqrt
 import warnings
 
 #===============================================================================
 
 import pyproj
 
+import numpy as np
+
 from shapely.geometry import LineString, Polygon
 import shapely.ops
 import shapely.wkt
+
+import transforms3d
 
 #===============================================================================
 
@@ -72,14 +76,32 @@ def mercator_transform(geometry):
 
 #===============================================================================
 
-def transform_point(transform, point):
-#=====================================
-    return (transform@[point[0], point[1], 1.0])[:2]
+class Transform(object):
+    def __init__(self, matrix):
+        self.__matrix = np.array(matrix)
 
-def transform_bezier_samples(transform, bz):
-#===========================================
-    samples = 100
-    return [transform_point(transform, (pt.x, pt.y)) for pt in bz.sample(samples)]
+    def __matmul__(self, matrix):
+        return Transform(self.__matrix@np.array(matrix))
+
+    def rotate_angle(self, angle):
+    #==============================
+        rotation = transforms3d.affines.decompose(self.__matrix)[1]
+        return angle - acos(rotation[0, 0])
+
+    def scale_length(self, length):
+    #==============================
+        scaling = transforms3d.affines.decompose(self.__matrix)[2]
+        return (scaling[0]*length[0], scaling[1]*length[1])
+
+    def transform_point(self, point):
+    #================================
+        return (self.__matrix@[point[0], point[1], 1.0])[:2]
+
+#===============================================================================
+
+def bezier_sample(bz, points=100):
+#=================================
+    return [(pt.x, pt.y) for pt in bz.sample(points)]
 
 #===============================================================================
 

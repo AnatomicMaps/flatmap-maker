@@ -35,7 +35,7 @@ from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_UM
 
 from mapmaker.flatmap.layers import FeatureLayer
-from mapmaker.geometry import transform_point
+from mapmaker.geometry import Transform
 from mapmaker.utils import path_data
 
 #===============================================================================
@@ -69,13 +69,13 @@ class MBFSource(MapSource):
 
         image_size = (image.shape[1], image.shape[0])
         (width, height) = (scaling[0]*image_size[0], scaling[1]*image_size[1])               # um
-        self.__transform = np.array([[WORLD_METRES_PER_UM,                   0, 0],
-                                     [                  0, WORLD_METRES_PER_UM, 0],
-                                     [                  0,                   0, 1]])@np.array([[1, 0, -width/2.0],
-                                                                                               [0, 1, height/2.0],
-                                                                                               [0, 0,        1.0]])
-        top_left = transform_point(self.__transform, (0, 0))
-        bottom_right = transform_point(self.__transform, (width, -height))
+        self.__transform = Transform([[WORLD_METRES_PER_UM,                   0, 0],
+                                      [                  0, WORLD_METRES_PER_UM, 0],
+                                      [                  0,                   0, 1]])@np.array([[1, 0, -width/2.0],
+                                                                                                [0, 1, height/2.0],
+                                                                                                [0, 0,        1.0]])
+        top_left = self.__transform.transform_point((0, 0))
+        bottom_right = self.__transform.transform_point((width, -height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
@@ -105,7 +105,7 @@ class MBFSource(MapSource):
             for point in contour.findall(self.ns_tag('point')):
                 x = float(point.get('x'))
                 y = float(point.get('y'))
-                points.append(transform_point(self.__transform, (x, y)))
+                points.append(self.__transform.transform_point((x, y)))
 
             if contour.get('closed'):
                 if (points[0] != points[-1]).all():
