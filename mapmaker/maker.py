@@ -58,7 +58,10 @@ from .output.tilemaker import RasterTileMaker
 from .properties import JsonProperties
 
 from .settings import settings
+
 from .sources import MBFSource, PowerpointSource, SVGSource
+from .sources.pmr import get_workspace
+
 from .utils import make_url, path_json
 
 #===============================================================================
@@ -99,7 +102,12 @@ class Manifest(object):
 
 class Flatmap(object):
     def __init__(self, options):
-        self.__manifest = Manifest(options['mapDir'])
+        if 'exposure' in options:
+            self.__uri = map_options['exposure']
+            Manifest(get_workspace(self.__uri))
+        else:
+            self.__uri = None
+            self.__manifest = Manifest(options['mapPath'])
 
         # Check options for validity and set defaults
         if options.get('backgroundOnly', False):
