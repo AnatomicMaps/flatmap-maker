@@ -321,7 +321,8 @@ class SVGLayer(FeatureLayer):
                 if cmd == 'a':
                     pt[0] += current_point[0]
                     pt[1] += current_point[1]
-                path = transformed_path_from_arc(tuple2(*params[0:2]), *params[2:5],
+                phi = math.pi*params[2]/180
+                path = transformed_path_from_arc(tuple2(*params[0:2]), phi, *params[3:5],
                                                  tuple2(*current_point), tuple2(*pt), T)
                 bezier_segments.extend(path.asSegments())
                 coordinates.extend(bezier_sample(path))
