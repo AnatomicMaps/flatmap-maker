@@ -44,18 +44,13 @@ from ..markup import parse_markup
 from .cleaner import SVGCleaner
 from .definitions import DefinitionStore
 from .transform import SVGTransform
-from .utils import adobe_decode, length_as_pixels
+from .utils import adobe_decode, length_as_pixels, SVG_NS
 
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import bezier_sample, radians, Transform
 from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
 from mapmaker.utils import ProgressBar
-
-#===============================================================================
-
-def SVG(tag):
-    return '{{http://www.w3.org/2000/svg}}{}'.format(tag)
 
 #===============================================================================
 
@@ -141,10 +136,10 @@ class SVGLayer(FeatureLayer):
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         features = []
         for element in elements:
-            if element.tag == SVG('defs'):
+            if element.tag == SVG_NS('defs'):
                 self.__definitions.add_definitions(element)
                 continue
-            elif element.tag == SVG('use'):
+            elif element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
             self.__process_element(element, transform, features)
             if show_progress:
@@ -176,9 +171,9 @@ class SVGLayer(FeatureLayer):
             pass
         elif 'path' in properties:
             pass
-        elif element.tag in [SVG('circle'), SVG('ellipse'), SVG('line'),
-                             SVG('path'), SVG('polyline'), SVG('polygon'),
-                             SVG('rect')]:
+        elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
+                             SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
+                             SVG_NS('rect')]:
             geometry = self.__get_geometry(element, properties, transform)
             if geometry is None:
                 return
@@ -187,7 +182,7 @@ class SVGLayer(FeatureLayer):
                 # Save relationship between id/class and internal feature id
                 self.flatmap.save_feature_id(feature)
             features.append(feature)
-        elif element.tag == SVG('g'):
+        elif element.tag == SVG_NS('g'):
             self.__current_group.append(properties.get('markup', "''"))
             grouped_feature = self.__process_group(element, properties, transform)
             self.__current_group.pop()
@@ -195,7 +190,7 @@ class SVGLayer(FeatureLayer):
                 if self.output_layer:
                     self.flatmap.save_feature_id(grouped_feature)
                 features.append(grouped_feature)
-        elif element.tag in [SVG('image'), SVG('text')]:
+        elif element.tag in [SVG_NS('image'), SVG_NS('text')]:
             pass
         else:
             print('"{}" {} not processed...'.format(markup, element.tag))
@@ -223,10 +218,10 @@ class SVGLayer(FeatureLayer):
 
         T = transform@SVGTransform(element).matrix()
 
-        if element.tag == SVG('path'):
+        if element.tag == SVG_NS('path'):
             path_tokens = re.sub('.', SVGLayer.__path_matcher, element.attrib.get('d', '')).split()
 
-        elif element.tag == SVG('rect'):
+        elif element.tag == SVG_NS('rect'):
             x = length_as_pixels(element.attrib.get('x', 0))
             y = length_as_pixels(element.attrib.get('y', 0))
             width = length_as_pixels(element.attrib.get('width', 0))
@@ -262,22 +257,22 @@ class SVGLayer(FeatureLayer):
                                'A', rx, ry, 0, 0, 1, x+rx, y,
                                'Z']
 
-        elif element.tag == SVG('line'):
+        elif element.tag == SVG_NS('line'):
             x1 = length_as_pixels(element.attrib.get('x1', 0))
             y1 = length_as_pixels(element.attrib.get('y1', 0))
             x2 = length_as_pixels(element.attrib.get('x2', 0))
             y2 = length_as_pixels(element.attrib.get('y2', 0))
             path_tokens = ['M', x1, y1, x2, y2]
 
-        elif element.tag == SVG('polyline'):
+        elif element.tag == SVG_NS('polyline'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
             path_tokens = ['M'] + points
 
-        elif element.tag == SVG('polygon'):
+        elif element.tag == SVG_NS('polygon'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
             path_tokens = ['M'] + points + ['Z']
 
-        elif element.tag == SVG('circle'):
+        elif element.tag == SVG_NS('circle'):
             cx = length_as_pixels(element.attrib.get('cx', 0))
             cy = length_as_pixels(element.attrib.get('cy', 0))
             r = length_as_pixels(element.attrib.get('r', 0))
@@ -289,7 +284,7 @@ class SVGLayer(FeatureLayer):
                            'A', r, r, 0, 0, 0, cx+r, cy,
                            'Z']
 
-        elif element.tag == SVG('ellipse'):
+        elif element.tag == SVG_NS('ellipse'):
             cx = length_as_pixels(element.attrib.get('cx', 0))
             cy = length_as_pixels(element.attrib.get('cy', 0))
             rx = length_as_pixels(element.attrib.get('rx', 0))
