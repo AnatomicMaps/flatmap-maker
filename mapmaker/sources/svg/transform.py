@@ -26,7 +26,11 @@ import numpy as np
 
 #===============================================================================
 
-class SVGTransform(object):
+from mapmaker.geometry import Transform
+
+#===============================================================================
+
+class SVGTransform(Transform):
     def __init__(self, transform):
         T = np.identity(3)
         if transform is not None:
@@ -92,9 +96,6 @@ class SVGTransform(object):
                                     [     0, 0, 1]])
                 else:
                     raise ValueError('Invalid SVG transform: {}'.format(transform))
-        self.__T = T
-
-    def matrix(self):
-        return self.__T
+        super().__init__(T)
 
 #===============================================================================

@@ -101,7 +101,7 @@ class SVGTiler(object):
     def __process_group(self, group, properties, transform):
     #=======================================================
         self.__process_element_list(group,
-            transform@SVGTransform(group.attrib.get('transform')).matrix())
+            transform@SVGTransform(group.etree_element.attrib.get('transform')))
 
     def __process_element_list(self, elements, transform):
     #=====================================================
@@ -214,7 +214,7 @@ class SVGTiler(object):
 
     def __get_graphics_path(self, element, properties, transform):
     #=============================================================
-        T = transform@SVGTransform(element.attrib.get('transform')).matrix()
+        T = transform@SVGTransform(element.attrib.get('transform'))
         if element.tag == SVG_NS('path'):
             tokens = re.sub('.', SVGTiler.__svg_path_matcher,
                             element.attrib.get('d', '')).split()

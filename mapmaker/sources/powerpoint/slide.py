@@ -93,7 +93,7 @@ class PowerpointSlide(FeatureLayer):
 
     def __process_group(self, group, properties, transform):
     #=======================================================
-        features = self.__process_shape_list(group.shapes, transform@DrawMLTransform(group).matrix())
+        features = self.__process_shape_list(group.shapes, transform@DrawMLTransform(group))
         return self.add_features(properties.get('markup', ''), features)
 
     def __process_shape_list(self, shapes, transform):
@@ -158,7 +158,7 @@ class PowerpointSlide(FeatureLayer):
         pptx_geometry = Geometry(shape)
         for path in pptx_geometry.path_list:
             bbox = (shape.width, shape.height) if path.w is None or path.h is None else (path.w, path.h)
-            T = transform@DrawMLTransform(shape, bbox).matrix()
+            T = transform@DrawMLTransform(shape, bbox)
 
             moved = False
             first_point = None

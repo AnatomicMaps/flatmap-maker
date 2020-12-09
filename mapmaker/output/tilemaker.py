@@ -33,6 +33,7 @@ from svglib.svglib import svg2rlg
 
 #===============================================================================
 
+import mapmaker.geometry
 from mapmaker.output.mbtiles import MBTiles, ExtractionError
 from mapmaker.sources import RasterSource
 from mapmaker.utils import log, ProgressBar
@@ -81,20 +82,17 @@ def paste_image(destination, source, offset):
 
 #===============================================================================
 
-class Transform(object):
+class Transform(mapmaker.geometry.Transform):
     def __init__(self, scale, translateA=None, translateB=None):
         if translateA is None: translateA = (0, 0)
         if translateB is None: translateB = (0, 0)
-        self.__matrix = np.array([[ scale[0], 0, -scale[0]*translateA[0] + translateB[0] ],
-                                 [ 0, scale[1], -scale[1]*translateA[1] + translateB[1] ],
-                                 [ 0,        0,                                       1 ]])
-
-    def __str__(self):
-        return 'Transform: {}'.format(self.__matrix)
+        super().__init__([[ scale[0], 0, -scale[0]*translateA[0] + translateB[0] ],
+                          [ 0, scale[1], -scale[1]*translateA[1] + translateB[1] ],
+                          [ 0,        0,                                       1 ]])
 
     def transform_point(self, x, y):
     #===============================
-        return (self.__matrix@[x, y, 1])[:2]
+        return super.transform_point((x, y))
 
 #===============================================================================
 

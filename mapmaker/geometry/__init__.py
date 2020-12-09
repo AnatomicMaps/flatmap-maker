@@ -90,11 +90,18 @@ class Transform(object):
     def __init__(self, matrix):
         self.__matrix = np.array(matrix)
 
-    def __matmul__(self, matrix):
-        return Transform(self.__matrix@np.array(matrix))
+    def __matmul__(self, transform):
+        if isinstance(transform, Transform):
+            return Transform(self.__matrix@np.array(transform.__matrix))
+        else:
+            return Transform(self.__matrix@np.array(transform))
 
     def __str__(self):
         return str(self.__matrix)
+
+    def flatten(self):
+    #=================
+        return self.__matrix.flatten()
 
     def rotate_angle(self, angle):
     #==============================

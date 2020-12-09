@@ -26,11 +26,11 @@ import numpy as np
 
 #===============================================================================
 
-from mapmaker.geometry import radians
+from mapmaker.geometry import radians, Transform
 
 #===============================================================================
 
-class DrawMLTransform(object):
+class DrawMLTransform(Transform):
     def __init__(self, shape, bbox=None):
         xfrm = shape.element.xfrm
 
@@ -59,9 +59,6 @@ class DrawMLTransform(object):
                          [ 0, Fy, 0],
                          [ 0,  0, 1]])
         T_rf = np.linalg.inv(U)@R@Flip@U
-        self.__T = T_rf@T_st
-
-    def matrix(self):
-        return self.__T
+        super().__init__(T_rf@T_st)
 
 #===============================================================================
