@@ -42,6 +42,7 @@ from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import ellipse_point
 from mapmaker.geometry import bezier_sample
 from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
+from mapmaker.settings import settings
 from mapmaker.utils import ProgressBar
 
 from ..markup import parse_layer_directive, parse_markup
@@ -153,6 +154,7 @@ class PowerpointSlide(FeatureLayer):
     ## Returns shape's geometry as `shapely` object.
     ##
         coordinates = []
+        bezier_segments = []
         pptx_geometry = Geometry(shape)
         for path in pptx_geometry.path_list:
             bbox = (shape.width, shape.height) if path.w is None or path.h is None else (path.w, path.h)
@@ -178,6 +180,7 @@ class PowerpointSlide(FeatureLayer):
                                         0, large_arc_flag, 1,
                                         tuple2(*current_point), tuple2(*pt),
                                         T)
+                    bezier_segments.extend(paths.asSegments())
                     coordinates.extend(bezier_sample(paths))
                     current_point = pt
 
@@ -195,6 +198,7 @@ class PowerpointSlide(FeatureLayer):
                         coords.append(BezierPoint(*T.transform_point(pt)))
                         current_point = pt
                     bz = CubicBezier(*coords)
+                    bezier_segments.append(bz)
                     coordinates.extend(bezier_sample(bz))
 
                 elif c.tag == DML('lnTo'):
@@ -219,10 +223,14 @@ class PowerpointSlide(FeatureLayer):
                         coords.append(BezierPoint(*T.transform_point(pt)))
                         current_point = pt
                     bz = QuadraticBezier(*coords)
+                    bezier_segments.append(bz)
                     coordinates.extend(bezier_sample(bz))
 
                 else:
                     print('Unknown path element: {}'.format(c.tag))
+
+        if settings.get('saveBeziers', False) and len(bezier_segments) > 0:
+            properties['bezier-segments'] = [repr(bz) for bz in bezier_segments]
 
         if closed:
             geometry = shapely.geometry.Polygon(coordinates)

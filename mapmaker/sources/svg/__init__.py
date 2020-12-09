@@ -208,6 +208,7 @@ class SVGLayer(FeatureLayer):
     ## Returns path element as a `shapely` object.
     ##
         coordinates = []
+        bezier_segments = []
         moved = False
         first_point = None
         current_point = None
@@ -331,6 +332,7 @@ class SVGLayer(FeatureLayer):
                         pt[1] += current_point[1]
                     coords.append(BezierPoint(*T.transform_point(pt)))
                 bz = CubicBezier(*coords)
+                bezier_segments.append(bz)
                 coordinates.extend(bezier_sample(bz))
                 current_point = pt
 
@@ -384,6 +386,7 @@ class SVGLayer(FeatureLayer):
                         pt[1] += current_point[1]
                     coords.append(BezierPoint(*T.transform_point(pt)))
                 bz = QuadraticBezier(*coords)
+                bezier_segments.append(bz)
                 coordinates.extend(bezier_sample(bz))
                 current_point = pt
 
@@ -395,6 +398,9 @@ class SVGLayer(FeatureLayer):
 
             else:
                 print('Unknown path command: {}'.format(cmd))
+
+        if settings.get('saveBeziers', False) and len(bezier_segments) > 0:
+            properties['bezier-segments'] = [repr(bz) for bz in bezier_segments]
 
         if closed:
             geometry = shapely.geometry.Polygon(coordinates)

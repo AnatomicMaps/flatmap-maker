@@ -53,6 +53,8 @@ def main():
     parser.add_argument('-d', '--debug', dest='debugXml', action='store_true',
                         help="save a slide's DrawML for debugging")
     parser.add_argument('-s', '--save-geojson', dest='saveGeoJSON', action='store_true',
+    parser.add_argument('--save-beziers', dest='saveBeziers', action='store_true',
+                        help='Save Bezier curve segments as a feature property')
                         help='Save GeoJSON files for each layer')
     parser.add_argument('-t', '--tippecanoe', dest='showTippe', action='store_true',
                         help='Show command used to run Tippecanoe')
