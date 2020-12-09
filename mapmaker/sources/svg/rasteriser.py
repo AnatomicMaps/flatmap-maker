@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import math
 import re
 
 #===============================================================================
@@ -155,32 +156,38 @@ class SVGTiler(object):
                     transform = SVGTransform(gradient.attrib.get('gradientTransform'))
                     bounds = path.getBounds()
                     v_centre = (bounds.top() + bounds.bottom())/2
+                    ## Transform points....
                     paint.setShader(skia.GradientShader.MakeLinear(
                         points=[(bounds.left(), v_centre), (bounds.right(), v_centre)],
                         positions=gradient_stops.offsets,
                         colors=gradient_stops.colours,
                         #localMatrix=skia.Matrix(list(transform.matrix().flatten()))
-                        ))
-                else:
-                    fill = '#008'     # Something's wrong show show in image...
-                    opacity = 0.5
-                '''
+                    ))
                 elif gradient.tag == SVG_NS('radialGradient'):
                     gradient_stops = GradientStops(gradient)
                     transform = SVGTransform(gradient.attrib.get('gradientTransform'))
-
-        <radialGradient cx="0.8151139459724928" cy="0.5" r="1.0">
-
-paint = skia.Paint(Shader=skia.GradientShader.MakeRadial(
-        center=(128.0, 128.0),
-        radius=180.0,
-        colors=[skia.ColorBLUE, skia.ColorYELLOW]
-    )
-)
-                '''
+                    cx = float(gradient.attrib.get('cx'))
+                    cy = float(gradient.attrib.get('cx'))
+                    r = float(gradient.attrib.get('r'))
+                    bounds = path.getBounds()
+                    h_centre = bounds.left() + cx*bounds.width()
+                    v_centre = bounds.top() + cy*bounds.height()
+                    radius = math.sqrt(bounds.width()**2 + bounds.height()**2)/2.0
+#        <radialGradient cx="0.6990667166842864" cy="0.5"
+# gradientTransform="scale(0.7152393155999883,1.0)" id="gradient-35" r="1.0">
+                    ## Transform centre, radius....
+                    paint.setShader(skia.GradientShader.MakeRadial(
+                        center=(h_centre, v_centre),
+                        radius=radius,
+                        positions=gradient_stops.offsets,
+                        colors=gradient_stops.colours,
+                        #localMatrix=skia.Matrix(list(transform.matrix().flatten()))
+                    ))
+                else:
+                    fill = '#008'     # Something's wrong show show in image...
+                    opacity = 0.5
 
             if fill.startswith('#'):
-                return
                 paint.setColor(make_colour(fill, opacity))
             self.__canvas.drawPath(path, paint)
 
