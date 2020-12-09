@@ -120,7 +120,7 @@ class SVGLayer(FeatureLayer):
     def process(self, svg):
     #======================
         self.__current_group.append('ROOT')
-        features = self.__process_element_list(svg, self.__transform, show_progress=True)
+        features = self.__process_element_list(svg, self.__transform)
         self.add_features('SVG', features, outermost=True)
 
     def __process_group(self, group, properties, transform):
@@ -128,12 +128,11 @@ class SVGLayer(FeatureLayer):
         features = self.__process_element_list(group, transform@SVGTransform(group).matrix())
         return self.add_features(adobe_decode(group.attrib.get('id', '')), features)
 
-    def __process_element_list(self, elements, transform, show_progress=False):
-    #==========================================================================
-        if show_progress:
-            progress_bar = ProgressBar(total=len(elements),
-                unit='shp', ncols=40,
-                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
+    def __process_element_list(self, elements, transform):
+    #=====================================================
+        progress_bar = ProgressBar(total=len(elements),
+            unit='shp', ncols=40,
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         features = []
         for element in elements:
             if element.tag == SVG_NS('defs'):
@@ -142,10 +141,8 @@ class SVGLayer(FeatureLayer):
             elif element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
             self.__process_element(element, transform, features)
-            if show_progress:
-                progress_bar.update(1)
-        if show_progress:
-            progress_bar.close()
+            progress_bar.update(1)
+        progress_bar.close()
         return features
 
     def __process_element(self, element, transform, features):
