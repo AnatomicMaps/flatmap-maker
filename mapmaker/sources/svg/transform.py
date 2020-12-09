@@ -27,10 +27,9 @@ import numpy as np
 #===============================================================================
 
 class SVGTransform(object):
-    def __init__(self, element):
+    def __init__(self, transform):
         T = np.identity(3)
-        transform = element.attrib.get('transform', '')
-        if transform != '':
+        if transform is not None:
             # A simple parser, assuming well-formed SVG
             tokens = transform.replace('(', ' ').replace(')', ' ').replace(',', ' ').split()
             pos = 0

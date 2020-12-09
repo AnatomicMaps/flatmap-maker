@@ -123,7 +123,8 @@ class SVGLayer(FeatureLayer):
 
     def __process_group(self, group, properties, transform):
     #=======================================================
-        features = self.__process_element_list(group, transform@SVGTransform(group).matrix())
+        features = self.__process_element_list(group,
+            transform@SVGTransform(group.attrib.get('transform')).matrix())
         return self.add_features(adobe_decode(group.attrib.get('id', '')), features)
 
     def __process_element_list(self, elements, transform):
@@ -212,8 +213,7 @@ class SVGLayer(FeatureLayer):
         current_point = None
         closed = False
 
-        T = transform@SVGTransform(element).matrix()
-
+        T = transform@SVGTransform(element.attrib.get('transform')).matrix()
         if element.tag == SVG_NS('path'):
             path_tokens = re.sub('.', SVGLayer.__path_matcher, element.attrib.get('d', '')).split()
 
