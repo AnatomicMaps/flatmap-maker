@@ -19,9 +19,7 @@
 #===============================================================================
 
 import io
-import json
 import os
-from pathlib import Path
 import re
 
 #===============================================================================
@@ -203,7 +201,7 @@ class SVGLayer(FeatureLayer):
         return c
 
     def __get_geometry(self, element, properties, transform):
-    #=====================================================
+    #=======================================================
     ##
     ## Returns path element as a `shapely` object.
     ##
