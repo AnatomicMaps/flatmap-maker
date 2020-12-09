@@ -1,0 +1,322 @@
+#===============================================================================
+#
+#  Flatmap viewer and annotation tools
+#
+#  Copyright (c) 2020  David Brooks
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+#===============================================================================
+
+import math
+import re
+
+#===============================================================================
+
+from lxml import etree
+
+import skia
+
+#===============================================================================
+
+from .. import WORLD_METRES_PER_PIXEL
+from ..markup import parse_markup
+
+from mapmaker.geometry import degrees, radians, Transform
+
+from .definitions import DefinitionStore
+from .transform import SVGTransform
+from .utils import adobe_decode, length_as_pixels, SVG_NS
+
+#===============================================================================
+
+class SVGTiler(object):
+    def __init__(self, id, source_path):
+        self.__source_path = source_path
+        self.__svg = etree.parse(source_path).getroot()
+        if 'viewBox' in self.__svg.attrib:
+            (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
+        else:
+            width = length_as_pixels(self.__svg.attrib['width'])
+            height = length_as_pixels(self.__svg.attrib['height'])
+        self.__transform = Transform([[1, 0, 0],
+                                      [0, 1, 0],
+                                      [0, 0, 1]])
+        self.__definitions = DefinitionStore()
+        self.__surface = skia.Surface(int(width), int(height))
+        self.__canvas = self.__surface.getCanvas()
+
+    def process(self):
+    #=================
+        self.__process_element_list(self.__svg, self.__transform)
+        image = self.__surface.makeImageSnapshot()
+        image.save('output.png', skia.kPNG)
+
+    def __process_group(self, group, properties, transform):
+    #=======================================================
+        self.__process_element_list(group, transform@SVGTransform(group).matrix())
+
+    def __process_element_list(self, elements, transform):
+    #=====================================================
+        for element in elements:
+            if element.tag == SVG_NS('defs'):
+                self.__definitions.add_definitions(element)
+                continue
+            elif element.tag == SVG_NS('use'):
+                element = self.__definitions.use(element)
+            self.__process_element(element, transform)
+
+    def __process_element(self, element, transform):
+    #===============================================
+        properties = {'tile-layer': 'features'}   # Passed through to map viewer
+        markup = adobe_decode(element.attrib.get('id', ''))
+        if markup.startswith('.'):
+            markup = adobe_decode(element.attrib['id'])
+            properties.update(parse_markup(markup))
+        if 'error' in properties:
+            pass
+        elif 'path' in properties:
+            pass
+        elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
+                             SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
+                             SVG_NS('rect')]:
+
+            path = self.__get_graphics_path(element, properties, transform)
+            if path is None: return
+
+            path.setFillType(skia.PathFillType.kWinding)
+
+            fill = element.attrib.get('fill', '#000000')
+            if fill.startswith('url('):
+                fill = '#808080'  ## Gradient ==> shader
+            opacity = float(element.attrib.get('opacity', 1.0))
+            if fill.startswith('#'):
+                if len(fill) == 4:
+                    rgb = tuple(2*c for c in fill[1:])
+                else:
+                    rgb = tuple(fill[n:n+2] for n in range(1, 6, 2))
+                colour = tuple(int(c, 16) for c in rgb)
+                fill_colour = skia.Color(*colour)
+                paint = skia.Paint(AntiAlias=True, Alphaf=opacity, Color=fill_colour)
+                self.__canvas.drawPath(path, paint)
+
+                paint = skia.Paint(AntiAlias=True)
+                paint.setStyle(skia.Paint.kStroke_Style);
+                paint.setColor(skia.ColorBLUE)
+                paint.setStrokeWidth(1)
+                self.__canvas.drawPath(path, paint)
+
+        elif element.tag == SVG_NS('g'):
+            self.__process_group(element, properties, transform)
+        elif element.tag in [SVG_NS('image'), SVG_NS('text')]:
+            pass
+        else:
+            print('"{}" {} not processed...'.format(markup, element.tag))
+
+    @staticmethod
+    def __svg_path_matcher(m):
+    #=========================
+    # Helper for parsing `d` attrib of a path
+        c = m[0]
+        if c.isalpha(): return ' ' + c + ' '
+        if c == '-': return ' -'
+        if c == ',': return ' '
+        return c
+
+    def __get_graphics_path(self, element, properties, transform):
+    #=============================================================
+        T = transform@SVGTransform(element).matrix()
+        if element.tag == SVG_NS('path'):
+            tokens = re.sub('.', SVGTiler.__svg_path_matcher,
+                            element.attrib.get('d', '')).split()
+            path = self.__path_from_tokens(properties, tokens, T)
+
+        elif element.tag == SVG_NS('rect'):
+            (width, height) = T.scale_length(length_as_pixels(element.attrib.get('width', 0)),
+                                             length_as_pixels(element.attrib.get('height', 0)))
+            if width == 0 or height == 0: return None
+            (rx, ry) = T.scale_length(length_as_pixels(element.attrib.get('rx')),
+                                      length_as_pixels(element.attrib.get('ry')))
+            if rx is None and ry is None:
+                rx = ry = 0
+            elif ry is None:
+                ry = rx
+            elif rx is None:
+                rx = ry
+            rx = min(rx, width/2)
+            ry = min(ry, height/2)
+            (x, y) = T.transform_point(length_as_pixels(element.attrib.get('x', 0)),
+                                       length_as_pixels(element.attrib.get('y', 0)))
+            if rx == 0 and ry == 0:
+                path = skia.Path.Rect((x, y, width, height))
+            else:
+                path = skia.Path.RRect((x, y, width, height), rx, ry)
+
+        elif element.tag == SVG_NS('line'):
+            x1 = length_as_pixels(element.attrib.get('x1', 0))
+            y1 = length_as_pixels(element.attrib.get('y1', 0))
+            x2 = length_as_pixels(element.attrib.get('x2', 0))
+            y2 = length_as_pixels(element.attrib.get('y2', 0))
+            path = self.__path_from_tokens(properties, ['M', x1, y1, x2, y2], T)
+
+        elif element.tag == SVG_NS('polyline'):
+            points = element.attrib.get('points', '').replace(',', ' ').split()
+            path = self.__path_from_tokens(properties, ['M'] + points, T)
+
+        elif element.tag == SVG_NS('polygon'):
+            points = element.attrib.get('points', '').replace(',', ' ').split()
+            skia_points = [skia.Point(*T.transform_point(points[n:n+2]))
+                                            for n in range(0, len(points), 2)]
+            path = skia.Path.Polygon(skia_points, True)
+
+        elif element.tag == SVG_NS('circle'):
+            r = length_as_pixels(element.attrib.get('r', 0))
+            if r == 0: return None
+            (cx, cy) = T.transform_point(length_as_pixels(element.attrib.get('cx', 0)),
+                                         length_as_pixels(element.attrib.get('cy', 0)))
+            path = skia.Path.Circle(cx, cy, r)
+
+        elif element.tag == SVG_NS('ellipse'):
+            (rx, ry) = T.scale_length(length_as_pixels(element.attrib.get('rx', 0)),
+                                      length_as_pixels(element.attrib.get('ry', 0)))
+            if rx == 0 or ry == 0: return None
+            (cx, cy) = T.transform_point(length_as_pixels(element.attrib.get('cx', 0)),
+                                         length_as_pixels(element.attrib.get('cy', 0)))
+            path = skia.Path.Oval((cx-rx, cy-ry, cx+rx, cy+ry))
+
+        return path
+
+    def __path_from_tokens(self, properties, tokens, transform):
+    #===========================================================
+        moved = False
+        first_point = None
+        current_point = None
+        closed = False
+        path = skia.Path()
+        pos = 0
+        while pos < len(tokens):
+            if isinstance(tokens[pos], str) and tokens[pos].isalpha():
+                cmd = tokens[pos]
+                pos += 1
+            # Else repeat previous command with new coordinates
+            # with `moveTo` becoming `lineTo`
+            elif cmd == 'M':
+                cmd = 'L'
+            elif cmd == 'm':
+                cmd = 'l'
+
+            if cmd in ['a', 'A']:
+                params = [float(x) for x in tokens[pos:pos+7]]
+                pos += 7
+                pt = params[5:7]
+                if cmd == 'a':
+                    pt[0] += current_point[0]
+                    pt[1] += current_point[1]
+                phi = radians(params[2])
+                if moved:
+                    path.moveTo(*transform.transform_point(current_point))
+                    moved = False
+                (rx, ry) = transform.scale_length(params[0:2])
+                path.arcTo(rx, ry, degrees(transform.rotate_angle(phi)),
+                    skia.Path.ArcSize.kSmall_ArcSize if params[3] == 0
+                        else skia.Path.ArcSize.kLarge_ArcSize,
+                    skia.PathDirection.kCCW if params[4] == 0
+                        else skia.PathDirection.kCW,
+                    *transform.transform_point(pt))
+                current_point = pt
+
+            elif cmd in ['c', 'C']:
+                params = [float(x) for x in tokens[pos:pos+6]]
+                pos += 6
+                if moved:
+                    path.moveTo(*transform.transform_point(current_point))
+                    moved = False
+                coords = []
+                for n in [0, 2, 4]:
+                    pt = params[n:n+2]
+                    if cmd == 'c':
+                        pt[0] += current_point[0]
+                        pt[1] += current_point[1]
+                    coords.extend(transform.transform_point(pt))
+                path.cubicTo(*coords)
+                current_point = pt
+
+            elif cmd in ['l', 'L', 'h', 'H', 'v', 'V']:
+                if cmd in ['l', 'L']:
+                    params = [float(x) for x in tokens[pos:pos+2]]
+                    pos += 2
+                    pt = params[0:2]
+                    if cmd == 'l':
+                        pt[0] += current_point[0]
+                        pt[1] += current_point[1]
+                else:
+                    param = float(tokens[pos])
+                    pos += 1
+                    if cmd == 'h':
+                        param += current_point[0]
+                    elif cmd == 'v':
+                        param += current_point[1]
+                    if cmd in ['h', 'H']:
+                        pt = [param, current_point[1]]
+                    else:
+                        pt = [current_point[0], param]
+                if moved:
+                    path.moveTo(*transform.transform_point(current_point))
+                    moved = False
+                path.lineTo(*transform.transform_point(pt))
+                current_point = pt
+
+            elif cmd in ['m', 'M']:
+                params = [float(x) for x in tokens[pos:pos+2]]
+                pos += 2
+                pt = params[0:2]
+                if first_point is None:
+                    # First `m` in a path is treated as `M`
+                    first_point = pt
+                else:
+                    if cmd == 'm':
+                        pt[0] += current_point[0]
+                        pt[1] += current_point[1]
+                current_point = pt
+                moved = True
+
+            elif cmd in ['q', 'Q']:
+                params = [float(x) for x in tokens[pos:pos+4]]
+                pos += 4
+                if moved:
+                    path.moveTo(*transform.transform_point(current_point))
+                    moved = False
+                coords = []
+                for n in [0, 2]:
+                    pt = params[n:n+2]
+                    if cmd == 'q':
+                        pt[0] += current_point[0]
+                        pt[1] += current_point[1]
+                    coords.extend(transform.transform_point(pt))
+                path.quadTo(*coords)
+                current_point = pt
+
+            elif cmd in ['z', 'Z']:
+                if first_point is not None and current_point != first_point:
+                    pass
+                    #path.close()
+                closed = True
+                first_point = None
+
+            else:
+                print('Unknown path command: {}'.format(cmd))
+        if not closed and properties.get('closed', False):
+            path.close()
+        return path
+
+#===============================================================================
