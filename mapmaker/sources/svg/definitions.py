@@ -33,6 +33,13 @@ class DefinitionStore(object):
             if id is not None:
                 self.__definitions[id] = element
 
+    def lookup(self, id):
+    #====================
+        if id is not None and id.startswith('#'):
+            definition = self.__definitions.get(id[1:])
+            if definition is not None:
+                return copy.copy(definition)
+
     def use(self, element):
     #======================
         id = element.attrib.get('xlink:href')

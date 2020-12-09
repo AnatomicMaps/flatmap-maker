@@ -30,6 +30,8 @@ import skia
 #===============================================================================
 
 from .. import WORLD_METRES_PER_PIXEL
+from .. import EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
+
 from ..markup import parse_markup
 
 from mapmaker.geometry import degrees, radians, Transform
@@ -40,9 +42,43 @@ from .utils import adobe_decode, length_as_pixels, SVG_NS
 
 #===============================================================================
 
+def make_colour(hex_string, opacity):
+    if hex_string.startswith('#'):
+        if len(hex_string) == 4:
+            rgb = tuple(2*c for c in hex_string[1:])
+        else:
+            rgb = tuple(hex_string[n:n+2] for n in range(1, 6, 2))
+        colour = tuple(int(c, 16) for c in rgb)
+        return skia.Color(*colour, int(255*opacity))
+    else:
+        return skia.Color(0, 0, 0, 128)
+
+#===============================================================================
+
+class GradientStops(object):
+    def __init__(self, element):
+        self.__offsets = []
+        self.__colours = []
+        for stop in element:
+            if stop.tag == SVG_NS('stop'):
+                self.__offsets.append(float(stop.attrib['offset']))
+                self.__colours.append(make_colour(stop.attrib['stop-color'],
+                                                  float(stop.attrib.get('stop-opacity', 1.0))))
+
+    @property
+    def offsets(self):
+        return self.__offsets
+
+    @property
+    def colours(self):
+        return self.__colours
+
+#===============================================================================
+
 class SVGTiler(object):
-    def __init__(self, id, source_path):
+    def __init__(self, source_path, map_properties):
         self.__source_path = source_path
+        self.__map_properties = map_properties
         self.__svg = etree.parse(source_path).getroot()
         if 'viewBox' in self.__svg.attrib:
             (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
@@ -83,46 +119,82 @@ class SVGTiler(object):
         markup = adobe_decode(element.attrib.get('id', ''))
         if markup.startswith('.'):
             markup = adobe_decode(element.attrib['id'])
-            properties.update(parse_markup(markup))
+            properties = self.__map_properties.update_feature_properties(parse_markup(markup))
+            for key, value in properties.items():
+                if key in EXCLUDE_SHAPE_TYPES:
+                    return
+                elif key == 'tile-layer' and value in EXCLUDE_TILE_LAYERS:
+                    return
         if 'error' in properties:
             pass
         elif 'path' in properties:
             pass
+        elif element.tag == SVG_NS('g'):
+            self.__process_group(element, properties, transform)
+
         elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
                              SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
                              SVG_NS('rect')]:
+
+            fill = element.attrib.get('fill', '#FFF')
+            if fill == 'none': return
 
             path = self.__get_graphics_path(element, properties, transform)
             if path is None: return
 
             path.setFillType(skia.PathFillType.kWinding)
-
-            fill = element.attrib.get('fill', '#000000')
-            if fill.startswith('url('):
-                fill = '#808080'  ## Gradient ==> shader
             opacity = float(element.attrib.get('opacity', 1.0))
-            if fill.startswith('#'):
-                if len(fill) == 4:
-                    rgb = tuple(2*c for c in fill[1:])
+            paint = skia.Paint(AntiAlias=True)
+
+            if fill.startswith('url('):
+                gradient = self.__definitions.lookup(fill[4:-1])
+                if gradient is None:
+                    fill = '#800'     # Something's wrong show show in image...
+                    opacity = 0.5
+                elif gradient.tag == SVG_NS('linearGradient'):
+                    gradient_stops = GradientStops(gradient)
+                    transform = SVGTransform(gradient.attrib.get('gradientTransform'))
+                    bounds = path.getBounds()
+                    v_centre = (bounds.top() + bounds.bottom())/2
+                    paint.setShader(skia.GradientShader.MakeLinear(
+                        points=[(bounds.left(), v_centre), (bounds.right(), v_centre)],
+                        positions=gradient_stops.offsets,
+                        colors=gradient_stops.colours,
+                        #localMatrix=skia.Matrix(list(transform.matrix().flatten()))
+                        ))
                 else:
-                    rgb = tuple(fill[n:n+2] for n in range(1, 6, 2))
-                colour = tuple(int(c, 16) for c in rgb)
-                fill_colour = skia.Color(*colour)
-                paint = skia.Paint(AntiAlias=True, Alphaf=opacity, Color=fill_colour)
-                self.__canvas.drawPath(path, paint)
+                    fill = '#008'     # Something's wrong show show in image...
+                    opacity = 0.5
+                '''
+                elif gradient.tag == SVG_NS('radialGradient'):
+                    gradient_stops = GradientStops(gradient)
+                    transform = SVGTransform(gradient.attrib.get('gradientTransform'))
 
-                paint = skia.Paint(AntiAlias=True)
-                paint.setStyle(skia.Paint.kStroke_Style);
-                paint.setColor(skia.ColorBLUE)
-                paint.setStrokeWidth(1)
-                self.__canvas.drawPath(path, paint)
+        <radialGradient cx="0.8151139459724928" cy="0.5" r="1.0">
 
-        elif element.tag == SVG_NS('g'):
-            self.__process_group(element, properties, transform)
-        elif element.tag in [SVG_NS('image'), SVG_NS('text')]:
-            pass
-        else:
-            print('"{}" {} not processed...'.format(markup, element.tag))
+paint = skia.Paint(Shader=skia.GradientShader.MakeRadial(
+        center=(128.0, 128.0),
+        radius=180.0,
+        colors=[skia.ColorBLUE, skia.ColorYELLOW]
+    )
+)
+                '''
+
+            if fill.startswith('#'):
+                return
+                paint.setColor(make_colour(fill, opacity))
+            self.__canvas.drawPath(path, paint)
+
+
+            ## Or simply don't stroke as Mapbox will draw boundaries...
+            stroke = element.attrib.get('stroke', 'none')
+            if stroke == 'none': return
+            opacity = float(element.attrib.get('stroke-opacity', 1.0))
+            paint = skia.Paint(AntiAlias=True,
+                Style=skia.Paint.kStroke_Style,
+                Color=make_colour(fill, opacity),
+                StrokeWidth=1)  ## Use actual stroke-width?? Scale??
+            self.__canvas.drawPath(path, paint)
 
     @staticmethod
     def __svg_path_matcher(m):
