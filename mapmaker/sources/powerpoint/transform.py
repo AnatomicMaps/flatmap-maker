@@ -26,6 +26,10 @@ import numpy as np
 
 #===============================================================================
 
+from mapmaker.geometry import radians
+
+#===============================================================================
+
 class DrawMLTransform(object):
     def __init__(self, shape, bbox=None):
         xfrm = shape.element.xfrm
@@ -39,7 +43,7 @@ class DrawMLTransform(object):
                     bbox)
         (Bx_, By_) = (xfrm.off.x, xfrm.off.y)
         (Dx_, Dy_) = (xfrm.ext.cx, xfrm.ext.cy)
-        theta = xfrm.rot*PI/180.0
+        theta = radians(xfrm.rot)
         Fx = -1 if xfrm.flipH else 1
         Fy = -1 if xfrm.flipV else 1
         T_st = np.array([[Dx_/Dx,      0, Bx_ - (Dx_/Dx)*Bx] if Dx != 0 else [1, 0, Bx_],

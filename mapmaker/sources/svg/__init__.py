@@ -47,8 +47,8 @@ from .transform import SVGTransform
 from .utils import adobe_decode, length_as_pixels
 
 from mapmaker.flatmap.layers import FeatureLayer
-from mapmaker.geometry import bezier_sample, Transform
-from mapmaker.geometry.arc_to_bezier import transformed_path_from_arc, tuple2
+from mapmaker.geometry import bezier_sample, radians, Transform
+from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
 from mapmaker.utils import ProgressBar
 
@@ -321,11 +321,11 @@ class SVGLayer(FeatureLayer):
                 if cmd == 'a':
                     pt[0] += current_point[0]
                     pt[1] += current_point[1]
-                phi = math.pi*params[2]/180
-                path = transformed_path_from_arc(tuple2(*params[0:2]), phi, *params[3:5],
-                                                 tuple2(*current_point), tuple2(*pt), T)
-                bezier_segments.extend(path.asSegments())
-                coordinates.extend(bezier_sample(path))
+                phi = radians(params[2])
+                paths = bezier_paths_from_arc_endpoints(tuple2(*params[0:2]), phi, *params[3:5],
+                                                        tuple2(*current_point), tuple2(*pt), T)
+                bezier_segments.extend(paths.asSegments())
+                coordinates.extend(bezier_sample(paths))
                 current_point = pt
 
             elif cmd in ['c', 'C']:

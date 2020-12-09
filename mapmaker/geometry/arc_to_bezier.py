@@ -18,8 +18,8 @@ from beziers.point import Point as BezierPoint
 
 #===============================================================================
 
-import collections
-tuple2 = collections.namedtuple('tuple2', 'x y')
+from collections import namedtuple
+tuple2 = namedtuple('tuple2', 'x y')
 
 #===============================================================================
 
@@ -57,8 +57,8 @@ def cubic_bezier_control_points(c, r, phi, eta1, eta2):
     Q2 = tuple2(P2.x - alpha*d2.x, P2.y - alpha*d2.y)
     return (P1, Q1, Q2, P2)
 
-def transformed_path_from_arc(r, phi, flagA, flagS, p1, p2, T):
-#==============================================================
+def arc_endpoints_to_centre(r, phi, flagA, flagS, p1, p2):
+#=========================================================
     r_abs = tuple2(abs(r.x), abs(r.y))
     d = tuple2((p1.x - p2.x), (p1.y - p2.y))
     p = tuple2(math.cos(phi)*d.x/2 + math.sin(phi)*d.y/2,
@@ -83,23 +83,31 @@ def transformed_path_from_arc(r, phi, flagA, flagS, p1, p2, T):
     c = tuple2(cp.x*math.cos(phi) - cp.y*math.sin(phi) + (p1.x + p2.x)/2.0,
                cp.x*math.sin(phi) + cp.y*math.cos(phi) + (p1.y + p2.y)/2.0)
 
-    lambda1 = svg_angle(tuple2(                   1,                     0),
-                        tuple2((p.x - cp.x)/r_abs.x, ( p.y - cp.y)/r_abs.y))
-    delta = svg_angle(tuple2(( p.x - cp.x)/r_abs.x, ( p.y - cp.y)/r_abs.y),
-                      tuple2((-p.x - cp.x)/r_abs.x, (-p.y - cp.y)/r_abs.y))
-    delta = delta - 2*math.pi*math.floor(delta/(2*math.pi))
+    theta = svg_angle(tuple2(                   1,                     0),
+                      tuple2((p.x - cp.x)/r_abs.x, ( p.y - cp.y)/r_abs.y))
+    delta_theta = svg_angle(tuple2(( p.x - cp.x)/r_abs.x, ( p.y - cp.y)/r_abs.y),
+                            tuple2((-p.x - cp.x)/r_abs.x, (-p.y - cp.y)/r_abs.y))
+    delta_theta -= 2*math.pi*math.floor(delta_theta/(2*math.pi))
     if not flagS:
-        delta -= 2*math.pi
-    lambda2 = lambda1 + delta
+        delta_theta -= 2*math.pi
 
-    t = lambda1
+    return namedtuple('elliptical_arc',
+        'centre, radii, theta, delta_theta')(c, r_abs, theta, delta_theta)
+
+def bezier_paths_from_arc_endpoints(r, phi, flagA, flagS, p1, p2, T):
+#====================================================================
+    arc = arc_endpoints_to_centre(r, phi, flagA, flagS, p1, p2)
+    end_theta = arc.theta + arc.delta_theta
+    t = arc.theta
     dt = math.pi/4
     segments = []
-    while (t + dt) < lambda2:
-        control_points = (BezierPoint(*T.transform_point(cp)) for cp in cubic_bezier_control_points(c, r_abs, phi, t, t + dt))
+    while (t + dt) < end_theta:
+        control_points = (BezierPoint(*T.transform_point(cp))
+            for cp in cubic_bezier_control_points(arc.centre, arc.radii, phi, t, t + dt))
         segments.append(CubicBezier(*control_points))
         t += dt
-    control_points = (BezierPoint(*T.transform_point(cp)) for cp in cubic_bezier_control_points(c, r_abs, phi, t, lambda2))
+    control_points = (BezierPoint(*T.transform_point(cp))
+        for cp in cubic_bezier_control_points(arc.centre, arc.radii, phi, t, end_theta))
     segments.append(CubicBezier(*(tuple(control_points)[:3]), BezierPoint(*T.transform_point(p2))))
     path = BezierPath.fromSegments(segments)
     path.closed = False

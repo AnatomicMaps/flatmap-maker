@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from math import acos, cos, sin, sqrt
+from math import acos, cos, sin, sqrt, pi as PI
 import warnings
 
 #===============================================================================
@@ -76,6 +76,16 @@ def mercator_transform(geometry):
 
 #===============================================================================
 
+def degrees(radians):
+#====================
+    return 180*radians/PI
+
+def radians(degrees):
+#====================
+    return PI*degrees/180
+
+#===============================================================================
+
 class Transform(object):
     def __init__(self, matrix):
         self.__matrix = np.array(matrix)
@@ -83,10 +93,19 @@ class Transform(object):
     def __matmul__(self, matrix):
         return Transform(self.__matrix@np.array(matrix))
 
+    def __str__(self):
+        return str(self.__matrix)
+
     def rotate_angle(self, angle):
     #==============================
         rotation = transforms3d.affines.decompose(self.__matrix)[1]
-        return angle - acos(rotation[0, 0])
+        theta = acos(rotation[0, 0])
+        if rotation[0, 1] >= 0:
+            theta = 2*PI - theta
+        angle = angle + theta
+        while angle >= 2*PI:
+            angle -= 2*PI
+        return angle
 
     def scale_length(self, length):
     #==============================
