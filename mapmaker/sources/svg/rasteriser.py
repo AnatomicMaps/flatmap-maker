@@ -49,7 +49,7 @@ def make_colour(hex_string, opacity):
             rgb = tuple(2*c for c in hex_string[1:])
         else:
             rgb = tuple(hex_string[n:n+2] for n in range(1, 6, 2))
-        colour = tuple(int(c, 16) for c in rgb)
+        colour = tuple(int(c, 16) for c in (rgb[2], rgb[1], rgb[0]))
         return skia.Color(*colour, int(255*opacity))
     else:
         return skia.Color(0, 0, 0, 128)
@@ -156,8 +156,15 @@ class SVGTiler(object):
     #=================
         wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
         self.__process_element_list(wrapped_svg, self.__transform)
+
+    def image(self):
+    #===============
+        return self.__surface.makeImageSnapshot().toarray()
+
+    def save(self, file_object):
+    #===========================
         image = self.__surface.makeImageSnapshot()
-        image.save('output.png', skia.kPNG)
+        image.save(file_object, skia.kPNG)
 
     def __process_group(self, group, transform):
     #===========================================
