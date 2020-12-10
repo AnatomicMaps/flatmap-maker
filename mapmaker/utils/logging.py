@@ -33,8 +33,8 @@ def log(*args):
 #===============================================================================
 
 class ProgressBar(object):
-    def __init__(self, *args, **kwargs):
-        if not settings.get('quiet', False):
+    def __init__(self, *args, show=True, **kwargs):
+        if show and not settings.get('quiet', False):
             self.__progress_bar = tqdm.tqdm(*args, **kwargs)
         else:
             self.__progress_bar = None

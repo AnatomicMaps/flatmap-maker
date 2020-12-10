@@ -118,7 +118,7 @@ class SVGLayer(FeatureLayer):
     def process(self, svg):
     #======================
         self.__current_group.append('ROOT')
-        features = self.__process_element_list(svg, self.__transform)
+        features = self.__process_element_list(svg, self.__transform, show_progress=True)
         self.add_features('SVG', features, outermost=True)
 
     def __process_group(self, group, properties, transform):
@@ -127,9 +127,10 @@ class SVGLayer(FeatureLayer):
             transform@SVGTransform(group.attrib.get('transform')))
         return self.add_features(adobe_decode(group.attrib.get('id', '')), features)
 
-    def __process_element_list(self, elements, transform):
-    #=====================================================
-        progress_bar = ProgressBar(total=len(elements),
+    def __process_element_list(self, elements, transform, show_progress=False):
+    #==========================================================================
+        progress_bar = ProgressBar(show=show_progress,
+            total=len(elements),
             unit='shp', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         features = []
