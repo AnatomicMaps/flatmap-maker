@@ -26,12 +26,16 @@ class DefinitionStore(object):
     def __init__(self):
         self.__definitions = {}
 
+    def add_definition(self, element):
+    #=================================
+        id = element.attrib.get('id')
+        if id is not None:
+            self.__definitions[id] = element
+
     def add_definitions(self, defs_element):
     #=======================================
         for element in defs_element:
-            id = element.attrib.get('id')
-            if id is not None:
-                self.__definitions[id] = element
+            self.add_definition(element)
 
     def lookup(self, id):
     #====================

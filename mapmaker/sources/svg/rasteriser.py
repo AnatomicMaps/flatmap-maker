@@ -23,9 +23,10 @@ import re
 
 #===============================================================================
 
+import cssselect2
 from lxml import etree
-
 import skia
+import tinycss2
 
 #===============================================================================
 
@@ -61,9 +62,10 @@ class GradientStops(object):
         self.__colours = []
         for stop in element:
             if stop.tag == SVG_NS('stop'):
+                styling = ElementStyle(stop)
                 self.__offsets.append(float(stop.attrib['offset']))
-                self.__colours.append(make_colour(stop.attrib['stop-color'],
-                                                  float(stop.attrib.get('stop-opacity', 1.0))))
+                self.__colours.append(make_colour(styling.get('stop-color'),
+                                                  float(styling.get('stop-opacity', 1.0))))
 
     @property
     def offsets(self):
@@ -75,13 +77,70 @@ class GradientStops(object):
 
 #===============================================================================
 
+class ElementStyle(object):
+    def __init__(self, element, style_dict={}):
+        self.__attributes = element.attrib
+        self.__style_dict = style_dict
+        if 'style' in self.__attributes:
+            local_style = {}
+            for declaration in tinycss2.parse_declaration_list(
+                self.__attributes['style'],
+                skip_comments=True, skip_whitespace=True):
+                local_style[declaration.lower_name] = ' '.join(
+                    [t.serialize() for t in declaration.value])
+            self.__style_dict.update(local_style)
+
+    def get(self, key, default=None):
+    #================================
+        if key in self.__attributes:
+            return self.__attributes[key]
+        return self.__style_dict.get(key, default)
+
+#===============================================================================
+
+class StyleMatcher(cssselect2.Matcher):
+    '''Parse CSS and add rules to the matcher.'''
+    def __init__(self, style_element):
+        super().__init__()
+        rules = tinycss2.parse_stylesheet(style_element.text
+                    if style_element is not None else '',
+                    skip_comments=True, skip_whitespace=True)
+        for rule in rules:
+            selectors = cssselect2.compile_selector_list(rule.prelude)
+            declarations = [obj for obj in tinycss2.parse_declaration_list(
+                                               rule.content,
+                                               skip_whitespace=True)
+                            if obj.type == 'declaration']
+            for selector in selectors:
+                self.add_selector(selector, declarations)
+
+    def match(self, element):
+    #========================
+        styling = {}
+        matches = super().match(element)
+        if matches:
+            for match in matches:
+                specificity, order, pseudo, declarations = match
+                for declaration in declarations:
+                    styling[declaration.lower_name] = declaration.value
+        return styling
+
+    def element_style(self, wrapped_element):
+    #========================================
+        return ElementStyle(wrapped_element.etree_element,
+                            { key: ' '.join([t.serialize() for t in value])
+                                for key, value in self.match(wrapped_element).items()
+                            })
+
+#===============================================================================
+
 class SVGTiler(object):
-    def __init__(self, source_path, map_properties):
+    def __init__(self, source_path):
         self.__source_path = source_path
-        self.__map_properties = map_properties
         self.__svg = etree.parse(source_path).getroot()
         if 'viewBox' in self.__svg.attrib:
-            (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
+            (width, height) = tuple(float(x)
+                for x in self.__svg.attrib['viewBox'].split()[2:])
         else:
             width = length_as_pixels(self.__svg.attrib['width'])
             height = length_as_pixels(self.__svg.attrib['height'])
@@ -89,12 +148,14 @@ class SVGTiler(object):
                                       [0, 1, 0],
                                       [0, 0, 1]])
         self.__definitions = DefinitionStore()
+        self.__style_matcher = StyleMatcher(self.__svg.find(SVG_NS('style')))
         self.__surface = skia.Surface(int(width), int(height))
         self.__canvas = self.__surface.getCanvas()
 
     def process(self):
     #=================
-        self.__process_element_list(self.__svg, self.__transform)
+        wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
+        self.__process_element_list(wrapped_svg, self.__transform)
         image = self.__surface.makeImageSnapshot()
         image.save('output.png', skia.kPNG)
 
@@ -105,16 +166,19 @@ class SVGTiler(object):
 
     def __process_element_list(self, elements, transform):
     #=====================================================
-        for element in elements:
+        for wrapped_element in elements.iter_children():
+            element = wrapped_element.etree_element
             if element.tag == SVG_NS('defs'):
                 self.__definitions.add_definitions(element)
                 continue
             elif element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
-            self.__process_element(element, transform)
+                wrapped_element = cssselect2.ElementWrapper.from_xml_root(element)
+            elif element.tag in [SVG_NS('linearGradient'), SVG_NS('radialGradient')]:
+                self.__definitions.add_definition(element)
+                continue
+            self.__process_element(wrapped_element, transform)
 
-    def __process_element(self, element, transform):
-    #===============================================
         properties = {'tile-layer': 'features'}   # Passed through to map viewer
         markup = adobe_decode(element.attrib.get('id', ''))
         if markup.startswith('.'):
@@ -131,19 +195,33 @@ class SVGTiler(object):
             pass
         elif element.tag == SVG_NS('g'):
             self.__process_group(element, properties, transform)
+    def __process_element(self, wrapped_element, transform):
+    #=======================================================
+        element = wrapped_element.etree_element
+        element_style = self.__style_matcher.element_style(wrapped_element)
 
         elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
                              SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
                              SVG_NS('rect')]:
 
-            fill = element.attrib.get('fill', '#FFF')
-            if fill == 'none': return
-
             path = self.__get_graphics_path(element, properties, transform)
             if path is None: return
 
+            ## Or simply don't stroke as Mapbox will draw boundaries...
+            stroke = element_style.get('stroke', 'none')
+            if False and stroke.startswith('#'):
+                opacity = float(element_style.get('stroke-opacity', 1.0))
+                paint = skia.Paint(AntiAlias=True,
+                    Style=skia.Paint.kStroke_Style,
+                    Color=make_colour(stroke, opacity),
+                    StrokeWidth=1)  ## Use actual stroke-width?? Scale??
+                self.__canvas.drawPath(path, paint)
+
+            fill = element_style.get('fill', '#FFF')
+            if fill == 'none': return
+
             path.setFillType(skia.PathFillType.kWinding)
-            opacity = float(element.attrib.get('opacity', 1.0))
+            opacity = float(element_style.get('opacity', 1.0))
             paint = skia.Paint(AntiAlias=True)
 
             if fill.startswith('url('):
@@ -153,35 +231,43 @@ class SVGTiler(object):
                     opacity = 0.5
                 elif gradient.tag == SVG_NS('linearGradient'):
                     gradient_stops = GradientStops(gradient)
-                    transform = SVGTransform(gradient.attrib.get('gradientTransform'))
-                    bounds = path.getBounds()
-                    v_centre = (bounds.top() + bounds.bottom())/2
-                    ## Transform points....
+                    svg_transform = SVGTransform(gradient.attrib.get('gradientTransform'))
+                    if gradient.attrib.get('gradientUnits') == 'userSpaceOnUse':
+                        points = [(float(gradient.attrib.get('x1')),
+                                   float(gradient.attrib.get('y1'))),
+                                  (float(gradient.attrib.get('x2')),
+                                   float(gradient.attrib.get('y2')))]
+                    else:
+                        bounds = path.getBounds()
+                        v_centre = (bounds.top() + bounds.bottom())/2
+                        points=[(bounds.left(), v_centre), (bounds.right(), v_centre)]
                     paint.setShader(skia.GradientShader.MakeLinear(
-                        points=[(bounds.left(), v_centre), (bounds.right(), v_centre)],
+                        points=points,
                         positions=gradient_stops.offsets,
                         colors=gradient_stops.colours,
-                        #localMatrix=skia.Matrix(list(transform.matrix().flatten()))
+                        localMatrix=skia.Matrix(list(svg_transform.flatten()))
                     ))
                 elif gradient.tag == SVG_NS('radialGradient'):
                     gradient_stops = GradientStops(gradient)
-                    transform = SVGTransform(gradient.attrib.get('gradientTransform'))
+                    svg_transform = SVGTransform(gradient.attrib.get('gradientTransform'))
                     cx = float(gradient.attrib.get('cx'))
                     cy = float(gradient.attrib.get('cx'))
                     r = float(gradient.attrib.get('r'))
-                    bounds = path.getBounds()
-                    h_centre = bounds.left() + cx*bounds.width()
-                    v_centre = bounds.top() + cy*bounds.height()
-                    radius = math.sqrt(bounds.width()**2 + bounds.height()**2)/2.0
-#        <radialGradient cx="0.6990667166842864" cy="0.5"
-# gradientTransform="scale(0.7152393155999883,1.0)" id="gradient-35" r="1.0">
+                    if gradient.attrib.get('gradientUnits') == 'userSpaceOnUse':
+                        centre = svg_transform.scale_length((cx, cy))
+                        radius = r
+                    else:
+                        bounds = path.getBounds()
+                        centre = (bounds.left() + cx*bounds.width(),
+                                  bounds.top() + cy*bounds.height())
+                        radius = math.sqrt(bounds.width()**2 + bounds.height()**2)/2.0
                     ## Transform centre, radius....
                     paint.setShader(skia.GradientShader.MakeRadial(
-                        center=(h_centre, v_centre),
+                        center=centre,
                         radius=radius,
                         positions=gradient_stops.offsets,
                         colors=gradient_stops.colours,
-                        #localMatrix=skia.Matrix(list(transform.matrix().flatten()))
+                        #localMatrix=skia.Matrix(list(svg_transform.flatten()))
                     ))
                 else:
                     fill = '#008'     # Something's wrong show show in image...
@@ -191,16 +277,6 @@ class SVGTiler(object):
                 paint.setColor(make_colour(fill, opacity))
             self.__canvas.drawPath(path, paint)
 
-
-            ## Or simply don't stroke as Mapbox will draw boundaries...
-            stroke = element.attrib.get('stroke', 'none')
-            if stroke == 'none': return
-            opacity = float(element.attrib.get('stroke-opacity', 1.0))
-            paint = skia.Paint(AntiAlias=True,
-                Style=skia.Paint.kStroke_Style,
-                Color=make_colour(fill, opacity),
-                StrokeWidth=1)  ## Use actual stroke-width?? Scale??
-            self.__canvas.drawPath(path, paint)
 
     @staticmethod
     def __svg_path_matcher(m):
