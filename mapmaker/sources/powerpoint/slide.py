@@ -187,7 +187,7 @@ class PowerpointSlide(FeatureLayer):
 
                 elif c.tag == DML('close'):
                     if first_point is not None and current_point != first_point:
-                        coordinates.append(first_point)
+                        coordinates.append(T.transform_point(first_point))
                     closed = True
                     first_point = None
                     # Close current pptx_geometry and start a new one...
