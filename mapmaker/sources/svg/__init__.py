@@ -137,6 +137,7 @@ class SVGLayer(FeatureLayer):
         for element in elements:
             if element.tag == SVG_NS('defs'):
                 self.__definitions.add_definitions(element)
+                progress_bar.update(1)
                 continue
             elif element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
