@@ -150,11 +150,11 @@ def check_image_size(dimension, max_dim, lower, upper, bounds, scale):
 #===============================================================================
 
 class TileExtractor(object):
-    def __init__(self, tile_pixel_rect, image_rect):
+    def __init__(self, tiled_pixel_rect, image_rect):
         self.__image_rect = image_rect
-        sx = image_rect.width/tile_pixel_rect.width
-        sy = image_rect.height/tile_pixel_rect.height
-        self.__tile_to_image = Transform((sx, sy), (tile_pixel_rect.x0, tile_pixel_rect.y0), (0, 0))
+        sx = image_rect.width/tiled_pixel_rect.width
+        sy = image_rect.height/tiled_pixel_rect.height
+        self.__tile_to_image = Transform((sx, sy), (tiled_pixel_rect.x0, tiled_pixel_rect.y0), (0, 0))
 
     def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
     #========================================================
@@ -187,11 +187,11 @@ class TileExtractor(object):
 #===============================================================================
 
 class RasterTileExtractor(TileExtractor):
-    def __init__(self, tile_pixel_rect, image):
+    def __init__(self, tiled_pixel_rect, image):
         if image.shape[2] == 3:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
         self.__source_image = image
-        super().__init__(tile_pixel_rect, Rect((0, 0), get_image_size(image)))
+        super().__init__(tiled_pixel_rect, Rect((0, 0), get_image_size(image)))
 
     def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
     #========================================================
@@ -208,8 +208,8 @@ class RasterTileExtractor(TileExtractor):
 #===============================================================================
 
 class PDFTileExtractor(TileExtractor):
-    def __init__(self, tile_pixel_rect, pdf_page):
-        super().__init__(tile_pixel_rect, pdf_page.rect)
+    def __init__(self, tiled_pixel_rect, pdf_page):
+        super().__init__(tiled_pixel_rect, pdf_page.rect)
         self.__pdf_page = pdf_page
 
     def get_scaling(self, x0, y0, x1, y1):
@@ -292,7 +292,7 @@ class RasterTileMaker(object):
 
         # Map extent in tile pixel coordinates
 
-        self.__map_rect = Rect(sw[0], ne[1], ne[0], sw[1]).transform(self.__world_to_tile)
+        self.__tiled_pixel_rect = Rect(sw[0], ne[1], ne[0], sw[1]).transform(self.__world_to_tile)
 
     @property
     def database_names(self):
@@ -353,11 +353,11 @@ class RasterTileMaker(object):
     #======================================
         log('Tiling {}...'.format(layer_id))
         if source.source_kind == 'raster':
-            tile_extractor = RasterTileExtractor(self.__map_rect, source.source_data)
+            tile_extractor = RasterTileExtractor(self.__tiled_pixel_rect, source.source_data)
         elif source.source_kind == 'pdf':
             pdf = fitz.Document(stream=source.source_data, filetype='application/pdf')
             # Tile the first page of a PDF
-            tile_extractor = PDFTileExtractor(self.__map_rect, pdf[0])
+            tile_extractor = PDFTileExtractor(self.__tiled_pixel_rect, pdf[0])
         elif source.source_kind == 'svg':
             svg_tiler = SVGTiler(source.source_data)
             svg_tiler.process()
