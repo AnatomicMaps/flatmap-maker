@@ -35,6 +35,7 @@ from .. import EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
 
 from ..markup import parse_markup
 
+from mapmaker.constants import TILE_SIZE
 from mapmaker.geometry import degrees, radians, Transform, reflect_point
 
 from .definitions import DefinitionStore
@@ -49,7 +50,7 @@ def make_colour(hex_string, opacity):
             rgb = tuple(2*c for c in hex_string[1:])
         else:
             rgb = tuple(hex_string[n:n+2] for n in range(1, 6, 2))
-        colour = tuple(int(c, 16) for c in (rgb[2], rgb[1], rgb[0]))
+        colour = tuple(int(c, 16) for c in rgb)
         return skia.Color(*colour, int(255*opacity))
     else:
         return skia.Color(0, 0, 0, 128)
@@ -135,59 +136,75 @@ class StyleMatcher(cssselect2.Matcher):
 #===============================================================================
 
 class SVGTiler(object):
-    def __init__(self, source_path):
+    def __init__(self, source_path, tiled_pixel_rect):
         self.__source_path = source_path
         self.__svg = etree.parse(source_path).getroot()
         if 'viewBox' in self.__svg.attrib:
-            (width, height) = tuple(float(x)
+            self.__size = tuple(float(x)
                 for x in self.__svg.attrib['viewBox'].split()[2:])
         else:
-            width = length_as_pixels(self.__svg.attrib['width'])
-            height = length_as_pixels(self.__svg.attrib['height'])
-        self.__transform = Transform([[1, 0, 0],
-                                      [0, 1, 0],
-                                      [0, 0, 1]])
+            self.__size = (length_as_pixels(self.__svg.attrib['width']),
+                           length_as_pixels(self.__svg.attrib['height']))
+        self.__scaling = (tiled_pixel_rect.width/self.__size[0],
+                          tiled_pixel_rect.height/self.__size[1])
         self.__definitions = DefinitionStore()
+        defs = self.__svg.find(SVG_NS('defs'))
+        if defs is not None:
+            self.__definitions.add_definitions(defs)
         self.__style_matcher = StyleMatcher(self.__svg.find(SVG_NS('style')))
-        self.__surface = skia.Surface(int(width), int(height))
-        self.__canvas = self.__surface.getCanvas()
+        self.__first_scan = True
 
-    def process(self):
-    #=================
+    @property
+    def size(self):
+        return self.__size
+
+    def get_image_tile(self, x0, y0):
+    #================================
+        transform = Transform([[self.__scaling[0],               0.0, -x0*self.__scaling[0]],
+                               [              0.0, self.__scaling[1], -y0*self.__scaling[1]],
+                               [              0.0,               0.0,                   1.0]])
+        surface = skia.Surface(*TILE_SIZE)
+        self.__draw_tile(transform, surface.getCanvas())
+        return surface.makeImageSnapshot().toarray()
+
+    def __draw_tile(self, transform, canvas):
+    #========================================
         wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
-        self.__process_element_list(wrapped_svg, self.__transform)
+        self.__draw_element_list(wrapped_svg, transform, canvas)
+        self.__first_scan = False
 
-    def image(self):
-    #===============
-        return self.__surface.makeImageSnapshot().toarray()
+    def __draw_group(self, group, transform, canvas):
+    #================================================
+        self.__draw_element_list(group,
+            transform@SVGTransform(group.etree_element.attrib.get('transform')),
+            canvas)
 
-    def __process_group(self, group, transform):
-    #===========================================
-        self.__process_element_list(group,
-            transform@SVGTransform(group.etree_element.attrib.get('transform')))
-
-    def __process_element_list(self, elements, transform):
-    #=====================================================
+    def __draw_element_list(self, elements, transform, canvas):
+    #==========================================================
         for wrapped_element in elements.iter_children():
             element = wrapped_element.etree_element
-            if element.tag == SVG_NS('defs'):
-                self.__definitions.add_definitions(element)
-                continue
-            elif element.tag == SVG_NS('use'):
+            if element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
                 wrapped_element = cssselect2.ElementWrapper.from_xml_root(element)
             elif element.tag in [SVG_NS('linearGradient'), SVG_NS('radialGradient')]:
-                self.__definitions.add_definition(element)
+                if self.__first_scan:
+                    self.__definitions.add_definition(element)
                 continue
-            self.__process_element(wrapped_element, transform)
+            self.__draw_element(wrapped_element, transform, canvas)
 
-    def __process_element(self, wrapped_element, transform):
-    #=======================================================
+    def __draw_element(self, wrapped_element, transform, canvas):
+    #============================================================
+        ## Why not simply get path from feature's GeoJSON??
+        ## Because some features are derived an not in SVG...
+        ## We still need style information from SVG (or store this
+        ## with the feature??)
+        ## What about gradient sizing??
+        ##
         element = wrapped_element.etree_element
         element_style = self.__style_matcher.element_style(wrapped_element)
 
         if element.tag == SVG_NS('g'):
-            self.__process_group(wrapped_element, transform)
+            self.__draw_group(wrapped_element, transform, canvas)
 
         elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
                              SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
@@ -204,7 +221,7 @@ class SVGTiler(object):
                     Style=skia.Paint.kStroke_Style,
                     Color=make_colour(stroke, opacity),
                     StrokeWidth=1)  ## Use actual stroke-width?? Scale??
-                self.__canvas.drawPath(path, paint)
+                canvas.drawPath(path, paint)
 
             fill = element_style.get('fill', '#FFF')
             if fill == 'none': return
@@ -264,7 +281,7 @@ class SVGTiler(object):
 
             if fill.startswith('#'):
                 paint.setColor(make_colour(fill, opacity))
-            self.__canvas.drawPath(path, paint)
+            canvas.drawPath(path, paint)
 
 
     @staticmethod
