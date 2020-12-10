@@ -36,6 +36,7 @@ from svglib.svglib import svg2rlg
 import mapmaker.geometry
 from mapmaker.output.mbtiles import MBTiles, ExtractionError
 from mapmaker.sources import RasterSource
+from mapmaker.sources.svg.rasteriser import SVGTiler
 from mapmaker.utils import log, ProgressBar
 
 #===============================================================================
@@ -358,12 +359,9 @@ class RasterTileMaker(object):
             # Tile the first page of a PDF
             tile_extractor = PDFTileExtractor(self.__map_rect, pdf[0])
         elif source.source_kind == 'svg':
-            drawing = svg2rlg(source.source_data)
-            pdf_bytes = io.BytesIO()
-            renderPDF.drawToFile(drawing, pdf_bytes)
-            pdf_bytes.seek(0)
-            pdf = fitz.Document(stream=pdf_bytes, filetype='application/pdf')
-            tile_extractor = PDFTileExtractor(self.__map_rect, pdf[0])
+            svg_tiler = SVGTiler(source.source_data)
+            svg_tiler.process()
+            tile_extractor = RasterTileExtractor(self.__map_rect, svg_tiler.image())
         else:
             raise TypeError('Unsupported kind of background tile source: {}'.format(source.source_kind))
         self.__make_zoomed_tiles(tile_extractor, layer_id)

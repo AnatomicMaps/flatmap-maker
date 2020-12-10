@@ -161,11 +161,6 @@ class SVGTiler(object):
     #===============
         return self.__surface.makeImageSnapshot().toarray()
 
-    def save(self, file_object):
-    #===========================
-        image = self.__surface.makeImageSnapshot()
-        image.save(file_object, skia.kPNG)
-
     def __process_group(self, group, transform):
     #===========================================
         self.__process_element_list(group,
