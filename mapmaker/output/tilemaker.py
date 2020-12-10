@@ -92,7 +92,7 @@ class Transform(mapmaker.geometry.Transform):
 
     def transform_point(self, x, y):
     #===============================
-        return super.transform_point((x, y))
+        return super().transform_point((x, y))
 
 #===============================================================================
 
