@@ -45,7 +45,7 @@ from .transform import SVGTransform
 from .utils import adobe_decode, length_as_pixels, SVG_NS
 
 from mapmaker.flatmap.layers import FeatureLayer
-from mapmaker.geometry import bezier_sample, radians, Transform
+from mapmaker.geometry import bezier_sample, radians, Transform, reflect_point
 from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
 from mapmaker.utils import ProgressBar
@@ -305,6 +305,11 @@ class SVGLayer(FeatureLayer):
             elif cmd == 'm':
                 cmd = 'l'
 
+            if cmd not in ['s', 'S']:
+                second_cubic_control = None
+            if cmd not in ['t', 'T']:
+                second_quad_control = None
+
             if cmd in ['a', 'A']:
                 params = [float(x) for x in path_tokens[pos:pos+7]]
                 pos += 7
@@ -319,15 +324,26 @@ class SVGLayer(FeatureLayer):
                 coordinates.extend(bezier_sample(paths))
                 current_point = pt
 
-            elif cmd in ['c', 'C']:
-                params = [float(x) for x in path_tokens[pos:pos+6]]
-                pos += 6
+            elif cmd in ['c', 'C', 's', 'S']:
                 coords = [BezierPoint(*T.transform_point(current_point))]
-                for n in [0, 2, 4]:
+                if cmd in ['c', 'C']:
+                    n_params = 6
+                else:
+                    n_params = 4
+                    if second_cubic_control is None:
+                        coords.append(BezierPoint(*T.transform_point(current_point)))
+                    else:
+                        coords.append(BezierPoint(*T.transform_point(
+                            reflect_point(second_cubic_control, current_point))))
+                params = [float(x) for x in path_tokens[pos:pos+n_params]]
+                pos += n_params
+                for n in range(0, n_params, 2):
                     pt = params[n:n+2]
-                    if cmd == 'c':
+                    if cmd.islower():
                         pt[0] += current_point[0]
                         pt[1] += current_point[1]
+                    if n == (n_params - 4):
+                        second_cubic_control = pt
                     coords.append(BezierPoint(*T.transform_point(pt)))
                 bz = CubicBezier(*coords)
                 bezier_segments.append(bz)
@@ -373,15 +389,26 @@ class SVGLayer(FeatureLayer):
                 current_point = pt
                 moved = True
 
-            elif cmd in ['q', 'Q']:
-                params = [float(x) for x in path_tokens[pos:pos+4]]
-                pos += 4
+            elif cmd in ['q', 'Q', 't', 'T']:
                 coords = [BezierPoint(*T.transform_point(current_point))]
-                for n in [0, 2]:
+                if cmd in ['q', 'Q']:
+                    n_params = 4
+                else:
+                    n_params = 2
+                    if second_quad_control is None:
+                        coords.append(BezierPoint(*T.transform_point(current_point)))
+                    else:
+                        coords.append(BezierPoint(*T.transform_point(
+                            reflect_point(second_quad_control, current_point))))
+                params = [float(x) for x in path_tokens[pos:pos+n_params]]
+                pos += n_params
+                for n in range(0, n_params, 2):
                     pt = params[n:n+2]
-                    if cmd == 'q':
+                    if cmd.islower():
                         pt[0] += current_point[0]
                         pt[1] += current_point[1]
+                    if n == (n_params - 4):
+                        second_quad_control = pt
                     coords.append(BezierPoint(*T.transform_point(pt)))
                 bz = QuadraticBezier(*coords)
                 bezier_segments.append(bz)

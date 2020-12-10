@@ -34,7 +34,7 @@ from .. import EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
 
 from ..markup import parse_markup
 
-from mapmaker.geometry import degrees, radians, Transform
+from mapmaker.geometry import degrees, radians, Transform, reflect_point
 
 from .definitions import DefinitionStore
 from .transform import SVGTransform
@@ -294,6 +294,11 @@ class SVGTiler(object):
             elif cmd == 'm':
                 cmd = 'l'
 
+            if cmd not in ['s', 'S']:
+                second_cubic_control = None
+            if cmd not in ['t', 'T']:
+                second_quad_control = None
+
             if cmd in ['a', 'A']:
                 params = [float(x) for x in tokens[pos:pos+7]]
                 pos += 7
@@ -314,18 +319,29 @@ class SVGTiler(object):
                     *transform.transform_point(pt))
                 current_point = pt
 
-            elif cmd in ['c', 'C']:
-                params = [float(x) for x in tokens[pos:pos+6]]
-                pos += 6
+            elif cmd in ['c', 'C', 's', 'S']:
                 if moved:
                     path.moveTo(*transform.transform_point(current_point))
                     moved = False
-                coords = []
-                for n in [0, 2, 4]:
+                if cmd in ['c', 'C']:
+                    n_params = 6
+                    coords = []
+                else:
+                    n_params = 4
+                    if second_cubic_control is None:
+                        coords = list(transform.transform_point(current_point))
+                    else:
+                        coords = list(transform.transform_point(
+                                    reflect_point(second_cubic_control, current_point)))
+                params = [float(x) for x in tokens[pos:pos+n_params]]
+                pos += n_params
+                for n in range(0, n_params, 2):
                     pt = params[n:n+2]
-                    if cmd == 'c':
+                    if cmd.islower():
                         pt[0] += current_point[0]
                         pt[1] += current_point[1]
+                    if n == (n_params - 4):
+                        second_cubic_control = pt
                     coords.extend(transform.transform_point(pt))
                 path.cubicTo(*coords)
                 current_point = pt
@@ -369,18 +385,29 @@ class SVGTiler(object):
                 current_point = pt
                 moved = True
 
-            elif cmd in ['q', 'Q']:
-                params = [float(x) for x in tokens[pos:pos+4]]
-                pos += 4
+            elif cmd in ['q', 'Q', 't', 'T']:
                 if moved:
                     path.moveTo(*transform.transform_point(current_point))
                     moved = False
-                coords = []
-                for n in [0, 2]:
+                if cmd in ['t', 'T']:
+                    n_params = 4
+                    coords = []
+                else:
+                    n_params = 2
+                    if second_quad_control is None:
+                        coords = list(transform.transform_point(current_point))
+                    else:
+                        coords = list(transform.transform_point(
+                                    reflect_point(second_quad_control, current_point)))
+                params = [float(x) for x in tokens[pos:pos+n_params]]
+                pos += n_params
+                for n in range(0, n_params, 2):
                     pt = params[n:n+2]
-                    if cmd == 'q':
+                    if cmd.islower():
                         pt[0] += current_point[0]
                         pt[1] += current_point[1]
+                    if n == (n_params - 4):
+                        second_quad_control = pt
                     coords.extend(transform.transform_point(pt))
                 path.quadTo(*coords)
                 current_point = pt
