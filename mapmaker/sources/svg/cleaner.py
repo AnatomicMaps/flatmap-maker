@@ -59,8 +59,6 @@ class SVGCleaner(object):
         if self.__exclude(element):
             parent.remove(element)
             return
-        if 'id' in element.attrib:
-            del element.attrib['id']
         for child in element:
             self.__filter(child, element)
 
