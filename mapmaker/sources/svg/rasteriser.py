@@ -36,6 +36,7 @@ from .. import EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
 from ..markup import parse_markup
 
 from mapmaker.geometry import degrees, radians, Transform, reflect_point
+from mapmaker.utils import ProgressBar, log
 
 from .definitions import DefinitionStore
 from .transform import SVGTransform
@@ -164,7 +165,7 @@ class SVGTiler(object):
                                [              0.0,               0.0, 1.0]])
         surface = skia.Surface(int(self.__scaling[0]*self.__size[0] + 0.5),
                                int(self.__scaling[1]*self.__size[1] + 0.5))
-        self.__draw_svg(transform, surface.getCanvas())
+        self.__draw_svg(transform, surface.getCanvas(), show_progress=True)
         return surface.makeImageSnapshot().toarray()
 
     def get_image_tile(self, x0, y0, tile_size):
@@ -172,14 +173,14 @@ class SVGTiler(object):
         transform = Transform([[self.__scaling[0],               0.0, -x0*self.__scaling[0]],
                                [              0.0, self.__scaling[1], -y0*self.__scaling[1]],
                                [              0.0,               0.0,                   1.0]])
-        self.__draw_svg(transform, surface.getCanvas())
         surface = skia.Surface(*tile_size)
+        self.__draw_svg(transform, surface.getCanvas(), show_progress=False)
         return surface.makeImageSnapshot().toarray()
 
-    def __draw_svg(self, transform, canvas):
-    #=======================================
+    def __draw_svg(self, transform, canvas, show_progress=False):
+    #============================================================
         wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
-        self.__draw_element_list(wrapped_svg, transform, canvas)
+        self.__draw_element_list(wrapped_svg, transform, canvas, show_progress)
         self.__first_scan = False
 
     def __draw_group(self, group, transform, canvas):
@@ -188,8 +189,12 @@ class SVGTiler(object):
             transform@SVGTransform(group.etree_element.attrib.get('transform')),
             canvas)
 
-    def __draw_element_list(self, elements, transform, canvas):
-    #==========================================================
+    def __draw_element_list(self, elements, transform, canvas, show_progress=False):
+    #===============================================================================
+        progress_bar = ProgressBar(show=show_progress,
+            total=len(elements),
+            unit='shp', ncols=40,
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for wrapped_element in elements.iter_children():
             element = wrapped_element.etree_element
             if element.tag == SVG_NS('use'):
@@ -200,6 +205,8 @@ class SVGTiler(object):
                     self.__definitions.add_definition(element)
                 continue
             self.__draw_element(wrapped_element, transform, canvas)
+            progress_bar.update(1)
+        progress_bar.close()
 
     def __draw_element(self, wrapped_element, transform, canvas):
     #============================================================
