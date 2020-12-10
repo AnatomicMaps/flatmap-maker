@@ -32,6 +32,8 @@ svglib = "*"
 reportlab = "*"
 skia-python = "*"
 transforms3d = "*"
+tinycss2 = "*"
+cssselect2 = "*"
 
 [requires]
 python_version = "3.8"
