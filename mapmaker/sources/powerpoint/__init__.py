@@ -78,7 +78,7 @@ class PowerpointSource(MapSource):
             slide_number = n + 1
             slide_layer = PowerpointSlide(self, slide, slide_number)
             log('Slide {}, {}'.format(slide_number, slide_layer.id))
-            if settings.get('debugXml'):
+            if settings.get('saveDrawML'):
                 xml = open(os.path.join(self.flatmap.map_directory,
                                         '{}.xml'.format(slide_layer.id)), 'w')
                 xml.write(slide.element.xml)

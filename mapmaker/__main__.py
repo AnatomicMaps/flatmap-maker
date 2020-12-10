@@ -50,10 +50,10 @@ def main():
     parser.add_argument('--min-zoom', dest='minZoom', metavar='N', type=int, default=2,
                         help='minimum zoom level (defaults to 2)')
 
-    parser.add_argument('-d', '--debug', dest='debugXml', action='store_true',
-                        help="save a slide's DrawML for debugging")
     parser.add_argument('--save-beziers', dest='saveBeziers', action='store_true',
                         help='Save Bezier curve segments as a feature property')
+    parser.add_argument('--save-drawml', dest='saveDrawML', action='store_true',
+                        help="save a slide's DrawML for debugging")
     parser.add_argument('--save-geojson', dest='saveGeoJSON', action='store_true',
                         help='Save GeoJSON files for each layer')
     parser.add_argument('--tippecanoe', dest='showTippe', action='store_true',
