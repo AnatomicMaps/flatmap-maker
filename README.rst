@@ -29,9 +29,10 @@ Command line help::
 
 ::
 
-    usage: __main__.py [-h] [-c CONF] [-b] [--background-only] [--check-errors] [-z N] [--max-zoom N]
-                       [--min-zoom N] [-d] [-s] [-t] [--clean] [--refresh-labels] [--upload USER@SERVER]
-                       [-v] --output-dir OUTPUT_DIR --map MAP_DIR
+    usage: mapmaker [-h] [-c CONF] [-b] [--background-only] [--check-errors] [-z N] [--max-zoom N]
+                    [--min-zoom N] [--save-beziers] [--save-drawml] [--save-geojson] [--tippecanoe]
+                    [--clean] [--refresh-labels] [--upload USER@SERVER] [-q] [-v] --output-dir OUTPUT_DIR
+                    --map MAP_PATH
 
     Args that start with '--' (eg. -b) can also be set in a config file (specified via -c). Config file
     syntax allows: key=value, flag=true, stuff=[a,b,c] (for details, see syntax at https://goo.gl/R74nmi).
@@ -49,18 +50,20 @@ Command line help::
                             initial zoom level (defaults to 4)
       --max-zoom N          maximum zoom level (defaults to 10)
       --min-zoom N          minimum zoom level (defaults to 2)
-      -d, --debug           save a slide's DrawML for debugging
-      -s, --save-geojson    Save GeoJSON files for each layer
-      -t, --tippecanoe      Show command used to run Tippecanoe
+      --save-beziers        Save Bezier curve segments as a feature property
+      --save-drawml         save a slide's DrawML for debugging
+      --save-geojson        Save GeoJSON files for each layer
+      --tippecanoe          Show command used to run Tippecanoe
       --clean               Remove all files from generated map's directory before generating new map
       --refresh-labels      Clear the label text cache before map making
       --upload USER@SERVER  Upload generated map to server
+      -q, --quiet           don't show progress messages
       -v, --version         show program's version number and exit
 
     required arguments:
       --output-dir OUTPUT_DIR
                             base directory for generated flatmaps
-      --map MAP_DIR         Directory containing a flatmap manifest specifying sources
+      --map MAP_PATH        URL or directory path containing a flatmap manifest
 
 For instance::
 
