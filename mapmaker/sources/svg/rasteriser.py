@@ -159,8 +159,8 @@ class SVGTiler(object):
         image = self.__surface.makeImageSnapshot()
         image.save('output.png', skia.kPNG)
 
-    def __process_group(self, group, properties, transform):
-    #=======================================================
+    def __process_group(self, group, transform):
+    #===========================================
         self.__process_element_list(group,
             transform@SVGTransform(group.etree_element.attrib.get('transform')))
 
@@ -179,32 +179,19 @@ class SVGTiler(object):
                 continue
             self.__process_element(wrapped_element, transform)
 
-        properties = {'tile-layer': 'features'}   # Passed through to map viewer
-        markup = adobe_decode(element.attrib.get('id', ''))
-        if markup.startswith('.'):
-            markup = adobe_decode(element.attrib['id'])
-            properties = self.__map_properties.update_feature_properties(parse_markup(markup))
-            for key, value in properties.items():
-                if key in EXCLUDE_SHAPE_TYPES:
-                    return
-                elif key == 'tile-layer' and value in EXCLUDE_TILE_LAYERS:
-                    return
-        if 'error' in properties:
-            pass
-        elif 'path' in properties:
-            pass
-        elif element.tag == SVG_NS('g'):
-            self.__process_group(element, properties, transform)
     def __process_element(self, wrapped_element, transform):
     #=======================================================
         element = wrapped_element.etree_element
         element_style = self.__style_matcher.element_style(wrapped_element)
 
+        if element.tag == SVG_NS('g'):
+            self.__process_group(wrapped_element, transform)
+
         elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
                              SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
                              SVG_NS('rect')]:
 
-            path = self.__get_graphics_path(element, properties, transform)
+            path = self.__get_graphics_path(element, transform)
             if path is None: return
 
             ## Or simply don't stroke as Mapbox will draw boundaries...
@@ -288,13 +275,13 @@ class SVGTiler(object):
         if c == ',': return ' '
         return c
 
-    def __get_graphics_path(self, element, properties, transform):
-    #=============================================================
+    def __get_graphics_path(self, element, transform):
+    #=================================================
         T = transform@SVGTransform(element.attrib.get('transform'))
         if element.tag == SVG_NS('path'):
             tokens = re.sub('.', SVGTiler.__svg_path_matcher,
                             element.attrib.get('d', '')).split()
-            path = self.__path_from_tokens(properties, tokens, T)
+            path = self.__path_from_tokens(tokens, T)
 
         elif element.tag == SVG_NS('rect'):
             (width, height) = T.scale_length(length_as_pixels(element.attrib.get('width', 0)),
@@ -322,11 +309,11 @@ class SVGTiler(object):
             y1 = length_as_pixels(element.attrib.get('y1', 0))
             x2 = length_as_pixels(element.attrib.get('x2', 0))
             y2 = length_as_pixels(element.attrib.get('y2', 0))
-            path = self.__path_from_tokens(properties, ['M', x1, y1, x2, y2], T)
+            path = self.__path_from_tokens(['M', x1, y1, x2, y2], T)
 
         elif element.tag == SVG_NS('polyline'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
-            path = self.__path_from_tokens(properties, ['M'] + points, T)
+            path = self.__path_from_tokens(['M'] + points, T)
 
         elif element.tag == SVG_NS('polygon'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
@@ -351,8 +338,8 @@ class SVGTiler(object):
 
         return path
 
-    def __path_from_tokens(self, properties, tokens, transform):
-    #===========================================================
+    def __path_from_tokens(self, tokens, transform):
+    #===============================================
         moved = False
         first_point = None
         current_point = None
@@ -497,8 +484,6 @@ class SVGTiler(object):
 
             else:
                 print('Unknown path command: {}'.format(cmd))
-        if not closed and properties.get('closed', False):
-            path.close()
         return path
 
 #===============================================================================
