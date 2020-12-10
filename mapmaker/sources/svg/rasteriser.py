@@ -35,7 +35,6 @@ from .. import EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
 
 from ..markup import parse_markup
 
-from mapmaker.constants import TILE_SIZE
 from mapmaker.geometry import degrees, radians, Transform, reflect_point
 
 from .definitions import DefinitionStore
@@ -168,13 +167,13 @@ class SVGTiler(object):
         self.__draw_svg(transform, surface.getCanvas())
         return surface.makeImageSnapshot().toarray()
 
-    def get_image_tile(self, x0, y0):
-    #================================
+    def get_image_tile(self, x0, y0, tile_size):
+    #===========================================
         transform = Transform([[self.__scaling[0],               0.0, -x0*self.__scaling[0]],
                                [              0.0, self.__scaling[1], -y0*self.__scaling[1]],
                                [              0.0,               0.0,                   1.0]])
-        surface = skia.Surface(*TILE_SIZE)
         self.__draw_svg(transform, surface.getCanvas())
+        surface = skia.Surface(*tile_size)
         return surface.makeImageSnapshot().toarray()
 
     def __draw_svg(self, transform, canvas):

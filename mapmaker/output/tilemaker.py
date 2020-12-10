@@ -33,7 +33,6 @@ from svglib.svglib import svg2rlg
 
 #===============================================================================
 
-from mapmaker.constants import TILE_SIZE
 import mapmaker.geometry
 from mapmaker.output.mbtiles import MBTiles, ExtractionError
 from mapmaker.sources import RasterSource
@@ -45,6 +44,7 @@ from mapmaker.utils import log, ProgressBar
 MIN_ZOOM  =  2
 MAX_ZOOM  = 10
 
+TILE_SIZE = (512, 512)
 WHITE     = (255, 255, 255)
 
 #===============================================================================
@@ -222,7 +222,7 @@ class SVGTileExtractor(TileExtractor):
 
     def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
     #========================================================
-        rgba = self.__svg_tiler.get_image_tile(x0, y0)
+        rgba = self.__svg_tiler.get_image_tile(x0, y0, TILE_SIZE)
         return cv2.cvtColor(rgba, cv2.COLOR_RGBA2BGRA)
 
 #===============================================================================
