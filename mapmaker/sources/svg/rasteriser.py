@@ -33,8 +33,6 @@ import tinycss2
 from .. import WORLD_METRES_PER_PIXEL
 from .. import EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
 
-from ..markup import parse_markup
-
 from mapmaker.geometry import degrees, radians, Transform, reflect_point
 from mapmaker.utils import ProgressBar, log
 
