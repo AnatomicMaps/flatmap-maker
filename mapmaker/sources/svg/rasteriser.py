@@ -158,17 +158,27 @@ class SVGTiler(object):
     def size(self):
         return self.__size
 
+    def get_image(self):
+    #===================
+        transform = Transform([[self.__scaling[0],               0.0, 0.0],
+                               [              0.0, self.__scaling[1], 0.0],
+                               [              0.0,               0.0, 1.0]])
+        surface = skia.Surface(int(self.__scaling[0]*self.__size[0] + 0.5),
+                               int(self.__scaling[1]*self.__size[1] + 0.5))
+        self.__draw_svg(transform, surface.getCanvas())
+        return surface.makeImageSnapshot().toarray()
+
     def get_image_tile(self, x0, y0):
     #================================
         transform = Transform([[self.__scaling[0],               0.0, -x0*self.__scaling[0]],
                                [              0.0, self.__scaling[1], -y0*self.__scaling[1]],
                                [              0.0,               0.0,                   1.0]])
         surface = skia.Surface(*TILE_SIZE)
-        self.__draw_tile(transform, surface.getCanvas())
+        self.__draw_svg(transform, surface.getCanvas())
         return surface.makeImageSnapshot().toarray()
 
-    def __draw_tile(self, transform, canvas):
-    #========================================
+    def __draw_svg(self, transform, canvas):
+    #=======================================
         wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
         self.__draw_element_list(wrapped_svg, transform, canvas)
         self.__first_scan = False

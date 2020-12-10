@@ -207,6 +207,14 @@ class RasterTileExtractor(TileExtractor):
 
 #===============================================================================
 
+class SVGRasterTileExtractor(RasterTileExtractor):
+    def __init__(self, tiled_pixel_rect, svg_data):
+        self.__svg_tiler = SVGTiler(svg_data, tiled_pixel_rect)
+        image = self.__svg_tiler.get_image()
+        super().__init__(tiled_pixel_rect, cv2.cvtColor(image, cv2.COLOR_RGBA2BGRA))
+
+#===============================================================================
+
 class SVGTileExtractor(TileExtractor):
     def __init__(self, tiled_pixel_rect, svg_data):
         self.__svg_tiler = SVGTiler(svg_data, tiled_pixel_rect)
@@ -371,7 +379,8 @@ class RasterTileMaker(object):
             # Tile the first page of a PDF
             tile_extractor = PDFTileExtractor(self.__tiled_pixel_rect, pdf[0])
         elif source.source_kind == 'svg':
-            tile_extractor = SVGTileExtractor(self.__tiled_pixel_rect, source.source_data)
+            tile_extractor = SVGRasterTileExtractor(self.__tiled_pixel_rect, source.source_data)
+            ## SLOW ## tile_extractor = SVGTileExtractor(self.__tiled_pixel_rect, source.source_data)
         else:
             raise TypeError('Unsupported kind of background tile source: {}'.format(source.source_kind))
         self.__make_zoomed_tiles(tile_extractor, layer_id)
