@@ -29,25 +29,23 @@ Command line help::
 
 ::
 
-    usage: mapmaker [-h] [-c CONF] [-b] [--background-only] [--check-errors] [-z N] [--max-zoom N]
-                    [--min-zoom N] [--save-beziers] [--save-drawml] [--save-geojson] [--tippecanoe]
-                    [--clean] [--refresh-labels] [--upload USER@SERVER] [-q] [-v] --output-dir OUTPUT_DIR
-                    --map MAP_PATH
+    usage: mapmaker [-h] [-c CONF] [--background-tiles] [--background-only] [--check-errors] [--initialZoom N]
+                    [--max-zoom N] [--min-zoom N] [--save-beziers] [--save-drawml] [--save-geojson]
+                    [--tippecanoe] [--clean] [--refresh-labels] [--upload USER@SERVER] [-q] [-v] --output-dir
+                    OUTPUT_DIR --map MAP_PATH
 
-    Args that start with '--' (eg. -b) can also be set in a config file (specified via -c). Config file
-    syntax allows: key=value, flag=true, stuff=[a,b,c] (for details, see syntax at https://goo.gl/R74nmi).
-    If an arg is specified in more than one place, then commandline values override config file values which
-    override defaults.
+    Args that start with '--' (eg. --background-tiles) can also be set in a config file (specified via -c).
+    Config file syntax allows: key=value, flag=true, stuff=[a,b,c] (for details, see syntax at
+    https://goo.gl/R74nmi). If an arg is specified in more than one place, then commandline values override
+    config file values which override defaults.
 
     optional arguments:
       -h, --help            show this help message and exit
       -c CONF, --conf CONF  configuration file containing arguments
-      -b, --background-tiles
-                            generate image tiles of map's layers (may take a while...)
+      --background-tiles    generate image tiles of map's layers (may take a while...)
       --background-only     don't generate vector tiles (sets --background-tiles)
       --check-errors        check for errors without generating a map
-      -z N, --initialZoom N
-                            initial zoom level (defaults to 4)
+      --initialZoom N       initial zoom level (defaults to 4)
       --max-zoom N          maximum zoom level (defaults to 10)
       --min-zoom N          minimum zoom level (defaults to 2)
       --save-beziers        Save Bezier curve segments as a feature property

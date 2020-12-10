@@ -36,14 +36,14 @@ def main():
 
     parser.add_argument('-c', '--conf', is_config_file=True, help='configuration file containing arguments')
 
-    parser.add_argument('-b', '--background-tiles',  dest='backgroundTiles', action='store_true',
+    parser.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
                         help="generate image tiles of map's layers (may take a while...)")
     parser.add_argument('--background-only', dest='backgroundOnly', action='store_true',
                         help="don't generate vector tiles (sets --background-tiles)")
 
     parser.add_argument('--check-errors', dest='errorCheck', action='store_true',
                         help='check for errors without generating a map')
-    parser.add_argument('-z', '--initialZoom', metavar='N', type=int, default=4,
+    parser.add_argument('--initialZoom', metavar='N', type=int, default=4,
                         help='initial zoom level (defaults to 4)')
     parser.add_argument('--max-zoom', dest='maxZoom', metavar='N', type=int, default=10,
                         help='maximum zoom level (defaults to 10)')
