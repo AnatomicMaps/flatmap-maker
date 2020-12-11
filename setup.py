@@ -13,17 +13,18 @@ import os.path
 # See https://packaging.python.org/guides/single-sourcing-package-version/
 def get_version(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
-    with open(os.path.join(here, rel_path), 'r') as fp:
+    with open(os.path.join(here, rel_path), "r") as fp:
         for line in fp.read().splitlines():
-            if line.startswith('__version__'):
+            if line.startswith("__version__"):
                 delim = '"' if '"' in line else "'"
                 return line.split(delim)[1]
         else:
             raise RuntimeError("Unable to find version string.")
 
+
 setup(
     name="mapmaker",
-    version=get_version('mapmaker/__init__.py'),
+    version=get_version("mapmaker/__init__.py"),
     description="Convert Powerpoint slides to Mapbox tiles",
     url="https://github.com/dbrnz/flatmap-maker",
     author="David Brooks",
@@ -51,19 +52,19 @@ setup(
     # project page. What does your project relate to?
     #
     # Note that this is a string of words separated by whitespace, not a list.
-    #keywords="TODO...",  # Optional
+    # keywords="TODO...",  # Optional
     #
     packages=find_packages(),
-    package_data={'mapmaker': ['sources/powerpoint/presetShapeDefinitions.xml']},
+    package_data={"mapmaker": ["sources/powerpoint/presetShapeDefinitions.xml"]},
     python_requires=">=3.7, <4",
     install_requires=[
         "alembic==1.4.3; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
         "beziers==0.1.0",
-        "certifi==2020.11.8",
+        "certifi==2020.12.5",
         "chardet==3.0.4",
         "click==7.1.2; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'",
         "configargparse==1.2.3",
-        "cssselect2==0.4.1; python_version >= '3.6'",
+        "cssselect2==0.4.1",
         "et-xmlfile==1.0.1",
         "idna==2.10; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
         "isodate==0.6.0",
@@ -77,6 +78,7 @@ setup(
         "opencv-python-headless==4.4.0.46",
         "openpyxl==3.0.5",
         "pillow==8.0.1; python_version >= '3.6'",
+        "pybind11==2.6.1; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'",
         "pyclipper==1.2.0",
         "pymupdf==1.18.4",
         "pyparsing==2.4.7",
@@ -91,11 +93,13 @@ setup(
         "requests==2.25.0",
         "shapely==1.7.1",
         "six==1.15.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+        "skia-python==87.0",
         "sqlalchemy==1.3.20; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
         "svglib==1.0.1",
         "svgwrite==1.4",
-        "tinycss2==1.1.0; python_version >= '3.6'",
-        "tqdm==4.54.0",
+        "tinycss2==1.1.0",
+        "tqdm==4.54.1",
+        "transforms3d==0.3.1",
         "urllib3==1.26.2; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'",
         "webencodings==0.5.1",
         "xlsxwriter==1.3.7",
