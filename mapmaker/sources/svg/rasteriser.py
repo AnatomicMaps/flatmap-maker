@@ -164,6 +164,7 @@ class SVGTiler(object):
         surface = skia.Surface(int(self.__scaling[0]*self.__size[0] + 0.5),
                                int(self.__scaling[1]*self.__size[1] + 0.5))
         self.__draw_svg(transform, surface.getCanvas(), show_progress=True)
+        log('Making image snapshot...')
         return surface.makeImageSnapshot().toarray()
 
     def get_image_tile(self, x0, y0, tile_size):
@@ -189,11 +190,12 @@ class SVGTiler(object):
 
     def __draw_element_list(self, elements, transform, canvas, show_progress=False):
     #===============================================================================
+        children = list(elements.iter_children())
         progress_bar = ProgressBar(show=show_progress,
-            total=len(elements),
+            total=len(children),
             unit='shp', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
-        for wrapped_element in elements.iter_children():
+        for wrapped_element in children:
             element = wrapped_element.etree_element
             if element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
