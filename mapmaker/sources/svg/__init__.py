@@ -150,7 +150,8 @@ class SVGLayer(FeatureLayer):
         properties = {'tile-layer': 'features'}   # Passed through to map viewer
         markup = adobe_decode(element.attrib.get('id', ''))
         if markup.startswith('.'):
-            markup = adobe_decode(element.attrib['id'])
+            if markup.split()[-1].isnumeric():
+                markup = ' '.join(markup.split()[:-1])
             properties.update(parse_markup(markup))
             group_name = self.__current_group[-1]  # For error reporting
             if 'error' in properties:
