@@ -83,6 +83,7 @@ FEATURE_FLAGS = Group(Keyword('group')
                     | Keyword('invisible')
                     | Keyword('divider')
                     | Keyword('region')
+                    | Keyword('centreline')
                   )
 
 SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS
