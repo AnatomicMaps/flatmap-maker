@@ -1,8 +1,10 @@
 .DS_Store
 build/
+dist/
 docs/_build/
 docs/ECMA*
 map_sources/
+mapmaker.egg-info/
 maps/
 *.pyc
 *.pbf
