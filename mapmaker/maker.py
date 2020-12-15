@@ -135,7 +135,7 @@ class Flatmap(object):
             self.__uri = None
             self.__manifest = Manifest(options['source'])
         else:
-            raise ValueError('No map nor exposure given')
+            raise ValueError('No map source nor exposure given')
 
         # Default base output directory to ``./flatmaps``.
         if 'output' not in options:
