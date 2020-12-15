@@ -307,7 +307,7 @@ class Flatmap(object):
                                      (self.__extent[1] + self.__extent[3])/2)
                     self.__map_area = source_layer.map_area()
                 else:
-                    raise ValueError("Multiple 'base' and 'slides' source kinds")
+                    raise ValueError('Can only have a single base map')
 
         if self.__visible_layer_count == 0:
             raise ValueError('No map layers in sources...')
