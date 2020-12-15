@@ -19,6 +19,7 @@
 #===============================================================================
 
 import json
+import logging
 import requests
 
 #===============================================================================
@@ -66,8 +67,13 @@ def main():
     parser.add_argument('--upload', dest='uploadHost', metavar='USER@SERVER',
                         help='Upload generated map to server')
 
+    parser.add_argument('--log', dest='logFile', metavar='LOG_FILE',
+                        help="append messages to a log file")
     parser.add_argument('-q', '--quiet', action='store_true',
-                        help="don't show progress messages")
+                        help="don't show progress bars")
+    parser.add_argument('--silent', action='store_true',
+                        help='suppress all messages to screen')
+
     parser.add_argument('-v', '--version', action='version', version=__version__)
 
     required = parser.add_argument_group('required arguments')
@@ -78,11 +84,12 @@ def main():
                         help='URL or directory path containing a flatmap manifest')
 
     args = parser.parse_args()
+
     try:
         flatmap = Flatmap(vars(args))
         flatmap.make()
-    except ValueError as error:
-        sys.exit(error)
+    except Exception:
+        log.exception('Fatal error making flatmap...')
 
 #===============================================================================
 

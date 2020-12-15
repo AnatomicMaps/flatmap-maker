@@ -21,6 +21,7 @@
 from collections import defaultdict, OrderedDict
 import datetime
 import json
+import logging
 import os
 import pathlib
 import shutil
@@ -102,6 +103,30 @@ class Manifest(object):
 
 class Flatmap(object):
     def __init__(self, options):
+        # ``silent`` implies ``quiet``
+        if options.get('silent', False):
+            options['quiet'] = True
+
+        # Setup logging
+        log_file = options.get('logFile')
+        if not options.get('silent', False):
+            if options.get('quiet', False):
+                logging.basicConfig(format='%(asctime)s %(message)s')
+            else:
+                logging.basicConfig(format='%(message)s')
+            logging.getLogger().setLevel(logging.INFO)
+            if log_file is not None:
+                logger = logging.FileHandler(log_file)
+                formatter = logging.Formatter('%(asctime)s %(message)s')
+                logger.setFormatter(formatter)
+                logging.getLogger().addHandler(logger)
+        elif log_file is not None:
+            logging.basicConfig(
+                format='%(asctime)s %(message)s',
+                filename=log_file,
+                level=logging.INFO
+            )
+
         if 'exposure' in options:
             self.__uri = map_options['exposure']
             Manifest(get_workspace(self.__uri))
@@ -235,7 +260,9 @@ class Flatmap(object):
     #=======================
         # Show what the map is about
         if self.models is not None:
-            log('Generated map for {}'.format(self.models))
+            log('Generated map: {} for {}'.format(self.id, self.models))
+        else:
+            log('Generated map: {}'.format(self.id))
         ## FIX v's errorCheck
         for filename in self.__geojson_files:
             if settings.get('saveGeoJSON', False):

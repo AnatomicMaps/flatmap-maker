@@ -18,6 +18,10 @@
 #
 #===============================================================================
 
+import logging
+
+#===============================================================================
+
 import tqdm
 
 #===============================================================================
@@ -26,9 +30,29 @@ from mapmaker.settings import settings
 
 #===============================================================================
 
-def log(*args):
-    if not settings.get('quiet', False):
-        print(*args)
+class log(object):
+    def __init__(self, *args):
+        logging.info(''.join(args))
+
+    @staticmethod
+    def debug(*args):
+        logging.debug(''.join(args))
+
+    @staticmethod
+    def error(*args):
+        logging.error(''.join(args))
+
+    @staticmethod
+    def exception(*args):
+        logging.exception(''.join(args))
+
+    @staticmethod
+    def info(*args):
+        logging.info(''.join(args))
+
+    @staticmethod
+    def warn(*args):
+        logging.warn(''.join(args))
 
 #===============================================================================
 
