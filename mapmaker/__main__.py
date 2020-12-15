@@ -30,12 +30,10 @@ from mapmaker.maker import Flatmap
 #===============================================================================
 
 def main():
-    import configargparse
+    import argparse
     import os, sys
 
-    parser = configargparse.ArgumentParser() ## description='Convert Powerpoint slides to a flatmap.')
-
-    parser.add_argument('-c', '--conf', is_config_file=True, help='configuration file containing arguments')
+    parser = argparse.ArgumentParser(description='Generate a flatmap from its source manifest.')
 
     parser.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
                         help="generate image tiles of map's layers (may take a while...)")

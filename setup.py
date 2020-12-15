@@ -63,7 +63,6 @@ setup(
         "certifi==2020.12.5",
         "chardet==3.0.4",
         "click==7.1.2; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'",
-        "configargparse==1.2.3",
         "cssselect2==0.4.1",
         "et-xmlfile==1.0.1",
         "idna==2.10; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
