@@ -11,4 +11,6 @@ Making a new release
 * `$ git push dbrnz VERSION`
 * `$ git stash --include-untracked` so that no untracked files are bundled in the release.
 * `$ python setup.py bdist_wheel`.
-* On Github create a new release using the new VERSION tag and upload the generated wheel to the release.
+* `$ git stash pop`
+* On Github, at https://github.com/dbrnz/flatmap-maker/releases/new, create a new release
+  using the new VERSION tag and upload the generated wheel to the Github release.
