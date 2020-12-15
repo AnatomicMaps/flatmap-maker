@@ -127,14 +127,20 @@ class Flatmap(object):
                 level=logging.INFO
             )
 
+        # Check we have been given a map source
         if 'exposure' in options:
-            self.__uri = map_options['exposure']
+            self.__uri = options['exposure']
             Manifest(get_workspace(self.__uri))
-        else:
+        elif 'map' in options:
             self.__uri = None
-            self.__manifest = Manifest(options['mapPath'])
+            self.__manifest = Manifest(options['map'])
+        else:
+            raise ValueError('No map nor exposure given')
 
-        # Check options for validity and set defaults
+        # Default base output directory to ``./flatmaps``.
+        if 'outputDir' not in options:
+            options['outputDir'] = './flatmaps'
+
         if options.get('backgroundOnly', False):
             options['backgroundTiles'] = True
 
@@ -160,7 +166,7 @@ class Flatmap(object):
         self.__models = self.__manifest.models
 
         # Make sure our output directories exist
-        map_base = options.get('outputDir', 'maps')
+        map_base = options.get('outputDir')
         if not os.path.exists(map_base):
             os.makedirs(map_base)
         self.__map_dir = os.path.join(map_base, self.__id)
