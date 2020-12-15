@@ -29,46 +29,56 @@ Command line help::
 
 ::
 
-    usage: mapmaker [-h] [--background-tiles] [--background-only] [--check-errors] [--initialZoom N]
-                    [--max-zoom N] [--min-zoom N] [--save-beziers] [--save-drawml] [--save-geojson]
-                    [--tippecanoe] [--clean] [--refresh-labels] [--upload USER@SERVER]
-                    [--log LOG_FILE] [-q] [--silent] [-v]
-                    --output-dir OUTPUT_DIR --map MAP
+    usage: mapmaker [-h] [-v]
+                    [--log LOG_FILE] [-q] [--silent]
+                    [--clean] [--background-tiles]
+                    [--check-errors] [--save-beziers] [--save-drawml] [--save-geojson] [--tippecanoe]
+                    [--initialZoom N] [--max-zoom N] [--min-zoom N]
+                    [--refresh-labels] [--upload USER@SERVER]
+                    --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
 
     optional arguments:
       -h, --help            show this help message and exit
+      -v, --version         show program's version number and exit
+
+    logging:
+      --log LOG_FILE        append messages to a log file
+      -q, --quiet           don't show progress bars
+      --silent              suppress all messages to screen
+
+    image tiling:
+      --clean               Remove all files from generated map's directory before generating new map
       --background-tiles    generate image tiles of map's layers (may take a while...)
-      --background-only     don't generate vector tiles (sets --background-tiles)
+
+    diagnostics:
       --check-errors        check for errors without generating a map
-      --initialZoom N       initial zoom level (defaults to 4)
-      --max-zoom N          maximum zoom level (defaults to 10)
-      --min-zoom N          minimum zoom level (defaults to 2)
       --save-beziers        Save Bezier curve segments as a feature property
       --save-drawml         save a slide's DrawML for debugging
       --save-geojson        Save GeoJSON files for each layer
       --tippecanoe          Show command used to run Tippecanoe
-      --clean               Remove all files from generated map's directory before generating new map
+
+    zoom level:
+      --initialZoom N       initial zoom level (defaults to 4)
+      --max-zoom N          maximum zoom level (defaults to 10)
+      --min-zoom N          minimum zoom level (defaults to 2)
+
+    miscellaneous:
       --refresh-labels      Clear the label text cache before map making
       --upload USER@SERVER  Upload generated map to server
-      --log LOG_FILE        append messages to a log file
-      -q, --quiet           don't show progress bars
-      --silent              suppress all messages to screen
-      -v, --version         show program's version number and exit
 
     required arguments:
-      --output-dir OUTPUT_DIR
-                            base directory for generated flatmaps
-      --map MAP             URL or directory path containing a flatmap manifest
+      --output OUTPUT       base directory for generated flatmaps
+      --source SOURCE       URL or directory path containing a flatmap manifest
 
 For instance::
 
-    $ pipenv run python -m mapmaker --output-dir ./flatmaps   \
-                                    --map ../PMR/rat
+    $ pipenv run python -m mapmaker --output ./flatmaps   \
+                                    --source ../PMR/rat
 ::
 
-    Mapmaker 0.11.0.b1
+    Mapmaker 0.11.0.b4
     100%|█████████████████████████▉| 678/679
      98%|███████████████████████████▌| 65/66
     Adding details...

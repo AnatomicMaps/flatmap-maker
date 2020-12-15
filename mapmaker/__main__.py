@@ -36,45 +36,49 @@ def main():
 
     parser = argparse.ArgumentParser(description='Generate a flatmap from its source manifest.')
 
-    parser.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
-                        help="generate image tiles of map's layers (may take a while...)")
-
-    parser.add_argument('--check-errors', dest='errorCheck', action='store_true',
-                        help='check for errors without generating a map')
-    parser.add_argument('--initialZoom', metavar='N', type=int, default=4,
-                        help='initial zoom level (defaults to 4)')
-    parser.add_argument('--max-zoom', dest='maxZoom', metavar='N', type=int, default=10,
-                        help='maximum zoom level (defaults to 10)')
-    parser.add_argument('--min-zoom', dest='minZoom', metavar='N', type=int, default=2,
-                        help='minimum zoom level (defaults to 2)')
-
-    parser.add_argument('--save-beziers', dest='saveBeziers', action='store_true',
-                        help='Save Bezier curve segments as a feature property')
-    parser.add_argument('--save-drawml', dest='saveDrawML', action='store_true',
-                        help="save a slide's DrawML for debugging")
-    parser.add_argument('--save-geojson', dest='saveGeoJSON', action='store_true',
-                        help='Save GeoJSON files for each layer')
-    parser.add_argument('--tippecanoe', dest='showTippe', action='store_true',
-                        help='Show command used to run Tippecanoe')
-
-    parser.add_argument('--clean', action='store_true',
-                        help="Remove all files from generated map's directory before generating new map")
-    parser.add_argument('--refresh-labels', dest='refreshLabels', action='store_true',
-                        help='Clear the label text cache before map making')
-    parser.add_argument('--upload', dest='uploadHost', metavar='USER@SERVER',
-                        help='Upload generated map to server')
-
-    parser.add_argument('--log', dest='logFile', metavar='LOG_FILE',
-                        help="append messages to a log file")
-    parser.add_argument('-q', '--quiet', action='store_true',
-                        help="don't show progress bars")
-    parser.add_argument('--silent', action='store_true',
-                        help='suppress all messages to screen')
-
     parser.add_argument('-v', '--version', action='version', version=__version__)
 
-    required = parser.add_argument_group('required arguments')
+    log_options = parser.add_argument_group('logging')
+    log_options.add_argument('--log', dest='logFile', metavar='LOG_FILE',
+                        help="append messages to a log file")
+    log_options.add_argument('-q', '--quiet', action='store_true',
+                        help="don't show progress bars")
+    log_options.add_argument('--silent', action='store_true',
+                        help='suppress all messages to screen')
 
+    tile_options = parser.add_argument_group('image tiling')
+    tile_options.add_argument('--clean', action='store_true',
+                        help="Remove all files from generated map's directory before generating new map")
+    tile_options.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
+                        help="generate image tiles of map's layers (may take a while...)")
+
+    debug_options = parser.add_argument_group('diagnostics')
+    debug_options.add_argument('--check-errors', dest='errorCheck', action='store_true',
+                        help='check for errors without generating a map')
+    debug_options.add_argument('--save-beziers', dest='saveBeziers', action='store_true',
+                        help='Save Bezier curve segments as a feature property')
+    debug_options.add_argument('--save-drawml', dest='saveDrawML', action='store_true',
+                        help="save a slide's DrawML for debugging")
+    debug_options.add_argument('--save-geojson', dest='saveGeoJSON', action='store_true',
+                        help='Save GeoJSON files for each layer')
+    debug_options.add_argument('--tippecanoe', dest='showTippe', action='store_true',
+                        help='Show command used to run Tippecanoe')
+
+    zoom_options = parser.add_argument_group('zoom level')
+    zoom_options.add_argument('--initialZoom', metavar='N', type=int, default=4,
+                        help='initial zoom level (defaults to 4)')
+    zoom_options.add_argument('--max-zoom', dest='maxZoom', metavar='N', type=int, default=10,
+                        help='maximum zoom level (defaults to 10)')
+    zoom_options.add_argument('--min-zoom', dest='minZoom', metavar='N', type=int, default=2,
+                        help='minimum zoom level (defaults to 2)')
+
+    misc_options = parser.add_argument_group('miscellaneous')
+    misc_options.add_argument('--refresh-labels', dest='refreshLabels', action='store_true',
+                        help='Clear the label text cache before map making')
+    misc_options.add_argument('--upload', dest='uploadHost', metavar='USER@SERVER',
+                        help='Upload generated map to server')
+
+    required = parser.add_argument_group('required arguments')
     required.add_argument('--output', dest='output', required=True,
                         help='base directory for generated flatmaps')
     required.add_argument('--source', required=True,
