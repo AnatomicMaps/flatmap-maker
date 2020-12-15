@@ -287,8 +287,10 @@ class Flatmap(object):
                 source_layer = PowerpointSource(self, source_id, source_href,
                                                 get_background=tile_background)
             elif source_kind == 'image':
+                if 'boundary' not in source:
+                    raise ValueError('An image source must specify a boundary')
                 source_layer = MBFSource(self, source_id, source_href,
-                                         boundary_id=source.get('boundary'))
+                                         source.get('boundary'))
             elif source_kind in ['base', 'details']:
                 source_layer = SVGSource(self, source_id, source_href,
                                          output_layer=(source_kind=='base'))

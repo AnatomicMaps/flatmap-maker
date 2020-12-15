@@ -41,7 +41,7 @@ from mapmaker.utils import path_data
 #===============================================================================
 
 class MBFSource(MapSource):
-    def __init__(self, flatmap, id, source_path, boundary_id=None):
+    def __init__(self, flatmap, id, source_path, boundary_id):
         super().__init__(flatmap, id)
         self.__boundary_id = boundary_id
 
