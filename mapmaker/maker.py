@@ -141,9 +141,11 @@ class Flatmap(object):
         if 'outputDir' not in options:
             options['outputDir'] = './flatmaps'
 
+        # ``backgroundOnly`` implies ``backgroundTiles``
         if options.get('backgroundOnly', False):
             options['backgroundTiles'] = True
 
+        # Check zoom settings are valid
         min_zoom = options.get('minZoom', 2)
         max_zoom = options.get('maxZoom', 10)
         initial_zoom = options.get('initialZoom', 4)
@@ -154,6 +156,8 @@ class Flatmap(object):
         if initial_zoom < min_zoom or initial_zoom > max_zoom:
             raise ValueError('Initial zoom must be between {} and {}'.format(min_zoom, max_zoom))
         self.__zoom = (min_zoom, max_zoom, initial_zoom)
+
+        # Save options into global ``settings`` dict
         settings.update(options)
 
         log('Mapmaker {}'.format(__version__))
