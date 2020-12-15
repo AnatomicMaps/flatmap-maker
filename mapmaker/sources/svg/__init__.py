@@ -188,7 +188,7 @@ class SVGLayer(FeatureLayer):
                 if self.output_layer:
                     self.flatmap.save_feature_id(grouped_feature)
                 features.append(grouped_feature)
-        elif element.tag in [SVG_NS('image'), SVG_NS('text')]:
+        elif element.tag in [SVG_NS('image'), SVG_NS('style'), SVG_NS('text')]:
             pass
         else:
             print('"{}" {} not processed...'.format(markup, element.tag))
