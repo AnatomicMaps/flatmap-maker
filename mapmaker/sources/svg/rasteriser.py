@@ -332,8 +332,8 @@ class SVGTiler(object):
                 rx = ry
             rx = min(rx, width/2)
             ry = min(ry, height/2)
-            (x, y) = T.transform_point(length_as_pixels(element.attrib.get('x', 0)),
-                                       length_as_pixels(element.attrib.get('y', 0)))
+            (x, y) = T.transform_point((length_as_pixels(element.attrib.get('x', 0)),
+                                        length_as_pixels(element.attrib.get('y', 0))))
             if rx == 0 and ry == 0:
                 path = skia.Path.Rect((x, y, width, height))
             else:
@@ -359,16 +359,16 @@ class SVGTiler(object):
         elif element.tag == SVG_NS('circle'):
             r = length_as_pixels(element.attrib.get('r', 0))
             if r == 0: return None
-            (cx, cy) = T.transform_point(length_as_pixels(element.attrib.get('cx', 0)),
-                                         length_as_pixels(element.attrib.get('cy', 0)))
+            (cx, cy) = T.transform_point((length_as_pixels(element.attrib.get('cx', 0)),
+                                          length_as_pixels(element.attrib.get('cy', 0))))
             path = skia.Path.Circle(cx, cy, r)
 
         elif element.tag == SVG_NS('ellipse'):
             (rx, ry) = T.scale_length(length_as_pixels(element.attrib.get('rx', 0)),
                                       length_as_pixels(element.attrib.get('ry', 0)))
             if rx == 0 or ry == 0: return None
-            (cx, cy) = T.transform_point(length_as_pixels(element.attrib.get('cx', 0)),
-                                         length_as_pixels(element.attrib.get('cy', 0)))
+            (cx, cy) = T.transform_point((length_as_pixels(element.attrib.get('cx', 0)),
+                                          length_as_pixels(element.attrib.get('cy', 0))))
             path = skia.Path.Oval((cx-rx, cy-ry, cx+rx, cy+ry))
 
         return path
