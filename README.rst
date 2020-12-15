@@ -29,19 +29,16 @@ Command line help::
 
 ::
 
-    usage: mapmaker [-h] [-c CONF] [--background-tiles] [--background-only] [--check-errors]
-                    [--initialZoom N] [--max-zoom N] [--min-zoom N] [--save-beziers] [--save-drawml]
-                    [--save-geojson] [--tippecanoe] [--clean] [--refresh-labels] [--upload USER@SERVER]
-                    [-q] [-v] --output-dir OUTPUT_DIR --map MAP_PATH
+    usage: mapmaker [-h] [--background-tiles] [--background-only] [--check-errors] [--initialZoom N]
+                    [--max-zoom N] [--min-zoom N] [--save-beziers] [--save-drawml] [--save-geojson]
+                    [--tippecanoe] [--clean] [--refresh-labels] [--upload USER@SERVER]
+                    [--log LOG_FILE] [-q] [--silent] [-v]
+                    --output-dir OUTPUT_DIR --map MAP
 
-    Args that start with '--' (eg. --background-tiles) can also be set in a config file (specified via
-    -c). Config file syntax allows: key=value, flag=true, stuff=[a,b,c] (for details, see syntax at
-    https://goo.gl/R74nmi). If an arg is specified in more than one place, then commandline values
-    override config file values which override defaults.
+    Generate a flatmap from its source manifest.
 
     optional arguments:
       -h, --help            show this help message and exit
-      -c CONF, --conf CONF  configuration file containing arguments
       --background-tiles    generate image tiles of map's layers (may take a while...)
       --background-only     don't generate vector tiles (sets --background-tiles)
       --check-errors        check for errors without generating a map
@@ -55,13 +52,15 @@ Command line help::
       --clean               Remove all files from generated map's directory before generating new map
       --refresh-labels      Clear the label text cache before map making
       --upload USER@SERVER  Upload generated map to server
-      -q, --quiet           don't show progress messages
+      --log LOG_FILE        append messages to a log file
+      -q, --quiet           don't show progress bars
+      --silent              suppress all messages to screen
       -v, --version         show program's version number and exit
 
     required arguments:
       --output-dir OUTPUT_DIR
                             base directory for generated flatmaps
-      --map MAP_PATH        URL or directory path containing a flatmap manifest
+      --map MAP             URL or directory path containing a flatmap manifest
 
 For instance::
 
