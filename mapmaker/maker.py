@@ -291,7 +291,6 @@ class Flatmap(object):
                                          boundary_id=source.get('boundary'))
             elif source_kind in ['base', 'details']:
                 source_layer = SVGSource(self, source_id, source_href,
-                                         boundary_id=source.get('boundary'),
                                          output_layer=(source_kind=='base'))
             else:
                 raise ValueError('Unsupported source kind: {}'.format(source_kind))

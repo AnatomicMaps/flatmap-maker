@@ -53,10 +53,9 @@ from mapmaker.utils import ProgressBar
 #===============================================================================
 
 class SVGSource(MapSource):
-    def __init__(self, flatmap, id, source_path, boundary_id=None, output_layer=True):
+    def __init__(self, flatmap, id, source_path, output_layer=True):
         super().__init__(flatmap, id)
         self.__source_path = source_path
-        self.__boundary_id = boundary_id
         self.__output_layer = output_layer
         self.__svg = etree.parse(source_path).getroot()
         if 'viewBox' in self.__svg.attrib:
