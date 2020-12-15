@@ -138,10 +138,6 @@ class Flatmap(object):
             raise ValueError('No map nor exposure given')
 
         # Default base output directory to ``./flatmaps``.
-
-        # ``backgroundOnly`` implies ``backgroundTiles``
-        if options.get('backgroundOnly', False):
-            options['backgroundTiles'] = True
         if 'output' not in options:
             options['output'] = './flatmaps'
 

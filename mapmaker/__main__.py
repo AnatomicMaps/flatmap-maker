@@ -38,8 +38,6 @@ def main():
 
     parser.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
                         help="generate image tiles of map's layers (may take a while...)")
-    parser.add_argument('--background-only', dest='backgroundOnly', action='store_true',
-                        help="don't generate vector tiles (sets --background-tiles)")
 
     parser.add_argument('--check-errors', dest='errorCheck', action='store_true',
                         help='check for errors without generating a map')
