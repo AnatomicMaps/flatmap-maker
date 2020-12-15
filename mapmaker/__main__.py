@@ -77,9 +77,9 @@ def main():
 
     required = parser.add_argument_group('required arguments')
 
-    required.add_argument('--output-dir', dest='outputDir', metavar='OUTPUT_DIR', required=True,
+    required.add_argument('--output', dest='output', required=True,
                         help='base directory for generated flatmaps')
-    required.add_argument('--map', metavar='MAP', required=True,
+    required.add_argument('--source', required=True,
                         help='URL or directory path containing a flatmap manifest')
 
     args = parser.parse_args()

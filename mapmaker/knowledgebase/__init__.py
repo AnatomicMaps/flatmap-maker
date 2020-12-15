@@ -40,7 +40,7 @@ SCIGRAPH_ONTOLOGIES = ['UBERON']
 
 class LabelDatabase(object):
     def __init__(self):
-        database = os.path.join(settings.get('outputDir'), 'labels.sqlite')
+        database = os.path.join(settings.get('output'), 'labels.sqlite')
         if settings.get('refreshLabels', False):
             try:
                 os.remove(database)

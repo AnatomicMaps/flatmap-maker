@@ -131,19 +131,19 @@ class Flatmap(object):
         if 'exposure' in options:
             self.__uri = options['exposure']
             Manifest(get_workspace(self.__uri))
-        elif 'map' in options:
+        elif 'source' in options:
             self.__uri = None
-            self.__manifest = Manifest(options['map'])
+            self.__manifest = Manifest(options['source'])
         else:
             raise ValueError('No map nor exposure given')
 
         # Default base output directory to ``./flatmaps``.
-        if 'outputDir' not in options:
-            options['outputDir'] = './flatmaps'
 
         # ``backgroundOnly`` implies ``backgroundTiles``
         if options.get('backgroundOnly', False):
             options['backgroundTiles'] = True
+        if 'output' not in options:
+            options['output'] = './flatmaps'
 
         # Check zoom settings are valid
         min_zoom = options.get('minZoom', 2)
@@ -170,7 +170,7 @@ class Flatmap(object):
         self.__models = self.__manifest.models
 
         # Make sure our output directories exist
-        map_base = options.get('outputDir')
+        map_base = options.get('output')
         if not os.path.exists(map_base):
             os.makedirs(map_base)
         self.__map_dir = os.path.join(map_base, self.__id)

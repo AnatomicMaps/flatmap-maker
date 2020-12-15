@@ -94,7 +94,7 @@ class SVGSource(MapSource):
             # Save a cleaned copy of the SVG in the map's output directory
             cleaner = SVGCleaner(self.__source_path, self.flatmap.map_properties)
             cleaner.clean()
-            with open(os.path.join(settings.get('outputDir'),
+            with open(os.path.join(settings.get('output'),
                       self.flatmap.id,
                       '{}.svg'.format(self.id)), 'wb') as fp:
                 cleaner.save(fp)
