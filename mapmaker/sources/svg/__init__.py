@@ -48,7 +48,7 @@ from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import bezier_sample, radians, Transform, reflect_point
 from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
-from mapmaker.utils import ProgressBar
+from mapmaker.utils import path_open, ProgressBar
 
 #===============================================================================
 
@@ -57,7 +57,7 @@ class SVGSource(MapSource):
         super().__init__(flatmap, id)
         self.__source_path = source_path
         self.__output_layer = output_layer
-        self.__svg = etree.parse(source_path).getroot()
+        self.__svg = etree.parse(path_open(source_path)).getroot()
         if 'viewBox' in self.__svg.attrib:
             (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
         else:

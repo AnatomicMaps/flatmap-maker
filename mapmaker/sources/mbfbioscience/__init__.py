@@ -36,7 +36,7 @@ from .. import WORLD_METRES_PER_UM
 
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import Transform
-from mapmaker.utils import path_data
+from mapmaker.utils import path_data, path_open
 
 #===============================================================================
 
@@ -48,7 +48,7 @@ class MBFSource(MapSource):
         self.__layer = FeatureLayer(id, self)
         self.add_layer(self.__layer)
 
-        self.__mbf = etree.parse(source_path).getroot()
+        self.__mbf = etree.parse(path_open(source_path)).getroot()
         self.__ns = self.__mbf.nsmap[None]
 
         sparcdata = self.__mbf.find(self.ns_tag('sparcdata'))
