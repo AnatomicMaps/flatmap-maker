@@ -143,6 +143,12 @@ For example::
                 "id": "tissue-slide",
                 "href": "tissue-slide.svg",
                 "kind": "details"
+            },
+            {
+                "id": "vagus",
+                "href": "sub-10_sam-1_P10-1MergeMask.xml",
+                "kind": "image",
+                "boundary": "http://purl.org/sig/ont/fma/fma5731"
             }
         ]
     }
