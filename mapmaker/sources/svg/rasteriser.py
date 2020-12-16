@@ -134,9 +134,8 @@ class StyleMatcher(cssselect2.Matcher):
 #===============================================================================
 
 class SVGTiler(object):
-    def __init__(self, source_path, tiled_pixel_rect):
-        self.__source_path = source_path
-        self.__svg = etree.parse(source_path).getroot()
+    def __init__(self, file_object, tiled_pixel_rect):
+        self.__svg = etree.parse(file_object).getroot()
         if 'viewBox' in self.__svg.attrib:
             self.__size = tuple(float(x)
                 for x in self.__svg.attrib['viewBox'].split()[2:])
