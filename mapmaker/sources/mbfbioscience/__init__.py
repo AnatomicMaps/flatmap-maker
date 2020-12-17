@@ -65,7 +65,8 @@ class MBFSource(MapSource):
         image_file = urljoin(source_path, filename.split('\\')[-1])
         image_array = np.frombuffer(path_data(image_file), dtype=np.uint8)
         image = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
-        self.__raster_source = RasterSource('raster', image)
+        ##self.__raster_source = RasterSource('raster', image)
+        self.__raster_source = None
 
         image_size = (image.shape[1], image.shape[0])
         (width, height) = (scaling[0]*image_size[0], scaling[1]*image_size[1])               # um
