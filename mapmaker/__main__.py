@@ -90,7 +90,7 @@ def main():
         flatmap = Flatmap(vars(args))
         flatmap.make()
     except Exception as error:
-        log.error(str(error))
+        log.exception(str(error))
 
 #===============================================================================
 
