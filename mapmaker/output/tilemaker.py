@@ -156,7 +156,8 @@ def check_image_size(dimension, max_dim, lower, upper, bounds, scale):
 #===============================================================================
 
 class TileExtractor(object):
-    def __init__(self, tiled_pixel_rect, image_rect):
+    def __init__(self, tiled_pixel_rect, tile_origin, image_rect):
+        self.__tile_origin = tile_origin
         self.__image_rect = image_rect
         sx = image_rect.width/tiled_pixel_rect.width
         sy = image_rect.height/tiled_pixel_rect.height
@@ -171,8 +172,10 @@ class TileExtractor(object):
     #=====================================
         return (TILE_SIZE[0]/(x1 - x0), TILE_SIZE[1]/(y1 - y0))
 
-    def get_tile(self, tile_x, tile_y):
-    #==================================
+    def get_tile(self, tile):
+    #========================
+        tile_x = tile.x - self.__tile_origin[0]
+        tile_y = tile.y - self.__tile_origin[1]
         (x0, y0) = self.__tile_to_image.transform_point(TILE_SIZE[0]*tile_x,
                                                         TILE_SIZE[1]*tile_y)
         (x1, y1) = self.__tile_to_image.transform_point(TILE_SIZE[0]*(tile_x + 1),
@@ -193,11 +196,11 @@ class TileExtractor(object):
 #===============================================================================
 
 class RasterTileExtractor(TileExtractor):
-    def __init__(self, tiled_pixel_rect, image):
+    def __init__(self, tiled_pixel_rect, tile_origin, image):
         if image.shape[2] == 3:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
         self.__source_image = image
-        super().__init__(tiled_pixel_rect, Rect((0, 0), get_image_size(image)))
+        super().__init__(tiled_pixel_rect, tile_origin, Rect((0, 0), get_image_size(image)))
 
     def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
     #========================================================
@@ -214,7 +217,7 @@ class RasterTileExtractor(TileExtractor):
 #===============================================================================
 
 class SVGRasterTileExtractor(RasterTileExtractor):
-    def __init__(self, tiled_pixel_rect, svg_data):
+    def __init__(self, tiled_pixel_rect, tile_origin, svg_data):
         self.__svg_tiler = SVGTiler(svg_data, tiled_pixel_rect)
         image = self.__svg_tiler.get_image()
         super().__init__(tiled_pixel_rect, cv2.cvtColor(image, cv2.COLOR_RGBA2BGRA))
@@ -222,14 +225,15 @@ class SVGRasterTileExtractor(RasterTileExtractor):
 #===============================================================================
 
 class SVGTileExtractor(TileExtractor):
-    def __init__(self, tiled_pixel_rect, svg_data):
-        self.__svg_tiler = SVGTiler(svg_data, tiled_pixel_rect)
-        super().__init__(tiled_pixel_rect, Rect((0, 0), self.__svg_tiler.size))
+    def __init__(self, tiled_pixel_rect, tile_origin, svg_data, tiles):
+        self.__svg_tiler = SVGTiler(svg_data, tiled_pixel_rect, tile_origin, tiles, TILE_SIZE)
+        super().__init__(tiled_pixel_rect, tile_origin, Rect((0, 0), self.__svg_tiler.size))
 
-    def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
-    #========================================================
-        rgba = self.__svg_tiler.get_image_tile(x0, y0, TILE_SIZE)
-        return cv2.cvtColor(rgba, cv2.COLOR_RGBA2BGRA)
+    def get_tile(self, tile):
+    #========================
+        rgba = self.__svg_tiler.get_tile(tile)
+        image = cv2.cvtColor(rgba, cv2.COLOR_RGBA2BGRA)
+        return make_transparent(image)
 
 #===============================================================================
 
@@ -336,8 +340,7 @@ class RasterTileMaker(object):
             unit='tiles', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for tile in self.__tiles:
-            image = tile_extractor.get_tile(tile.x - self.__tile_start_coords[0],
-                                            tile.y - self.__tile_start_coords[1])
+            image = tile_extractor.get_tile(tile)
             if not_transparent(image):
                 mbtiles.save_tile_as_png(zoom, tile.x, tile.y, image)
             progress_bar.update(1)
@@ -379,14 +382,19 @@ class RasterTileMaker(object):
     #======================================
         log('Tiling {}...'.format(layer_id))
         if source.source_kind == 'raster':
-            tile_extractor = RasterTileExtractor(self.__tiled_pixel_rect, source.source_data)
+            tile_extractor = RasterTileExtractor(self.__tiled_pixel_rect, self.__tile_start_coords,
+                                                 source.source_data)
         elif source.source_kind == 'pdf':
             pdf = fitz.Document(stream=source.source_data, filetype='application/pdf')
             # Tile the first page of a PDF
-            tile_extractor = PDFTileExtractor(self.__tiled_pixel_rect, pdf[0])
+            tile_extractor = PDFTileExtractor(self.__tiled_pixel_rect, self.__tile_start_coords,
+                                              pdf[0])
         elif source.source_kind == 'svg':
-            tile_extractor = SVGRasterTileExtractor(self.__tiled_pixel_rect, source.source_data)
-            ## SLOW ## tile_extractor = SVGTileExtractor(self.__tiled_pixel_rect, source.source_data)
+            ## Lots of memory...
+            #tile_extractor = SVGRasterTileExtractor(self.__tiled_pixel_rect, self.__tile_start_coords,
+            #                                        source.source_data)
+            tile_extractor = SVGTileExtractor(self.__tiled_pixel_rect, self.__tile_start_coords,
+                                              source.source_data, self.__tiles)
         else:
             raise TypeError('Unsupported kind of background tile source: {}'.format(source.source_kind))
         self.__make_zoomed_tiles(tile_extractor, layer_id)

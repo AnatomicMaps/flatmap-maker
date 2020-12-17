@@ -25,6 +25,9 @@ import re
 
 import cssselect2
 from lxml import etree
+import mercantile
+import shapely.geometry
+import shapely.prepared
 import skia
 import tinycss2
 
@@ -134,7 +137,7 @@ class StyleMatcher(cssselect2.Matcher):
 #===============================================================================
 
 class SVGTiler(object):
-    def __init__(self, file_object, tiled_pixel_rect):
+    def __init__(self, file_object, tiled_pixel_rect, tile_origin=None, tiles=None, tile_size=None):
         self.__svg = etree.parse(file_object).getroot()
         if 'viewBox' in self.__svg.attrib:
             self.__size = tuple(float(x)
@@ -151,44 +154,74 @@ class SVGTiler(object):
         self.__style_matcher = StyleMatcher(self.__svg.find(SVG_NS('style')))
         self.__first_scan = True
 
+        transform = Transform([[self.__scaling[0],               0.0, 0.0],
+                               [              0.0, self.__scaling[1], 0.0],
+                               [              0.0,               0.0, 1.0]])
+        self.__path_list = []
+        self.__draw_svg(transform, self.__path_list)
+
+        if tiles is not None:
+            self.__tile_size = tile_size
+            self.__tile_origin = tile_origin
+            self.__pixel_offset = tuple(tiled_pixel_rect)[0:2]
+            path_bounding_boxes = [ (path, paint,
+                                        shapely.geometry.box(*tuple(path.getBounds())))
+                                    for (path, paint) in self.__path_list ]
+            self.__tile_paths = {}
+            for tile in tiles:
+                #tile_bbox = shapely.prepared.prep(shapely.geometry.box(*tuple(mercantile.xy_bounds(tile))))
+                x0 = (tile.x - tile_origin[0])*self.__tile_size[0] - self.__pixel_offset[0]
+                y0 = (tile.y - tile_origin[1])*self.__tile_size[1] - self.__pixel_offset[1]
+                tile_bbox = shapely.prepared.prep(shapely.geometry.box(x0, y0,
+                                                                       x0 + self.__tile_size[0],
+                                                                       y0 + self.__tile_size[0]))
+                self.__tile_paths[mercantile.quadkey(tile)] = list(filter(
+                    lambda ppb: tile_bbox.intersects(ppb[2]),
+                    path_bounding_boxes))
+        else:
+            self.__tile_paths = None
+
     @property
     def size(self):
         return self.__size
 
     def get_image(self):
     #===================
-        transform = Transform([[self.__scaling[0],               0.0, 0.0],
-                               [              0.0, self.__scaling[1], 0.0],
-                               [              0.0,               0.0, 1.0]])
-        surface = skia.Surface(int(self.__scaling[0]*self.__size[0] + 0.5),
-                               int(self.__scaling[1]*self.__size[1] + 0.5))
-        self.__draw_svg(transform, surface.getCanvas(), show_progress=True)
-        log('Making image snapshot...')
+        (width, height) = (int(self.__scaling[0]*self.__size[0] + 0.5),
+                           int(self.__scaling[1]*self.__size[1] + 0.5))
+        log.info('Tiling {} x {} image'.format(width, height))
+        surface = skia.Surface(width, height)
+        canvas = surface.getCanvas()
+        for (path, paint) in self.__path_list:
+            canvas.drawPath(path, paint)
+        log.info('Making image snapshot...')
         return surface.makeImageSnapshot().toarray()
 
-    def get_image_tile(self, x0, y0, tile_size):
-    #===========================================
-        transform = Transform([[self.__scaling[0],               0.0, -x0*self.__scaling[0]],
-                               [              0.0, self.__scaling[1], -y0*self.__scaling[1]],
-                               [              0.0,               0.0,                   1.0]])
-        surface = skia.Surface(*tile_size)
-        self.__draw_svg(transform, surface.getCanvas(), show_progress=False)
+    def get_tile(self, tile):
+    #========================
+        surface = skia.Surface(*self.__tile_size)
+        canvas = surface.getCanvas()
+        canvas.translate(self.__pixel_offset[0] + (self.__tile_origin[0] - tile.x)*self.__tile_size[0],
+                         self.__pixel_offset[1] + (self.__tile_origin[1] - tile.y)*self.__tile_size[1])
+        quadkey = mercantile.quadkey(tile)
+        for path, paint, bbox in self.__tile_paths.get(quadkey, []):
+            canvas.drawPath(path, paint)
         return surface.makeImageSnapshot().toarray()
 
-    def __draw_svg(self, transform, canvas, show_progress=False):
-    #============================================================
+    def __draw_svg(self, transform, path_list, show_progress=False):
+    #===============================================================
         wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
-        self.__draw_element_list(wrapped_svg, transform, canvas, show_progress)
+        self.__draw_element_list(wrapped_svg, transform, path_list, show_progress)
         self.__first_scan = False
 
-    def __draw_group(self, group, transform, canvas):
-    #================================================
+    def __draw_group(self, group, transform, path_list):
+    #===================================================
         self.__draw_element_list(group,
             transform@SVGTransform(group.etree_element.attrib.get('transform')),
-            canvas)
+            path_list)
 
-    def __draw_element_list(self, elements, transform, canvas, show_progress=False):
-    #===============================================================================
+    def __draw_element_list(self, elements, transform, path_list, show_progress=False):
+    #==================================================================================
         children = list(elements.iter_children())
         progress_bar = ProgressBar(show=show_progress,
             total=len(children),
@@ -203,12 +236,12 @@ class SVGTiler(object):
                 if self.__first_scan:
                     self.__definitions.add_definition(element)
                 continue
-            self.__draw_element(wrapped_element, transform, canvas)
+            self.__draw_element(wrapped_element, transform, path_list)
             progress_bar.update(1)
         progress_bar.close()
 
-    def __draw_element(self, wrapped_element, transform, canvas):
-    #============================================================
+    def __draw_element(self, wrapped_element, transform, path_list):
+    #===============================================================
         ## Why not simply get path from feature's GeoJSON??
         ## Because some features are derived an not in SVG...
         ## We still need style information from SVG (or store this
@@ -219,7 +252,7 @@ class SVGTiler(object):
         element_style = self.__style_matcher.element_style(wrapped_element)
 
         if element.tag == SVG_NS('g'):
-            self.__draw_group(wrapped_element, transform, canvas)
+            self.__draw_group(wrapped_element, transform, path_list)
 
         elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
                              SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
@@ -236,7 +269,7 @@ class SVGTiler(object):
                     Style=skia.Paint.kStroke_Style,
                     Color=make_colour(stroke, opacity),
                     StrokeWidth=1)  ## Use actual stroke-width?? Scale??
-                canvas.drawPath(path, paint)
+                path_list.append((path, paint))
 
             fill = element_style.get('fill', '#FFF')
             if fill == 'none': return
@@ -296,7 +329,7 @@ class SVGTiler(object):
 
             if fill.startswith('#'):
                 paint.setColor(make_colour(fill, opacity))
-            canvas.drawPath(path, paint)
+            path_list.append((path, paint))
 
 
     @staticmethod
