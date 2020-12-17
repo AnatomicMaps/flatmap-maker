@@ -114,6 +114,12 @@ class Rect(object):
         else:
             raise ValueError('Invalid arguments for Rect constructor')
 
+    def __iter__(self):
+        yield self.x0
+        yield self.y0
+        yield self.x1
+        yield self.y1
+
     def __str__(self):
         return 'Rect: ({}, {}, {}, {})'.format(self.x0, self.y0,
                                                self.x1, self.y1)
