@@ -52,6 +52,18 @@ from mapmaker.utils import path_open, ProgressBar
 
 #===============================================================================
 
+# These SVG tags are not used to determine feature geometry
+
+IGNORED_SVG_TAGS = [
+    SVG_NS('image'),
+    SVG_NS('linearGradient'),
+    SVG_NS('radialGradient'),
+    SVG_NS('style'),
+    SVG_NS('text'),
+]
+
+#===============================================================================
+
 class SVGSource(MapSource):
     def __init__(self, flatmap, id, source_path, output_layer=True):
         super().__init__(flatmap, id)
@@ -188,7 +200,7 @@ class SVGLayer(FeatureLayer):
                 if self.output_layer:
                     self.flatmap.save_feature_id(grouped_feature)
                 features.append(grouped_feature)
-        elif element.tag in [SVG_NS('image'), SVG_NS('style'), SVG_NS('text')]:
+        elif element.tag in IGNORED_SVG_TAGS:
             pass
         else:
             print('"{}" {} not processed...'.format(markup, element.tag))
