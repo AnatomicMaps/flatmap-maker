@@ -26,7 +26,7 @@ import numpy as np
 
 #===============================================================================
 
-from mapmaker.geometry import Transform
+from mapmaker.geometry import radians, Transform
 
 #===============================================================================
 
@@ -69,7 +69,7 @@ class SVGTransform(Transform):
                                     [ 0, sy, 0],
                                     [ 0,  0, 1]])
                 elif xfm == 'rotate':
-                    a = float(tokens[pos])
+                    a = radians(float(tokens[pos]))
                     pos += 1
                     if pos >= len(tokens) or tokens[pos].isalpha():
                         T = T@np.array([[cos(a), -sin(a), 0],
