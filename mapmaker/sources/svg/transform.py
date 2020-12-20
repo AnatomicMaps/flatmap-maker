@@ -49,7 +49,7 @@ class SVGTransform(Transform):
                 elif xfm == 'translate':
                     x = float(tokens[pos])
                     pos += 1
-                    if tokens[pos].isalpha():
+                    if pos >= len(tokens) or tokens[pos].isalpha():
                         y = 0
                     else:
                         y = float(tokens[pos])
@@ -60,7 +60,7 @@ class SVGTransform(Transform):
                 elif xfm == 'scale':
                     sx = float(tokens[pos])
                     pos += 1
-                    if tokens[pos].isalpha():
+                    if pos >= len(tokens) or tokens[pos].isalpha():
                         sy = sx
                     else:
                         sy = float(tokens[pos])
@@ -71,7 +71,7 @@ class SVGTransform(Transform):
                 elif xfm == 'rotate':
                     a = float(tokens[pos])
                     pos += 1
-                    if tokens[pos].isalpha():
+                    if pos >= len(tokens) or tokens[pos].isalpha():
                         T = T@np.array([[cos(a), -sin(a), 0],
                                         [sin(a),  cos(a), 0],
                                         [     0,       0, 1]])
