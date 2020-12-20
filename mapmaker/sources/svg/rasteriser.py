@@ -240,6 +240,19 @@ class SVGTiler(object):
             progress_bar.update(1)
         progress_bar.close()
 
+    @staticmethod
+    def __skia_matrix(gradient, path, transform):
+    #============================================
+        if gradient.attrib.get('gradientUnits') == 'userSpaceOnUse':
+            path_transform = transform
+        else:
+            bounds = path.getBounds()
+            path_transform = Transform([[bounds.width(),               0, bounds.left()],
+                                        [             0, bounds.height(), bounds.top()],
+                                        [             0,               0,            1]])
+        svg_transform = SVGTransform(gradient.attrib.get('gradientTransform'))
+        return skia.Matrix(list((path_transform@svg_transform).flatten()))
+
     def __draw_element(self, wrapped_element, transform, path_list):
     #===============================================================
         ## Why not simply get path from feature's GeoJSON??
@@ -289,43 +302,23 @@ class SVGTiler(object):
                                float(gradient.attrib.get('y1', 0.0))),
                               (float(gradient.attrib.get('x2', 1.0)),
                                float(gradient.attrib.get('y2', 0.0)))]
-                    if gradient.attrib.get('gradientUnits') == 'userSpaceOnUse':
-                        local_transform = transform
-                    else:
-                        bounds = path.getBounds()
-                        v_centre = (bounds.top() + bounds.bottom())/2
-                        local_transform = Transform([[bounds.width(),               0, bounds.left()],
-                                                     [             0, bounds.height(), bounds.top()],
-                                                     [             0,               0,            1]])
-                    svg_transform = SVGTransform(gradient.attrib.get('gradientTransform'))
-                    shader_transform = local_transform@svg_transform
                     paint.setShader(skia.GradientShader.MakeLinear(
                         points=points,
                         positions=gradient_stops.offsets,
                         colors=gradient_stops.colours,
-                        localMatrix=skia.Matrix(list(shader_transform.flatten()))
+                        localMatrix=SVGTiler.__skia_matrix(gradient, path, transform)
                     ))
                 elif gradient.tag == SVG_NS('radialGradient'):
                     gradient_stops = GradientStops(gradient)
-                    svg_transform = SVGTransform(gradient.attrib.get('gradientTransform'))
-                    cx = float(gradient.attrib.get('cx'))
-                    cy = float(gradient.attrib.get('cx'))
-                    r = float(gradient.attrib.get('r'))
-                    if gradient.attrib.get('gradientUnits') == 'userSpaceOnUse':
-                        centre = svg_transform.scale_length((cx, cy))
-                        radius = r
-                    else:
-                        bounds = path.getBounds()
-                        centre = (bounds.left() + cx*bounds.width(),
-                                  bounds.top() + cy*bounds.height())
-                        radius = math.sqrt(bounds.width()**2 + bounds.height()**2)/2.0
-                    ## Transform centre, radius....
+                    centre = (float(gradient.attrib.get('cx')),
+                              float(gradient.attrib.get('cy')))
+                    radius = float(gradient.attrib.get('r'))
                     paint.setShader(skia.GradientShader.MakeRadial(
                         center=centre,
                         radius=radius,
                         positions=gradient_stops.offsets,
                         colors=gradient_stops.colours,
-                        #localMatrix=skia.Matrix(list(svg_transform.flatten()))
+                        localMatrix=SVGTiler.__skia_matrix(gradient, path, transform)
                     ))
                 else:
                     fill = '#008'     # Something's wrong show show in image...
