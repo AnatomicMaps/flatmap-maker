@@ -313,6 +313,9 @@ class SVGTiler(object):
                     centre = (float(gradient.attrib.get('cx')),
                               float(gradient.attrib.get('cy')))
                     radius = float(gradient.attrib.get('r'))
+                    # TODO: fx, fy
+                    #       This will need a two point conical shader
+                    #       -- see chromium/blink sources
                     paint.setShader(skia.GradientShader.MakeRadial(
                         center=centre,
                         radius=radius,
