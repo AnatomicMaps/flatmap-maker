@@ -103,6 +103,10 @@ class Transform(object):
     #=================
         return self.__matrix.flatten()
 
+    def inverse(self):
+    #=================
+        return Transform(np.linalg.inv(self.__matrix))
+
     def rotate_angle(self, angle):
     #==============================
         rotation = transforms3d.affines.decompose(self.__matrix)[1]
