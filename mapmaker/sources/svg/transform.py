@@ -78,10 +78,9 @@ class SVGTransform(Transform):
                     else:
                         (cx, cy) = tuple(float(x) for x in tokens[pos:pos+2])
                         pos += 2
-                        T = T@np.array([[cos(a), -sin(a), 0],
-                                        [sin(a),  cos(a), 0],
-                                        [     0,       0, 1]])
-
+                        T = T@np.array([[cos(a), -sin(a), -cx*cos(a) + cy*sin(a) + cx],
+                                        [sin(a),  cos(a), -cx*sin(a) - cy*cos(a) + cy],
+                                        [     0,       0,                           1]])
                 elif xfm == 'skewX':
                     a = float(tokens[pos])
                     pos += 1
