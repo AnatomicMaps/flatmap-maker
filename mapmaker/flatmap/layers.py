@@ -22,8 +22,8 @@ import shapely.geometry
 
 #===============================================================================
 
+from mapmaker import MIN_ZOOM
 from mapmaker.exceptions import GroupValueError
-
 from mapmaker.geometry import connect_dividers, extend_line, make_boundary
 from mapmaker.geometry import save_geometry
 
@@ -133,9 +133,10 @@ class FeatureLayer(object):
             'type': feature.get_property('geometry')
         })
 
-    def add_raster_layer(self, id, raster_source, min_zoom, extent, **kwargs):
-    #=======================================================================
-        self.__raster_layers.append(RasterTileLayer(id, raster_source, min_zoom, extent, **kwargs))
+    def add_raster_layer(self, id, raster_source, extent, min_zoom=MIN_ZOOM, local_world_to_base=None):
+    #==================================================================================================
+        self.__raster_layers.append(RasterTileLayer(id, raster_source, extent, min_zoom,
+                                                    local_world_to_base))
 
     def set_feature_properties(self, map_properties):
     #===============================================
@@ -342,17 +343,36 @@ class FeatureLayer(object):
 #===============================================================================
 
 class RasterTileLayer(object):
-    def __init__(self, id, raster_source, min_zoom, extent, bounding_box=None, image_transform=None):
+    """
+    Details of a raster tile layer.
+
+    :param id: the ``id`` of the source layer to rasterise
+    :type id: str
+    :param raster_source: the source of the layer's raster data
+    :type raster_source: :class:`~mapmaker.sources.RasterSource`
+    :param extent: The base map's extent as decimal latitude and longitude
+                   coordinates
+    :type extent: tuple(south, west, north, east)
+    :param min_zoom: The minimum zoom level to generate tiles for.
+                     Optional, defaults to ``MIN_ZOOM``
+    :type map_zoom: int
+    :param local_world_to_base: an optional transform from the raster layer's
+                                local world coordinates to the base map's
+                                world coordinates. Defaults to ``None``, meaning
+                                the :class:`~mapmaker.geometry.Identity` transform
+    :type local_world_to_base: :class:`~mapmaker.geometry.Transform`
+    """
+    def __init__(self, id, raster_source, extent,
+                 min_zoom=MIN_ZOOM, local_world_to_base=None):
         self.__id = '{}_image'.format(id)
         self.__raster_source = raster_source
         self.__min_zoom = min_zoom
         self.__extent = extent
-        self.__bounding_box = bounding_box
-        self.__image_transform = image_transform
+        self.__local_world_to_base = local_world_to_base
 
     @property
-    def bounding_box(self):
-        return self.__bounding_box
+    def local_world_to_base(self):
+        return self.__local_world_to_base
 
     @property
     def extent(self):
@@ -361,10 +381,6 @@ class RasterTileLayer(object):
     @property
     def id(self):
         return self.__id
-
-    @property
-    def image_transform(self):
-        return self.__image_transform
 
     @property
     def min_zoom(self):

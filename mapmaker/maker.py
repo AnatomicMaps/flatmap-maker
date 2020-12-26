@@ -340,7 +340,7 @@ class Flatmap(object):
         for layer in source.layers:
             self.__add_layer(layer)
             if layer.output_layer:
-                layer.add_raster_layer(layer.id, source.raster_source, self.__zoom[0], source.extent)
+                layer.add_raster_layer(layer.id, source.raster_source, source.extent, self.__zoom[0])
 
     def __set_feature_properties(self):
     #==================================
@@ -422,9 +422,8 @@ class Flatmap(object):
 
                 layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
                                         hires_layer.source.raster_source,
-                                        minzoom, hires_layer.source.extent,
-                                        bounding_box=boundary_feature.geometry.bounds,
-                                        image_transform=M)
+                                        extent, minzoom,
+                                        local_world_to_base=transform)
 
             # The detail layer gets a scaled copy of each high-resolution feature
             for hires_feature in hires_layer.features:
@@ -444,10 +443,9 @@ class Flatmap(object):
         log('Generating background tiles (may take a while...)')
         for layer in self.__layer_dict.values():
             for raster_layer in layer.raster_layers:
-                tilemaker = RasterTileMaker(raster_layer.extent, self.__map_dir, raster_layer.min_zoom, self.__zoom[1],
-                                            bounding_box=raster_layer.bounding_box, image_transform=raster_layer.image_transform)
-                tilemaker.make_tiles(raster_layer.id, raster_layer.raster_source)
-                self.__upload_files.extend(tilemaker.database_names)
+                tilemaker = RasterTileMaker(raster_layer, self.__map_dir, self.__zoom[1])
+                raster_tile_file = tilemaker.make_tiles()
+                self.__upload_files.append(raster_tile_file)
 
     def __make_vector_tiles(self, compressed=True):
     #==============================================

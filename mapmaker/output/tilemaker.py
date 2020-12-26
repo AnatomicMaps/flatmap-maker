@@ -36,7 +36,6 @@ from svglib.svglib import svg2rlg
 from mapmaker import MAX_ZOOM
 import mapmaker.geometry
 from mapmaker.output.mbtiles import MBTiles, ExtractionError
-from mapmaker.sources import RasterSource
 from mapmaker.sources.svg.rasteriser import SVGTiler
 from mapmaker.utils import log, ProgressBar
 
@@ -307,17 +306,17 @@ class RasterTileMaker(object):
                      Optional, defaults to ``MAX_ZOOM``
     :type max_zoom: int
     """
-    def __init__(self, extent, output_dir,
-                 min_zoom=MIN_ZOOM, max_zoom=MAX_ZOOM,
-                 bounding_box=None, image_transform=None):
+    def __init__(self, raster_tile_layer, output_dir, max_zoom=MAX_ZOOM):
+        self.__id = raster_tile_layer.id
+        self.__raster_source = raster_tile_layer.raster_source
         self.__output_dir = output_dir
-        self.__min_zoom = min_zoom
+        self.__min_zoom = raster_tile_layer.min_zoom
         self.__max_zoom = max_zoom
-
-        self.__database_names = []
+        self.__local_world_to_base = raster_tile_layer.local_world_to_base
 
         # Get the set of tiles that span the map
 
+        extent = raster_tile_layer.extent
         self.__tiles = list(mercantile.tiles(*extent, self.__max_zoom))
         tile_0 = self.__tiles[0]
         tile_N = self.__tiles[-1]
@@ -350,18 +349,13 @@ class RasterTileMaker(object):
 
         self.__tiled_pixel_rect = Rect(sw[0], ne[1], ne[0], sw[1]).transform(self.__world_to_tile)
 
-    @property
-    def database_names(self):
-        return self.__database_names
-
-    def __make_zoomed_tiles(self, tile_extractor, layer_id):
-    #=======================================================
-        database_name = '{}.mbtiles'.format(layer_id)
-        self.__database_names.append(database_name)
-        mbtiles = MBTiles(os.path.join(self.__output_dir, database_name), True, True)
-        mbtiles.add_metadata(id=layer_id)
+    def __make_zoomed_tiles(self, tile_extractor):
+    #=============================================
+        raster_database_name = '{}.mbtiles'.format(self.__id)
+        mbtiles = MBTiles(os.path.join(self.__output_dir, raster_database_name), True, True)
+        mbtiles.add_metadata(id=self.__id)
         zoom = self.__max_zoom
-        log('Tiling zoom level {} for {}'.format(zoom, layer_id))
+        log('Tiling zoom level {} for {}'.format(zoom, self.__id))
         progress_bar = ProgressBar(total=len(self.__tiles),
             unit='tiles', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
@@ -371,15 +365,14 @@ class RasterTileMaker(object):
                 mbtiles.save_tile_as_png(zoom, tile.x, tile.y, image)
             progress_bar.update(1)
         progress_bar.close()
+        self.__make_overview_tiles(mbtiles, zoom, self.__tile_start_coords, self.__tile_end_coords)
+        return raster_database_name
 
-        self.__make_overview_tiles(mbtiles, layer_id, zoom, self.__tile_start_coords, self.__tile_end_coords)
-        mbtiles.close() #True)
-
-    def __make_overview_tiles(self, mbtiles, layer_id, zoom, start_coords, end_coords):
-    #==================================================================================
+    def __make_overview_tiles(self, mbtiles, zoom, start_coords, end_coords):
+    #========================================================================
         if zoom > self.__min_zoom:
             zoom -= 1
-            log('Tiling zoom level {} for {}'.format(zoom, layer_id))
+            log('Tiling zoom level {} for {}'.format(zoom, self.__id))
             HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
             half_start = (start_coords[0]//2, start_coords[1]//2)
             half_end = (end_coords[0]//2, end_coords[1]//2)
@@ -402,57 +395,53 @@ class RasterTileMaker(object):
                         mbtiles.save_tile_as_png(zoom, x, y, overview_tile)
                     progress_bar.update(1)
             progress_bar.close()
-            self.__make_overview_tiles(mbtiles, layer_id, zoom, half_start, half_end)
+            self.__make_overview_tiles(mbtiles, zoom, half_start, half_end)
 
-    def make_tiles(self, layer_id, source):
-    #======================================
-        log('Tiling {}...'.format(layer_id))
-        if source.source_kind == 'raster':
+    def make_tiles(self):
+    #====================
+        log('Tiling {}...'.format(self.__id))
+        source_data = self.__raster_source.source_data
+        source_kind = self.__raster_source.source_kind
+        if source_kind == 'raster':
             tile_extractor = RasterTileExtractor(self.__tiled_pixel_rect, self.__tile_start_coords,
-                                                 source.source_data)
-        elif source.source_kind == 'pdf':
-            pdf = fitz.Document(stream=source.source_data, filetype='application/pdf')
+                                                 source_data,
+                                                 local_world_to_base=self.__local_world_to_base)
+        elif source_kind == 'pdf':
+            pdf = fitz.Document(stream=source_data, filetype='application/pdf')
             # Tile the first page of a PDF
             tile_extractor = PDFTileExtractor(self.__tiled_pixel_rect, self.__tile_start_coords,
                                               pdf[0])
-        elif source.source_kind == 'svg':
+        elif source_kind == 'svg':
             ## Lots of memory...
             #tile_extractor = SVGRasterTileExtractor(self.__tiled_pixel_rect, self.__tile_start_coords,
-            #                                        source.source_data)
+            #                                        source_data)
             tile_extractor = SVGTileExtractor(self.__tiled_pixel_rect, self.__tile_start_coords,
-                                              source.source_data, self.__tiles)
+                                              source_data, self.__tiles)
         else:
-            raise TypeError('Unsupported kind of background tile source: {}'.format(source.source_kind))
-        self.__make_zoomed_tiles(tile_extractor, layer_id)
-
-#===============================================================================
-
-def make_background_tiles_from_image(map_bounds, map_zoom, output_dir, image, source_name, layer_id):
-    tile_maker = TileMaker(map_bounds, output_dir, map_zoom)
-    tile_maker.make_tiles_from_image(image, source_name, layer_id)
-    return tile_maker.database_names
+            raise TypeError('Unsupported kind of background tile source: {}'.format(source_kind))
+        return self.__make_zoomed_tiles(tile_extractor)
 
 #===============================================================================
 
 if __name__ == '__main__':
     import sys
+    from mapmaker.sources import RasterSource
+    from mapmaker.layers import RasterTileLayer
 
     map_extent = [-10, -20, 10, 20]
     max_zoom = 6
-
     mode = 'PDF' if len(sys.argv) < 2 else sys.argv[1].upper()
 
     if mode == 'PDF':
         pdf_file = '../../tests/sources/rat-test.pdf'
         with open(pdf_file, 'rb') as f:
-            tm = RasterTileMaker(map_extent, '../../maps')
-            tm.make_tiles('test', RasterSource('pdf', f.read()))
+            tile_layer = RasterTileLayer('test', RasterSource('pdf', f.read()), map_extent)
     elif mode == 'JPEG':
         jpeg_file = './mbf/pig/sub-10sam-1P10-1Slide2p3MT10x.jp2'
-        make_background_tiles_from_image(map_extent, [MIN_ZOOM, max_zoom],
-                                         '../maps/demo', Image.open(jpeg_file),
-                                         jpeg_file, 'test')
+        tile_layer = RasterTileLayer('test', RasterSource('raster', Image.open(jpeg_file)), map_extent)
     else:
         sys.exit('Unknown mode of test -- must be "JPEG" or "PDF"')
+    tile_maker = RasterTileMaker(tile_layer, '../../maps', max_zoom)
+    tile_maker.make_tiles()
 
 #===============================================================================
