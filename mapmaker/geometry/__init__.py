@@ -143,6 +143,12 @@ class Transform(object):
 
 #===============================================================================
 
+class Identity(Transform):
+    def __init__(self):
+        super().__init__(np.identity(3))
+
+#===============================================================================
+
 def bezier_sample(bz, points=100):
 #=================================
     return [(pt.x, pt.y) for pt in bz.sample(points)]
