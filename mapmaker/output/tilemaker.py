@@ -170,6 +170,16 @@ def check_image_size(dimension, max_dim, lower, upper, bounds, scale):
 #===============================================================================
 
 class TileExtractor(object):
+    """
+    Extract tiles from a :class:`~mapmaker.sources.RasterSource`.
+
+    :param tiled_pixel_rect: tile bounds in tile pixel coordinates
+    :type tiled_pixel_rect: :class:`Rect`
+    :param tile_origin: origin of tile grid in base map's world coordinates
+    :type tile_origin: tuple(x, y)
+    :param image_rect: source bounds in image pixel coordinates
+    :type image_rect: :class:`Rect`
+    """
     def __init__(self, tiled_pixel_rect, tile_origin, image_rect):
         self.__tile_origin = tile_origin
         self.__image_rect = image_rect
@@ -282,19 +292,20 @@ class RasterTileMaker(object):
     """
     A class for generating image tiles for a map
 
-    Image tiles are stored as ``mbtiles``, in a SQLite3 database.
+    Image tiles are stored as ``mbtiles`` in a SQLite3 database.
 
-    The map's extent together with the maximum zoom level is used to determine
-    the set of tiles that covers the map, along with a transform from map
-    coordinates to tile pixel coordinates and the the location of the map in
-    terms of tile pixels.
+    The raster layer's extent together with the map's maximum zoom level
+    is used to determine the set of tiles that cover the layer, the transform
+    from map world coordinates to tile pixel coordinates, and the the
+    location of the layer in terms of tile pixels.
 
-    :param extent: The map's extent as in latitude and longitude
-    :type extent: tuple(south, west, north, east)
+    :param raster_tile_layer: The raster layer to tile
+    :type raster_tile_layer: :class:`~mapmaker.layers.RasterTileLayer`
     :param output_dir: The directory in which to store image tiles
     :type output_dir: str
-    :param map_zoom: The range of zoom levels to generate tiles
-    :type map_zoom: tuple, optional, defaults to (`MIN_ZOOM`, `MAX_ZOOM`)
+    :param max_zoom: The range of zoom levels to generate tiles.
+                     Optional, defaults to ``MAX_ZOOM``
+    :type max_zoom: int
     """
     def __init__(self, extent, output_dir,
                  min_zoom=MIN_ZOOM, max_zoom=MAX_ZOOM,
