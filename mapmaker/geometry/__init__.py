@@ -28,6 +28,7 @@ import pyproj
 import numpy as np
 
 from shapely.geometry import LineString, Polygon
+import shapely.affinity
 import shapely.ops
 import shapely.wkt
 
@@ -89,6 +90,9 @@ def radians(degrees):
 class Transform(object):
     def __init__(self, matrix):
         self.__matrix = np.array(matrix)
+        self.__shapely_matrix = np.concatenate((self.__matrix[0, 0:2],
+                                                self.__matrix[1, 0:2],
+                                                self.__matrix[0:2, 2]), axis=None).tolist()
 
     def __matmul__(self, transform):
         if isinstance(transform, Transform):
@@ -122,6 +126,16 @@ class Transform(object):
     #==============================
         scaling = transforms3d.affines.decompose(self.__matrix)[2]
         return (scaling[0]*length[0], scaling[1]*length[1])
+
+    def transform_extent(self, extent):
+    #==================================
+        bounds = extent_to_bounds(extent)
+        return bounds_to_extent(
+            shapely.affinity.affine_transform(shapely.geometry.box(*bounds),
+                                              self.__shapely_matrix).bounds)
+    def transform_geometry(self, geometry):
+    #======================================
+       return shapely.affinity.affine_transform(geometry, self.__shapely_matrix)
 
     def transform_point(self, point):
     #================================

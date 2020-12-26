@@ -34,11 +34,10 @@ from urllib.parse import urljoin
 import cv2
 import numpy as np
 
-import shapely.affinity
-
 #===============================================================================
 
 from mapmaker import FLATMAP_VERSION, __version__
+from mapmaker.geometry import Transform
 from mapmaker.utils import log
 
 #===============================================================================
@@ -402,29 +401,25 @@ class Flatmap(object):
             if boundary_feature is None:
                 raise KeyError("Cannot find boundary of '{}' layer".format(hires_layer.id))
 
-            # Calculate ``shapely.affinity`` 2D affine transform matrix to map source shapes to the destination
+            # Calculate transformation to map source shapes to the destination
 
             # NOTE: We have no way of ensuring that the vertices of the source and destination rectangles
             #       align as intended. As a result, output features might be rotated by some multiple
             #       of 90 degrees.
             src = np.array(boundary_feature.geometry.minimum_rotated_rectangle.exterior.coords, dtype = "float32")[:-1]
             dst = np.array(feature.geometry.minimum_rotated_rectangle.exterior.coords, dtype = "float32")[:-1]
-            M = cv2.getPerspectiveTransform(src, dst)
-            transform = np.concatenate((M[0][0:2], M[1][0:2], M[0][2], M[1][2]), axis=None).tolist()
+            transform = Transform(cv2.getPerspectiveTransform(src, dst))
 
             minzoom = feature.get_property('maxzoom') + 1
             if feature.get_property('type') != 'nerve':
                 # Set the feature's geometry to that of the high-resolution outline
-                feature.geometry = shapely.affinity.affine_transform(boundary_feature.geometry, transform)
-            else:
+                feature.geometry = transform.transform_geometry(boundary_feature.geometry)
+            else:                             # nerve
                 feature.del_property('maxzoom')
 
             if hires_layer.source.raster_source is not None:
-                ### Put this into geometry module
-                hires_bounds = extent_to_bounds(hires_layer.source.extent)
-                lores_bounds = shapely.affinity.affine_transform(shapely.geometry.box(*hires_bounds), transform).bounds
-                extent = bounds_to_extent(lores_bounds)
-                ### Above into geometry module
+                extent = transform.transform_extent(hires_layer.source.extent)
+
                 layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
                                         hires_layer.source.raster_source,
                                         minzoom, hires_layer.source.extent,
@@ -434,7 +429,7 @@ class Flatmap(object):
             # The detail layer gets a scaled copy of each high-resolution feature
             for hires_feature in hires_layer.features:
                 new_feature = self.__new_detail_feature(layer.id, detail_layer, minzoom,
-                                                        shapely.affinity.affine_transform(hires_feature.geometry, transform),
+                                                        transform.transform_geometry(hires_feature.geometry),
                                                         hires_feature.properties)
                 if new_feature.has_property('details'):
                     extra_details.append(new_feature)
