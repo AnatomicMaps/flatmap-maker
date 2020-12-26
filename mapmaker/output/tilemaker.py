@@ -130,6 +130,22 @@ class Rect(object):
     def width(self):
         return abs(self.x1 - self.x0)
 
+    @property
+    def x0(self):
+        return self.__x0
+
+    @property
+    def x1(self):
+        return self.__x1
+
+    @property
+    def y0(self):
+        return self.__y0
+
+    @property
+    def y1(self):
+        return self.__y1
+
     def to_fitz(self):
     #=================
         return fitz.Rect(self.x0, self.y0, self.x1, self.y1)
@@ -161,25 +177,20 @@ class TileExtractor(object):
         sy = image_rect.height/tiled_pixel_rect.height
         self.__tile_to_image = Transform((sx, sy), (tiled_pixel_rect.x0, tiled_pixel_rect.y0), (0, 0))
 
-    def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
-    #========================================================
+    def extract_tile_as_image(self, image_tile_rect):
+    #================================================
         # Overridden by subclass
         return transparent_image()
-
-    def get_scaling(self, x0, y0, x1, y1):
-    #=====================================
-        return (TILE_SIZE[0]/(x1 - x0), TILE_SIZE[1]/(y1 - y0))
 
     def get_tile(self, tile):
     #========================
         tile_x = tile.x - self.__tile_origin[0]
         tile_y = tile.y - self.__tile_origin[1]
-        (x0, y0) = self.__tile_to_image.transform_point(TILE_SIZE[0]*tile_x,
-                                                        TILE_SIZE[1]*tile_y)
-        (x1, y1) = self.__tile_to_image.transform_point(TILE_SIZE[0]*(tile_x + 1),
-                                                        TILE_SIZE[1]*(tile_y + 1))
-        scaling = self.get_scaling(x0, y0, x1, y1)
-        image = self.extract_tile_as_image(x0, y0, x1, y1, scaling)
+        image_tile_rect = Rect(self.__tile_to_image.transform_point(TILE_SIZE[0]*tile_x,
+                                                                    TILE_SIZE[1]*tile_y),
+                               self.__tile_to_image.transform_point(TILE_SIZE[0]*(tile_x + 1),
+                                                                    TILE_SIZE[1]*(tile_y + 1)))
+        image = self.extract_tile_as_image(image_tile_rect)
         image_size = get_image_size(image)
         if image_size == tuple(TILE_SIZE):
             return make_transparent(image)
@@ -199,16 +210,21 @@ class RasterTileExtractor(TileExtractor):
             image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
         self.__source_image = image
         super().__init__(tiled_pixel_rect, tile_origin, Rect((0, 0), get_image_size(image)))
+    def __get_scaling(self, image_tile_rect):
+    #========================================
+        return (TILE_SIZE[0]/image_tile_rect.width,
+                TILE_SIZE[1]/image_tile_rect.height)
 
-    def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
-    #========================================================
-        X0 = max(0, round(x0))
-        X1 = min(round(x1), self.__source_image.shape[1])
-        Y0 = max(0, round(y0))
-        Y1 = min(round(y1), self.__source_image.shape[0])
-        width = (TILE_SIZE[0] if x0 >= 0 and x1 < self.__source_image.shape[1]
+    def extract_tile_as_image(self, image_tile_rect):
+    #================================================
+        X0 = max(0, round(image_tile_rect.x0))
+        X1 = min(round(image_tile_rect.x1), self.__source_image.shape[1])
+        Y0 = max(0, round(image_tile_rect.y0))
+        Y1 = min(round(image_tile_rect.y1), self.__source_image.shape[0])
+        scaling = self.__get_scaling(image_tile_rect)
+        width = (TILE_SIZE[0] if image_tile_rect.x0 >= 0 and image_tile_rect.x1 < self.__source_image.shape[1]
             else round(scaling[0]*(X1 - X0)))
-        height = (TILE_SIZE[1] if y0 >= 0 and y1 < self.__source_image.shape[0]
+        height = (TILE_SIZE[1] if image_tile_rect.y0 >= 0 and image_tile_rect.y1 < self.__source_image.shape[0]
             else round(scaling[1]*(Y1 - Y0)))
         return cv2.resize(self.__source_image[Y0:Y1, X0:X1], (width, height), interpolation=cv2.INTER_CUBIC)
 
@@ -240,20 +256,21 @@ class PDFTileExtractor(TileExtractor):
         super().__init__(tiled_pixel_rect, pdf_page.rect)
         self.__pdf_page = pdf_page
 
-    def get_scaling(self, x0, y0, x1, y1):
-    #=====================================
-        return ((TILE_SIZE[0] - 1)/(x1 - x0),   # Fitz includes RH edge pixel
-                (TILE_SIZE[1] - 1)/(y1 - y0))   # so scale to 1px smaller...
+    def __get_scaling(self, image_tile_rect):
+    #========================================
+        return ((TILE_SIZE[0] - 1)/image_tile_rect.width,    # Fitz includes RH edge pixel
+                (TILE_SIZE[1] - 1)/image_tile_rect.height)   # so scale to 1px smaller...
 
-    def extract_tile_as_image(self, x0, y0, x1, y1, scaling):
-    #========================================================
-
+    def extract_tile_as_image(self, image_tile_rect):
+    #================================================
+        scaling = self.__get_scaling(image_tile_rect)
         # We now clip to avoid a black line if region outside of page...
-        if x1 >= self.__pdf_page.rect.width:
-            x1 = self.__pdf_page.rect.width - 1
-        if y1 >= self.__pdf_page.rect.height:
-            y1 = self.__pdf_page.rect.height - 1
-        pixmap = self.__pdf_page.getPixmap(clip=fitz.Rect(x0, y0, x1, y1),
+        if image_tile_rect.x1 >= self.__pdf_page.rect.width:
+            image_tile_rect.x1 = self.__pdf_page.rect.width - 1
+        if image_tile_rect.y1 >= self.__pdf_page.rect.height:
+            image_tile_rect.y1 = self.__pdf_page.rect.height - 1
+        pixmap = self.__pdf_page.getPixmap(clip=fitz.Rect(image_tile_rect.x0, image_tile_rect.y0,
+                                                          image_tile_rect.x1, image_tile_rect.y1),
                                            matrix=fitz.Matrix(*scaling),
                                            alpha=False)
         image = np.frombuffer(pixmap.samples, 'B').reshape(pixmap.height, pixmap.width, pixmap.n)
