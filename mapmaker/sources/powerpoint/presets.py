@@ -58,7 +58,6 @@ class PresetShapeDefinition(BaseOxmlElement):
 #===============================================================================
 
 class Geometry2D(BaseOxmlElement):
-
     avLst = ZeroOrOne("a:avLst")
     gdLst = ZeroOrOne("a:gdLst")
     pathLst = ZeroOrOne("a:pathLst")
