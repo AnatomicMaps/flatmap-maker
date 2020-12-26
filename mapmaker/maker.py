@@ -52,7 +52,7 @@ from .knowledgebase import LabelDatabase
 
 from .output.geojson import GeoJSONOutput
 from .output.mbtiles import MBTiles
-from .output.styling import Style
+from .output.styling import MapStyle
 from .output.tilejson import tile_json
 from .output.tilemaker import RasterTileMaker
 
@@ -579,7 +579,7 @@ class Flatmap(object):
 
         # Create style file
         metadata = tile_db.metadata()
-        style_dict = Style.style(raster_layers, metadata, self.__zoom)
+        style_dict = MapStyle.style(raster_layers, metadata, self.__zoom)
         with open(os.path.join(self.__map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 

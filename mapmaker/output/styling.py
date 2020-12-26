@@ -42,7 +42,7 @@ class ImageSource(object):
 
 #===============================================================================
 
-class RasterSource(object):
+class RasterTileSource(object):
     @staticmethod
     def style(layer_id, bounds, min_zoom, max_zoom):
         return {
@@ -56,7 +56,7 @@ class RasterSource(object):
 
 #===============================================================================
 
-class VectorSource(object):
+class VectorTileSource(object):
     @staticmethod
     def style(vector_layer_dict, bounds, layer_zoom):
         return {
@@ -75,19 +75,19 @@ class VectorSource(object):
 
 #===============================================================================
 
-class Sources(object):
+class TileSources(object):
     @staticmethod
     def style(raster_sources, vector_layer_dict, bounds, map_zoom):
         sources = {
-            'vector-tiles': VectorSource.style(vector_layer_dict, bounds, map_zoom)
+            'vector-tiles': VectorTileSource.style(vector_layer_dict, bounds, map_zoom)
         }
         for source in raster_sources:
-            sources[source.id] = RasterSource.style(source.id, bounds, source.min_zoom, map_zoom[1])
+            sources[source.id] = RasterTileSource.style(source.id, bounds, source.min_zoom, map_zoom[1])
         return sources
 
 #===============================================================================
 
-class Style(object):
+class MapStyle(object):
     @staticmethod
     def style(raster_sources, metadata, map_zoom):
         if 'json' not in metadata:
@@ -96,7 +96,7 @@ class Style(object):
         bounds = [float(x) for x in metadata['bounds'].split(',')]
         return {
             'version': 8,
-            'sources': Sources.style(raster_sources, vector_layer_dict, bounds, map_zoom),
+            'sources': TileSources.style(raster_sources, vector_layer_dict, bounds, map_zoom),
             'glyphs': 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
             'zoom': map_zoom[2],
             'center': [float(x) for x in metadata['center'].split(',')],

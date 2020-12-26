@@ -26,6 +26,13 @@ FLATMAP_VERSION  = 1.2
 
 #===============================================================================
 
+# Default zoom range of generated flatmap
+
+MIN_ZOOM  =  2   #: Default minimum zoom level for generated flatmaps
+MAX_ZOOM  = 10   #: Default maximum zoom level for generated flatmaps
+
+#===============================================================================
+
 from .maker import Flatmap
 
 #===============================================================================

@@ -24,8 +24,7 @@ import requests
 
 #===============================================================================
 
-from mapmaker import __version__
-from mapmaker.maker import Flatmap
+from mapmaker import Flatmap, __version__
 from mapmaker.utils import log
 
 #===============================================================================

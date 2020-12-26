@@ -33,6 +33,7 @@ from svglib.svglib import svg2rlg
 
 #===============================================================================
 
+from mapmaker import MAX_ZOOM
 import mapmaker.geometry
 from mapmaker.output.mbtiles import MBTiles, ExtractionError
 from mapmaker.sources import RasterSource
@@ -40,9 +41,6 @@ from mapmaker.sources.svg.rasteriser import SVGTiler
 from mapmaker.utils import log, ProgressBar
 
 #===============================================================================
-
-MIN_ZOOM  =  2
-MAX_ZOOM  = 10
 
 TILE_SIZE = (512, 512)
 WHITE     = (255, 255, 255)
