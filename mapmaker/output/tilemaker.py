@@ -214,11 +214,15 @@ class TileExtractor(object):
 #===============================================================================
 
 class RasterTileExtractor(TileExtractor):
-    def __init__(self, tiled_pixel_rect, tile_origin, image):
+    def __init__(self, tiled_pixel_rect, tile_origin, image, local_world_to_base=None):
         if image.shape[2] == 3:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
-        self.__source_image = image
         super().__init__(tiled_pixel_rect, tile_origin, Rect((0, 0), get_image_size(image)))
+        self.__source_image = image
+        self.__local_world_to_base = local_world_to_base
+        self.__base_world_to_local = (None if local_world_to_base is None
+                                           else local_world_to_base.inverse())
+
     def __get_scaling(self, image_tile_rect):
     #========================================
         return (TILE_SIZE[0]/image_tile_rect.width,
