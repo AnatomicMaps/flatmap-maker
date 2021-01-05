@@ -64,24 +64,26 @@ class MBFSource(MapSource):
         filename = image_element.find(self.ns_tag('filename')).text
         image_file = urljoin(source_path, filename.split('\\')[-1])
         image_array = np.frombuffer(path_data(image_file), dtype=np.uint8)
-        image = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
-        self.__raster_source = RasterSource('raster', image)
-
-        image_size = (image.shape[1], image.shape[0])
+        self.__image = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
+        image_size = (self.__image.shape[1], self.__image.shape[0])
+        self.__image_to_world = (Transform([[scaling[0]*WORLD_METRES_PER_UM,                   0, 0],
+                                            [                  0, scaling[1]*WORLD_METRES_PER_UM, 0],
+                                            [                  0,                              0, 1]])
+                                 @np.array([[1, 0, -image_size[0]/2.0],
+                                            [0, 1, -image_size[1]/2.0],
+                                            [0, 0,                1.0]]))
         (width, height) = (scaling[0]*image_size[0], scaling[1]*image_size[1])               # um
-        self.__transform = Transform([[WORLD_METRES_PER_UM,                   0, 0],
-                                      [                  0, WORLD_METRES_PER_UM, 0],
-                                      [                  0,                   0, 1]])@np.array([[1, 0, -width/2.0],
-                                                                                                [0, 1, height/2.0],
-                                                                                                [0, 0,        1.0]])
+        self.__um_to_world = (Transform([[WORLD_METRES_PER_UM,                   0, 0],
+                                         [                  0, WORLD_METRES_PER_UM, 0],
+                                         [                  0,                   0, 1]])
+                              @np.array([[1, 0, -width/2.0],
+                                         [0, 1, height/2.0],
+                                         [0, 0,        1.0]]))
         top_left = self.__transform.transform_point((0, 0))
         bottom_right = self.__transform.transform_point((width, -height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-
-    @property
-    def raster_source(self):
-        return self.__raster_source
+        self.__raster_source = None
 
     @property
     def organ(self):
@@ -91,12 +93,30 @@ class MBFSource(MapSource):
     def species(self):
         return self.__species
 
+    @property
+    def raster_source(self):
+        return self.__raster_source
+
+    def __set__raster_source(self, outline_geometry):
+    #================================================
+        if outline_geometry is None or outline_geometry.geom_type != 'Polygon':
+            image = self.__image
+        else:
+            # Mask image with boundary to remove artifacts
+            outline = self.__image_to_world.inverse().transform_geometry(outline_geometry)
+            mask = np.zeros(self.__image.shape, dtype=np.uint8)
+            mask_color = (255,)*self.__image.shape[2]
+            cv2.fillPoly(mask, np.array([outline.exterior.coords], dtype=np.int32), mask_color)
+            image = cv2.bitwise_and(self.__image, mask)
+        self.__raster_source = RasterSource('raster', image, world_transform=self.__image_to_world)
+
     def ns_tag(self, tag):
     #=====================
         return '{{{}}}{}'.format(self.__ns, tag)
 
     def process(self):
     #=================
+        boundary_geometry = None
         for contour in self.__mbf.findall(self.ns_tag('contour')):
             label = contour.get('name')
             association = contour.xpath('ns:property[@name="TraceAssociation"]/ns:s', namespaces={'ns': self.__ns})
@@ -105,7 +125,7 @@ class MBFSource(MapSource):
             for point in contour.findall(self.ns_tag('point')):
                 x = float(point.get('x'))
                 y = float(point.get('y'))
-                points.append(self.__transform.transform_point((x, y)))
+                points.append(self.__um_to_world.transform_point((x, y)))
 
             if contour.get('closed'):
                 if (points[0] != points[-1]).all():
@@ -122,6 +142,10 @@ class MBFSource(MapSource):
             feature = self.flatmap.new_feature(geometry, properties)
             self.__layer.add_feature(feature)
             if anatomical_id == self.__boundary_id:
+                boundary_geometry = feature.geometry
                 self.__layer.boundary_id = feature.feature_id
+
+        if settings.get('backgroundTiles', False):
+            self.__set_raster_source(boundary_geometry)
 
 #===============================================================================
