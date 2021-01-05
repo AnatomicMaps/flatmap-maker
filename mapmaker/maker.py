@@ -278,7 +278,10 @@ class Flatmap(object):
     def __process_sources(self):
     #===========================
         tile_background = settings.get('backgroundTiles', False)
-        for source in self.__manifest.sources:
+        # Sort so any ``base`` source kind is processed first
+        for layer_number, source in enumerate(sorted(
+                                        self.__manifest.sources,
+                                        key=lambda source: source.get('kind'))):
             source_id = source.get('id')
             source_kind = source.get('kind')
             source_href = source.get('href')
@@ -286,10 +289,11 @@ class Flatmap(object):
                 source_layer = PowerpointSource(self, source_id, source_href,
                                                 get_background=tile_background)
             elif source_kind == 'image':
-                if 'boundary' not in source:
+                if layer_number > 0 and 'boundary' not in source:
                     raise ValueError('An image source must specify a boundary')
                 source_layer = MBFSource(self, source_id, source_href,
-                                         source.get('boundary'))
+                                         boundary_id=source.get('boundary'),
+                                         output_layer=(layer_number==0))
             elif source_kind in ['base', 'details']:
                 source_layer = SVGSource(self, source_id, source_href,
                                          output_layer=(source_kind=='base'))
@@ -299,14 +303,16 @@ class Flatmap(object):
             source_layer.process()
             self.__add_source_layers(source_layer)
 
-            if source_kind in ['base', 'slides']:
-                if self.__extent is None:
-                    self.__extent = source_layer.extent
-                    self.__centre = ((self.__extent[0] + self.__extent[2])/2,
-                                     (self.__extent[1] + self.__extent[3])/2)
-                    self.__map_area = source_layer.map_area()
-                else:
-                    raise ValueError('Can only have a single base map')
+            # The first layer is used as the base map
+            if layer_number == 0:
+                if source_kind == 'details':
+                    raise ValueError('Details layer cannot be the base map')
+                self.__extent = source_layer.extent
+                self.__centre = ((self.__extent[0] + self.__extent[2])/2,
+                                 (self.__extent[1] + self.__extent[3])/2)
+                self.__map_area = source_layer.map_area()
+            elif source_kind not in ['details', 'image']:
+                raise ValueError('Can only have a single base map')
 
         if self.__visible_layer_count == 0:
             raise ValueError('No map layers in sources...')
