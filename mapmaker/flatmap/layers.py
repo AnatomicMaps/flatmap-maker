@@ -133,10 +133,10 @@ class FeatureLayer(object):
             'type': feature.get_property('geometry')
         })
 
-    def add_raster_layer(self, id, raster_source, extent, min_zoom=MIN_ZOOM, local_world_to_base=None):
-    #==================================================================================================
-        self.__raster_layers.append(RasterTileLayer(id, raster_source, extent, min_zoom,
-                                                    local_world_to_base))
+    def add_raster_layer(self, id, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):
+    #===============================================================================================
+        if map_source.raster_source is not None:
+            self.__raster_layers.append(RasterLayer(id, extent, map_source, min_zoom, local_world_to_base))
 
     def set_feature_properties(self, map_properties):
     #===============================================
@@ -342,17 +342,17 @@ class FeatureLayer(object):
 
 #===============================================================================
 
-class RasterTileLayer(object):
+class RasterLayer(object):
     """
-    Details of a raster tile layer.
+    Details of layer for creating raster tiles.
 
     :param id: the ``id`` of the source layer to rasterise
     :type id: str
-    :param raster_source: the source of the layer's raster data
-    :type raster_source: :class:`~mapmaker.sources.RasterSource`
-    :param extent: The base map's extent as decimal latitude and longitude
-                   coordinates
+    :param extent: the extent of the base map in which the layer is to be reasterised
+                   as decimal latitude and longitude coordinates.
     :type extent: tuple(south, west, north, east)
+    :param map_source: the source of the layer's data
+    :type map_source: :class:`~mapmaker.sources.MapSource`
     :param min_zoom: The minimum zoom level to generate tiles for.
                      Optional, defaults to ``MIN_ZOOM``
     :type map_zoom: int
@@ -362,17 +362,14 @@ class RasterTileLayer(object):
                                 the :class:`~mapmaker.geometry.Identity` transform
     :type local_world_to_base: :class:`~mapmaker.geometry.Transform`
     """
-    def __init__(self, id, raster_source, extent,
-                 min_zoom=MIN_ZOOM, local_world_to_base=None):
+    def __init__(self, id, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):
         self.__id = '{}_image'.format(id)
-        self.__raster_source = raster_source
-        self.__min_zoom = min_zoom
         self.__extent = extent
+        self.__source_data = map_source.raster_source.source_data
+        self.__source_extent = map_source.extent
+        self.__source_kind = map_source.raster_source.source_kind
+        self.__min_zoom = min_zoom
         self.__local_world_to_base = local_world_to_base
-
-    @property
-    def local_world_to_base(self):
-        return self.__local_world_to_base
 
     @property
     def extent(self):
@@ -383,11 +380,23 @@ class RasterTileLayer(object):
         return self.__id
 
     @property
+    def local_world_to_base(self):
+        return self.__local_world_to_base
+
+    @property
     def min_zoom(self):
         return self.__min_zoom
 
     @property
-    def raster_source(self):
-        return self.__raster_source
+    def source_data(self):
+        return self.__source_data
+
+    @property
+    def source_extent(self):
+        return self.__source_extent
+
+    @property
+    def source_kind(self):
+        return self.__source_kind
 
 #===============================================================================

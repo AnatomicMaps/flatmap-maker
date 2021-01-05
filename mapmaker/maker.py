@@ -341,12 +341,12 @@ class Flatmap(object):
         if layer.output_layer:
             self.__visible_layer_count += 1
 
-    def __add_source_layers(self, source):
-    #=====================================
-        for layer in source.layers:
+    def __add_source_layers(self, map_source):
+    #=========================================
+        for layer in map_source.layers:
             self.__add_layer(layer)
             if layer.output_layer:
-                layer.add_raster_layer(layer.id, source.raster_source, source.extent, self.__zoom[0])
+                layer.add_raster_layer(layer.id, map_source.extent, map_source, self.__zoom[0])
 
     def __set_feature_properties(self):
     #==================================
@@ -427,8 +427,7 @@ class Flatmap(object):
                 extent = transform.transform_extent(hires_layer.source.extent)
 
                 layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
-                                        hires_layer.source.raster_source,
-                                        extent, minzoom,
+                                        extent, hires_layer.source, minzoom,
                                         local_world_to_base=transform)
 
             # The detail layer gets a scaled copy of each high-resolution feature
