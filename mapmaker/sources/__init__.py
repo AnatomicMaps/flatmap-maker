@@ -57,6 +57,10 @@ class MapSource(object):
 
     @property
     def bounds(self):
+        """
+        :returns: The map's (SE, NW) bounds in WGS84 metres.
+        :rtype: tuple(float, float, float, float)
+        """
         return self.__bounds
 
     @bounds.setter
@@ -69,6 +73,10 @@ class MapSource(object):
 
     @property
     def extent(self):
+        """
+        :returns: The map's (SE, NW) bounds as decimal latitude and longitude coordinates.
+        :rtype: tuple(float, float, float, float)
+        """
         return bounds_to_extent(self.__bounds)
 
     @property
@@ -80,12 +88,12 @@ class MapSource(object):
         return self.__id
 
     @property
-    def raster_source(self):
-        return None
-
-    @property
     def layers(self):
         return self.__layers
+
+    @property
+    def raster_source(self):
+        return None
 
     def add_layer(self, layer):
     #==========================
