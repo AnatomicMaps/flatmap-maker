@@ -67,7 +67,7 @@ class PowerpointSlide(FeatureLayer):
                                  .format(slide_number, notes_text))
                 if 'id' in layer_directive:
                     id = layer_directive['id']
-        super().__init__(id, source, output_layer=(slide_number==1))
+        super().__init__(id, source, base_layer=(slide_number==1))
         self.__slide = slide
         self.__slide_number = slide_number
         self.__transform = source.transform
@@ -128,7 +128,7 @@ class PowerpointSlide(FeatureLayer):
              or isinstance(shape, pptx.shapes.connector.Connector)):
                 geometry = self.__get_geometry(shape, properties, transform)
                 feature = self.flatmap.new_feature(geometry, properties)
-                if self.output_layer and not feature.get_property('group'):
+                if self.base_layer and not feature.get_property('group'):
                     # Save relationship between id/class and internal feature id
                     self.flatmap.save_feature_id(feature)
                 features.append(feature)
@@ -137,7 +137,7 @@ class PowerpointSlide(FeatureLayer):
                 grouped_feature = self.__process_group(shape, properties, transform)
                 self.__current_group.pop()
                 if grouped_feature is not None:
-                    if self.output_layer:
+                    if self.base_layer:
                         self.flatmap.save_feature_id(grouped_feature)
                     features.append(grouped_feature)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX

@@ -30,7 +30,7 @@ from mapmaker.geometry import save_geometry
 #===============================================================================
 
 class FeatureLayer(object):
-    def __init__(self, id, source, output_layer=False):
+    def __init__(self, id, source, base_layer=False):
         self.__id = id
         self.__source = source
         self.__flatmap = source.flatmap
@@ -42,7 +42,7 @@ class FeatureLayer(object):
         self.__detail_features = []
         self.__feature_types = []
 #*        self.__ontology_data = self.options.ontology_data
-        self.__output_layer = output_layer
+        self.__base_layer = base_layer
         self.__queryable_nodes = False
         self.__raster_layers = []
         self.__zoom = None
@@ -50,6 +50,10 @@ class FeatureLayer(object):
     @property
     def annotations(self):
         return self.__annotations
+
+    @property
+    def base_layer(self):
+        return self.__base_layer
 
     @property
     def boundary_id(self):
@@ -98,10 +102,6 @@ class FeatureLayer(object):
     @property
     def raster_layers(self):
         return self.__raster_layers
-
-    @property
-    def output_layer(self):
-        return self.__output_layer
 
     @property
     def queryable_nodes(self):

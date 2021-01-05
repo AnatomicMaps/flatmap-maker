@@ -41,11 +41,11 @@ from mapmaker.utils import path_data, path_open
 #===============================================================================
 
 class MBFSource(MapSource):
-    def __init__(self, flatmap, id, source_path, boundary_id=None, output_layer=False):
+    def __init__(self, flatmap, id, source_path, boundary_id=None, base_layer=False):
         super().__init__(flatmap, id)
         self.__boundary_id = boundary_id
 
-        self.__layer = FeatureLayer(id, self, output_layer=output_layer)
+        self.__layer = FeatureLayer(id, self, base_layer=base_layer)
         self.add_layer(self.__layer)
 
         self.__mbf = etree.parse(path_open(source_path)).getroot()

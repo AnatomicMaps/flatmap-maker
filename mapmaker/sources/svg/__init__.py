@@ -65,10 +65,10 @@ IGNORED_SVG_TAGS = [
 #===============================================================================
 
 class SVGSource(MapSource):
-    def __init__(self, flatmap, id, source_path, output_layer=True):
+    def __init__(self, flatmap, id, source_path, base_layer=True):
         super().__init__(flatmap, id)
         self.__source_path = source_path
-        self.__output_layer = output_layer
+        self.__base_layer = base_layer
         self.__svg = etree.parse(path_open(source_path)).getroot()
         if 'viewBox' in self.__svg.attrib:
             (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
@@ -86,7 +86,7 @@ class SVGSource(MapSource):
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
-        self.__layer = SVGLayer(id, self, output_layer)
+        self.__layer = SVGLayer(id, self, base_layer)
         self.__raster_source = None
         self.add_layer(self.__layer)
 
@@ -101,7 +101,7 @@ class SVGSource(MapSource):
     def process(self):
     #=================
         self.__layer.process(self.__svg)
-        if self.__output_layer:
+        if self.__base_layer:
             # Save a cleaned copy of the SVG in the map's output directory
             cleaner = SVGCleaner(self.__source_path, self.flatmap.map_properties)
             cleaner.clean()
@@ -120,8 +120,8 @@ class SVGSource(MapSource):
 #===============================================================================
 
 class SVGLayer(FeatureLayer):
-    def __init__(self, id, source, output_layer=True):
-        super().__init__(id, source, output_layer=output_layer)
+    def __init__(self, id, source, base_layer=True):
+        super().__init__(id, source, base_layer=base_layer)
         self.__transform = source.transform
         self.__current_group = []
         self.__definitions = DefinitionStore()
@@ -188,7 +188,7 @@ class SVGLayer(FeatureLayer):
             if geometry is None:
                 return
             feature = self.flatmap.new_feature(geometry, properties)
-            if self.output_layer and not feature.get_property('group'):
+            if self.base_layer and not feature.get_property('group'):
                 # Save relationship between id/class and internal feature id
                 self.flatmap.save_feature_id(feature)
             features.append(feature)
@@ -197,7 +197,7 @@ class SVGLayer(FeatureLayer):
             grouped_feature = self.__process_group(element, properties, transform)
             self.__current_group.pop()
             if grouped_feature is not None:
-                if self.output_layer:
+                if self.base_layer:
                     self.flatmap.save_feature_id(grouped_feature)
                 features.append(grouped_feature)
         elif element.tag in IGNORED_SVG_TAGS:

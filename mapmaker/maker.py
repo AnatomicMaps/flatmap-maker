@@ -293,10 +293,10 @@ class Flatmap(object):
                     raise ValueError('An image source must specify a boundary')
                 source_layer = MBFSource(self, source_id, source_href,
                                          boundary_id=source.get('boundary'),
-                                         output_layer=(layer_number==0))
+                                         base_layer=(layer_number==0))
             elif source_kind in ['base', 'details']:
                 source_layer = SVGSource(self, source_id, source_href,
-                                         output_layer=(source_kind=='base'))
+                                         base_layer=(source_kind=='base'))
             else:
                 raise ValueError('Unsupported source kind: {}'.format(source_kind))
 
@@ -338,14 +338,14 @@ class Flatmap(object):
         if layer.id in self.__layer_dict:
             raise KeyError('Duplicate layer id: {}'.format(layer.id))
         self.__layer_dict[layer.id] = layer
-        if layer.output_layer:
+        if layer.base_layer:
             self.__visible_layer_count += 1
 
     def __add_source_layers(self, map_source):
     #=========================================
         for layer in map_source.layers:
             self.__add_layer(layer)
-            if layer.output_layer:
+            if layer.base_layer:
                 layer.add_raster_layer(layer.id, map_source.extent, map_source, self.__zoom[0])
 
     def __set_feature_properties(self):
@@ -370,8 +370,8 @@ class Flatmap(object):
         log('Adding details...')
         detail_layers = []
         for layer in self.__layer_dict.values():
-            if layer.output_layer and layer.detail_features:
-                detail_layer = FeatureLayer('{}_details'.format(layer.id), layer.source, output_layer=True)
+            if layer.base_layer and layer.detail_features:
+                detail_layer = FeatureLayer('{}_details'.format(layer.id), layer.source, base_layer=True)
                 detail_layers.append(detail_layer)
                 self.__add_detail_features(layer, detail_layer, layer.detail_features)
         for layer in detail_layers:
@@ -493,7 +493,7 @@ class Flatmap(object):
     #==========================
         metadata = []
         for layer in self.__layer_dict.values():
-            if layer.output_layer:
+            if layer.base_layer:
                 map_layer = {
                     'id': layer.id,
                     'description': layer.description,
@@ -511,7 +511,7 @@ class Flatmap(object):
     #==========================
         log('Outputting GeoJson features...')
         for layer in self.__layer_dict.values():
-            if layer.output_layer:
+            if layer.base_layer:
                 log('Layer:', layer.id)
                 geojson_output = GeoJSONOutput(layer, self.__map_area, self.__map_dir)
                 saved_layer = geojson_output.save(layer.features, settings.get('saveGeoJSON', False))
