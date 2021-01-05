@@ -36,6 +36,7 @@ from .. import WORLD_METRES_PER_UM
 
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import Transform
+from mapmaker.settings import settings
 from mapmaker.utils import path_data, path_open
 
 #===============================================================================
@@ -66,9 +67,9 @@ class MBFSource(MapSource):
         image_array = np.frombuffer(path_data(image_file), dtype=np.uint8)
         self.__image = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
         image_size = (self.__image.shape[1], self.__image.shape[0])
-        self.__image_to_world = (Transform([[scaling[0]*WORLD_METRES_PER_UM,                   0, 0],
-                                            [                  0, scaling[1]*WORLD_METRES_PER_UM, 0],
-                                            [                  0,                              0, 1]])
+        self.__image_to_world = (Transform([[scaling[0]*WORLD_METRES_PER_UM,                    0, 0],
+                                            [                  0, -scaling[1]*WORLD_METRES_PER_UM, 0],
+                                            [                  0,                               0, 1]])
                                  @np.array([[1, 0, -image_size[0]/2.0],
                                             [0, 1, -image_size[1]/2.0],
                                             [0, 0,                1.0]]))
@@ -79,8 +80,8 @@ class MBFSource(MapSource):
                               @np.array([[1, 0, -width/2.0],
                                          [0, 1, height/2.0],
                                          [0, 0,        1.0]]))
-        top_left = self.__transform.transform_point((0, 0))
-        bottom_right = self.__transform.transform_point((width, -height))
+        top_left = self.__um_to_world.transform_point((0, 0))
+        bottom_right = self.__um_to_world.transform_point((width, -height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
         self.__raster_source = None
@@ -97,17 +98,18 @@ class MBFSource(MapSource):
     def raster_source(self):
         return self.__raster_source
 
-    def __set__raster_source(self, outline_geometry):
-    #================================================
+    def __set_raster_source(self, outline_geometry):
+    #===============================================
         if outline_geometry is None or outline_geometry.geom_type != 'Polygon':
             image = self.__image
         else:
             # Mask image with boundary to remove artifacts
             outline = self.__image_to_world.inverse().transform_geometry(outline_geometry)
-            mask = np.zeros(self.__image.shape, dtype=np.uint8)
-            mask_color = (255,)*self.__image.shape[2]
+            mask = np.full(self.__image.shape, 255, dtype=np.uint8)
+            mask_color = (0,)*self.__image.shape[2]
+            print(self.__image.shape, mask_color)
             cv2.fillPoly(mask, np.array([outline.exterior.coords], dtype=np.int32), mask_color)
-            image = cv2.bitwise_and(self.__image, mask)
+            image = cv2.bitwise_or(self.__image, mask)
         self.__raster_source = RasterSource('raster', image, world_transform=self.__image_to_world)
 
     def ns_tag(self, tag):
