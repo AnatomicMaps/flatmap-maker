@@ -24,6 +24,7 @@ import re
 #===============================================================================
 
 import cssselect2
+import cv2
 from lxml import etree
 import mercantile
 import shapely.geometry
@@ -137,16 +138,16 @@ class StyleMatcher(cssselect2.Matcher):
 #===============================================================================
 
 class SVGTiler(object):
-    def __init__(self, file_object, tiled_pixel_rect, tile_origin=None, tiles=None, tile_size=None):
-        self.__svg = etree.parse(file_object).getroot()
+    def __init__(self, raster_layer, tile_set):
+        self.__svg = etree.parse(raster_layer.source_data).getroot()
         if 'viewBox' in self.__svg.attrib:
             self.__size = tuple(float(x)
                 for x in self.__svg.attrib['viewBox'].split()[2:])
         else:
             self.__size = (length_as_pixels(self.__svg.attrib['width']),
                            length_as_pixels(self.__svg.attrib['height']))
-        self.__scaling = (tiled_pixel_rect.width/self.__size[0],
-                          tiled_pixel_rect.height/self.__size[1])
+        self.__scaling = (tile_set.pixel_rect.width/self.__size[0],
+                          tile_set.pixel_rect.height/self.__size[1])
         self.__definitions = DefinitionStore()
         defs = self.__svg.find(SVG_NS('defs'))
         if defs is not None:
@@ -154,48 +155,34 @@ class SVGTiler(object):
         self.__style_matcher = StyleMatcher(self.__svg.find(SVG_NS('style')))
         self.__first_scan = True
 
+        self.__path_list = []
         transform = Transform([[self.__scaling[0],               0.0, 0.0],
                                [              0.0, self.__scaling[1], 0.0],
                                [              0.0,               0.0, 1.0]])
-        self.__path_list = []
         self.__draw_svg(transform, self.__path_list)
 
-        if tiles is not None:
-            self.__tile_size = tile_size
-            self.__tile_origin = tile_origin
-            self.__pixel_offset = tuple(tiled_pixel_rect)[0:2]
-            path_bounding_boxes = [ (path, paint,
-                                        shapely.geometry.box(*tuple(path.getBounds())))
-                                    for (path, paint) in self.__path_list ]
-            self.__tile_paths = {}
-            for tile in tiles:
-                #tile_bbox = shapely.prepared.prep(shapely.geometry.box(*tuple(mercantile.xy_bounds(tile))))
-                x0 = (tile.x - tile_origin[0])*self.__tile_size[0] - self.__pixel_offset[0]
-                y0 = (tile.y - tile_origin[1])*self.__tile_size[1] - self.__pixel_offset[1]
-                tile_bbox = shapely.prepared.prep(shapely.geometry.box(x0, y0,
-                                                                       x0 + self.__tile_size[0],
-                                                                       y0 + self.__tile_size[0]))
-                self.__tile_paths[mercantile.quadkey(tile)] = list(filter(
-                    lambda ppb: tile_bbox.intersects(ppb[2]),
-                    path_bounding_boxes))
-        else:
-            self.__tile_paths = None
+        self.__tile_size = tile_set.tile_size
+        self.__tile_origin = tile_set.start_coords
+        self.__pixel_offset = tuple(tile_set.pixel_rect)[0:2]
+        path_bounding_boxes = [ (path, paint,
+                                    shapely.geometry.box(*tuple(path.getBounds())))
+                                for (path, paint) in self.__path_list ]
+        self.__tile_paths = {}
+        for tile in tile_set:
+            tile_set.tile_coords_to_pixels.transform_point((tile.x, tile.y))
+
+            x0 = (tile.x - self.__tile_origin[0])*self.__tile_size[0] - self.__pixel_offset[0]
+            y0 = (tile.y - self.__tile_origin[1])*self.__tile_size[1] - self.__pixel_offset[1]
+            tile_bbox = shapely.prepared.prep(shapely.geometry.box(x0, y0,
+                                                                   x0 + self.__tile_size[0],
+                                                                   y0 + self.__tile_size[0]))
+            self.__tile_paths[mercantile.quadkey(tile)] = list(filter(
+                lambda ppb: tile_bbox.intersects(ppb[2]),
+                path_bounding_boxes))
 
     @property
     def size(self):
         return self.__size
-
-    def get_image(self):
-    #===================
-        (width, height) = (int(self.__scaling[0]*self.__size[0] + 0.5),
-                           int(self.__scaling[1]*self.__size[1] + 0.5))
-        log.info('Tiling {} x {} image'.format(width, height))
-        surface = skia.Surface(width, height)
-        canvas = surface.getCanvas()
-        for (path, paint) in self.__path_list:
-            canvas.drawPath(path, paint)
-        log.info('Making image snapshot...')
-        return surface.makeImageSnapshot().toarray()
 
     def get_tile(self, tile):
     #========================
@@ -206,7 +193,8 @@ class SVGTiler(object):
         quadkey = mercantile.quadkey(tile)
         for path, paint, bbox in self.__tile_paths.get(quadkey, []):
             canvas.drawPath(path, paint)
-        return surface.makeImageSnapshot().toarray()
+        rgba = surface.makeImageSnapshot().toarray()
+        return cv2.cvtColor(rgba, cv2.COLOR_RGBA2BGRA)
 
     def __draw_svg(self, transform, path_list, show_progress=False):
     #===============================================================

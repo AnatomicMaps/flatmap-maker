@@ -110,7 +110,7 @@ class MBFSource(MapSource):
             print(self.__image.shape, mask_color)
             cv2.fillPoly(mask, np.array([outline.exterior.coords], dtype=np.int32), mask_color)
             image = cv2.bitwise_or(self.__image, mask)
-        self.__raster_source = RasterSource('raster', image, world_transform=self.__image_to_world)
+        self.__raster_source = RasterSource('image', image, world_transform=self.__image_to_world)
 
     def ns_tag(self, tag):
     #=====================
