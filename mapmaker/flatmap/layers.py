@@ -365,9 +365,7 @@ class RasterLayer(object):
     def __init__(self, id, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):
         self.__id = '{}_image'.format(id)
         self.__extent = extent
-        self.__source_data = map_source.raster_source.source_data
-        self.__source_extent = map_source.extent
-        self.__source_kind = map_source.raster_source.source_kind
+        self.__map_source = map_source
         self.__min_zoom = min_zoom
         self.__local_world_to_base = local_world_to_base
 
@@ -380,8 +378,8 @@ class RasterLayer(object):
         return self.__id
 
     @property
-    def local_world_to_base(self):
-        return self.__local_world_to_base
+    def map_source(self):
+        return self.__map_source
 
     @property
     def min_zoom(self):
@@ -389,14 +387,18 @@ class RasterLayer(object):
 
     @property
     def source_data(self):
-        return self.__source_data
+        return self.__map_source.raster_source.source_data
 
     @property
     def source_extent(self):
-        return self.__source_extent
+        return self.__map_source.extent
 
     @property
     def source_kind(self):
-        return self.__source_kind
+        return self.__map_source.raster_source.source_kind
+
+    @property
+    def local_world_to_base(self):
+        return self.__local_world_to_base
 
 #===============================================================================

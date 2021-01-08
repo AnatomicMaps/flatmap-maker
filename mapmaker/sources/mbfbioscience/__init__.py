@@ -37,6 +37,7 @@ from .. import WORLD_METRES_PER_UM
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import Transform
 from mapmaker.settings import settings
+from mapmaker.sources import mask_image
 from mapmaker.utils import path_data, path_open
 
 #===============================================================================
@@ -45,6 +46,7 @@ class MBFSource(MapSource):
     def __init__(self, flatmap, id, source_path, boundary_id=None, base_layer=False):
         super().__init__(flatmap, id)
         self.__boundary_id = boundary_id
+        self.__boundary_geometry = None
 
         self.__layer = FeatureLayer(id, self, base_layer=base_layer)
         self.add_layer(self.__layer)
@@ -66,6 +68,8 @@ class MBFSource(MapSource):
         image_file = urljoin(source_path, filename.split('\\')[-1])
         image_array = np.frombuffer(path_data(image_file), dtype=np.uint8)
         self.__image = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
+        if self.__image.shape[2] == 3:
+            self.__image = cv2.cvtColor(self.__image, cv2.COLOR_RGB2RGBA)
         image_size = (self.__image.shape[1], self.__image.shape[0])
         self.__image_to_world = (Transform([[scaling[0]*WORLD_METRES_PER_UM,                    0, 0],
                                             [                  0, -scaling[1]*WORLD_METRES_PER_UM, 0],
@@ -73,6 +77,7 @@ class MBFSource(MapSource):
                                  @np.array([[1, 0, -image_size[0]/2.0],
                                             [0, 1, -image_size[1]/2.0],
                                             [0, 0,                1.0]]))
+        self.__world_to_image = self.__image_to_world.inverse()
         (width, height) = (scaling[0]*image_size[0], scaling[1]*image_size[1])               # um
         self.__um_to_world = (Transform([[WORLD_METRES_PER_UM,                   0, 0],
                                          [                  0, WORLD_METRES_PER_UM, 0],
@@ -87,6 +92,14 @@ class MBFSource(MapSource):
         self.__raster_source = None
 
     @property
+    def boundary_geometry(self):
+        return self.__boundary_geometry
+
+    @property
+    def image_to_world(self):
+        return self.__image_to_world
+
+    @property
     def organ(self):
         return self.__organ
 
@@ -98,19 +111,15 @@ class MBFSource(MapSource):
     def raster_source(self):
         return self.__raster_source
 
-    def __set_raster_source(self, outline_geometry):
-    #===============================================
-        if outline_geometry is None or outline_geometry.geom_type != 'Polygon':
-            image = self.__image
-        else:
+    def __set_raster_source(self, boundary_geometry):
+    #================================================
+        if boundary_geometry is not None and boundary_geometry.geom_type == 'Polygon':
+            # Save boundary in case transformed image is used for details
+            self.__boundary_geometry = boundary_geometry
             # Mask image with boundary to remove artifacts
-            outline = self.__image_to_world.inverse().transform_geometry(outline_geometry)
-            mask = np.full(self.__image.shape, 255, dtype=np.uint8)
-            mask_color = (0,)*self.__image.shape[2]
-            print(self.__image.shape, mask_color)
-            cv2.fillPoly(mask, np.array([outline.exterior.coords], dtype=np.int32), mask_color)
-            image = cv2.bitwise_or(self.__image, mask)
-        self.__raster_source = RasterSource('image', image, world_transform=self.__image_to_world)
+            self.__image = mask_image(self.__image,
+                                      self.__world_to_image.transform_geometry(boundary_geometry))
+        self.__raster_source = RasterSource('image', self.__image)
 
     def ns_tag(self, tag):
     #=====================

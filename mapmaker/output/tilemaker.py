@@ -29,6 +29,7 @@ import fitz
 import mercantile
 import numpy as np
 from reportlab.graphics import renderPDF
+import shapely.geometry
 from svglib.svglib import svg2rlg
 
 #===============================================================================
@@ -53,7 +54,7 @@ def image_offset(dimension, max_dim, limit, bounds, scale):
             if limit[1] < bounds[1]:
                 return max_dim - dimension
             else:
-                return int(math.floor(0.5 - lower*scale))
+                return int(math.floor(0.5 - limit[0]*scale))
     elif dimension != max_dim:
         raise AssertionError('Image size mismatch: {} != {}'.format(dimension, max_dim))
     return 0
@@ -97,6 +98,10 @@ class Rect(object):
         return 'Rect: ({}, {}, {}, {})'.format(*self.__coords)
 
     @property
+    def geometry(self):
+        return shapely.geometry.box(*self.__coords)
+
+    @property
     def height(self):
         return abs(self.__coords[3] - self.__coords[1])
 
@@ -127,7 +132,8 @@ class Rect(object):
 #===============================================================================
 
 class Transform(mapmaker.geometry.Transform):
-    def __init__(self, scale, translateA=None, translateB=None):
+    def __init__(self, scale=None, translateA=None, translateB=None):
+        if scale is None: scale = (1, 1)
         if translateA is None: translateA = (0, 0)
         if translateB is None: translateB = (0, 0)
         super().__init__([[ scale[0], 0, -scale[0]*translateA[0] + translateB[0] ],
@@ -226,7 +232,7 @@ class TileSet(object):
         return self.__pixel_rect
 
     @property
-    def tile_pixels_to_world_transform(self):
+    def tile_pixels_to_world(self):
         """
         :returns: Transform from tile pixel coordinates to world coordinates.
         :rtype: :class:`Transform`
@@ -258,7 +264,7 @@ class TileSet(object):
         """
         return self.__tile_coords_to_pixels
 
-    def tile_pixels_to_image_transform(self, image_rect):
+    def tile_pixels_to_image(self, image_rect):
         """
         :param      image_rect:  The image rectangle
         :type       image_rect:  :rtype: :class:`Rect`
@@ -272,7 +278,7 @@ class TileSet(object):
                          (image_rect.x0,        image_rect.y0))
 
     @property
-    def world_to_tile_pixels_transform(self):
+    def world_to_tile_pixels(self):
         """
         :returns: Transform from world coordinates to tile pixel coordinates.
         :rtype: :class:`Transform`
@@ -294,13 +300,21 @@ class RasterTiler(object):
     """
     def __init__(self, raster_layer, tile_set, image_rect):
         self.__image_rect = image_rect
-        self.__tile_to_image = tile_set.tile_pixels_to_image_transform(self.__image_rect)
+        self.__tile_pixels_to_image = tile_set.tile_pixels_to_image(self.__image_rect)
         self.__tile_coords_to_pixels = tile_set.tile_coords_to_pixels
         self.__tile_size = tile_set.tile_size
 
     @property
     def image_rect(self):
         return self.__image_rect
+
+    @property
+    def tile_coords_to_pixels(self):
+        return self.__tile_coords_to_pixels
+
+    @property
+    def tile_coords_to_world(self):
+        return self.__tile_coords_to_world
 
     @property
     def tile_size(self):
@@ -320,7 +334,7 @@ class RasterTiler(object):
     #========================
         tile_pixel_rect = Rect(self.__tile_coords_to_pixels.transform_point((tile.x, tile.y)),
                                *self.__tile_size)
-        image_tile_rect = self.__tile_to_image.transform_rect(tile_pixel_rect)
+        image_tile_rect = self.__tile_pixels_to_image.transform_rect(tile_pixel_rect)
         tile_image = self.extract_tile_as_image(image_tile_rect)
         size = image_size(tile_image)
         if size == tuple(self.__tile_size):
@@ -337,12 +351,23 @@ class RasterTiler(object):
 
 #===============================================================================
 
-class ImageTiler(RasterTiler):
-    def __init__(self, raster_layer, tile_set):
-        image = raster_layer.source_data
-        if image.shape[2] == 3:
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
-        super().__init__(raster_layer, tile_set, Rect((0, 0), image_size(image)))
+class RasterImageTiler(RasterTiler):
+    def __init__(self, raster_layer, tile_set, image, image_to_local_world):
+        if raster_layer.local_world_to_base is None:
+            image_rect = Rect((0, 0), image_size(image))
+        else:
+            local_world_to_tile = (tile_set.world_to_tile_pixels
+                                  @raster_layer.local_world_to_base)
+            image_to_tile = local_world_to_tile@image_to_local_world
+            image_rect = tile_set.pixel_rect
+            image = cv2.warpPerspective(image, image_to_tile.matrix,
+                                        image_rect.size_as_int,
+                                        flags=cv2.INTER_CUBIC)
+            if raster_layer.map_source.boundary_geometry is not None:
+                # Remove edge artifacts by masking with boundary
+                image = mask_image(image, local_world_to_tile.transform_geometry(
+                                                            raster_layer.map_source.boundary_geometry))
+        super().__init__(raster_layer, tile_set, image_rect)
         self.__source_image = image
 
     def extract_tile_as_image(self, image_tile_rect):
@@ -357,6 +382,16 @@ class ImageTiler(RasterTiler):
         height = (self.tile_size[1] if image_tile_rect.y0 >= 0 and image_tile_rect.y1 < self.__source_image.shape[0]
             else round(scaling[1]*(Y1 - Y0)))
         return cv2.resize(self.__source_image[Y0:Y1, X0:X1], (width, height), interpolation=cv2.INTER_CUBIC)
+
+#===============================================================================
+
+class ImageTiler(RasterImageTiler):
+    def __init__(self, raster_layer, tile_set):
+        image = raster_layer.source_data
+        if image.shape[2] == 3:
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
+        tile_bounds = mapmaker.geometry.extent_to_bounds(tile_set.extent)
+        super().__init__(raster_layer, tile_set, image, raster_layer.map_source.image_to_world)
 
 #===============================================================================
 

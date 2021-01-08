@@ -103,6 +103,10 @@ class Transform(object):
     def __str__(self):
         return str(self.__matrix)
 
+    @property
+    def matrix(self):
+        return self.__matrix
+
     def flatten(self):
     #=================
         return self.__matrix.flatten()
