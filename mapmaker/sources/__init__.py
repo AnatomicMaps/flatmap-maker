@@ -18,6 +18,11 @@
 #
 #===============================================================================
 
+import cv2
+import numpy as np
+
+#===============================================================================
+
 from mapmaker.geometry import bounds_to_extent
 
 #===============================================================================
@@ -44,6 +49,43 @@ WORLD_METRES_PER_UM = 100
 # image tiling.
 EXCLUDE_SHAPE_TYPES = ['group', 'invisible', 'marker', 'path', 'region', 'centreline']
 EXCLUDE_TILE_LAYERS = ['pathways']
+
+#===============================================================================
+
+WHITE     = (255, 255, 255)
+
+#===============================================================================
+
+# Based on https://stackoverflow.com/a/54148416/2159023
+
+def add_alpha(image, colour=WHITE):
+#==================================
+    transparent = image.copy()
+    if colour == WHITE:
+        transparent[:, :, 3] = (255*((transparent[:, :, :3] != 255).any(axis=2) * (transparent[:, :, 3] != 0))).astype(np.uint8)
+    else:
+        transparent[:, :, 3] = (255*((transparent[:,:,0:3] != tuple(colour)[0:3]).any(axis=2) * (transparent[:, :, 3] != 0))).astype(np.uint8)
+    return transparent
+
+def blank_image(size=(1, 1)):
+#============================
+    tile = np.full(size + (4,), 255, dtype=np.uint8)
+    tile[:,:,3] = 0
+    return tile
+
+def mask_image(image, mask_polygon):
+#===================================
+    mask = np.full(image.shape, 255, dtype=np.uint8)
+    if image.shape[2] == 4:
+        mask[:, :, 3] = 0
+    mask_color = (0,)*image.shape[2]
+    cv2.fillPoly(mask, np.array([mask_polygon.exterior.coords], dtype=np.int32),
+                 color=mask_color, lineType=cv2.LINE_AA)
+    return cv2.bitwise_or(image, mask)
+
+def not_empty(image):
+#====================
+    return np.any(image[:,:,3])
 
 #===============================================================================
 

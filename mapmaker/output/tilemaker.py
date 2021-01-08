@@ -36,36 +36,13 @@ from svglib.svglib import svg2rlg
 from mapmaker import MAX_ZOOM
 import mapmaker.geometry
 from mapmaker.output.mbtiles import MBTiles, ExtractionError
+from mapmaker.sources import add_alpha, blank_image, mask_image, not_empty
 from mapmaker.sources.svg.rasteriser import SVGTiler
 from mapmaker.utils import log, ProgressBar
 
 #===============================================================================
 
 TILE_SIZE = (512, 512)
-WHITE     = (255, 255, 255)
-
-#===============================================================================
-
-# Based on https://stackoverflow.com/a/54148416/2159023
-
-def make_transparent(tile, colour=WHITE):
-#========================================
-    transparent = tile.copy()
-    if colour == WHITE:
-        transparent[:, :, 3] = (255*((transparent[:, :, :3] != 255).any(axis=2) * (transparent[:, :, 3] != 0))).astype(np.uint8)
-    else:
-        transparent[:, :, 3] = (255*((transparent[:,:,0:3] != tuple(colour)[0:3]).any(axis=2) * (transparent[:, :, 3] != 0))).astype(np.uint8)
-    return transparent
-
-def not_empty(tile):
-#===================
-    return np.any(tile[:,:,3])
-
-def empty_tile(size=(1, 1)):
-#===========================
-    tile = np.full(size + (4,), 255, dtype=np.uint8)
-    tile[:,:,3] = 0
-    return tile
 
 #===============================================================================
 
@@ -332,7 +309,7 @@ class RasterTiler(object):
     def extract_tile_as_image(self, image_tile_rect):
     #================================================
         # Overridden by subclass
-        return empty_tile()
+        return blank_image()
 
     def get_scaling(self, image_tile_rect):
     #======================================
@@ -349,7 +326,7 @@ class RasterTiler(object):
         if size == tuple(self.__tile_size):
             return tile_image
         else:
-            padded = empty_tile(self.__tile_size)
+            padded = blank_image(self.__tile_size)
             scaling = self.get_scaling(image_tile_rect)
             offset = tuple(image_offset(size[i], self.__tile_size[i],
                                    (image_tile_rect[i], image_tile_rect[i+2]),
@@ -452,7 +429,7 @@ class RasterTileMaker(object):
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for tile in self.__tile_set:
             tile_image = tile_extractor.get_tile(tile)
-            alpha_image = make_transparent(tile_image)
+            alpha_image = add_alpha(tile_image)
             if not_empty(alpha_image):
                 mbtiles.save_tile_as_png(zoom, tile.x, tile.y, alpha_image)
             progress_bar.update(1)
@@ -475,7 +452,7 @@ class RasterTileMaker(object):
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
             for x in range(half_start[0], half_end[0] + 1):
                 for y in range(half_start[1], half_end[1] + 1):
-                    overview_tile = empty_tile(TILE_SIZE)
+                    overview_tile = blank_image(TILE_SIZE)
                     for i in range(2):
                         for j in range(2):
                             try:
