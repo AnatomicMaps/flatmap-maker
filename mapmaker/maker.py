@@ -45,7 +45,7 @@ from mapmaker.utils import log
 from .flatmap.feature import Feature
 from .flatmap.layers import FeatureLayer
 
-from .geometry import bounds_to_extent, extent_to_bounds
+from .geometry import bounds_to_extent, extent_to_bounds, normalised_coords
 
 from .knowledgebase import LabelDatabase
 
@@ -409,11 +409,12 @@ class Flatmap(object):
 
             # Calculate transformation to map source shapes to the destination
 
-            # NOTE: We have no way of ensuring that the vertices of the source and destination rectangles
-            #       align as intended. As a result, output features might be rotated by some multiple
-            #       of 90 degrees.
-            src = np.array(boundary_feature.geometry.minimum_rotated_rectangle.exterior.coords, dtype = "float32")[:-1]
-            dst = np.array(feature.geometry.minimum_rotated_rectangle.exterior.coords, dtype = "float32")[:-1]
+            # NOTE: We reorder the coordinates of the bounding rectangles so that the first
+            #       coordinate is the top left-most one. This should ensure that the source
+            #       and destination rectangles align as intended, without output features
+            #       being rotated by some multiple of 90 degrees.
+            src = np.array(normalised_coords(boundary_feature.geometry.minimum_rotated_rectangle), dtype="float32")
+            dst = np.array(normalised_coords(feature.geometry.minimum_rotated_rectangle), dtype="float32")
             transform = Transform(cv2.getPerspectiveTransform(src, dst))
 
             minzoom = feature.get_property('maxzoom') + 1
@@ -425,7 +426,6 @@ class Flatmap(object):
 
             if hires_layer.source.raster_source is not None:
                 extent = transform.transform_extent(hires_layer.source.extent)
-
                 layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
                                         extent, hires_layer.source, minzoom,
                                         local_world_to_base=transform)

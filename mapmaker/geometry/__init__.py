@@ -376,3 +376,17 @@ def connect_dividers(dividers, debug):
     return dividers + connectors
 
 #===============================================================================
+
+def normalised_coords(rectangle):
+    centroid = rectangle.centroid.coords[0]
+    coords = rectangle.exterior.coords[:-1]
+    top_right = None
+    y_max = None
+    for n in range(len(coords)):
+        if coords[n][0] > centroid[0]:
+            if top_right is None or coords[n][1] > y_max:
+                top_right = n
+                y_max = coords[n][1]
+    return np.roll(coords, -top_right, axis=0)
+
+#===============================================================================
