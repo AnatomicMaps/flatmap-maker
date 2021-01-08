@@ -380,6 +380,8 @@ class RasterImageTiler(RasterTiler):
         X1 = min(round(image_tile_rect.x1), self.__source_image.shape[1])
         Y0 = max(0, round(image_tile_rect.y0))
         Y1 = min(round(image_tile_rect.y1), self.__source_image.shape[0])
+        if X0 >= X1 or Y0 >= Y1:
+            return blank_image(self.tile_size)
         scaling = self.get_scaling(image_tile_rect)
         width = (self.tile_size[0] if image_tile_rect.x0 >= 0 and image_tile_rect.x1 < self.__source_image.shape[1]
             else round(scaling[0]*(X1 - X0)))
