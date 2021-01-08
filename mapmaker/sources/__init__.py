@@ -156,10 +156,9 @@ class MapSource(object):
 #===============================================================================
 
 class RasterSource(object):
-    def __init__(self, source_kind, source_data, world_transform=None):
+    def __init__(self, source_kind, source_data):
         self.__source_kind = source_kind
         self.__source_data = source_data
-        self.__world_transform = world_transform
 
     @property
     def source_data(self):
@@ -168,10 +167,6 @@ class RasterSource(object):
     @property
     def source_kind(self):
         return self.__source_kind
-
-    @property
-    def world_transform(self):
-        return self.__world_transform
 
 #===============================================================================
 

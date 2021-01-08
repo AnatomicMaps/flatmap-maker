@@ -125,10 +125,6 @@ class Rect(object):
     def y1(self):
         return self.__coords[3]
 
-    def to_fitz(self):
-    #=================
-        return fitz.Rect(*self.__coords)
-
 #===============================================================================
 
 class Transform(mapmaker.geometry.Transform):
