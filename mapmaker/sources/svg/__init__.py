@@ -75,7 +75,7 @@ class SVGSource(MapSource):
         else:
             width = length_as_pixels(self.__svg.attrib['width'])
             height = length_as_pixels(self.__svg.attrib['height'])
-
+        # Transform from SVG pixels to world coordinates
         self.__transform = Transform([[WORLD_METRES_PER_PIXEL,                      0, 0],
                                       [                     0, WORLD_METRES_PER_PIXEL, 0],
                                       [                     0,                         0, 1]])@np.array([[1,  0, -width/2.0],
@@ -85,10 +85,14 @@ class SVGSource(MapSource):
         bottom_right = self.__transform.transform_point((width, height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-
         self.__layer = SVGLayer(id, self, base_layer)
-        self.__raster_source = None
         self.add_layer(self.__layer)
+        self.__raster_source = None
+        self.__boundary_geometry = None
+
+    @property
+    def boundary_geometry(self):
+        return self.__boundary_geometry
 
     @property
     def raster_source(self):
@@ -101,6 +105,8 @@ class SVGSource(MapSource):
     def process(self):
     #=================
         self.__layer.process(self.__svg)
+        if self.__layer.boundary_id is not None:
+            self.__boundary_geometry = self.__layer.features_by_id.get(self.__layer.boundary_id).geometry
         if self.__base_layer:
             # Save a cleaned copy of the SVG in the map's output directory
             cleaner = SVGCleaner(self.__source_path, self.flatmap.map_properties)
@@ -109,13 +115,13 @@ class SVGSource(MapSource):
                       self.flatmap.id,
                       '{}.svg'.format(self.id)), 'wb') as fp:
                 cleaner.save(fp)
-            if settings.get('backgroundTiles', False):
-                cleaner = SVGCleaner(self.__source_path, self.flatmap.map_properties, all_layers=False)
-                cleaner.clean()
-                cleaned_svg = io.BytesIO()
-                cleaner.save(cleaned_svg)
-                cleaned_svg.seek(0)
-                self.__raster_source = RasterSource('svg', cleaned_svg)
+        if settings.get('backgroundTiles', False):
+            cleaner = SVGCleaner(self.__source_path, self.flatmap.map_properties, all_layers=False)
+            cleaner.clean()
+            cleaned_svg = io.BytesIO()
+            cleaner.save(cleaned_svg)
+            cleaned_svg.seek(0)
+            self.__raster_source = RasterSource('svg', cleaned_svg)
 
 #===============================================================================
 

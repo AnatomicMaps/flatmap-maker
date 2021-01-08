@@ -106,6 +106,14 @@ class Rect(object):
         return abs(self.__coords[3] - self.__coords[1])
 
     @property
+    def size(self):
+        return (self.width, self.height)
+
+    @property
+    def size_as_int(self):
+        return (round(self.width), round(self.height))
+
+    @property
     def width(self):
         return abs(self.__coords[2] - self.__coords[0])
 
@@ -391,6 +399,13 @@ class ImageTiler(RasterImageTiler):
 
 #===============================================================================
 
+class SVGImageTiler(RasterImageTiler):
+    def __init__(self, raster_layer, tile_set):
+        svg_tiler = SVGTiler(raster_layer, tile_set)
+        super().__init__(raster_layer, tile_set, svg_tiler.get_image(), svg_tiler.image_to_world)
+
+#===============================================================================
+
 class PDFTiler(RasterTiler):
     def __init__(self, raster_layer, tile_set):
         pdf = fitz.Document(stream=raster_layer.source_data, filetype='application/pdf')
@@ -507,7 +522,10 @@ class RasterTileMaker(object):
         elif source_kind == 'pdf':
             tile_extractor = PDFTiler(self.__raster_layer, self.__tile_set)
         elif source_kind == 'svg':
-            tile_extractor = SVGTiler(self.__raster_layer, self.__tile_set)
+            if self.__raster_layer.local_world_to_base is None:
+                tile_extractor = SVGTiler(self.__raster_layer, self.__tile_set)
+            else:
+                tile_extractor = SVGImageTiler(self.__raster_layer, self.__tile_set)
         else:
             raise TypeError('Unsupported kind of background tile source: {}'.format(source_kind))
         return self.__make_zoomed_tiles(tile_extractor)

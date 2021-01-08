@@ -26,6 +26,7 @@ import re
 import cssselect2
 import cv2
 from lxml import etree
+import numpy as np
 import mercantile
 import shapely.geometry
 import shapely.prepared
@@ -155,11 +156,21 @@ class SVGTiler(object):
         self.__style_matcher = StyleMatcher(self.__svg.find(SVG_NS('style')))
         self.__first_scan = True
 
-        self.__path_list = []
+        # Transform from SVG pixels to tile pixels
         transform = Transform([[self.__scaling[0],               0.0, 0.0],
                                [              0.0, self.__scaling[1], 0.0],
                                [              0.0,               0.0, 1.0]])
+        self.__path_list = []
         self.__draw_svg(transform, self.__path_list)
+
+        # Transform from SVG pixels to world coordinates
+        self.__image_to_world = (Transform([
+            [WORLD_METRES_PER_PIXEL/self.__scaling[0],                                        0, 0],
+            [                                       0, WORLD_METRES_PER_PIXEL/self.__scaling[1], 0],
+            [                                       0,                                        0, 1]])
+           @np.array([[1,  0, -self.__scaling[0]*self.__size[0]/2.0],
+                      [0, -1,  self.__scaling[1]*self.__size[1]/2.0],
+                      [0,  0,                                               1.0]]))
 
         self.__tile_size = tile_set.tile_size
         self.__tile_origin = tile_set.start_coords
@@ -170,7 +181,6 @@ class SVGTiler(object):
         self.__tile_paths = {}
         for tile in tile_set:
             tile_set.tile_coords_to_pixels.transform_point((tile.x, tile.y))
-
             x0 = (tile.x - self.__tile_origin[0])*self.__tile_size[0] - self.__pixel_offset[0]
             y0 = (tile.y - self.__tile_origin[1])*self.__tile_size[1] - self.__pixel_offset[1]
             tile_bbox = shapely.prepared.prep(shapely.geometry.box(x0, y0,
@@ -183,6 +193,23 @@ class SVGTiler(object):
     @property
     def size(self):
         return self.__size
+
+    @property
+    def image_to_world(self):
+        return self.__image_to_world
+
+    def get_image(self):
+    #===================
+        # Draw image to fit tile set's pixel rectangle
+        surface = skia.Surface(int(self.__scaling[0]*self.__size[0] + 0.5),
+                               int(self.__scaling[1]*self.__size[1] + 0.5))
+        canvas = surface.getCanvas()
+        for (path, paint) in self.__path_list:
+            canvas.drawPath(path, paint)
+        log('Making image snapshot...')
+        rgba = surface.makeImageSnapshot().toarray()
+        ## conversion only for macOS... ???
+        return cv2.cvtColor(rgba, cv2.COLOR_RGBA2BGRA)
 
     def get_tile(self, tile):
     #========================
