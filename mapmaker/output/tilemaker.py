@@ -484,6 +484,7 @@ class RasterTileMaker(object):
         progress_bar.close()
         self.__make_overview_tiles(mbtiles, zoom, self.__tile_set.start_coords,
                                                   self.__tile_set.end_coords)
+        mbtiles.close(compress=True)
         return raster_database_name
 
     def __make_overview_tiles(self, mbtiles, zoom, start_coords, end_coords):
