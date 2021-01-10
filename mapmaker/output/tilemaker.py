@@ -360,17 +360,18 @@ class RasterImageTiler(RasterTiler):
         if raster_layer.local_world_to_base is None:
             image_rect = Rect((0, 0), image_size(image))
         else:
-            local_world_to_tile = (tile_set.world_to_tile_pixels
-                                  @raster_layer.local_world_to_base)
-            image_to_tile = local_world_to_tile@image_to_local_world
-            image_rect = tile_set.pixel_rect
-            image = cv2.warpPerspective(image, image_to_tile.matrix,
+            image_rect = Rect((0, 0), tile_set.pixel_rect.size)
+            local_world_to_tile_image = (Transform(translateA=tile_set.pixel_rect[0:2])
+                                        @tile_set.world_to_tile_pixels
+                                        @raster_layer.local_world_to_base)
+            image_to_tile_image = local_world_to_tile_image@image_to_local_world
+            image = cv2.warpPerspective(image, image_to_tile_image.matrix,
                                         image_rect.size_as_int,
                                         flags=cv2.INTER_CUBIC)
             if raster_layer.map_source.boundary_geometry is not None:
                 # Remove edge artifacts by masking with boundary
-                image = mask_image(image, local_world_to_tile.transform_geometry(
-                                                            raster_layer.map_source.boundary_geometry))
+                image = mask_image(image, local_world_to_tile_image.transform_geometry(
+                                            raster_layer.map_source.boundary_geometry))
         super().__init__(raster_layer, tile_set, image_rect)
         self.__source_image = image
 
