@@ -51,7 +51,7 @@ class MBTiles(object):
         if compress:
             mb.compression_prepare(self._cursor, self._silent)
             mb.compression_do(self._cursor, self._connnection, 256, self._silent)
-            mb.compression_finalize(self._cursor, self._connnection, self._silent)
+            mb.compression_finalize(self._cursor)
         mb.optimize_database(self._connnection, self._silent)
 
     def execute(self, sql):
