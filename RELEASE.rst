@@ -19,7 +19,7 @@ Making a new release
     $ git push dbrnz VERSION
     # We don't want untracked files bundled into the release
     $ git stash --include-untracked
-    $ python setup.py bdist_wheel`
+    $ python setup.py bdist_wheel
     $ git stash pop
 
 * On Github, at https://github.com/dbrnz/flatmap-maker/releases/new, create a release
