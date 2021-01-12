@@ -1,7 +1,7 @@
 {
     "id": "test-vagus",
-    "anatomicalMap": "/Users/dave/build/Flatmaps/map-maker/map_sources/naz/anatomical-map/flatmap_annotation.xlsx",
-    "properties": "/Users/dave/build/Flatmaps/map-maker/map_sources/naz/properties/rat_flatmap_properties.json",
+    "anatomicalMap": "flatmap_annotation.xlsx",
+    "properties": "rat_flatmap_properties.json",
     "sources": [
         {
             "id": "vagus",
