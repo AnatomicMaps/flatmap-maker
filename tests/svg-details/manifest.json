@@ -1,0 +1,18 @@
+{
+    "id": "svg-details",
+    "models": "NCBITaxon:10114",
+    "anatomicalMap": "../vagus/flatmap_annotation.xlsx",
+    "properties": "../vagus/rat_flatmap_properties.json",
+    "sources": [
+        {
+            "id": "outline",
+            "href": "tissue-outline.svg",
+            "kind": "base"
+        },
+        {
+            "id": "details",
+            "href": "tissue-details.svg",
+            "kind": "details"
+        }
+    ]
+}
