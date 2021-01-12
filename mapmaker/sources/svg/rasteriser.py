@@ -207,9 +207,8 @@ class SVGTiler(object):
         for (path, paint) in self.__path_list:
             canvas.drawPath(path, paint)
         log('Making image snapshot...')
-        rgba = surface.makeImageSnapshot().toarray()
-        ## conversion only for macOS... ???
-        return cv2.cvtColor(rgba, cv2.COLOR_RGBA2BGRA)
+        image = surface.makeImageSnapshot()
+        return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
     def get_tile(self, tile):
     #========================
@@ -220,8 +219,8 @@ class SVGTiler(object):
         quadkey = mercantile.quadkey(tile)
         for path, paint, bbox in self.__tile_paths.get(quadkey, []):
             canvas.drawPath(path, paint)
-        rgba = surface.makeImageSnapshot().toarray()
-        return cv2.cvtColor(rgba, cv2.COLOR_RGBA2BGRA)
+        image = surface.makeImageSnapshot()
+        return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
     def __draw_svg(self, transform, path_list, show_progress=False):
     #===============================================================
