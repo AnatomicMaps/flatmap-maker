@@ -35,6 +35,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx_rtd_theme',
     'sphinx.ext.viewcode',
+    'sphinxarg.ext',
 ]
 autodoc_member_order = 'bysource'
 

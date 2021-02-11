@@ -16,5 +16,6 @@ Flatmaps are interactive maps for exploring anatomical information over a large 
    :maxdepth: 2
    :caption: Contents:
 
+   Running
    Annotation
    Reference

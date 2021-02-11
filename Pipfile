@@ -8,6 +8,7 @@ pipenv-setup = "*"
 sphinx = "*"
 mapmaker = {editable = true, path = "."}
 sphinx-rtd-theme = "*"
+sphinx-argparse = "*"
 
 [packages]
 python-pptx = "*"

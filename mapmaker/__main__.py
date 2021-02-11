@@ -18,8 +18,10 @@
 #
 #===============================================================================
 
+import argparse
 import json
 import logging
+import os, sys
 import requests
 
 #===============================================================================
@@ -29,10 +31,7 @@ from mapmaker.utils import log
 
 #===============================================================================
 
-def main():
-    import argparse
-    import os, sys
-
+def arg_parser():
     parser = argparse.ArgumentParser(description='Generate a flatmap from its source manifest.')
 
     parser.add_argument('-v', '--version', action='version', version=__version__)
@@ -82,9 +81,13 @@ def main():
                         help='base directory for generated flatmaps')
     required.add_argument('--manifest', required=True,
                         help='URL or path of a flatmap manifest')
+    return parser
 
+#===============================================================================
+
+def main():
+    parser = arg_parser()
     args = parser.parse_args()
-
     try:
         flatmap = Flatmap(vars(args))
         flatmap.make()
