@@ -152,10 +152,9 @@ class Flatmap(object):
 
         log('Mapmaker {}'.format(__version__))
 
-        try:
-            self.__id = self.__manifest.id
-        except KeyError:
-            raise ValueError('Map manifest requires an `id` field')
+        self.__id = options.get('id', self.__manifest.id)
+        if self.__id is None:
+            raise ValueError('No `id` given for map')
         log('Making map: {}'.format(self.id))
 
         self.__models = self.__manifest.models
