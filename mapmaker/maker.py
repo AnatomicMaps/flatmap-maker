@@ -105,20 +105,22 @@ class Flatmap(object):
 
         # Setup logging
         log_file = options.get('logFile')
+
+        log_format = '%(asctime)s %(levelname)s: %(message)s'
         if not options.get('silent', False):
             if options.get('quiet', False):
-                logging.basicConfig(format='%(asctime)s %(message)s')
+                logging.basicConfig(format=log_format)
             else:
                 logging.basicConfig(format='%(message)s')
             logging.getLogger().setLevel(logging.INFO)
             if log_file is not None:
                 logger = logging.FileHandler(log_file)
-                formatter = logging.Formatter('%(asctime)s %(message)s')
+                formatter = logging.Formatter(log_format)
                 logger.setFormatter(formatter)
                 logging.getLogger().addHandler(logger)
         elif log_file is not None:
             logging.basicConfig(
-                format='%(asctime)s %(message)s',
+                format=log_format,
                 filename=log_file,
                 level=logging.INFO
             )
@@ -127,7 +129,7 @@ class Flatmap(object):
         if 'manifest' in options:
             self.__manifest = Manifest(options['manifest'])
         else:
-            raise ValueError('No map manifest given')
+            raise ValueError('No map manifest specified')
 
         # Default base output directory to ``./flatmaps``.
         if 'output' not in options:
@@ -154,6 +156,7 @@ class Flatmap(object):
             self.__id = self.__manifest.id
         except KeyError:
             raise ValueError('Map manifest requires an `id` field')
+        log('Making map: {}'.format(self.id))
 
         self.__models = self.__manifest.models
 
@@ -395,7 +398,7 @@ class Flatmap(object):
             hires_layer_id = feature.get_property('details')
             hires_layer = self.__layer_dict.get(hires_layer_id)
             if hires_layer is None:
-                print("Cannot find details' layer '{}'".format(feature.get_property('details')))
+                log.warn("Cannot find details layer '{}'".format(feature.get_property('details')))
                 continue
             boundary_feature = hires_layer.features_by_id.get(hires_layer.boundary_id)
             if boundary_feature is None:
@@ -506,7 +509,7 @@ class Flatmap(object):
         log('Outputting GeoJson features...')
         for layer in self.__layer_dict.values():
             if layer.base_layer:
-                log('Layer:', layer.id)
+                log('Layer: {}'.format(layer.id))
                 geojson_output = GeoJSONOutput(layer, self.__map_area, self.__map_dir)
                 saved_layer = geojson_output.save(layer.features, settings.get('saveGeoJSON', False))
                 for (layer_name, filename) in saved_layer.items():

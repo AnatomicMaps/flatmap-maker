@@ -84,7 +84,7 @@ class PowerpointSource(MapSource):
                 xml.close()
             slide_layer.process()
             for error in self.errors:
-                print(error)
+                log.warn(error)
             else:
                 self.add_layer(slide_layer)
 
