@@ -271,10 +271,11 @@ class Flatmap(object):
     def __process_sources(self):
     #===========================
         tile_background = settings.get('backgroundTiles', False)
-        # Sort so any ``base`` source kind is processed first
-        for layer_number, source in enumerate(sorted(
-                                        self.__manifest.sources,
-                                        key=lambda source: source.get('kind'))):
+        # Make sure ``base`` and ``slides`` source kinds are processed first
+        def kind_order(source):
+            kind = source.get('kind', '')
+            return ('0' if kind in ['base', 'slides'] else '1') + kind
+        for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
             source_id = source.get('id')
             source_kind = source.get('kind')
             source_href = source.get('href')
