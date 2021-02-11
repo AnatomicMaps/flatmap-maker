@@ -60,8 +60,6 @@ from .properties import JsonProperties
 from .settings import settings
 
 from .sources import MBFSource, PowerpointSource, SVGSource
-from .sources.pmr import get_workspace
-
 
 #===============================================================================
 
@@ -126,14 +124,10 @@ class Flatmap(object):
             )
 
         # Check we have been given a map source
-        if 'exposure' in options:
-            self.__uri = options['exposure']
-            Manifest(get_workspace(self.__uri))
-        elif 'source' in options:
-            self.__uri = None
-            self.__manifest = Manifest(options['source'])
+        if 'manifest' in options:
+            self.__manifest = Manifest(options['manifest'])
         else:
-            raise ValueError('No map source nor exposure given')
+            raise ValueError('No map manifest given')
 
         # Default base output directory to ``./flatmaps``.
         if 'output' not in options:
