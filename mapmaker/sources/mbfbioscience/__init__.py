@@ -38,7 +38,7 @@ from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import Transform
 from mapmaker.settings import settings
 from mapmaker.sources import mask_image
-from mapmaker.utils import path_data, path_open
+from mapmaker.utils import FilePath
 
 #===============================================================================
 
@@ -51,7 +51,7 @@ class MBFSource(MapSource):
         self.__layer = FeatureLayer(id, self, base_layer=base_layer)
         self.add_layer(self.__layer)
 
-        self.__mbf = etree.parse(path_open(source_path)).getroot()
+        self.__mbf = etree.parse(FilePath(source_path).get_fp()).getroot()
         self.__ns = self.__mbf.nsmap[None]
 
         sparcdata = self.__mbf.find(self.ns_tag('sparcdata'))
@@ -65,8 +65,8 @@ class MBFSource(MapSource):
         offset = (float(coord_element.get('x', 0.0)), float(coord_element.get('y', 0.0)))
 
         filename = image_element.find(self.ns_tag('filename')).text
-        image_file = urljoin(source_path, filename.split('\\')[-1])
-        image_array = np.frombuffer(path_data(image_file), dtype=np.uint8)
+        image_file = FilePath(urljoin(source_path, filename.split('\\')[-1]))
+        image_array = np.frombuffer(image_file.get_data(), dtype=np.uint8)
         self.__image = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
         if self.__image.shape[2] == 3:
             self.__image = cv2.cvtColor(self.__image, cv2.COLOR_RGB2RGBA)

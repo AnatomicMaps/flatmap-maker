@@ -48,7 +48,7 @@ from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.geometry import bezier_sample, radians, Transform, reflect_point
 from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
-from mapmaker.utils import path_open, ProgressBar
+from mapmaker.utils import FilePath, ProgressBar
 
 #===============================================================================
 
@@ -67,9 +67,9 @@ IGNORED_SVG_TAGS = [
 class SVGSource(MapSource):
     def __init__(self, flatmap, id, source_path, base_layer=True):
         super().__init__(flatmap, id)
-        self.__source_path = source_path
+        self.__source_file = FilePath(source_path)
         self.__base_layer = base_layer
-        self.__svg = etree.parse(path_open(source_path)).getroot()
+        self.__svg = etree.parse(self.__source_file.get_fp()).getroot()
         if 'viewBox' in self.__svg.attrib:
             (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
         else:
@@ -109,14 +109,14 @@ class SVGSource(MapSource):
             self.__boundary_geometry = self.__layer.features_by_id.get(self.__layer.boundary_id).geometry
         if self.__base_layer:
             # Save a cleaned copy of the SVG in the map's output directory
-            cleaner = SVGCleaner(self.__source_path, self.flatmap.map_properties)
+            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties)
             cleaner.clean()
             with open(os.path.join(settings.get('output'),
                       self.flatmap.id,
                       '{}.svg'.format(self.id)), 'wb') as fp:
                 cleaner.save(fp)
         if settings.get('backgroundTiles', False):
-            cleaner = SVGCleaner(self.__source_path, self.flatmap.map_properties, all_layers=False)
+            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
             cleaner.clean()
             cleaned_svg = io.BytesIO()
             cleaner.save(cleaned_svg)

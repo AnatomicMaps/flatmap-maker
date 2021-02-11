@@ -38,7 +38,7 @@ import numpy as np
 
 from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import Transform
-from mapmaker.utils import log
+from mapmaker.utils import log, FilePath
 
 #===============================================================================
 
@@ -62,15 +62,14 @@ from .settings import settings
 from .sources import MBFSource, PowerpointSource, SVGSource
 from .sources.pmr import get_workspace
 
-from .utils import make_url, path_json
 
 #===============================================================================
 
 class Manifest(object):
-    def __init__(self, manifest_dir):
-        manifest_path = os.path.join(manifest_dir, 'manifest.json')
-        self.__manifest = path_json(manifest_path)
-        manifest_url = make_url(manifest_path)
+    def __init__(self, manifest_path):
+        path = FilePath(manifest_path)
+        self.__manifest = path.get_json()
+        manifest_url = path.url
         if 'anatomicalMap' in self.__manifest:
             self.__manifest['anatomicalMap'] = urljoin(manifest_url, self.__manifest['anatomicalMap'])
         if 'properties' in self.__manifest:

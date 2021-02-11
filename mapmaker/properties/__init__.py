@@ -19,7 +19,7 @@
 #===============================================================================
 
 from ..knowledgebase import AnatomicalMap
-from ..utils import path_json
+from ..utils import FilePath
 
 from .pathways import Pathways
 
@@ -30,10 +30,10 @@ class JsonProperties(object):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
         self.__properties_by_class = {}
         self.__properties_by_id = {}
-        properties_dict = {}
-        properties_file = manifest.properties
-        if properties_file is not None:
-            properties_dict = path_json(properties_file)
+        if manifest.properties is None:
+            properties_dict = {}
+        else:
+            properties_dict = FilePath(manifest.properties).get_json()
         self.__set_properties(properties_dict.get('features', []))
         self.__pathways = Pathways(properties_dict.get('paths', []))
 

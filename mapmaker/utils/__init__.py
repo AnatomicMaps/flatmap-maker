@@ -31,32 +31,38 @@ from .logging import ProgressBar, log
 
 #===============================================================================
 
-def make_url(path):
-    if (path.startswith('file:')
-     or path.startswith('http:')
-     or path.startswith('https:')):
-        return path
-    return pathlib.Path(path).absolute().as_uri()
+class FilePath(object):
+    def __init__(self, path):
+        if (path.startswith('file:')
+         or path.startswith('http:')
+         or path.startswith('https:')):
+            self.__url = path
+        else:
+            self.__url = pathlib.Path(path).absolute().as_uri()
 
-#===============================================================================
+    @property
+    def url(self):
+        return self.__url
 
-def path_open(path):
-    return urllib.request.urlopen(make_url(path))
+    def close(self):
+        self.__fp.close()
 
-def path_BytesIO(path):  # Return seekable file
-    bytesio = io.BytesIO(path_data(path))
-    bytesio.seek(0)
-    return bytesio
+    def get_data(self):
+        with self.get_fp() as fp:
+            return fp.read()
 
-def path_data(path):
-    with path_open(path) as fp:
-        return fp.read()
+    def get_fp(self):
+        return urllib.request.urlopen(self.__url)
 
-def path_json(path):
-    data = path_data(path)
-    try:
-        return json.loads(data)
-    except json.decoder.JSONDecodeError as err:
-        raise ValueError('JSON decoder error: {}'.format(err))
+    def get_json(self):
+        try:
+            return json.loads(self.get_data())
+        except json.decoder.JSONDecodeError as err:
+            raise ValueError('JSON decoder error: {}'.format(err))
+
+    def get_BytesIO(self):
+        bytesio = io.BytesIO(self.get_data())
+        bytesio.seek(0)
+        return bytesio
 
 #===============================================================================
