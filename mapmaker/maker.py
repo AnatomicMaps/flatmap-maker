@@ -66,13 +66,13 @@ class Manifest(object):
     def __init__(self, manifest_path):
         path = FilePath(manifest_path)
         self.__manifest = path.get_json()
-        manifest_url = path.url
+        self.__url = path.url
         if 'anatomicalMap' in self.__manifest:
-            self.__manifest['anatomicalMap'] = urljoin(manifest_url, self.__manifest['anatomicalMap'])
+            self.__manifest['anatomicalMap'] = urljoin(self.__url, self.__manifest['anatomicalMap'])
         if 'properties' in self.__manifest:
-            self.__manifest['properties'] = urljoin(manifest_url, self.__manifest['properties'])
+            self.__manifest['properties'] = urljoin(self.__url, self.__manifest['properties'])
         for source in self.__manifest['sources']:
-            source['href'] = urljoin(manifest_url, source['href'])
+            source['href'] = urljoin(self.__url, source['href'])
 
     @property
     def anatomical_map(self):
@@ -93,6 +93,10 @@ class Manifest(object):
     @property
     def sources(self):
         return self.__manifest['sources']
+
+    @property
+    def url(self):
+        return self.__url
 
 #===============================================================================
 
@@ -512,8 +516,8 @@ class Flatmap(object):
         log('Creating index and style files...')
         tile_db = MBTiles(self.__mbtiles_file)
 
-        # Save the name of the map's manifest file
-        tile_db.add_metadata(source=self.__id) ## TEMP   ## FIX
+        # Save the URL of the map's manifest
+        tile_db.add_metadata(source=self.__manifest.url)
 
         # What the map models
         if self.__models is not None:
@@ -541,6 +545,7 @@ class Flatmap(object):
 
         map_index = {
             'id': self.__id,
+            'source': self.__manifest.url,
             'min-zoom': self.__zoom[0],
             'max-zoom': self.__zoom[1],
             'bounds': self.__extent,
