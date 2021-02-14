@@ -126,10 +126,10 @@ class Flatmap(object):
             )
 
         # Check we have been given a map source
-        if 'manifest' in options:
-            self.__manifest = Manifest(options['manifest'])
+        if 'source' in options:
+            self.__manifest = Manifest(options['source'])
         else:
-            raise ValueError('No map manifest specified')
+            raise ValueError('No map source specified')
 
         # Default base output directory to ``./flatmaps``.
         if 'output' not in options:
