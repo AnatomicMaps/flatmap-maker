@@ -114,7 +114,7 @@ class GeoJSONOutput(object):
             properties['layer'] = self.__layer.id
 
             # The layer's annotation had property details for each feature
-            self.__layer.annotations[feature.feature_id] = properties
+            self.__layer.annotate(feature, properties)
 
             self.__geojson_layers[properties['tile-layer']].append(geojson)
             progress_bar.update(1)

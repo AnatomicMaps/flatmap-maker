@@ -138,6 +138,10 @@ class FeatureLayer(object):
         if map_source.raster_source is not None:
             self.__raster_layers.append(RasterLayer(id, extent, map_source, min_zoom, local_world_to_base))
 
+    def annotate(self, feature, properties):
+    #=======================================
+        self.__annotations[feature.feature_id] = properties
+
     def set_feature_properties(self, map_properties):
     #===============================================
         # Update feature properties from JSON properties file
