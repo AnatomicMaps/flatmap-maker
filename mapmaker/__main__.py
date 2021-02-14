@@ -77,7 +77,7 @@ def arg_parser():
                         help='Upload generated map to server')
 
     required = parser.add_argument_group('required arguments')
-    required.add_argument('--output', dest='output', required=True,
+    required.add_argument('--output', required=True,
                         help='base directory for generated flatmaps')
     required.add_argument('--source', required=True,
                         help='URL or path of a flatmap manifest')
