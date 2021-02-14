@@ -30,6 +30,28 @@ from mapmaker.settings import settings
 
 #===============================================================================
 
+def configure_logging(log_file, quiet=False, silent=False):
+    log_format = '%(asctime)s %(levelname)s: %(message)s'
+    if not silent:
+        if quiet:
+            logging.basicConfig(format=log_format)
+        else:
+            logging.basicConfig(format='%(message)s')
+        logging.getLogger().setLevel(logging.INFO)
+        if log_file is not None:
+            logger = logging.FileHandler(log_file)
+            formatter = logging.Formatter(log_format)
+            logger.setFormatter(formatter)
+            logging.getLogger().addHandler(logger)
+    elif log_file is not None:
+        logging.basicConfig(
+            format=log_format,
+            filename=log_file,
+            level=logging.INFO
+        )
+
+#===============================================================================
+
 class log(object):
     def __init__(self, *args):
         logging.info(''.join(args))

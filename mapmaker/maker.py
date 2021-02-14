@@ -21,7 +21,6 @@
 from collections import defaultdict, OrderedDict
 import datetime
 import json
-import logging
 import os
 import pathlib
 import shutil
@@ -38,7 +37,7 @@ import numpy as np
 
 from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import Transform
-from mapmaker.utils import log, FilePath
+from mapmaker.utils import configure_logging, log, FilePath
 
 #===============================================================================
 
@@ -104,26 +103,9 @@ class Flatmap(object):
             options['quiet'] = True
 
         # Setup logging
-        log_file = options.get('logFile')
-
-        log_format = '%(asctime)s %(levelname)s: %(message)s'
-        if not options.get('silent', False):
-            if options.get('quiet', False):
-                logging.basicConfig(format=log_format)
-            else:
-                logging.basicConfig(format='%(message)s')
-            logging.getLogger().setLevel(logging.INFO)
-            if log_file is not None:
-                logger = logging.FileHandler(log_file)
-                formatter = logging.Formatter(log_format)
-                logger.setFormatter(formatter)
-                logging.getLogger().addHandler(logger)
-        elif log_file is not None:
-            logging.basicConfig(
-                format=log_format,
-                filename=log_file,
-                level=logging.INFO
-            )
+        configure_logging(options.get('logFile'),
+            quiet=options.get('quiet', False),
+            silent=options.get('silent', False))
 
         # Check we have been given a map source
         if 'source' in options:
