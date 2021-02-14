@@ -113,7 +113,7 @@ class SVGSource(MapSource):
             cleaner.clean()
             with open(os.path.join(settings.get('output'),
                       self.flatmap.id,
-                      '{}.svg'.format(self.id)), 'wb') as fp:
+                      '{}.svg'.format(self.flatmap.id)), 'wb') as fp:
                 cleaner.save(fp)
         if settings.get('backgroundTiles', False):
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
