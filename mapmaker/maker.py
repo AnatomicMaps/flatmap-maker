@@ -491,9 +491,6 @@ class Flatmap(object):
                     'description': layer.description,
                     'image-layers': [source.id for source in layer.raster_layers]
                 }
-## FIX ??               if layer.slide_id is not None:
-## layer source v's map source v's spec info.
-##                         map_layer['source'] = layer.slide_id
                 metadata.append(map_layer)
         return metadata
 
