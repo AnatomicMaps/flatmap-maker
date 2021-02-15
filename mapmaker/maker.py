@@ -479,7 +479,6 @@ class Flatmap(object):
                 map_layer = {
                     'id': layer.id,
                     'description': layer.description,
-                    'queryable-nodes': layer.queryable_nodes,
                     'features': layer.feature_types,
                     'image-layers': [source.id for source in layer.raster_layers]
                 }

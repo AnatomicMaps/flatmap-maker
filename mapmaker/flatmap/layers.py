@@ -104,7 +104,6 @@ class MapLayer(FeatureLayer):
         self.__boundary_id = None
         self.__detail_features = []
 #*        self.__ontology_data = self.options.ontology_data
-        self.__queryable_nodes = False
         self.__raster_layers = []
         self.__zoom = None
 
@@ -129,12 +128,6 @@ class MapLayer(FeatureLayer):
         return self.__flatmap
 
     @property
-    def queryable_nodes(self):
-        return self.__queryable_nodes
-
-    @queryable_nodes.setter
-    def queryable_nodes(self, value):
-        self.__queryable_nodes = value
 
     @property
     def raster_layers(self):
