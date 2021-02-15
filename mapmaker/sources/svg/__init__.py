@@ -44,7 +44,7 @@ from .definitions import DefinitionStore
 from .transform import SVGTransform
 from .utils import adobe_decode, length_as_pixels, SVG_NS
 
-from mapmaker.flatmap.layers import FeatureLayer
+from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import bezier_sample, radians, Transform, reflect_point
 from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
@@ -125,7 +125,7 @@ class SVGSource(MapSource):
 
 #===============================================================================
 
-class SVGLayer(FeatureLayer):
+class SVGLayer(MapLayer):
     def __init__(self, id, source, base_layer=True):
         super().__init__(id, source, base_layer=base_layer)
         self.__transform = source.transform

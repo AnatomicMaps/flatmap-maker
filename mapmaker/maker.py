@@ -42,7 +42,7 @@ from mapmaker.utils import configure_logging, log, FilePath
 #===============================================================================
 
 from .flatmap.feature import Feature
-from .flatmap.layers import FeatureLayer
+from .flatmap.layers import FeatureLayer, MapLayer
 
 from .geometry import bounds_to_extent, extent_to_bounds, normalised_coords
 
@@ -210,7 +210,7 @@ class Flatmap(object):
     #==============
         self.__begin_make()
 
-        # Process flatmap's sources to create FeatureLayers
+        # Process flatmap's sources to create MapLayers
         self.__process_sources()
 
         if not settings.get('errorCheck', False):
@@ -353,7 +353,7 @@ class Flatmap(object):
         detail_layers = []
         for layer in self.__layer_dict.values():
             if layer.base_layer and layer.detail_features:
-                detail_layer = FeatureLayer('{}_details'.format(layer.id), layer.source, base_layer=True)
+                detail_layer = FeatureLayer('{}_details'.format(layer.id), base_layer=True)
                 detail_layers.append(detail_layer)
                 self.__add_detail_features(layer, detail_layer, layer.detail_features)
         for layer in detail_layers:

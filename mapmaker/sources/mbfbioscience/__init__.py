@@ -34,7 +34,7 @@ import shapely.geometry
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_UM
 
-from mapmaker.flatmap.layers import FeatureLayer
+from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.settings import settings
 from mapmaker.sources import mask_image
@@ -48,7 +48,7 @@ class MBFSource(MapSource):
         self.__boundary_id = boundary_id
         self.__boundary_geometry = None
 
-        self.__layer = FeatureLayer(id, self, base_layer=base_layer)
+        self.__layer = MapLayer(id, self, base_layer=base_layer)
         self.add_layer(self.__layer)
 
         self.__mbf = etree.parse(FilePath(source_path).get_fp()).getroot()

@@ -38,7 +38,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 #===============================================================================
 
-from mapmaker.flatmap.layers import FeatureLayer
+from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import ellipse_point
 from mapmaker.geometry import bezier_sample
 from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
@@ -53,7 +53,7 @@ from .transform import DrawMLTransform
 
 #===============================================================================
 
-class PowerpointSlide(FeatureLayer):
+class PowerpointSlide(MapLayer):
     def __init__(self, source, slide, slide_number):
         id = 'slide-{:02d}'.format(slide_number)
         # Get any layer directives

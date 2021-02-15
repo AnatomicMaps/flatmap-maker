@@ -30,22 +30,14 @@ from mapmaker.geometry import save_geometry
 #===============================================================================
 
 class FeatureLayer(object):
-    def __init__(self, id, source, base_layer=False):
+    def __init__(self, id, base_layer=False):
         self.__id = id
-        self.__source = source
-        self.__flatmap = source.flatmap
         self.__annotations = {}
-        self.__boundary_id = None
+        self.__base_layer = base_layer
         self.__description = 'Layer {}'.format(id)
         self.__features = []
         self.__features_by_id = {}
-        self.__detail_features = []
-        self.__feature_types = []
-#*        self.__ontology_data = self.options.ontology_data
-        self.__base_layer = base_layer
-        self.__queryable_nodes = False
-        self.__raster_layers = []
-        self.__zoom = None
+        self.__feature_types = []  ## No longer used ???
 
     @property
     def annotations(self):
@@ -56,20 +48,73 @@ class FeatureLayer(object):
         return self.__base_layer
 
     @property
-    def boundary_id(self):
-        return self.__boundary_id
-
-    @boundary_id.setter
-    def boundary_id(self, value):
-        self.__boundary_id = value
-
-    @property
     def description(self):
         return self.__description
 
     @description.setter
     def description(self, value):
         self.__description = value
+
+    @property
+    def features(self):
+        return self.__features
+
+    @property
+    def features_by_id(self):
+        return self.__features_by_id
+
+    @property
+    def feature_types(self):
+        return self.__feature_types
+
+    @property
+    def id(self):
+        return self.__id
+
+    @property
+    def raster_layers(self):
+        return []
+
+    def add_feature(self, feature):
+    #==============================
+        self.__features.append(feature)
+        if feature.id is not None:
+            self.__features_by_id[feature.id] = feature
+        self.__feature_types.append({
+            'type': feature.get_property('geometry')  ## Unused ???
+        })
+
+    def annotate(self, feature, properties):
+    #=======================================
+        self.__annotations[feature.feature_id] = properties
+
+    def set_feature_properties(self, map_properties):
+    #===============================================
+        # Update feature properties from JSON properties file
+        for feature in self.__features:
+            map_properties.update_feature_properties(feature.properties)
+
+#===============================================================================
+
+class MapLayer(FeatureLayer):
+    def __init__(self, id, source, base_layer=False):
+        super().__init__(id, base_layer)
+        self.__source = source
+        self.__flatmap = source.flatmap
+        self.__boundary_id = None
+        self.__detail_features = []
+#*        self.__ontology_data = self.options.ontology_data
+        self.__queryable_nodes = False
+        self.__raster_layers = []
+        self.__zoom = None
+
+    @property
+    def boundary_id(self):
+        return self.__boundary_id
+
+    @boundary_id.setter
+    def boundary_id(self, value):
+        self.__boundary_id = value
 
     @property
     def detail_features(self):
@@ -80,28 +125,8 @@ class FeatureLayer(object):
         return self.__details_layer
 
     @property
-    def features_by_id(self):
-        return self.__features_by_id
-
-    @property
-    def features(self):
-        return self.__features
-
-    @property
-    def feature_types(self):
-        return self.__feature_types
-
-    @property
     def flatmap(self):
         return self.__flatmap
-
-    @property
-    def id(self):
-        return self.__id
-
-    @property
-    def raster_layers(self):
-        return self.__raster_layers
 
     @property
     def queryable_nodes(self):
@@ -110,6 +135,10 @@ class FeatureLayer(object):
     @queryable_nodes.setter
     def queryable_nodes(self, value):
         self.__queryable_nodes = value
+
+    @property
+    def raster_layers(self):
+        return self.__raster_layers
 
     @property
     def source(self):
@@ -125,34 +154,20 @@ class FeatureLayer(object):
 
     def add_feature(self, feature):
     #==============================
-        self.__features.append(feature)
-        self.__features_by_id[feature.feature_id] = feature
+        super().add_feature(feature)
         if feature.has_property('details'):
             self.__detail_features.append(feature)
-        self.__feature_types.append({
-            'type': feature.get_property('geometry')
-        })
 
     def add_raster_layer(self, id, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):
     #===============================================================================================
         if map_source.raster_source is not None:
             self.__raster_layers.append(RasterLayer(id, extent, map_source, min_zoom, local_world_to_base))
 
-    def annotate(self, feature, properties):
-    #=======================================
-        self.__annotations[feature.feature_id] = properties
-
-    def set_feature_properties(self, map_properties):
-    #===============================================
-        # Update feature properties from JSON properties file
-        for feature in self.__features:
-            map_properties.update_feature_properties(feature.properties)
-
     def add_nerve_details(self):
     #===========================
         # Add polygon features for nerve cuffs
         nerve_polygons = []
-        for feature in self.__features:
+        for feature in self.features:
             if feature.get_property('type') == 'nerve':
                 if not feature.has_property('nerveId'):
                     feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
@@ -162,7 +177,7 @@ class FeatureLayer(object):
                     nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
-        self.__features.extend(nerve_polygons)
+        self.features.extend(nerve_polygons)
 
     def add_features(self, group_name, features, outermost=False):
     #=============================================================
