@@ -363,7 +363,7 @@ class Flatmap(object):
         detail_layers = []
         for layer in self.__layer_dict.values():
             if layer.base_layer and layer.detail_features:
-                detail_layer = FeatureLayer('{}_details'.format(layer.id), base_layer=True)
+                detail_layer = MapLayer('{}_details'.format(layer.id), layer.source, base_layer=True)
                 detail_layers.append(detail_layer)
                 self.__add_detail_features(layer, detail_layer, layer.detail_features)
         for layer in detail_layers:
