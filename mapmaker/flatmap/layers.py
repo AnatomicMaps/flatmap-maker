@@ -37,7 +37,6 @@ class FeatureLayer(object):
         self.__description = 'Layer {}'.format(id)
         self.__features = []
         self.__features_by_id = {}
-        self.__feature_types = []  ## No longer used ???
 
     @property
     def annotations(self):
@@ -64,10 +63,6 @@ class FeatureLayer(object):
         return self.__features_by_id
 
     @property
-    def feature_types(self):
-        return self.__feature_types
-
-    @property
     def id(self):
         return self.__id
 
@@ -80,9 +75,6 @@ class FeatureLayer(object):
         self.__features.append(feature)
         if feature.id is not None:
             self.__features_by_id[feature.id] = feature
-        self.__feature_types.append({
-            'type': feature.get_property('geometry')  ## Unused ???
-        })
 
     def annotate(self, feature, properties):
     #=======================================

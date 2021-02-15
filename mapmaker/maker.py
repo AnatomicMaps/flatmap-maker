@@ -489,7 +489,6 @@ class Flatmap(object):
                 map_layer = {
                     'id': layer.id,
                     'description': layer.description,
-                    'features': layer.feature_types,
                     'image-layers': [source.id for source in layer.raster_layers]
                 }
 ## FIX ??               if layer.slide_id is not None:
