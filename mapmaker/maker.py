@@ -275,7 +275,7 @@ class Flatmap(object):
         for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
             source_id = source.get('id')
             source_kind = source.get('kind')
-            source_href = source.get('href')
+            source_href = source['href']
             if source_kind == 'slides':
                 source_layer = PowerpointSource(self, source_id, source_href,
                                                 get_background=tile_background)

@@ -80,6 +80,4 @@ class Feature(object):
     def set_property(self, property: str, value: Any):
         self.__properties[property] = value
 
-
-
 #===============================================================================
