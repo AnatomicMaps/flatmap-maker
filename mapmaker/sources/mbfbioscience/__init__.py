@@ -154,7 +154,7 @@ class MBFSource(MapSource):
             self.__layer.add_feature(feature)
             if anatomical_id == self.__boundary_id:
                 boundary_geometry = feature.geometry
-                self.__layer.boundary_id = feature.feature_id
+                self.__layer.boundary_feature = feature
 
         if settings.get('backgroundTiles', False):
             self.__set_raster_source(boundary_geometry)

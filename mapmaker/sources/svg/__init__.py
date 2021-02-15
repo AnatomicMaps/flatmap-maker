@@ -105,8 +105,8 @@ class SVGSource(MapSource):
     def process(self):
     #=================
         self.__layer.process(self.__svg)
-        if self.__layer.boundary_id is not None:
-            self.__boundary_geometry = self.__layer.features_by_id.get(self.__layer.boundary_id).geometry
+        if self.__layer.boundary_feature is not None:
+            self.__boundary_geometry = self.__layer.boundary_feature.geometry
         if self.__base_layer:
             # Save a cleaned copy of the SVG in the map's output directory
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties)

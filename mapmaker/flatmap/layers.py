@@ -101,19 +101,19 @@ class MapLayer(FeatureLayer):
         super().__init__(id, base_layer)
         self.__source = source
         self.__flatmap = source.flatmap
-        self.__boundary_id = None
+        self.__boundary_feature = None
         self.__detail_features = []
 #*        self.__ontology_data = self.options.ontology_data
         self.__raster_layers = []
         self.__zoom = None
 
     @property
-    def boundary_id(self):
-        return self.__boundary_id
+    def boundary_feature(self):
+        return self.__boundary_feature
 
-    @boundary_id.setter
-    def boundary_id(self, value):
-        self.__boundary_id = value
+    @boundary_feature.setter
+    def boundary_feature(self, value):
+        self.__boundary_feature = value
 
     @property
     def detail_features(self):
@@ -199,9 +199,9 @@ class MapLayer(FeatureLayer):
         for feature in single_features:
             if feature.get_property('boundary'):
                 if outermost:
-                    if self.__boundary_id is not None:
+                    if self.__boundary_feature is not None:
                         raise ValueError('Layer cannot have multiple boundaries: {}'.format(feature))
-                    self.__boundary_id = feature.feature_id
+                    self.__boundary_feature = feature
                     group_features.append(feature)
                 elif feature.geom_type == 'LineString':
                     boundary_lines.append(extend_line(feature.geometry))
