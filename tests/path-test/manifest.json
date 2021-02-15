@@ -1,0 +1,17 @@
+{
+    "id": "nerve-paths",
+    "properties": "properties.json",
+    "sources": [
+        {
+            "id": "nerves",
+            "href": "nerve.svg",
+            "kind": "base"
+        }
+    ],
+    "paths": [
+        {
+            "id": "bolser",
+            "href": "bolser.json"
+        }
+    ]
+}

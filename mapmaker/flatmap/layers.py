@@ -104,6 +104,7 @@ class MapLayer(FeatureLayer):
         self.__boundary_feature = None
         self.__detail_features = []
 #*        self.__ontology_data = self.options.ontology_data
+        self.__nerve_tracks = []
         self.__raster_layers = []
         self.__zoom = None
 
@@ -128,6 +129,8 @@ class MapLayer(FeatureLayer):
         return self.__flatmap
 
     @property
+    def nerve_tracks(self):
+        return self.__nerve_tracks
 
     @property
     def raster_layers(self):
@@ -170,6 +173,9 @@ class MapLayer(FeatureLayer):
                     nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
+            elif (feature.get_property('type') == 'nerve-track'
+              and feature.geom_type == 'LineString'):
+                self.__nerve_tracks.append(feature)
         self.features.extend(nerve_polygons)
 
     def add_features(self, group_name, features, outermost=False):

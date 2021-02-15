@@ -1,0 +1,10 @@
+{
+    "id": "bolser",
+    "paths": [
+        {
+            "id": "path_1",
+            "type": "sensory",
+            "route": ["bolser20_1", "branch_node1", ["respiratory5_1", "respiratory11_1"]]
+        }
+    ]
+}

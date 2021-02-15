@@ -1,0 +1,10 @@
+{
+    "features": [
+        {
+            "class": "nerve",
+            "properties": {
+                "type": "nerve-track"
+            }
+        }
+    ]
+}

@@ -54,6 +54,8 @@ from .output.styling import MapStyle
 from .output.tilejson import tile_json
 from .output.tilemaker import RasterTileMaker
 
+from .pathrouter import PathRouter
+
 from .properties import JsonProperties
 
 from .settings import settings
@@ -71,6 +73,8 @@ class Manifest(object):
             self.__manifest['anatomicalMap'] = urljoin(self.__url, self.__manifest['anatomicalMap'])
         if 'properties' in self.__manifest:
             self.__manifest['properties'] = urljoin(self.__url, self.__manifest['properties'])
+        for path in self.__manifest.get('paths', []):
+            path['href'] = urljoin(self.__url, path['href'])
         for source in self.__manifest['sources']:
             source['href'] = urljoin(self.__url, source['href'])
 
@@ -85,6 +89,10 @@ class Manifest(object):
     @property
     def models(self):
         return self.__manifest.get('models')
+
+    @property
+    def paths(self):
+        return self.__manifest.get('paths', [])
 
     @property
     def properties(self):
@@ -159,6 +167,7 @@ class Flatmap(object):
         self.__mbtiles_file = os.path.join(self.__map_dir, 'index.mbtiles')
 
         self.__geojson_files = []
+        self.__nerve_tracks = []
         self.__tippe_inputs = []
         self.__upload_files = []
 
@@ -335,6 +344,7 @@ class Flatmap(object):
         for layer in self.__layer_dict.values():
             layer.set_feature_properties(self.__map_properties)
             layer.add_nerve_details()
+            self.__nerve_tracks.extend(layer.nerve_tracks)
 
     def __add_details(self):
     #=======================
@@ -507,6 +517,44 @@ class Flatmap(object):
 
     def __resolve_paths(self):
     #=========================
+        def get_point(node_id):
+            for layer in self.__layer_dict.values():
+                if node_id in layer.features_by_id:
+                    return layer.features_by_id[node_id].geometry.centroid.coords[0]
+            log.warning("Cannot find node '{}' for route".format(node_id))
+        log('Routing paths...')
+        router = PathRouter([track.properties['bezier-segments']
+                    for track in self.__nerve_tracks])
+        path_models = []
+        for manifest_path in self.__manifest.paths:
+            path = FilePath(manifest_path['href']).get_json()
+            model_id = path['id']
+            path_models.append(model_id)
+            for p in path.get('paths', []):
+                points = []
+                for node_ids in p.get('route', []):
+                    if isinstance(node_ids, str):
+                        pt = get_point(node_ids)
+                        if pt is not None:
+                            points.append(pt)
+                    else:
+                        pts = []
+                        for node_id in node_ids:
+                            pt = get_point(node_id)
+                            if pt is not None:
+                                pts.append(pt)
+                        if len(pts):
+                            points.append(pts)
+                router.add_route(model_id, p['id'], points)
+        layer = FeatureLayer('{}_routes'.format(self.id), base_layer=True)
+        self.__add_layer(layer)
+        for model_id in path_models:
+            for route in router.get_routes(model_id):
+                if route.geometry is not None:
+                    layer.add_feature(self.new_feature(route.geometry,
+                        { 'tile-layer': 'pathways'
+                        }))
+
         # Set feature ids of path components
         self.__map_properties.resolve_pathways(self.__id_to_feature, self.__class_to_feature)
 
