@@ -27,7 +27,7 @@ import urllib.request
 
 # Export from module
 
-from .logging import ProgressBar, log
+from .logging import ProgressBar, configure_logging, log
 
 #===============================================================================
 
