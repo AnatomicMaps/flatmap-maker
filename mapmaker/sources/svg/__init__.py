@@ -444,7 +444,7 @@ class SVGLayer(FeatureLayer):
             else:
                 print('Unknown path command: {}'.format(cmd))
 
-        if settings.get('saveBeziers', False) and len(bezier_segments) > 0:
+        if len(bezier_segments) > 0:
             properties['bezier-segments'] = [repr(bz) for bz in bezier_segments]
 
         if closed:

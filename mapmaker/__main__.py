@@ -53,8 +53,6 @@ def arg_parser():
     debug_options = parser.add_argument_group('diagnostics')
     debug_options.add_argument('--check-errors', dest='errorCheck', action='store_true',
                         help='check for errors without generating a map')
-    debug_options.add_argument('--save-beziers', dest='saveBeziers', action='store_true',
-                        help='Save Bezier curve segments as a feature property')
     debug_options.add_argument('--save-drawml', dest='saveDrawML', action='store_true',
                         help="save a slide's DrawML for debugging")
     debug_options.add_argument('--save-geojson', dest='saveGeoJSON', action='store_true',
