@@ -30,51 +30,52 @@ from mapmaker.settings import settings
 
 #===============================================================================
 
+logger = logging.getLogger(__name__)
+
 def configure_logging(log_file, quiet=False, silent=False):
     log_format = '%(asctime)s %(levelname)s: %(message)s'
-    if not silent:
+    if silent:
+        logging.lastResort = None
+        if log_file is not None:
+            logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.INFO)
         if quiet:
             logging.basicConfig(format=log_format)
         else:
             logging.basicConfig(format='%(message)s')
-        logging.getLogger().setLevel(logging.INFO)
-        if log_file is not None:
-            logger = logging.FileHandler(log_file)
-            formatter = logging.Formatter(log_format)
-            logger.setFormatter(formatter)
-            logging.getLogger().addHandler(logger)
-    elif log_file is not None:
-        logging.basicConfig(
-            format=log_format,
-            filename=log_file,
-            level=logging.INFO
-        )
+    if log_file is not None:
+        file_handler = logging.FileHandler(log_file)
+        formatter = logging.Formatter(log_format)
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(logging.INFO)
+        logger.addHandler(file_handler)
 
 #===============================================================================
 
 class log(object):
     def __init__(self, *args):
-        logging.info(''.join(args))
+        logger.info(''.join(args))
 
     @staticmethod
     def debug(*args):
-        logging.debug(''.join(args))
+        logger.debug(''.join(args))
 
     @staticmethod
     def error(*args):
-        logging.error(''.join(args))
+        logger.error(''.join(args))
 
     @staticmethod
     def exception(*args):
-        logging.exception(''.join(args))
+        logger.exception(''.join(args))
 
     @staticmethod
     def info(*args):
-        logging.info(''.join(args))
+        logger.info(''.join(args))
 
     @staticmethod
     def warn(*args):
-        logging.warn(''.join(args))
+        logger.warn(''.join(args))
 
 #===============================================================================
 
