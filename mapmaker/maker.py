@@ -67,8 +67,12 @@ from .sources import MBFSource, PowerpointSource, SVGSource
 class Manifest(object):
     def __init__(self, manifest_path):
         path = FilePath(manifest_path)
-        self.__manifest = path.get_json()
         self.__url = path.url
+        self.__manifest = path.get_json()
+        if 'id' not in self.__manifest:
+            raise ValueError('No id given for manifest')
+        if 'sources' not in self.__manifest:
+            raise ValueError('No sources given for manifest')
         if 'anatomicalMap' in self.__manifest:
             self.__manifest['anatomicalMap'] = urljoin(self.__url, self.__manifest['anatomicalMap'])
         if 'properties' in self.__manifest:
@@ -84,7 +88,7 @@ class Manifest(object):
 
     @property
     def id(self):
-        return self.__manifest.get('id')
+        return self.__manifest['id']
 
     @property
     def models(self):
