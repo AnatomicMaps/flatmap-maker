@@ -122,12 +122,7 @@ class Flatmap(object):
         configure_logging(options.get('logFile'),
             quiet=options.get('quiet', False),
             silent=options.get('silent', False))
-
-        # Check we have been given a map source
-        if 'source' in options:
-            self.__manifest = Manifest(options['source'])
-        else:
-            raise ValueError('No map source specified')
+        log('Mapmaker {}'.format(__version__))
 
         # Default base output directory to ``./flatmaps``.
         if 'output' not in options:
@@ -148,11 +143,15 @@ class Flatmap(object):
         # Save options into global ``settings`` dict
         settings.update(options)
 
-        log('Mapmaker {}'.format(__version__))
-
+        # Check we have been given a map source and get
+        # our manifest
+        if 'source' in options:
+            self.__manifest = Manifest(options['source'])
+        else:
+            raise ValueError('No source manifest specified')
         self.__id = options.get('id', self.__manifest.id)
         if self.__id is None:
-            raise ValueError('No `id` given for map')
+            raise ValueError('No id given for map')
         log('Making map: {}'.format(self.id))
 
         self.__models = self.__manifest.models
@@ -546,7 +545,7 @@ class Flatmap(object):
                         if len(pts):
                             points.append(pts)
                 router.add_route(model_id, p['id'], points)
-        layer = FeatureLayer('{}_routes'.format(self.id), base_layer=True)
+        layer = FeatureLayer('{}_routes'.format(self.__manifest.id), base_layer=True)
         self.__add_layer(layer)
         for model_id in path_models:
             for route in router.get_routes(model_id):
