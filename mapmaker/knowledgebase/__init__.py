@@ -27,7 +27,7 @@ import openpyxl
 import requests
 
 from mapmaker.settings import settings
-from mapmaker.utils import FilePath
+from mapmaker.utils import FilePath, log
 
 #===============================================================================
 
@@ -74,7 +74,7 @@ class LabelDatabase(object):
                     label = response.json().get('labels', [entity])[0]
                     self.set_label(entity, label)
             except:
-                print("Couldn't access", VOCAB_ENDPOINT.format(entity))
+                log.warn("Couldn't access {}".format(VOCAB_ENDPOINT.format(entity)))
         elif ontology == 'ILX':
             endpoint = ILX_ENDPOINT.format(entity.strip().split(':')[-1])
             try:
@@ -85,7 +85,7 @@ class LabelDatabase(object):
                         if triple[1] == 'rdfs:label':
                             self.set_label(entity, triple[2])
             except:
-                print("Couldn't access {} for {}".format(endpoint, entity))
+                log.warn("Couldn't access {} for {}".format(endpoint, entity))
         return label
 
 #===============================================================================
@@ -116,7 +116,7 @@ class AnatomicalMap(object):
                                               'UBERON ID']:
                                 col_indices[cell.value] = cell.column - 1
                         if len(col_indices) < 3:
-                            print("Sheet '{}' doean't have a valid header row -- data ignored".format(sheet.title))
+                            log.warn("Sheet '{}' doean't have a valid header row -- data ignored".format(sheet.title))
                             break
                     else:
                         pp_id = row[col_indices['Power point identifier']].value
