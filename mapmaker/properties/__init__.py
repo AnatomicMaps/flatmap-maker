@@ -35,7 +35,13 @@ class JsonProperties(object):
         else:
             properties_dict = FilePath(manifest.properties).get_json()
         self.__set_properties(properties_dict.get('features', []))
+
+        # Load path definitions
+
         self.__pathways = Pathways(properties_dict.get('paths', []))
+        for manifest_path in manifest.paths:
+            path = FilePath(manifest_path['href']).get_json()
+            self.__pathways.extend_pathways(path.get('paths', []))
 
     def __set_properties(self, features_list):
         for feature in features_list:

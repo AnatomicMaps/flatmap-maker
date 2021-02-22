@@ -164,43 +164,15 @@ class ResolvedPathways(object):
 
 class Pathways(object):
     def __init__(self, paths_list):
-        self.__lines_by_path_id = {}
-        self.__routes_by_path_id = {}
-        self.__nerves_by_path_id = {}
-        self.__types_by_path_id = {}
         self.__layer_paths = set()
-        self.__resolved_pathways = None
-        for path in paths_list:
-            path_id = path['id']
-            self.__lines_by_path_id[path_id] = []
-            for line_group in parse_path_lines(path['path']):
-                self.__lines_by_path_id[path_id] += Pathways.__make_list(line_group)
-            if 'route' in path:
-                routing = list(parse_route_nodes(path['route']))
-                if len(routing) < 2:
-                    raise ValueError('Route definition is too short for path {}'.format(path_id))
-                through_nodes = []
-                for node in routing[1:-1]:
-                    through_nodes += Pathways.__make_list(node)
-                self.__routes_by_path_id[path_id] = {
-                    'start-nodes': Pathways.__make_list(routing[0]),
-                    'through-nodes': through_nodes,
-                    'end-nodes': Pathways.__make_list(routing[-1]),
-                }
-            if 'nerves' in path:
-                self.__nerves_by_path_id[path_id] = list(parse_nerves(path['nerves']))
-            if 'type' in path:
-                self.__types_by_path_id[path_id] = path['type']
-
+        self.__lines_by_path_id = defaultdict(list)
+        self.__nerves_by_path_id = {}
         self.__paths_by_line_id = defaultdict(list)
-        for path_id, lines in self.__lines_by_path_id.items():
-            for line_id in lines:
-                self.__paths_by_line_id[line_id].append(path_id)
-
         self.__paths_by_nerve_id = defaultdict(list)
-        for path_id, nerves in self.__nerves_by_path_id.items():
-            for nerve_id in nerves:
-                self.__paths_by_nerve_id[nerve_id].append(path_id)
+        self.__resolved_pathways = None
+        self.__routes_by_path_id = {}
+        self.__types_by_path_id = {}
+        self.extend_pathways(paths_list)
 
     @staticmethod
     def __make_list(lst):
@@ -234,6 +206,34 @@ class Pathways(object):
             properties['type'] = 'nerve'
             self.__layer_paths.add(path_id)
         return properties
+
+    def extend_pathways(self, paths_list):
+        for path in paths_list:
+            path_id = path['id']
+            for line_group in parse_path_lines(path['path']):
+                self.__lines_by_path_id[path_id] += Pathways.__make_list(line_group)
+            if 'route' in path:
+                routing = list(parse_route_nodes(path['route']))
+                if len(routing) < 2:
+                    raise ValueError('Route definition is too short for path {}'.format(path_id))
+                through_nodes = []
+                for node in routing[1:-1]:
+                    through_nodes += Pathways.__make_list(node)
+                self.__routes_by_path_id[path_id] = {
+                    'start-nodes': Pathways.__make_list(routing[0]),
+                    'through-nodes': through_nodes,
+                    'end-nodes': Pathways.__make_list(routing[-1]),
+                }
+            if 'nerves' in path:
+                self.__nerves_by_path_id[path_id] = list(parse_nerves(path['nerves']))
+            if 'type' in path:
+                self.__types_by_path_id[path_id] = path['type']
+        for path_id, lines in self.__lines_by_path_id.items():
+            for line_id in lines:
+                self.__paths_by_line_id[line_id].append(path_id)
+        for path_id, nerves in self.__nerves_by_path_id.items():
+            for nerve_id in nerves:
+                self.__paths_by_nerve_id[nerve_id].append(path_id)
 
     def resolve_pathways(self, id_map, class_map):
         if self.__resolved_pathways is not None:
