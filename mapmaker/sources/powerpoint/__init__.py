@@ -41,7 +41,7 @@ from .slide import PowerpointSlide
 
 class PowerpointSource(MapSource):
     def __init__(self, flatmap, id, source_path, get_background=False):
-        super().__init__(flatmap, id)
+        super().__init__(flatmap, id, 'slides')
         self.__pptx = Presentation(FilePath(source_path).get_BytesIO())
         self.__slides = self.__pptx.slides
 
@@ -78,7 +78,8 @@ class PowerpointSource(MapSource):
             slide_layer = PowerpointSlide(self, slide, slide_number)
             log('Slide {}, {}'.format(slide_number, slide_layer.id))
             if settings.get('saveDrawML'):
-                xml = open(os.path.join(self.flatmap.map_directory,
+                xml = open(os.path.join(settings.get('output'),
+                                        self.flatmap.maker_id,
                                         '{}.xml'.format(slide_layer.id)), 'w')
                 xml.write(slide.element.xml)
                 xml.close()

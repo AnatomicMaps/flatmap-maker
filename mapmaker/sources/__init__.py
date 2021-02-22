@@ -90,9 +90,10 @@ def not_empty(image):
 #===============================================================================
 
 class MapSource(object):
-    def __init__(self, flatmap, id):
+    def __init__(self, flatmap, id, kind):
         self.__flatmap = flatmap
         self.__id = id
+        self.__kind = kind
         self.__errors = []
         self.__layers = []
         self.__bounds = (0, 0, 0, 0)
@@ -128,6 +129,10 @@ class MapSource(object):
     @property
     def id(self):
         return self.__id
+
+    @property
+    def kind(self):
+        return self.__kind
 
     @property
     def layers(self):

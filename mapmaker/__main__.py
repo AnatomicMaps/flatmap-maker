@@ -26,7 +26,7 @@ import requests
 
 #===============================================================================
 
-from mapmaker import Flatmap, __version__
+from mapmaker import MapMaker, __version__
 from mapmaker.utils import log
 
 #===============================================================================
@@ -87,8 +87,8 @@ def main():
     parser = arg_parser()
     args = parser.parse_args()
     try:
-        flatmap = Flatmap(vars(args))
-        flatmap.make()
+        mapmaker = MapMaker(vars(args))
+        mapmaker.make()
     except Exception as error:
         log.exception(str(error))
 

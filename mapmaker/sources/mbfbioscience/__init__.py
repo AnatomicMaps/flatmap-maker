@@ -44,7 +44,7 @@ from mapmaker.utils import FilePath
 
 class MBFSource(MapSource):
     def __init__(self, flatmap, id, source_path, boundary_id=None, base_layer=False):
-        super().__init__(flatmap, id)
+        super().__init__(flatmap, id, 'image')
         self.__boundary_id = boundary_id
         self.__boundary_geometry = None
 

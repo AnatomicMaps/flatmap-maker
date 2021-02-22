@@ -33,6 +33,6 @@ MAX_ZOOM  = 10   #: Default maximum zoom level for generated flatmaps
 
 #===============================================================================
 
-from .maker import Flatmap
+from .maker import MapMaker
 
 #===============================================================================

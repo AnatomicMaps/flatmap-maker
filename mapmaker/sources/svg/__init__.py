@@ -65,10 +65,10 @@ IGNORED_SVG_TAGS = [
 #===============================================================================
 
 class SVGSource(MapSource):
-    def __init__(self, flatmap, id, source_path, base_layer=True):
-        super().__init__(flatmap, id)
+    def __init__(self, flatmap, id, source_path, source_kind):  # maker v's flatmap (esp. id)
+        super().__init__(flatmap, id, source_kind)
         self.__source_file = FilePath(source_path)
-        self.__base_layer = base_layer
+        self.__base_layer = (source_kind=='base')
         self.__svg = etree.parse(self.__source_file.get_fp()).getroot()
         if 'viewBox' in self.__svg.attrib:
             (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
@@ -85,7 +85,7 @@ class SVGSource(MapSource):
         bottom_right = self.__transform.transform_point((width, height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-        self.__layer = SVGLayer(id, self, base_layer)
+        self.__layer = SVGLayer(id, self, self.__base_layer)
         self.add_layer(self.__layer)
         self.__raster_source = None
         self.__boundary_geometry = None
@@ -112,8 +112,8 @@ class SVGSource(MapSource):
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties)
             cleaner.clean()
             with open(os.path.join(settings.get('output'),
-                      self.flatmap.id,
-                      '{}.svg'.format(self.flatmap.id)), 'wb') as fp:
+                      self.flatmap.maker_id,
+                      '{}.svg'.format(self.flatmap.maker_id)), 'wb') as fp:
                 cleaner.save(fp)
         if settings.get('backgroundTiles', False):
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
