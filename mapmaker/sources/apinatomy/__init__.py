@@ -35,9 +35,11 @@ import networkx as nx
 
 #===============================================================================
 
-CYCLE = 'CYCLE DETECTED'
+APINATOMY_MODEL_BASE = 'https://apinatomy.org/uris/models/{}'
 
 #===============================================================================
+
+CYCLE = 'CYCLE DETECTED'
 
 def process_nodes(j, direction):
     nodes = {n['id']:n['lbl'] for n in j['nodes']}
@@ -206,17 +208,16 @@ def trace_route(neuron, nodes, objects, pair_rel, graph):
 
 #===============================================================================
 
-def main(soma_processes):
+def main(soma_processes, model):
+    model_uri = APINATOMY_MODEL_BASE.format(model)
+
     j = dict(soma_processes)
 
-    # filter out owl:Nothing
-    j['edges'] = [e for e in j['edges'] if 'owl:Nothing' not in e.values()]
+    # Filter out edges not in our model
+    j['edges'] = [e for e in j['edges'] if 'meta' in e
+                                       and 'Annotation' in e['meta'].get('owlType', [])
+                                       and model_uri in e['meta'].get('isDefinedBy', [])]
 
-    # filter out has part meta edges
-    j['edges'] = [e for e in j['edges'] if not
-                    ('meta' in e and
-                    'owlType' in e['meta'] and
-                    'http://purl.obolibrary.org/obo/BFO_0000051' in e['meta']['owlType'])]
     direction = 'OUTGOING'
     (nodes, objects, subjects, edgerep, root, roots, leaves, pair_rel) = process_nodes(j, direction)
 
@@ -235,9 +236,12 @@ if __name__ == '__main__':
     import requests
 
     parser = argparse.ArgumentParser(description='Generate flatmap connectivity from ApiNATOMY KB (via JSON export from SciCrunch)')
+    parser.add_argument('--model', required=True,
+                        help='name of ApiNATOMY model')
     parser.add_argument('--soma-processes', metavar='PATH',
                         help='the path to the JSON export file')
     args = parser.parse_args()
+
     if args.soma_processes is None:
         response = requests.get('http://sparc-data.scicrunch.io:9000/scigraph/dynamic/demos/apinat/soma-processes.json')
         soma_processes = response.json()
@@ -245,6 +249,6 @@ if __name__ == '__main__':
         with open(args.soma_processes) as fp:
             soma_processes = json.load(fp)
 
-    main(soma_processes)
+    main(soma_processes, args.model)
 
 #===============================================================================
