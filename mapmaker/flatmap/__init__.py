@@ -282,13 +282,13 @@ class FlatMap(object):
     def __route_paths(self):
     #=======================
         def get_point(node_id):
-            log.warning("Cannot find node '{}' for route".format(node_id))
             if node_id in self.__id_to_feature:
                 return self.__id_to_feature[node_id].geometry.centroid.coords[0]
             elif node_id in self.__class_to_feature[node_id]:
                 features = self.__class_to_feature[node_id]
                 if len(features) == 1:
                     return features[0].geometry.centroid.coords[0]
+            log.warn("Cannot find node '{}' for route".format(node_id))
 
         log('Routing paths...')
         router = PathRouter([track.properties['bezier-segments']
