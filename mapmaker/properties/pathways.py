@@ -86,10 +86,10 @@ class FeatureIdMap(object):
         self.__class_map = class_map
 
     def map(self, id):
-        feature_id = self.__id_map.get(id)
-        if feature_id is None:
-            return self.__class_map.get(id, [])
-        return [feature_id]
+        feature = self.__id_map.get(id)
+        if feature is None:
+            return [feature.feature_id for feature in self.__class_map.get(id, [])]
+        return [feature.feature_id]
 
     def map_list(self, ids):
         feature_ids = []

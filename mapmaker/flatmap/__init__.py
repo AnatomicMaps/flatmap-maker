@@ -125,9 +125,9 @@ class FlatMap(object):
     def save_feature_id(self, feature):
     #==================================
         if feature.has_property('id'):
-            self.__id_to_feature[feature.get_property('id')] = feature.feature_id
+            self.__id_to_feature[feature.get_property('id')] = feature
         if feature.has_property('class'):
-            self.__class_to_feature[feature.get_property('class')].append(feature.feature_id)
+            self.__class_to_feature[feature.get_property('class')].append(feature)
 
     def new_feature(self, geometry, properties, has_children=False):
     #===============================================================
@@ -282,10 +282,13 @@ class FlatMap(object):
     def __route_paths(self):
     #=======================
         def get_point(node_id):
-            for layer in self.layers:
-                if node_id in layer.features_by_id:
-                    return layer.features_by_id[node_id].geometry.centroid.coords[0]
             log.warning("Cannot find node '{}' for route".format(node_id))
+            if node_id in self.__id_to_feature:
+                return self.__id_to_feature[node_id].geometry.centroid.coords[0]
+            elif node_id in self.__class_to_feature[node_id]:
+                features = self.__class_to_feature[node_id]
+                if len(features) == 1:
+                    return features[0].geometry.centroid.coords[0]
 
         log('Routing paths...')
         router = PathRouter([track.properties['bezier-segments']
