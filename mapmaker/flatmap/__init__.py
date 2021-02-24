@@ -29,9 +29,10 @@ import numpy as np
 
 from mapmaker.geometry import Transform
 from mapmaker.geometry import bounds_to_extent, extent_to_bounds, normalised_coords
+from mapmaker.pathrouter import PathRouter
 from mapmaker.properties import JsonProperties
 from mapmaker.settings import settings
-from mapmaker.utils import log
+from mapmaker.utils import log, FilePath
 
 from .feature import Feature
 from .layers import FeatureLayer, MapLayer
@@ -281,7 +282,7 @@ class FlatMap(object):
     def __route_paths(self):
     #=======================
         def get_point(node_id):
-            for layer in self.__flatmap.layers():
+            for layer in self.layers:
                 if node_id in layer.features_by_id:
                     return layer.features_by_id[node_id].geometry.centroid.coords[0]
             log.warning("Cannot find node '{}' for route".format(node_id))
@@ -290,7 +291,7 @@ class FlatMap(object):
         router = PathRouter([track.properties['bezier-segments']
                     for track in self.__nerve_tracks])
         path_models = []
-        for manifest_path in self.__manifest.paths:
+        for manifest_path in self.__maker.manifest.paths:
             path = FilePath(manifest_path['href']).get_json()
             model_id = path['id']
             path_models.append(model_id)
@@ -309,14 +310,16 @@ class FlatMap(object):
                                 pts.append(pt)
                         if len(pts):
                             points.append(pts)
-                router.add_route(model_id, p['id'], points)
-        layer = FeatureLayer('{}_routes'.format(self.__manifest.id), base_layer=True)
+                router.add_route(model_id, p['id'], p.get('type', ''), points)
+        layer = FeatureLayer('{}_routes'.format(self.__id), base_layer=True)
         self.__add_layer(layer)
         for model_id in path_models:
             for route in router.get_routes(model_id):
                 if route.geometry is not None:
                     layer.add_feature(self.new_feature(route.geometry,
-                        { 'tile-layer': 'pathways'
+                        { 'tile-layer': 'pathways',
+                          'kind': route.kind,
+                          'type': 'line-dash' if route.kind.endswith('-post') else 'line'
                         }))
 
 # Keep layers (and hence features)

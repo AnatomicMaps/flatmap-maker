@@ -210,8 +210,6 @@ class Pathways(object):
     def extend_pathways(self, paths_list):
         for path in paths_list:
             path_id = path['id']
-            for line_group in parse_path_lines(path['path']):
-                self.__lines_by_path_id[path_id] += Pathways.__make_list(line_group)
             if 'route' in path:
                 routing = list(parse_route_nodes(path['route']))
                 if len(routing) < 2:
@@ -224,6 +222,9 @@ class Pathways(object):
                     'through-nodes': through_nodes,
                     'end-nodes': Pathways.__make_list(routing[-1]),
                 }
+            if 'path' in path:
+                for line_group in parse_path_lines(path['path']):
+                    self.__lines_by_path_id[path_id] += Pathways.make_list(line_group)
             if 'nerves' in path:
                 self.__nerves_by_path_id[path_id] = list(parse_nerves(path['nerves']))
             if 'type' in path:

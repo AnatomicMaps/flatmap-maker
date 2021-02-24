@@ -44,8 +44,6 @@ from .output.styling import MapStyle
 from .output.tilejson import tile_json
 from .output.tilemaker import RasterTileMaker
 
-from .pathrouter import PathRouter
-
 from .settings import settings
 
 from .sources import MBFSource, PowerpointSource, SVGSource
