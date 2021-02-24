@@ -65,7 +65,7 @@ class Route(object):
             if len(self.__path) > 3:
                 lines.append(shapely.geometry.LineString(self.__path[1:-1]))
         else:
-            raise ValueError("Route '{}' is ildefined".format(self.__id))
+            raise ValueError("Route '{}' is ill-defined".format(self.__id))
         self.__geometry = shapely.geometry.MultiLineString(lines)
 
 #===============================================================================

@@ -274,8 +274,7 @@ class FlatMap(object):
 
     def __resolve_paths(self):
     #=========================
-        if settings.get('routePaths', False):
-            self.__route_paths()
+        self.__route_paths()
         # Set feature ids of path components
         self.__map_properties.resolve_pathways(self.__id_to_feature, self.__class_to_feature)
 
@@ -299,26 +298,28 @@ class FlatMap(object):
             model_id = path['id']
             path_models.append(model_id)
             for p in path.get('paths', []):
-                points = []
-                for node_ids in p.get('route', []):
-                    if isinstance(node_ids, str):
-                        pt = get_point(node_ids)
-                        if pt is not None:
-                            points.append(pt)
-                    else:
-                        pts = []
-                        for node_id in node_ids:
-                            pt = get_point(node_id)
+                if 'path' not in p:
+                    points = []
+                    for node_ids in p.get('route', []):
+                        if isinstance(node_ids, str):
+                            pt = get_point(node_ids)
                             if pt is not None:
-                                pts.append(pt)
-                        if len(pts):
-                            points.append(pts)
-                router.add_route(model_id, p['id'], p.get('type', ''), points)
+                                points.append(pt)
+                        else:
+                            pts = []
+                            for node_id in node_ids:
+                                pt = get_point(node_id)
+                                if pt is not None:
+                                    pts.append(pt)
+                            if len(pts):
+                                points.append(pts)
+                    router.add_route(model_id, p['id'], p.get('type', ''), points)
         layer = FeatureLayer('{}_routes'.format(self.__id), base_layer=True)
         self.__add_layer(layer)
         for model_id in path_models:
             for route in router.get_routes(model_id):
                 if route.geometry is not None:
+                    ## Properties need to come via `pathways` module...
                     layer.add_feature(self.new_feature(route.geometry,
                         { 'tile-layer': 'pathways',
                           'kind': route.kind,
