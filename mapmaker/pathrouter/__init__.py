@@ -45,25 +45,22 @@ class Route(object):
         return self.__kind
 
     def __layout(self):
-        if (isinstance(self.__path[0], tuple)
-        and isinstance(self.__path[-1], tuple)):
-            self.__geometry = shapely.geometry.LineString(self.__path)
+        if len(self.__path[0]) == 1 and len(self.__path[-1]) == 1:
+            self.__geometry = shapely.geometry.LineString(self.__path[0] + self.__path[1:-1] + self.__path[-1])
             return
-        elif (isinstance(self.__path[0], tuple)
-          and not isinstance(self.__path[-1], tuple)):
+        elif len(self.__path[0]) == 1 and len(self.__path[-1]) > 1:
             lines = [ shapely.geometry.LineString([self.__path[-2], pt]) for pt in self.__path[-1] ]
             if len(self.__path) > 2:
-                lines.append(shapely.geometry.LineString(self.__path[:-1]))
-        elif (not isinstance(self.__path[0], tuple)
-          and isinstance(self.__path[-1], tuple)):
-            lines = [ shapely.geometry.LineString(pt, [self.__path[1]]) for pt in self.__path[0] ]
-            if len(self.__paths) > 2:
-                lines.append(shapely.geometry.LineString(self.__path[1:]))
+                lines.append(shapely.geometry.LineString(self.__path[0] + self.__path[1:-1]))
+        elif len(self.__path[0]) > 1 and len(self.__path[-1]) == 1:
+            lines = [ shapely.geometry.LineString([pt, self.__path[1]]) for pt in self.__path[0] ]
+            if len(self.__path) > 2:
+                lines.append(shapely.geometry.LineString(self.__path[1:-1] + self.__path[-1]))
         elif len(self.__path) > 2:
-            lines = [ shapely.geometry.LineString([self.__path[-2], pt]) for pt in self.__path[-1] ]
-            lines.extend([ shapely.geometry.LineString(pt, [self.__path[1]]) for pt in self.__path[0] ])
+            lines = [ shapely.geometry.LineString([pt, self.__path[1]]) for pt in self.__path[0] ]
             if len(self.__path) > 3:
                 lines.append(shapely.geometry.LineString(self.__path[1:-1]))
+            lines.extend([ shapely.geometry.LineString([self.__path[-2], pt]) for pt in self.__path[-1] ])
         else:
             raise ValueError("Route '{}' is ill-defined".format(self.__id))
         self.__geometry = shapely.geometry.MultiLineString(lines)

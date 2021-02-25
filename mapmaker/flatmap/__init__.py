@@ -29,13 +29,13 @@ import numpy as np
 
 from mapmaker.geometry import Transform
 from mapmaker.geometry import bounds_to_extent, extent_to_bounds, normalised_coords
-from mapmaker.pathrouter import PathRouter
 from mapmaker.properties import JsonProperties
+from mapmaker.properties.pathways import Route
 from mapmaker.settings import settings
-from mapmaker.utils import log, FilePath
+from mapmaker.utils import log
 
 from .feature import Feature
-from .layers import FeatureLayer, MapLayer
+from .layers import MapLayer
 
 #===============================================================================
 
@@ -46,7 +46,7 @@ class FlatMap(object):
         self.__models = maker.manifest.models
 
         # Properties about map features
-        self.__map_properties = JsonProperties(maker.manifest)
+        self.__map_properties = JsonProperties(self, maker.manifest)
 
         self.__layer_dict = OrderedDict()
         self.__visible_layer_count = 0
@@ -59,8 +59,6 @@ class FlatMap(object):
         self.__last_feature_id = 0
         self.__class_to_feature = defaultdict(list)
         self.__id_to_feature = {}
-        self.__nerve_tracks = []
-
 
     def __len__(self):
         return self.__visible_layer_count
@@ -134,8 +132,8 @@ class FlatMap(object):
         self.__last_feature_id += 1
         return Feature(self.__last_feature_id, geometry, properties, has_children)
 
-    def __add_layer(self, layer):
-    #============================
+    def add_layer(self, layer):
+    #==========================
         if layer.id in self.__layer_dict:
             raise KeyError('Duplicate layer id: {}'.format(layer.id))
         self.__layer_dict[layer.id] = layer
@@ -145,7 +143,7 @@ class FlatMap(object):
     def add_source_layers(self, layer_number, map_source):
     #=====================================================
         for layer in map_source.layers:
-            self.__add_layer(layer)
+            self.add_layer(layer)
             if layer.base_layer:
                 layer.add_raster_layer(layer.id, map_source.extent, map_source, self.__maker.zoom[0])
         # The first layer is used as the base map
@@ -177,7 +175,7 @@ class FlatMap(object):
         for layer in self.__layer_dict.values():
             layer.set_feature_properties(self.__map_properties)
             layer.add_nerve_details()
-            self.__nerve_tracks.extend(layer.nerve_tracks)
+            self.__map_properties.add_nerve_tracks(layer.nerve_tracks)
 
     def __add_details(self):
     #=======================
@@ -200,7 +198,7 @@ class FlatMap(object):
                 detail_layers.append(detail_layer)
                 self.__add_detail_features(layer, detail_layer, layer.detail_features)
         for layer in detail_layers:
-            self.__add_layer(layer)
+            self.add_layer(layer)
 
 ## Put all this into 'features.py' as a function??
     def __new_detail_feature(self, layer_id, detail_layer, minzoom, geometry, properties):
@@ -274,57 +272,8 @@ class FlatMap(object):
 
     def __resolve_paths(self):
     #=========================
-        self.__route_paths()
-        # Set feature ids of path components
+        # Route paths and set feature ids of path components
         self.__map_properties.resolve_pathways(self.__id_to_feature, self.__class_to_feature)
-
-    def __route_paths(self):
-    #=======================
-        def get_point(node_id):
-            if node_id in self.__id_to_feature:
-                return self.__id_to_feature[node_id].geometry.centroid.coords[0]
-            elif node_id in self.__class_to_feature[node_id]:
-                features = self.__class_to_feature[node_id]
-                if len(features) == 1:
-                    return features[0].geometry.centroid.coords[0]
-            log.warn("Cannot find node '{}' for route".format(node_id))
-
-        log('Routing paths...')
-        router = PathRouter([track.properties['bezier-segments']
-                    for track in self.__nerve_tracks])
-        path_models = []
-        for manifest_path in self.__maker.manifest.paths:
-            path = FilePath(manifest_path['href']).get_json()
-            model_id = path['id']
-            path_models.append(model_id)
-            for p in path.get('paths', []):
-                if 'path' not in p:
-                    points = []
-                    for node_ids in p.get('route', []):
-                        if isinstance(node_ids, str):
-                            pt = get_point(node_ids)
-                            if pt is not None:
-                                points.append(pt)
-                        else:
-                            pts = []
-                            for node_id in node_ids:
-                                pt = get_point(node_id)
-                                if pt is not None:
-                                    pts.append(pt)
-                            if len(pts):
-                                points.append(pts)
-                    router.add_route(model_id, p['id'], p.get('type', ''), points)
-        layer = FeatureLayer('{}_routes'.format(self.__id), base_layer=True)
-        self.__add_layer(layer)
-        for model_id in path_models:
-            for route in router.get_routes(model_id):
-                if route.geometry is not None:
-                    ## Properties need to come via `pathways` module...
-                    layer.add_feature(self.new_feature(route.geometry,
-                        { 'tile-layer': 'pathways',
-                          'kind': route.kind,
-                          'type': 'line-dash' if route.kind.endswith('-post') else 'line'
-                        }))
 
 # Keep layers (and hence features)
 

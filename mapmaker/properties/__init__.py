@@ -26,7 +26,7 @@ from .pathways import Pathways
 #===============================================================================
 
 class JsonProperties(object):
-    def __init__(self, manifest):
+    def __init__(self, flatmap, manifest):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
         self.__properties_by_class = {}
         self.__properties_by_id = {}
@@ -38,10 +38,11 @@ class JsonProperties(object):
 
         # Load path definitions
 
-        self.__pathways = Pathways(properties_dict.get('paths', []))
+        self.__pathways = Pathways(flatmap, properties_dict.get('paths', []))
         for manifest_path in manifest.paths:
             path = FilePath(manifest_path['href']).get_json()
-            self.__pathways.extend_pathways(path.get('paths', []))
+            path_model_id = path['id']
+            self.__pathways.extend_pathways(path_model_id, path.get('paths', []), layout=True)
 
     def __set_properties(self, features_list):
         for feature in features_list:
@@ -59,6 +60,11 @@ class JsonProperties(object):
                     self.__properties_by_id[id].update(properties)
                 else:
                     self.__properties_by_id[id] = properties
+
+    def add_nerve_tracks(self, nerve_tracks):
+    #========================================
+        if self.__pathways is not None:
+            self.__pathways.add_nerve_tracks(nerve_tracks)
 
     @property
     def resolved_pathways(self):
