@@ -107,27 +107,21 @@ class FeatureIdMap(object):
 class NodePaths(object):
     def __init__(self, feature_map):
         self.__feature_map = feature_map
-        self.__start_paths = defaultdict(list)     # node_id: [ path_ids ]
-        self.__through_paths = defaultdict(list)   # node_id: [ path_ids ]
-        self.__end_paths = defaultdict(list)       # node_id: [ path_ids ]
+        self.__paths = defaultdict(list)     # node_id: [ path_ids ]
 
     @property
     def as_dict(self):
-        return {
-            'start-paths': self.__start_paths,
-            'through-paths': self.__through_paths,
-            'end-paths': self.__end_paths
-        }
+        return self.__paths
 
-    def __add_paths(self, path_id, nodes, paths_dict):
+    def __add_paths(self, path_id, nodes):
         for id in nodes:
             for node_id in self.__feature_map.map(id):
-                paths_dict[node_id].append(path_id)
+                self.__paths[node_id].append(path_id)
 
     def add_route(self, path_id, route):
-        self.__add_paths(path_id, route.start_nodes, self.__start_paths)
-        self.__add_paths(path_id, route.through_nodes, self.__through_paths)
-        self.__add_paths(path_id, route.end_nodes, self.__end_paths)
+        self.__add_paths(path_id, route.start_nodes)
+        self.__add_paths(path_id, route.through_nodes)
+        self.__add_paths(path_id, route.end_nodes)
 
 #===============================================================================
 
