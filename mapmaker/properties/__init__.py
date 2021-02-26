@@ -18,13 +18,13 @@
 #
 #===============================================================================
 
-from ..knowledgebase import AnatomicalMap
-from ..utils import FilePath
 from collections import defaultdict
 
 #===============================================================================
 
+from mapmaker.knowledgebase import AnatomicalMap
 from mapmaker.sources.apinatomy import ApiNATOMY
+from mapmaker.utils import FilePath
 
 from .pathways import Pathways
 
