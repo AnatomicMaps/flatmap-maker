@@ -31,7 +31,9 @@ class defaultdict(base_dd):
 
 #===============================================================================
 
-import networkx as nx
+#import networkx as nx
+
+from mapmaker.utils import log
 
 #===============================================================================
 
@@ -52,8 +54,9 @@ def print_node(indent, node, objects, nodes, pair_rel):
 #===============================================================================
 
 class ApiNATOMY(object):
-    def __init__(self, soma_processes, model):
+    def __init__(self, soma_processes, model, debug=False):
         self.__uri = APINATOMY_MODEL_BASE.format(model)
+        self.__debug = debug
 
         # Filter out edges not in our model
         soma_processes['edges'] = [e for e in soma_processes['edges']
@@ -95,12 +98,22 @@ class ApiNATOMY(object):
             self.__objects[root] = list(roots)
 
         # root node will be soma (NLX:154731)   ### WHY ????
-        self.__graph = nx.DiGraph()
+        #self.__graph = nx.DiGraph()
 
-        print("Soma routes:")
-        # eventually we would do all soma's
-        for neuron in self.__objects[root]:
-            self.__trace_route(neuron)
+        if self.__debug:
+            print("Soma routes:")
+
+        self.__routes = { neuron: self.__get_route(neuron)
+                            for neuron in self.__objects[root]
+                        }
+
+    @property
+    def routes(self):
+        return self.__routes
+
+    @property
+    def uri(self):
+        return self.__uri
 
     def __find_object(self, subject, predicate):
         for o in self.__objects[subject]:
@@ -155,55 +168,75 @@ class ApiNATOMY(object):
             flatmap_node['name'] = name
         return flatmap_node
 
-    def __trace_route_part(self, indent, part):
+    @staticmethod
+    def __extend_route(route, values):
+        for value in values:
+            if route[-1] != value:
+                route.append(value)
+
+    def __get_route_part(self, indent, part):
         # is there a flatmap "node" for this part?
         node = self.__find_object(part, 'apinatomy:fasciculatesIn>')
+        route = []
         if node:
             flatmap_node = self.__get_flatmap_node(node)
-            s = flatmap_node['external_id'] + "(" + flatmap_node['name'] + ")"
-            if 'layer_in' in flatmap_node:
-                l = flatmap_node['layer_in']
-                s = s + " [in layer: " + l['external_id'] + "(" + l['name'] + ")"
-            print('{} {}'.format(indent, s))
-            self.__graph.add_node(node, **flatmap_node)
+            anatomical_id = flatmap_node['external_id']
+            if self.__debug:
+                s = anatomical_id + "(" + flatmap_node['name'] + ")"
+                if 'layer_in' in flatmap_node:
+                    l = flatmap_node['layer_in']
+                    s = s + " [in layer: " + l['external_id'] + "(" + l['name'] + ")"
+                print('{} {}'.format(indent, s))
+            if anatomical_id == 'REALLY_UNKNOWN' and 'layer_in' in flatmap_node:
+                anatomical_id = flatmap_node['layer_in']['external_id']
+                log.warn('Missing anatomical identifier for {}, layer {} used instead'.format(node, anatomical_id))
+            route = [anatomical_id]
+            #self.__graph.add_node(node, **flatmap_node)
         # are the more parts in this route?
         next_part = self.__find_object(part, 'apinatomy:next>')
         if next_part:
             new_indent = '  ' + indent
-            np = self.__trace_route_part(new_indent, next_part)
-            self.__graph.add_edge(node, np)
+            (np, sub_route) = self.__get_route_part(new_indent, next_part)
+            self.__extend_route(route, sub_route)
+            #self.__graph.add_edge(node, np)
         else:
             # if the chain merges into another chain?
             next_part = self.__find_object(part, 'apinatomy:nextChainStartLevels>')
             if next_part:
                 new_indent = '  ' + indent
-                np = self.__trace_route_part(new_indent, next_part)
-                self.__graph.add_edge(node, np)
-        return node
+                (np, sub_route) = self.__get_route_part(new_indent, next_part)
+                self.__extend_route(route, sub_route)
+                #self.__graph.add_edge(node, np)
+        return (node, route)
 
-    def __trace_route(self, neuron):
-        print("")
-        print("Neuron: {} ({})".format(self.__nodes[neuron], neuron))
+    def __get_route(self, neuron):
+        if self.__debug:
+            print("")
+            print("Neuron: {} ({})".format(self.__nodes[neuron], neuron))
+        route = []
         conveys = self.__find_object(neuron, 'apinatomy:conveys>')
-        if conveys == '':
-            return
-        target = self.__find_object(conveys, 'apinatomy:target>')
-        target_root = self.__find_object(target, 'apinatomy:rootOf>')
+        if conveys != '':
+            target = self.__find_object(conveys, 'apinatomy:target>')
+            target_root = self.__find_object(target, 'apinatomy:rootOf>')
 
-        source = self.__find_object(conveys, 'apinatomy:source>')
-        source_root = self.__find_object(source, 'apinatomy:rootOf>')
-        print("  Conveys {} ==> {}".format(
-            self.__get_primary_name(source_root),
-            self.__get_primary_name(target_root)
-        ))
+            source = self.__find_object(conveys, 'apinatomy:source>')
+            source_root = self.__find_object(source, 'apinatomy:rootOf>')
+            if self.__debug:
+                print("  Conveys {} ==> {}".format(
+                    self.__get_primary_name(source_root),
+                    self.__get_primary_name(target_root)
+                ))
+                print("  Target: " + self.__get_primary_name(target_root))
 
-        print("  Target: " + self.__get_primary_name(target_root))
-        part = self.__find_object(target, 'apinatomy:sourceOf>')
-        self.__trace_route_part('    -->', part)
+            part = self.__find_object(target, 'apinatomy:sourceOf>')
+            route = self.__get_route_part('    -->', part)[1]
 
-        print("  Source: " + self.__get_primary_name(source_root))
-        part = self.__find_object(source, 'apinatomy:sourceOf>')
-        self.__trace_route_part('    -->', part)
+            if self.__debug:
+                print("  Source: " + self.__get_primary_name(source_root))
+            part = self.__find_object(source, 'apinatomy:sourceOf>')
+            self.__get_route_part('    -->', part)
+
+        return route
 
 #===============================================================================
 
@@ -216,6 +249,8 @@ if __name__ == '__main__':
                         help='name of ApiNATOMY model')
     parser.add_argument('--soma-processes', metavar='PATH',
                         help='the path to the JSON export file')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='show debugging')
     args = parser.parse_args()
 
     if args.soma_processes is None:
@@ -225,6 +260,8 @@ if __name__ == '__main__':
         with open(args.soma_processes) as fp:
             soma_processes = json.load(fp)
 
-    ApiNATOMY(soma_processes, args.model)
+    path_model = ApiNATOMY(soma_processes, args.model, debug=args.debug)
+
+    print(path_model.routes)
 
 #===============================================================================
