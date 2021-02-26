@@ -273,7 +273,10 @@ class FlatMap(object):
     def __resolve_paths(self):
     #=========================
         # Route paths and set feature ids of path components
-        self.__map_properties.resolve_pathways(self.__id_to_feature, self.__class_to_feature)
+        self.__map_properties.resolve_pathways(
+            self.__id_to_feature,
+            self.__class_to_feature,
+            self.__map_properties.features_by_model)
 
 # Keep layers (and hence features)
 

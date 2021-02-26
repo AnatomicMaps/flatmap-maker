@@ -24,6 +24,7 @@ from collections import defaultdict
 
 #===============================================================================
 
+from mapmaker.sources.apinatomy import ApiNATOMY
 
 from .pathways import Pathways
 
@@ -42,14 +43,28 @@ class ManifestProperties(object):
         self.__features_by_model = defaultdict(set)
 
         # Load path definitions
-
         self.__pathways = Pathways(flatmap, properties_dict.get('paths', []))
         for manifest_path in manifest.paths:
             path = FilePath(manifest_path['href']).get_json()
             path_model_id = path['id']
             self.__pathways.extend_pathways(path_model_id, path.get('paths', []), layout=True)
 
+        # Load routes from ApiNATOMY
+        if manifest.soma_processes is not None:
+            soma_processes = FilePath(manifest.soma_processes['href']).get_json()
+            for model in manifest.soma_processes['models']:
+                self.__pathways.add_apinatomy_routes(ApiNATOMY(soma_processes, model))
+
+    @property
+    def features_by_model(self):
+        return self.__features_by_model
+
+    @property
+    def resolved_pathways(self):
+        return self.__pathways.resolved_pathways
+
     def __set_properties(self, features_list):
+    #=========================================
         for feature in features_list:
             if 'class' in feature:
                 cls = feature['class']
@@ -71,14 +86,10 @@ class ManifestProperties(object):
         if self.__pathways is not None:
             self.__pathways.add_nerve_tracks(nerve_tracks)
 
-    @property
-    def resolved_pathways(self):
-        return self.__pathways.resolved_pathways
-
-    def resolve_pathways(self, id_map, class_map):
-    #=============================================
+    def resolve_pathways(self, id_map, class_map, anatomical_map):
+    #=============================================================
         if self.__pathways is not None:
-            self.__pathways.resolve_pathways(id_map, class_map)
+            self.__pathways.resolve_pathways(id_map, class_map, anatomical_map)
 
     def update_properties(self, properties):
     #=======================================

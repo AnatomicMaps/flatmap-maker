@@ -115,6 +115,10 @@ class NodePaths(object):
 
     def __add_paths(self, path_id, nodes):
         for id in nodes:
+            self.__paths[id].append(path_id)
+
+    def __resolve_paths(self, path_id, nodes):
+        for id in nodes:
             for node_id in self.__feature_map.map(id):
                 self.__paths[node_id].append(path_id)
 
@@ -122,6 +126,11 @@ class NodePaths(object):
         self.__add_paths(path_id, route.start_nodes)
         self.__add_paths(path_id, route.through_nodes)
         self.__add_paths(path_id, route.end_nodes)
+
+    def resolve_route(self, path_id, route):
+        self.__resolve_paths(path_id, route.start_nodes)
+        self.__resolve_paths(path_id, route.through_nodes)
+        self.__resolve_paths(path_id, route.end_nodes)
 
 #===============================================================================
 
@@ -149,13 +158,20 @@ class ResolvedPathways(object):
     def type_paths(self):
         return self.__type_paths
 
+    def __add_pathway(self, path_id, lines, nerves):
+        self.__path_lines[path_id].extend(lines)
+        self.__path_nerves[path_id].extend(nerves)
+
     def add_pathway(self, path_id, lines, nerves, route):
-        self.__path_lines[path_id].extend(self.__feature_map.map_list(lines))
-        self.__path_nerves[path_id].extend(self.__feature_map.map_list(nerves))
+        self.__add_pathway(path_id, lines, route)
         self.__node_paths.add_route(path_id, route)
 
     def add_path_type(self, path_id, path_type):
         self.__type_paths[path_type].append(path_id)
+
+    def resolve_pathway(self, path_id, lines, nerves, route):
+        self.__add_pathway(path_id, self.__feature_map.map_list(lines), self.__feature_map.map_list(nerves))
+        self.__node_paths.resolve_route(path_id, route)
 
 #===============================================================================
 
@@ -199,6 +215,7 @@ class Pathways(object):
         self.__types_by_path_id = {}
         self.__nerve_tracks = []
         self.__path_models = {}
+        self.__apinatomy_models = []
 
     @staticmethod
     def make_list(lst):
@@ -215,10 +232,16 @@ class Pathways(object):
             'type-paths': self.__resolved_pathways.type_paths
             }
 
-    def add_path(self, id):
+    def add_apinatomy_routes(self, apinatomy_model):
+    #===============================================
+        self.__apinatomy_models.append(apinatomy_model)
+
+    def add_line_or_nerve(self, id_or_class):
+    #========================================
         properties = {}
-        if id in self.__paths_by_line_id:
-            path_id = self.__paths_by_line_id[id][0]
+        # Is the id_or_class that of a line?
+        if id_or_class in self.__paths_by_line_id:
+            path_id = self.__paths_by_line_id[id_or_class][0]
             if path_id in self.__types_by_path_id:
                 properties['kind'] = self.__types_by_path_id[path_id]
                 properties['type'] = 'line-dash' if properties['kind'].endswith('-post') else 'line'
@@ -226,8 +249,9 @@ class Pathways(object):
                 properties['type'] = 'line'
             properties['tile-layer'] = 'pathways'
             self.__layer_paths.add(path_id)
-        elif id in self.__paths_by_nerve_id:
-            path_id = self.__paths_by_nerve_id[id][0]
+        # Is the id_or_class that of a nerve cuff?
+        elif id_or_class in self.__paths_by_nerve_id:
+            path_id = self.__paths_by_nerve_id[id_or_class][0]
             properties['tile-layer'] = 'pathways'
             properties['type'] = 'nerve'
             self.__layer_paths.add(path_id)
@@ -264,9 +288,20 @@ class Pathways(object):
         if layout:
             self.__path_models[model_id] = paths_list
 
-    def __route_paths(self, id_map, class_map):
-    #==========================================
-        def get_point(node_id):
+    def __route_paths(self, id_map, class_map, anatomical_map):
+    #==========================================================
+        def get_point_for_anatomy(anatomical_id, error_list):
+            if anatomical_id in anatomical_map:
+                features_set = anatomical_map[anatomical_id]
+                if len(features_set) == 1:
+                    return list(features_set)[0].geometry.centroid.coords[0]
+                else:
+                    error_list.append("Multiple features for {}".format(anatomical_id))
+            else:
+                error_list.append("Cannot find feature for {}".format(anatomical_id))
+            return None
+
+        def get_point_for_node(node_id):
             if node_id in id_map:
                 return id_map[node_id].geometry.centroid.coords[0]
             elif node_id in class_map:
@@ -278,19 +313,45 @@ class Pathways(object):
         log('Routing paths...')
         router = PathRouter([track.properties['bezier-segments']
                     for track in self.__nerve_tracks])
+
+        path_models = []
         for model_id, paths in self.__path_models.items():
+            path_models.append(model_id)
             for path in paths:
                 if ( path['id'] != 'path_1' and #'path' not in path and
                     'route' in path):
                     route = Route(model_id, path['id'], path['route'])
-                    points = ([ [ get_point(node) for node in route.start_nodes ] ]
-                            + [ get_point(node) for node in route.through_nodes ]
-                            + [ [ get_point(node) for node in route.end_nodes ] ])
+                    points = ([ [ get_point_for_node(node) for node in route.start_nodes ] ]
+                            + [ get_point_for_node(node) for node in route.through_nodes ]
+                            + [ [ get_point_for_node(node) for node in route.end_nodes ] ])
                     router.add_route(model_id, path['id'], path.get('type', ''), points)
+
+        for apinatomy_model in self.__apinatomy_models:
+            path_models.append(apinatomy_model.uri)
+            for path_id, route in apinatomy_model.routes.items():
+                errors = []
+                points = []
+                for anatomical_id in route:
+                    point = get_point_for_anatomy(anatomical_id, errors)
+                    if point is not None:
+                        if len(points) == 0:
+                            points.append([point])
+                        else:
+                            points.append(point)
+                if len(points) < 2:
+                    errors.append('Route is too short')
+                else:
+                    points[-1] = [points[-1]]
+                    path_type = 'symp'    #####  from where?????
+                    router.add_route(apinatomy_model.uri, path_id, path_type, points)
+                if errors:
+                    log.warn('Path {}:'.format(path_id))
+                    for error in errors:
+                        log.warn('    {}'.format(error))
 
         layer = FeatureLayer('{}_routes'.format(self.__flatmap.id), base_layer=True)
         self.__flatmap.add_layer(layer)
-        for model_id in self.__path_models.keys():
+        for model_id in path_models:
             for route in router.get_routes(model_id):
                 if route.geometry is not None:
                     ## Properties need to come via `pathways` module...
@@ -301,24 +362,24 @@ class Pathways(object):
                         }))
 
 
-    def resolve_pathways(self, id_map, class_map):
-    #=============================================
+    def resolve_pathways(self, id_map, class_map, anatomical_map):
+    #=============================================================
         if self.__resolved_pathways is not None:
             return
-        self.__route_paths(id_map, class_map)
         self.__resolved_pathways = ResolvedPathways(id_map, class_map)
         errors = False
         for path_id in self.__layer_paths:
             try:
-                self.__resolved_pathways.add_pathway(path_id,
-                                                     self.__lines_by_path_id.get(path_id, []),
-                                                     self.__nerves_by_path_id.get(path_id, []),
-                                                     self.__routes_by_path_id.get(path_id)
-                                                    )
+                self.__resolved_pathways.resolve_pathway(path_id,
+                                                         self.__lines_by_path_id.get(path_id, []),
+                                                         self.__nerves_by_path_id.get(path_id, []),
+                                                         self.__routes_by_path_id.get(path_id)
+                                                        )
                 self.__resolved_pathways.add_path_type(path_id, self.__types_by_path_id.get(path_id))
             except ValueError as err:
-                print('Path {}: {}'.format(path_id, str(err)))
+                log.error('Path {}: {}'.format(path_id, str(err)))
                 errors = True
+        self.__route_paths(id_map, class_map, anatomical_map)
         if errors:
             raise ValueError('Errors in mapping paths and routes')
 

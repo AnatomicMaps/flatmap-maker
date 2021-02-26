@@ -63,6 +63,8 @@ class Manifest(object):
             self.__manifest['anatomicalMap'] = urljoin(self.__url, self.__manifest['anatomicalMap'])
         if 'properties' in self.__manifest:
             self.__manifest['properties'] = urljoin(self.__url, self.__manifest['properties'])
+        if 'somaProcesses' in self.__manifest:
+            self.__manifest['somaProcesses']['href'] = urljoin(self.__url, self.__manifest['somaProcesses']['href'])
         for path in self.__manifest.get('paths', []):
             path['href'] = urljoin(self.__url, path['href'])
         for source in self.__manifest['sources']:
@@ -87,6 +89,10 @@ class Manifest(object):
     @property
     def properties(self):
         return self.__manifest.get('properties')
+
+    @property
+    def soma_processes(self):
+        return self.__manifest.get('somaProcesses')
 
     @property
     def sources(self):
