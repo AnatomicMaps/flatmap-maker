@@ -20,6 +20,10 @@
 
 from ..knowledgebase import AnatomicalMap
 from ..utils import FilePath
+from collections import defaultdict
+
+#===============================================================================
+
 
 from .pathways import Pathways
 
@@ -35,6 +39,7 @@ class ManifestProperties(object):
         else:
             properties_dict = FilePath(manifest.properties).get_json()
         self.__set_properties(properties_dict.get('features', []))
+        self.__features_by_model = defaultdict(set)
 
         # Load path definitions
 
@@ -103,5 +108,7 @@ class ManifestProperties(object):
     def update_feature_properties(self, feature):
     #============================================
         self.update_properties(feature.properties)
+        if feature.models is not None:
+            self.__features_by_model[feature.models].add(feature)
 
 #===============================================================================

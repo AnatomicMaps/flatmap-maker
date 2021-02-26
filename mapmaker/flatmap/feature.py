@@ -64,6 +64,10 @@ class Feature(object):
         return self.__properties.get('id')
 
     @property
+    def models(self) -> str:
+        return self.__properties.get('models')
+
+    @property
     def properties(self):
         return self.__properties
 
