@@ -75,29 +75,33 @@ class JsonProperties(object):
         if self.__pathways is not None:
             self.__pathways.resolve_pathways(id_map, class_map)
 
-    def update_feature_properties(self, feature_properties):
-    #=======================================================
-        cls = feature_properties.get('class')
+    def update_properties(self, properties):
+    #=======================================
+        cls = properties.get('class')
         if cls is not None:
-            feature_properties.update(self.__anatomical_map.properties(cls))
-            feature_properties.update(self.__properties_by_class.get(cls, {}))
+            properties.update(self.__anatomical_map.properties(cls))
+            properties.update(self.__properties_by_class.get(cls, {}))
             if self.__pathways is not None:
-                feature_properties.update(self.__pathways.add_path(cls))
-        id = feature_properties.get('id')
+                properties.update(self.__pathways.add_line_or_nerve(cls))
+        id = properties.get('id')
         if id is not None:
-            feature_properties.update(self.__properties_by_id.get(id, {}))
+            properties.update(self.__properties_by_id.get(id, {}))
             if self.__pathways is not None:
-                feature_properties.update(self.__pathways.add_path(id))
-        if 'marker' in feature_properties:
-            feature_properties['type'] = 'marker'
-            if 'datasets' in feature_properties:
-                feature_properties['kind'] = 'dataset'
-            elif 'scaffolds' in feature_properties:
-                feature_properties['kind'] = 'scaffold'
-            elif 'simulations' in feature_properties:
-                feature_properties['kind'] = 'simulation'
-        if 'models' in feature_properties and 'label' not in feature_properties:
-            feature_properties['label'] = self.__anatomical_map.label(feature_properties['models'])
-        return feature_properties
+                properties.update(self.__pathways.add_line_or_nerve(id))
+        if 'marker' in properties:
+            properties['type'] = 'marker'
+            if 'datasets' in properties:
+                properties['kind'] = 'dataset'
+            elif 'scaffolds' in properties:
+                properties['kind'] = 'scaffold'
+            elif 'simulations' in properties:
+                properties['kind'] = 'simulation'
+        if 'models' in properties and 'label' not in properties:
+            properties['label'] = self.__anatomical_map.label(properties['models'])
+        return properties
+
+    def update_feature_properties(self, feature):
+    #============================================
+        self.update_properties(feature.properties)
 
 #===============================================================================

@@ -84,7 +84,7 @@ class FeatureLayer(object):
     #===============================================
         # Update feature properties from JSON properties file
         for feature in self.__features:
-            map_properties.update_feature_properties(feature.properties)
+            map_properties.update_feature_properties(feature)
 
 #===============================================================================
 

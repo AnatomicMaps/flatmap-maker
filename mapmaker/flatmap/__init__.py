@@ -220,7 +220,7 @@ class FlatMap(object):
     #=====================================================================
         extra_details = []
         for feature in lowres_features:
-            self.__map_properties.update_feature_properties(feature.properties)
+            self.__map_properties.update_feature_properties(feature)
             hires_layer_id = feature.get_property('details')
             hires_layer = self.__layer_dict.get(hires_layer_id)
             if hires_layer is None:

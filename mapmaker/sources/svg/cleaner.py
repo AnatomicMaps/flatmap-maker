@@ -66,7 +66,7 @@ class SVGCleaner(object):
     #============================
         if element.attrib.get('id', '').startswith('_x2E_'):
             markup = adobe_decode(element.attrib['id'])
-            properties = self.__map_properties.update_feature_properties(parse_markup(markup))
+            properties = self.__map_properties.update_properties(parse_markup(markup))
             for key, value in properties.items():
                 if key in EXCLUDE_SHAPE_TYPES:
                     return True
