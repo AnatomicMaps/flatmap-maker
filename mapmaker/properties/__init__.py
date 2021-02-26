@@ -25,7 +25,7 @@ from .pathways import Pathways
 
 #===============================================================================
 
-class JsonProperties(object):
+class ManifestProperties(object):
     def __init__(self, flatmap, manifest):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
         self.__properties_by_class = {}

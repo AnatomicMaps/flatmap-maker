@@ -29,7 +29,7 @@ import numpy as np
 
 from mapmaker.geometry import Transform
 from mapmaker.geometry import bounds_to_extent, extent_to_bounds, normalised_coords
-from mapmaker.properties import JsonProperties
+from mapmaker.properties import ManifestProperties
 from mapmaker.properties.pathways import Route
 from mapmaker.settings import settings
 from mapmaker.utils import log
@@ -46,7 +46,7 @@ class FlatMap(object):
         self.__models = maker.manifest.models
 
         # Properties about map features
-        self.__map_properties = JsonProperties(self, maker.manifest)
+        self.__map_properties = ManifestProperties(self, maker.manifest)
 
         self.__layer_dict = OrderedDict()
         self.__visible_layer_count = 0
