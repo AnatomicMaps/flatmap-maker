@@ -447,14 +447,16 @@ class SVGLayer(MapLayer):
         if len(bezier_segments) > 0:
             properties['bezier-segments'] = [repr(bz) for bz in bezier_segments]
 
-        if closed:
+        if closed and len(coordinates) >= 3:
             geometry = shapely.geometry.Polygon(coordinates)
-        else:
+        elif properties.get('closed', False) and len(coordinates) >= 3:
+            # Return a polygon if flagged as `closed`
+            coordinates.append(coordinates[0])
+            geometry = shapely.geometry.Polygon(coordinates)
+        elif len(coordinates) >= 2:
             geometry = shapely.geometry.LineString(coordinates)
-            if properties.get('closed', False):
-                # Return a polygon if flagged as `closed`
-                coordinates.append(coordinates[0])
-                return shapely.geometry.Polygon(coordinates)
+        else:
+            geometry = None
         return geometry
 
 #===============================================================================
