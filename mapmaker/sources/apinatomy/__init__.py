@@ -59,29 +59,28 @@ class ApiNATOMY(object):
         self.__debug = debug
 
         # Filter out edges not in our model
-        soma_processes['edges'] = [e for e in soma_processes['edges']
-                                     if 'meta' in e
-                                    and 'Annotation' in e['meta'].get('owlType', [])
-                                    and self.__uri in e['meta'].get('isDefinedBy', [])]
-
+        edges = [e for e in soma_processes['edges']
+                 if 'meta' in e
+                    and 'Annotation' in e['meta'].get('owlType', [])
+                    and self.__uri in e['meta'].get('isDefinedBy', [])]
         self.__nodes = {n['id']:n['lbl'] for n in soma_processes['nodes']}
 
         CYCLE = 'CYCLE DETECTED'
         self.__nodes[CYCLE] = CYCLE  # make sure we can look up the cycle
 
         self.__edgerep = ['{} {} {}'.format(self.__nodes[e['sub']], e['pred'], self.__nodes[e['obj']])
-                            for e in soma_processes['edges']]
+                            for e in edges]
         # note that if there are multiple relations between s & p then last one wins
         # sorting by the predicate should help keep it a bit more stable
         self.__pair_rel = {(e['sub'], e['obj']): e['pred'] + '>'
-                            for e in sorted(soma_processes['edges'], key = lambda e: e['pred'])}
+                            for e in sorted(edges, key = lambda e: e['pred'])}
 
         self.__objects = defaultdict(list)  # note: not all nodes are objects!
-        for edge in soma_processes['edges']:
+        for edge in edges:
             self.__objects[edge['obj']].append(edge['sub'])
 
         self.__subjects = defaultdict(list)
-        for edge in soma_processes['edges']:
+        for edge in edges:
             self.__subjects[edge['sub']].append(edge['obj'])
 
         self.__objects, self.__subjects = self.__subjects, self.__objects   # flip for the tree
