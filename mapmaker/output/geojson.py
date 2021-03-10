@@ -42,7 +42,8 @@ class GeoJSONOutput(object):
         self.__output_dir = output_dir
         self.__geojson_layers = {
             'features': [],
-            'pathways': []
+            'pathways': [],
+            'autopaths': [],
         }
 
     def save(self, features, pretty_print=False):

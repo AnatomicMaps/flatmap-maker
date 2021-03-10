@@ -327,7 +327,8 @@ class Pathways(object):
                     router.add_route(model_id, path['id'], path.get('type', ''), points)
 
         for apinatomy_model in self.__apinatomy_models:
-            path_models.append(apinatomy_model.uri)
+            model_id = apinatomy_model.uri
+            path_models.append(model_id)
             for path_id, route in apinatomy_model.routes.items():
                 errors = []
                 points = []
@@ -343,7 +344,7 @@ class Pathways(object):
                 else:
                     points[-1] = [points[-1]]
                     path_type = 'symp'    #####  from where?????
-                    router.add_route(apinatomy_model.uri, path_id, path_type, points)
+                    router.add_route(model_id, path_id, path_type, points)
                 if errors:
                     log.warn('Path {}:'.format(path_id))
                     for error in errors:
@@ -356,7 +357,7 @@ class Pathways(object):
                 if route.geometry is not None:
                     ## Properties need to come via `pathways` module...
                     layer.add_feature(self.__flatmap.new_feature(route.geometry,
-                        { 'tile-layer': 'pathways',
+                        { 'tile-layer': 'autopaths',
                           'kind': route.kind,
                           'type': 'line-dash' if route.kind.endswith('-post') else 'line'
                         }))
