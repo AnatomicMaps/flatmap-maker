@@ -122,49 +122,46 @@ class ApiNATOMY(object):
 
     def __get_primary_info(self, id):
         if id:
-            # default name is the label if one is provided, otherwise the raw id is used
-            name = self.__nodes[id] if self.__nodes[id] else id
+            # default label is the label if one is provided, otherwise the raw id is used
+            label = self.__nodes[id] if self.__nodes[id] else id
             # if an external identifier is defined, that should be preferred
             external_id = self.__find_object(id, 'apinatomy:external>')
         else:
-            name = "UNKOWN"
+            label = "UNKOWN"
             external_id = "REALLY_UNKNOWN"
-        return external_id, name
+        return external_id, label
 
     def __get_primary_name(self, id):
-        external_id, name = self.__get_primary_info(id)
+        external_id, label = self.__get_primary_info(id)
         if external_id:
-            name = external_id + "(" + name + ")"
-        return name
+            label = external_id + "(" + label + ")"
+        return label
 
     def __get_flatmap_node(self, node):
         flatmap_node = {
             'id': node,
         }
+        # cloned object?
+        clone = self.__find_object(node, 'apinatomy:cloneOf>')
+        if clone:
+            supertype = self.__find_object(clone, 'apinatomy:supertype>')
+            external_id, label = self.__get_primary_info(supertype)
+        else:
+            external_id, label = self.__get_primary_info(node)
+        # the external (ontology) ID for this node
+        flatmap_node['external_id'] = external_id
+        # the (potentially) human readable label for this node
+        flatmap_node['label'] = label
         # layered type or direct?
         layer = self.__find_object(node, 'apinatomy:layerIn>')
         if layer:
-            clone = self.__find_object(node, 'apinatomy:cloneOf>')
-            supertype = self.__find_object(clone, 'apinatomy:supertype>')
-            external_id, name = self.__get_primary_info(supertype)
-            # the external (ontology) ID for this node
-            flatmap_node['external_id'] = external_id
-            # the (potentially) human readable name for this node
-            flatmap_node['name'] = name
-
             # the containing layer?
-            external_id, name = self.__get_primary_info(layer)
+            external_id, label = self.__get_primary_info(layer)
             flatmap_node['layer_in'] = {
                 'id': layer,
                 'external_id': external_id,
-                'name': name
+                'label': label
             }
-        else:
-            external_id, name = self.__get_primary_info(node)
-            # the external (ontology) ID for this node
-            flatmap_node['external_id'] = external_id
-            # the (potentially) human readable name for this node
-            flatmap_node['name'] = name
         return flatmap_node
 
     @staticmethod
@@ -181,10 +178,10 @@ class ApiNATOMY(object):
             flatmap_node = self.__get_flatmap_node(node)
             anatomical_id = flatmap_node['external_id']
             if self.__debug:
-                s = anatomical_id + "(" + flatmap_node['name'] + ")"
+                s = anatomical_id + "(" + flatmap_node['id'] + ")"
                 if 'layer_in' in flatmap_node:
                     l = flatmap_node['layer_in']
-                    s = s + " [in layer: " + l['external_id'] + "(" + l['name'] + ")"
+                    s = s + " [in layer: " + l['external_id'] + "(" + l['id'] + ")"
                 print('{} {}'.format(indent, s))
             if anatomical_id == 'REALLY_UNKNOWN' and 'layer_in' in flatmap_node:
                 anatomical_id = flatmap_node['layer_in']['external_id']
