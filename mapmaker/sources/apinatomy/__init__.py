@@ -102,9 +102,9 @@ class ApiNATOMY(object):
         if self.__debug:
             print("Soma routes:")
 
-        self.__routes = { neuron: self.__get_route(neuron)
-                            for neuron in self.__objects[root]
-                        }
+        self.__routes = {}   # Assigned in `__assign_route()`
+        for neuron in self.__objects[root]:
+            self.__assign_route(neuron)
 
     @property
     def routes(self):
@@ -208,11 +208,10 @@ class ApiNATOMY(object):
                 #self.__graph.add_edge(node, np)
         return (node, route)
 
-    def __get_route(self, neuron):
+    def __assign_route(self, neuron):
         if self.__debug:
             print("")
             print("Neuron: {} ({})".format(self.__nodes[neuron], neuron))
-        route = []
         conveys = self.__find_object(neuron, 'apinatomy:conveys>')
         if conveys != '':
             target = self.__find_object(conveys, 'apinatomy:target>')
@@ -228,14 +227,14 @@ class ApiNATOMY(object):
                 print("  Target: " + self.__get_primary_name(target_root))
 
             part = self.__find_object(target, 'apinatomy:sourceOf>')
-            route = self.__get_route_part('    -->', part)[1]
+            self.__routes[neuron] = self.__get_route_part('    -->', part, self.__graphs[neuron])[1]
 
             if self.__debug:
                 print("  Source: " + self.__get_primary_name(source_root))
             part = self.__find_object(source, 'apinatomy:sourceOf>')
             self.__get_route_part('    -->', part)
-
-        return route
+        else:
+            self.__routes[neuron] = []
 
 #===============================================================================
 
