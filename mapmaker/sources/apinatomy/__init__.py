@@ -166,9 +166,12 @@ class ApiNATOMY(object):
 
     @staticmethod
     def __extend_route(route, values):
-        for value in values:
-            if route[-1] != value:
-                route.append(value)
+        if len(route) == 0:
+            route.extend(values)
+        else:
+            for value in values:
+                if route[-1] != value:
+                    route.append(value)
 
     def __get_route_part(self, indent, part):
         # is there a flatmap "node" for this part?
