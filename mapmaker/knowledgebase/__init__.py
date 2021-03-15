@@ -33,8 +33,9 @@ from mapmaker.utils import FilePath, log
 
 ILX_ENDPOINT = 'http://uri.interlex.org/base/ilx_{:0>7}.json'
 
-VOCAB_ENDPOINT = 'https://scigraph.olympiangods.org/scigraph/vocabulary/id/{}.json'
 SCIGRAPH_ONTOLOGIES = ['UBERON']
+SCIGRAPH_VOCAB_ENDPOINT = 'https://scicrunch.org/api/1/sparc-scigraph/vocabulary/id/{}.json'
+SCIGRAPH_KEY = "xBOrIfnZTvJQtobGo8XHRvThdMYGTxtf"
 
 #===============================================================================
 
@@ -69,7 +70,9 @@ class LabelDatabase(object):
         ontology = entity.split(':')[0]
         if ontology in SCIGRAPH_ONTOLOGIES:
             try:
-                response = requests.get(VOCAB_ENDPOINT.format(entity))
+                response = requests.get('{}?api_key={}'.format(
+                    SCIGRAPH_VOCAB_ENDPOINT.format(entity),
+                    SCIGRAPH_KEY))
                 if response:
                     label = response.json().get('labels', [entity])[0]
                     self.set_label(entity, label)
