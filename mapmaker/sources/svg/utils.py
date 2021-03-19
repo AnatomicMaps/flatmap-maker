@@ -30,6 +30,8 @@ from .. import PIXELS_PER_INCH
 def SVG_NS(tag):
     return '{{http://www.w3.org/2000/svg}}{}'.format(tag)
 
+XLINK_HREF = '{http://www.w3.org/1999/xlink}href'
+
 #===============================================================================
 
 CM_PER_INCH = 2.54

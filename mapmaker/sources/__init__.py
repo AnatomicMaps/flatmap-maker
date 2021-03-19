@@ -161,9 +161,10 @@ class MapSource(object):
 #===============================================================================
 
 class RasterSource(object):
-    def __init__(self, source_kind, source_data):
+    def __init__(self, source_kind, source_data, **kwds):
         self.__source_kind = source_kind
         self.__source_data = source_data
+        self.__source_params = kwds
 
     @property
     def source_data(self):
@@ -172,6 +173,10 @@ class RasterSource(object):
     @property
     def source_kind(self):
         return self.__source_kind
+
+    @property
+    def source_params(self):
+        return self.__source_params
 
 #===============================================================================
 

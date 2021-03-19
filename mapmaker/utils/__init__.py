@@ -23,6 +23,8 @@ import json
 import pathlib
 import urllib.request
 
+from urllib.parse import urljoin
+
 #===============================================================================
 
 # Export from module
@@ -64,5 +66,8 @@ class FilePath(object):
         bytesio = io.BytesIO(self.get_data())
         bytesio.seek(0)
         return bytesio
+
+    def join_path(self, path):
+        return FilePath(urljoin(self.__url, path))
 
 #===============================================================================

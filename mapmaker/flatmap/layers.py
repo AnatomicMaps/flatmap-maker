@@ -410,5 +410,7 @@ class RasterLayer(object):
     @property
     def local_world_to_base(self):
         return self.__local_world_to_base
+    def source_params(self):
+        return self.__map_source.raster_source.source_params
 
 #===============================================================================
