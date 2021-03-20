@@ -260,6 +260,7 @@ class SVGTiler(object):
         surface = skia.Surface(int(self.__scaling[0]*self.__size[0] + 0.5),
                                int(self.__scaling[1]*self.__size[1] + 0.5))
         canvas = surface.getCanvas()
+        canvas.clear(skia.Color4f(0xFFFFFFFF))
         for element in self.__canvas_elements:
             element.draw_element(canvas)
         log('Making image snapshot...')
@@ -270,6 +271,7 @@ class SVGTiler(object):
     #========================
         surface = skia.Surface(*self.__tile_size)
         canvas = surface.getCanvas()
+        canvas.clear(skia.Color4f(0xFFFFFFFF))
         canvas.translate(self.__pixel_offset[0] + (self.__tile_origin[0] - tile.x)*self.__tile_size[0],
                          self.__pixel_offset[1] + (self.__tile_origin[1] - tile.y)*self.__tile_size[1])
         quadkey = mercantile.quadkey(tile)
