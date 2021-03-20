@@ -149,12 +149,17 @@ def bbox_from_bounds(bounds):
 #===============================================================================
 
 class CanvasElement(object):
-    def __init__(self, bbox):
+    def __init__(self, paint, bbox):
+        self.__paint = paint
         self.__bbox = bbox
 
     @property
     def bbox(self):
         return self.__bbox
+
+    @property
+    def paint(self):
+        return self.__paint
 
     def draw_element(self, canvas):
     #==============================
@@ -164,25 +169,24 @@ class CanvasElement(object):
 
 class CanvasPath(CanvasElement):
     def __init__(self, path, paint):
-        super().__init__(bbox_from_bounds(path.getBounds()))
+        super().__init__(paint, bbox_from_bounds(path.getBounds()))
         self.__path = path
-        self.__paint = paint
 
     def draw_element(self, canvas):
     #==============================
-        canvas.drawPath(self.__path, self.__paint)
+        canvas.drawPath(self.__path, self.paint)
 
 #===============================================================================
 
 class CanvasImage(CanvasElement):
-    def __init__(self, image, attributes, transform):
+    def __init__(self, image, attributes, transform, paint=None):
         width = int(attributes.get('width', image.width()))
         height = int(attributes.get('height', image.height()))
         if width != image.width() or height != image.height():
             image = image.resize(width, height, skia.FilterQuality.kHigh_FilterQuality)
         T = transform@SVGTransform(attributes.get('transform'))
         bbox = T.transform_geometry(bbox_from_bounds(image.bounds()))
-        super().__init__(bbox)
+        super().__init__(paint, bbox)
         self.__image = image
         self.__matrix = skia.Matrix(list(T.flatten()))
 
@@ -190,7 +194,7 @@ class CanvasImage(CanvasElement):
     #==============================
         canvas.save()
         canvas.concat(self.__matrix)
-        canvas.drawImage(self.__image, 0, 0)
+        canvas.drawImage(self.__image, 0, 0, self.paint)
         canvas.restore()
 
 #===============================================================================
@@ -418,7 +422,10 @@ class SVGTiler(object):
                     pixel_array = np.frombuffer(pixel_bytes, dtype=np.uint8)
                     pixels = cv2.imdecode(pixel_array, cv2.IMREAD_UNCHANGED)
                     image = skia.Image.frombytes(pixels, image_size(pixels))
-                    canvas_elements.append(CanvasImage(image, element.attrib, transform))
+                    paint = skia.Paint()
+                    opacity = float(element_style.get('opacity', 1.0))
+                    paint.setAlpha(round(opacity * 255))
+                    canvas_elements.append(CanvasImage(image, element.attrib, transform, paint))
 
     @staticmethod
     def __svg_path_matcher(m):
