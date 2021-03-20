@@ -178,7 +178,6 @@ class CanvasImage(CanvasElement):
     def __init__(self, image, attributes, transform):
         width = int(attributes.get('width', image.width()))
         height = int(attributes.get('height', image.height()))
-        print(width, height, image.bounds())
         if width != image.width() or height != image.height():
             image = image.resize(width, height, skia.FilterQuality.kHigh_FilterQuality)
         T = transform@SVGTransform(attributes.get('transform'))
