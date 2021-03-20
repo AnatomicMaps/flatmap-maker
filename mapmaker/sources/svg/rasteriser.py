@@ -421,7 +421,11 @@ class SVGTiler(object):
                 if pixel_bytes is not None:
                     pixel_array = np.frombuffer(pixel_bytes, dtype=np.uint8)
                     pixels = cv2.imdecode(pixel_array, cv2.IMREAD_UNCHANGED)
-                    image = skia.Image.frombytes(pixels, image_size(pixels))
+                    if pixels.shape[2] == 3:
+                        pixels = cv2.cvtColor(pixels, cv2.COLOR_RGB2RGBA)
+                    image = skia.Image.fromarray(pixels,
+                        colorType=skia.kBGRA_8888_ColorType,
+                        alphaType=skia.kPremul_AlphaType)
                     paint = skia.Paint()
                     opacity = float(element_style.get('opacity', 1.0))
                     paint.setAlpha(round(opacity * 255))
