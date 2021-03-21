@@ -237,7 +237,7 @@ class SVGTiler(object):
         self.__tile_size = tile_set.tile_size
         self.__tile_origin = tile_set.start_coords
         self.__pixel_offset = tuple(tile_set.pixel_rect)[0:2]
-        self.__tile_paths = {}
+        self.__tile_elements = {}
         for tile in tile_set:
             tile_set.tile_coords_to_pixels.transform_point((tile.x, tile.y))
             x0 = (tile.x - self.__tile_origin[0])*self.__tile_size[0] - self.__pixel_offset[0]
@@ -245,7 +245,7 @@ class SVGTiler(object):
             tile_bbox = shapely.prepared.prep(shapely.geometry.box(x0, y0,
                                                                    x0 + self.__tile_size[0],
                                                                    y0 + self.__tile_size[0]))
-            self.__tile_paths[mercantile.quadkey(tile)] = list(filter(
+            self.__tile_elements[mercantile.quadkey(tile)] = list(filter(
                 lambda canvas_element: tile_bbox.intersects(canvas_element.bbox),
                 self.__canvas_elements))
 
@@ -278,7 +278,7 @@ class SVGTiler(object):
         canvas.translate(self.__pixel_offset[0] + (self.__tile_origin[0] - tile.x)*self.__tile_size[0],
                          self.__pixel_offset[1] + (self.__tile_origin[1] - tile.y)*self.__tile_size[1])
         quadkey = mercantile.quadkey(tile)
-        for element in self.__tile_paths.get(quadkey, []):
+        for element in self.__tile_elements.get(quadkey, []):
             element.draw_element(canvas)
         image = surface.makeImageSnapshot()
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
