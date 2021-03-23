@@ -290,10 +290,6 @@ class RasterTiler(object):
         return self.__image_rect
 
     @property
-    def tile_coords_to_pixels(self):
-        return self.__tile_coords_to_pixels
-
-    @property
     def tile_coords_to_world(self):
         return self.__tile_coords_to_world
 
