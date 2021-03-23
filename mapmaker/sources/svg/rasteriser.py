@@ -260,7 +260,6 @@ class SVGTiler(object):
         if defs is not None:
             self.__definitions.add_definitions(defs)
         self.__style_matcher = StyleMatcher(self.__svg.find(SVG_NS('style')))
-        self.__first_scan = True
 
         # Transform from SVG pixels to tile pixels
         svg_to_tile_transform = Transform([[self.__scaling[0],               0.0, 0.0],
@@ -328,7 +327,6 @@ class SVGTiler(object):
     #===========================================================
         wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
         drawing_objects = self.__draw_element_list(wrapped_svg, svg_to_tile_transform, show_progress)
-        self.__first_scan = False
         return CanvasGroup(drawing_objects, svg_to_tile_transform, outermost=True)
 
     def __draw_group(self, group, parent_transform):
@@ -351,8 +349,7 @@ class SVGTiler(object):
                 element = self.__definitions.use(element)
                 wrapped_element = cssselect2.ElementWrapper.from_xml_root(element)
             elif element.tag in [SVG_NS('linearGradient'), SVG_NS('radialGradient')]:
-                if self.__first_scan:
-                    self.__definitions.add_definition(element)
+                self.__definitions.add_definition(element)
                 continue
             drawing_objects.extend(self.__draw_element(wrapped_element, parent_transform))
             progress_bar.update(1)
