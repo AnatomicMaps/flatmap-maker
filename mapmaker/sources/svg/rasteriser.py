@@ -147,18 +147,20 @@ class StyleMatcher(cssselect2.Matcher):
 #===============================================================================
 
 class CanvasDrawingObject(object):
-    def __init__(self, paint, bounds, parent_transform, attributes=None, bbox=None):
-        if attributes is None:
-            attributes = {}
-        T = parent_transform
+    def __init__(self, paint, bounds, parent_transform, attributes, bbox=None, root_object=False):
         transform_attribute = attributes.get('transform')
-        if transform_attribute is None:
-            self.__matrix = None
+        if root_object:
+            T = parent_transform@SVGTransform(transform_attribute)
+            self.__matrix = skia.Matrix(list(T.flatten()))
         else:
-            local_transform = SVGTransform(transform_attribute)
-            self.__matrix = skia.Matrix(list(local_transform.flatten()))
-            T = T@local_transform
-        if bounds is not None:
+            T = parent_transform
+            if transform_attribute is None:
+                self.__matrix = None
+            else:
+                local_transform = SVGTransform(transform_attribute)
+                self.__matrix = skia.Matrix(list(local_transform.flatten()))
+                T = T@local_transform
+        if bbox is None:
             bbox = T.transform_geometry(shapely.geometry.box(*tuple(bounds)))
         self.__bbox = bbox
         self.__prep_bbox = shapely.prepared.prep(bbox) if bbox is not None else None
@@ -181,10 +183,6 @@ class CanvasDrawingObject(object):
     #==========================
         return bbox is not None and (self.__bbox is None or self.__prep_bbox.intersects(bbox))
 
-    def set_matrix(self, matrix):
-    #============================
-        self.__matrix = matrix
-
     @contextlib.contextmanager
     def transformed_clipped_canvas(self, canvas):
     #============================================
@@ -199,7 +197,7 @@ class CanvasDrawingObject(object):
 #===============================================================================
 
 class CanvasPath(CanvasDrawingObject):
-    def __init__(self, path, paint, parent_transform, attributes=None):
+    def __init__(self, path, paint, parent_transform, attributes):
         super().__init__(paint, path.getBounds(), parent_transform, attributes)
         self.__path = path
 
@@ -212,7 +210,7 @@ class CanvasPath(CanvasDrawingObject):
 #===============================================================================
 
 class CanvasImage(CanvasDrawingObject):
-    def __init__(self, image, paint, parent_transform, attributes=None):
+    def __init__(self, image, paint, parent_transform, attributes):
         super().__init__(paint, image.bounds(), parent_transform, attributes)
         self.__image = image
 
@@ -225,11 +223,9 @@ class CanvasImage(CanvasDrawingObject):
 #===============================================================================
 
 class CanvasGroup(CanvasDrawingObject):
-    def __init__(self, drawing_objects, parent_transform, attributes=None, outermost=False):
+    def __init__(self, drawing_objects, parent_transform, attributes, outermost=False):
         bbox = shapely.ops.unary_union([element.bbox for element in drawing_objects])
-        super().__init__(None, None, parent_transform, attributes, bbox=bbox)
-        if outermost:
-            self.set_matrix(skia.Matrix(list(parent_transform.flatten())))
+        super().__init__(None, None, parent_transform, attributes, bbox=bbox, root_object=outermost)
         self.__drawing_objects = drawing_objects
 
     def draw_element(self, canvas, tile_bbox):
@@ -324,10 +320,11 @@ class SVGTiler(object):
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
     def __draw_svg(self, svg_to_tile_transform, show_progress=False):
-    #===========================================================
+    #================================================================
         wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
-        drawing_objects = self.__draw_element_list(wrapped_svg, svg_to_tile_transform, show_progress)
-        return CanvasGroup(drawing_objects, svg_to_tile_transform, outermost=True)
+        drawing_objects = self.__draw_element_list(wrapped_svg,
+            svg_to_tile_transform@SVGTransform(wrapped_svg.etree_element.attrib.get('transform')), show_progress)
+        return CanvasGroup(drawing_objects, svg_to_tile_transform, wrapped_svg.etree_element.attrib, outermost=True)
 
     def __draw_group(self, group, parent_transform):
     #===============================================
@@ -336,7 +333,7 @@ class SVGTiler(object):
         return CanvasGroup(drawing_objects, parent_transform, group.etree_element.attrib)
 
     def __draw_element_list(self, elements, parent_transform, show_progress=False):
-    #=======================================================================
+    #==============================================================================
         drawing_objects = []
         children = list(elements.iter_children())
         progress_bar = ProgressBar(show=show_progress,
