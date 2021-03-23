@@ -385,7 +385,7 @@ class SVGTiler(object):
                              SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
                              SVG_NS('rect')]:
 
-            path = self.__get_graphics_path(element)
+            path = SVGTiler.get_graphics_path(element)
             if path is None: return []
 
             ## Or simply don't stroke as Mapbox will draw boundaries...
@@ -482,12 +482,13 @@ class SVGTiler(object):
         if c == ',': return ' '
         return c
 
-    def __get_graphics_path(self, element):
-    #======================================
+    @staticmethod
+    def get_graphics_path(element):
+    #==============================
         if element.tag == SVG_NS('path'):
             tokens = re.sub('.', SVGTiler.__svg_path_matcher,
                             element.attrib.get('d', '')).split()
-            path = self.__path_from_tokens(tokens)
+            path = SVGTiler.__path_from_tokens(tokens)
 
         elif element.tag == SVG_NS('rect'):
             (width, height) = (length_as_pixels(element.attrib.get('width', 0)),
@@ -515,11 +516,11 @@ class SVGTiler(object):
             y1 = length_as_pixels(element.attrib.get('y1', 0))
             x2 = length_as_pixels(element.attrib.get('x2', 0))
             y2 = length_as_pixels(element.attrib.get('y2', 0))
-            path = self.__path_from_tokens(['M', x1, y1, x2, y2])
+            path = SVGTiler.__path_from_tokens(['M', x1, y1, x2, y2])
 
         elif element.tag == SVG_NS('polyline'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
-            path = self.__path_from_tokens(['M'] + points)
+            path = SVGTiler.__path_from_tokens(['M'] + points)
 
         elif element.tag == SVG_NS('polygon'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
@@ -543,8 +544,9 @@ class SVGTiler(object):
 
         return path
 
-    def __path_from_tokens(self, tokens):
-    #====================================
+    @staticmethod
+    def __path_from_tokens(tokens):
+    #==============================
         moved = False
         first_point = None
         current_point = None
