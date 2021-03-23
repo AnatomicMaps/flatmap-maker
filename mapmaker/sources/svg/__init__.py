@@ -55,7 +55,6 @@ from mapmaker.utils import FilePath, ProgressBar
 # These SVG tags are not used to determine feature geometry
 
 IGNORED_SVG_TAGS = [
-    SVG_NS('image'),
     SVG_NS('linearGradient'),
     SVG_NS('radialGradient'),
     SVG_NS('style'),
@@ -187,9 +186,9 @@ class SVGLayer(MapLayer):
             pass
         elif 'path' in properties:
             pass
-        elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
-                             SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
-                             SVG_NS('rect')]:
+        elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('image'),
+                             SVG_NS('line'), SVG_NS('path'), SVG_NS('polyline'),
+                             SVG_NS('polygon'), SVG_NS('rect')]:
             geometry = self.__get_geometry(element, properties, transform)
             if geometry is None:
                 return
@@ -311,6 +310,16 @@ class SVGLayer(MapLayer):
                            'A', rx, ry, 0, 0, 0, cx-rx, cy,
                            'A', rx, ry, 0, 0, 0, cx, cy+ry,
                            'A', rx, ry, 0, 0, 0, cx+rx, cy,
+                           'Z']
+
+        elif element.tag == SVG_NS('image'):   ## But only if element is annotated (has id and/or class)
+            width = length_as_pixels(element.attrib.get('width', 0))
+            height = length_as_pixels(element.attrib.get('height', 0))
+            path_tokens = ['M', 0, 0,
+                           'H', width,
+                           'V', height,
+                           'H', 0,
+                           'V', 0,
                            'Z']
 
         pos = 0
