@@ -151,7 +151,9 @@ class SVGLayer(MapLayer):
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         features = []
         for element in elements:
-            if element.tag == SVG_NS('defs'):
+            if element.tag is etree.Comment or element.tag is etree.PI:
+                pass
+            elif element.tag == SVG_NS('defs'):
                 self.__definitions.add_definitions(element)
                 progress_bar.update(1)
                 continue
