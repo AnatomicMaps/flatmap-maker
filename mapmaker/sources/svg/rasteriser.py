@@ -374,12 +374,6 @@ class SVGTiler(object):
 
     def __draw_element(self, wrapped_element, parent_transform):
     #==========================================================
-        ## Why not simply get path from feature's GeoJSON??
-        ## Because some features are derived an not in SVG...
-        ## We still need style information from SVG (or store this
-        ## with the feature??)
-        ## What about gradient sizing??
-        ##
         drawing_objects = []
         element = wrapped_element.etree_element
         element_style = self.__style_matcher.element_style(wrapped_element)
