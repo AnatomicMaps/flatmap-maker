@@ -437,7 +437,7 @@ class SVGTiler(object):
                         localMatrix=SVGTiler.__gradient_matrix(gradient, path, parent_transform)
                     ))
                 else:
-                    fill = '#008'     # Something's wrong show show in image...
+                    fill = '#008'     # Something's wrong so show show in image...
                     opacity = 0.5
             if fill.startswith('#'):
                 paint.setColor(make_colour(fill, opacity))
