@@ -40,7 +40,7 @@ import tinycss2
 
 from .. import WORLD_METRES_PER_PIXEL
 
-from mapmaker.geometry import degrees, extent_to_bounds, radians, Transform, reflect_point
+from mapmaker.geometry import degrees, extent_to_bounds, Identity, radians, Transform, reflect_point
 from mapmaker.utils import ProgressBar, log
 from mapmaker.utils.image import image_size
 
@@ -360,11 +360,11 @@ class SVGTiler(object):
         return drawing_objects
 
     @staticmethod
-    def __gradient_matrix(gradient, path, transform):
-    #================================================
+    def __gradient_matrix(gradient, path):
+    #=====================================
         if gradient.attrib.get('gradientUnits') == 'userSpaceOnUse':
-            path_transform = transform
-        else:
+            path_transform = Identity()
+        else:                                    #  objectBoundingBox'
             bounds = path.getBounds()
             path_transform = Transform([[bounds.width(),               0, bounds.left()],
                                         [             0, bounds.height(), bounds.top()],
@@ -419,7 +419,7 @@ class SVGTiler(object):
                         points=points,
                         positions=gradient_stops.offsets,
                         colors=gradient_stops.colours,
-                        localMatrix=SVGTiler.__gradient_matrix(gradient, path, parent_transform)
+                        localMatrix=SVGTiler.__gradient_matrix(gradient, path)
                     ))
                 elif gradient.tag == SVG_NS('radialGradient'):
                     gradient_stops = GradientStops(gradient)
@@ -434,7 +434,7 @@ class SVGTiler(object):
                         radius=radius,
                         positions=gradient_stops.offsets,
                         colors=gradient_stops.colours,
-                        localMatrix=SVGTiler.__gradient_matrix(gradient, path, parent_transform)
+                        localMatrix=SVGTiler.__gradient_matrix(gradient, path)
                     ))
                 else:
                     fill = '#008'     # Something's wrong so show show in image...
