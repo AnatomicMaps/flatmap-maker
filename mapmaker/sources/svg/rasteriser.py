@@ -399,7 +399,7 @@ class SVGTiler(object):
             opacity = float(element_style.get('opacity', 1.0))
             paint = skia.Paint(AntiAlias=True)
             if fill.startswith('url('):
-                gradient = self.__definitions.lookup(fill[4:-1])
+                gradient = self.__definitions.get_by_url(fill)
                 if gradient is None:
                     fill = '#800'     # Something's wrong show show in image...
                     opacity = 0.5
