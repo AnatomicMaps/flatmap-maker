@@ -349,6 +349,8 @@ class SVGTiler(object):
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for wrapped_element in children:
             element = wrapped_element.etree_element
+            if element.tag is etree.Comment or element.tag is etree.PI:
+                continue
             if element.tag == SVG_NS('defs'):
                 self.__definitions.add_definitions(element)
                 continue
