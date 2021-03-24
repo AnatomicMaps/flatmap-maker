@@ -497,7 +497,7 @@ class SVGTiler(object):
                     pixels = cv2.imdecode(pixel_array, cv2.IMREAD_UNCHANGED)
                     if pixels.shape[2] == 3:
                         pixels = cv2.cvtColor(pixels, cv2.COLOR_RGB2RGBA)
-                    image = skia.Image.fromarray(pixels)
+                    image = skia.Image.fromarray(pixels, colorType=skia.kBGRA_8888_ColorType)
                     width = int(element.attrib.get('width', image.width()))
                     height = int(element.attrib.get('height', image.height()))
                     if width != image.width() or height != image.height():
