@@ -677,7 +677,7 @@ class SVGTiler(object):
                 if moved:
                     path.moveTo(*current_point)
                     moved = False
-                path.lineTo(pt)
+                path.lineTo(*pt)
                 current_point = pt
 
             elif cmd in ['m', 'M']:
@@ -696,7 +696,7 @@ class SVGTiler(object):
 
             elif cmd in ['q', 'Q', 't', 'T']:
                 if moved:
-                    path.moveTo(current_point)
+                    path.moveTo(*current_point)
                     moved = False
                 if cmd in ['t', 'T']:
                     n_params = 4
