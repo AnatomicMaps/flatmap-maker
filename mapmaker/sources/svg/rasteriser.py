@@ -44,7 +44,7 @@ from mapmaker.geometry import degrees, extent_to_bounds, Identity, radians, Tran
 from mapmaker.utils import ProgressBar, log
 from mapmaker.utils.image import image_size
 
-from .definitions import DefinitionStore
+from .definitions import DefinitionStore, ObjectStore
 from .transform import SVGTransform
 from .utils import adobe_decode, length_as_pixels, SVG_NS, XLINK_HREF
 
@@ -147,8 +147,8 @@ class StyleMatcher(cssselect2.Matcher):
 #===============================================================================
 
 class CanvasDrawingObject(object):
-    def __init__(self, paint, bounds, parent_transform, attributes, bbox=None, root_object=False):
-        transform_attribute = attributes.get('transform')
+    def __init__(self, paint, bounds, parent_transform,
+                    transform_attribute, clip_path, bbox=None, root_object=False):
         if root_object:
             T = parent_transform@SVGTransform(transform_attribute)
             self.__matrix = skia.Matrix(list(T.flatten()))
@@ -164,7 +164,7 @@ class CanvasDrawingObject(object):
             bbox = T.transform_geometry(shapely.geometry.box(*tuple(bounds)))
         self.__bbox = bbox
         self.__prep_bbox = shapely.prepared.prep(bbox) if bbox is not None else None
-        self.__clipping = attributes.get('clip-path')
+        self.__clip_path = clip_path
         self.__paint = paint
 
     @property
@@ -186,10 +186,12 @@ class CanvasDrawingObject(object):
     @contextlib.contextmanager
     def transformed_clipped_canvas(self, canvas):
     #============================================
-        if self.__matrix is not None or self.__clipping is not None:
+        if self.__matrix is not None or self.__clip_path is not None:
             canvas.save()
             if self.__matrix is not None:
                 canvas.concat(self.__matrix)
+            if self.__clip_path is not None:
+                canvas.clipPath(self.__clip_path, doAntiAlias=True)
         yield
         if self.__matrix is not None:
             canvas.restore()
@@ -197,8 +199,8 @@ class CanvasDrawingObject(object):
 #===============================================================================
 
 class CanvasPath(CanvasDrawingObject):
-    def __init__(self, path, paint, parent_transform, attributes):
-        super().__init__(paint, path.getBounds(), parent_transform, attributes)
+    def __init__(self, path, paint, parent_transform, transform_attribute, clip_path):
+        super().__init__(paint, path.getBounds(), parent_transform, transform_attribute, clip_path)
         self.__path = path
 
     def draw_element(self, canvas, tile_bbox):
@@ -210,8 +212,8 @@ class CanvasPath(CanvasDrawingObject):
 #===============================================================================
 
 class CanvasImage(CanvasDrawingObject):
-    def __init__(self, image, paint, parent_transform, attributes):
-        super().__init__(paint, image.bounds(), parent_transform, attributes)
+    def __init__(self, image, paint, parent_transform, transform_attribute, clip_path):
+        super().__init__(paint, image.bounds(), parent_transform, transform_attribute, clip_path)
         self.__image = image
 
     def draw_element(self, canvas, tile_bbox):
@@ -223,9 +225,9 @@ class CanvasImage(CanvasDrawingObject):
 #===============================================================================
 
 class CanvasGroup(CanvasDrawingObject):
-    def __init__(self, drawing_objects, parent_transform, attributes, outermost=False):
+    def __init__(self, drawing_objects, parent_transform, transform_attribute, clip_path, outermost=False):
         bbox = shapely.ops.unary_union([element.bbox for element in drawing_objects])
-        super().__init__(None, None, parent_transform, attributes, bbox=bbox, root_object=outermost)
+        super().__init__(None, None, parent_transform, transform_attribute, clip_path, bbox=bbox, root_object=outermost)
         self.__drawing_objects = drawing_objects
 
     def draw_element(self, canvas, tile_bbox):
@@ -253,6 +255,7 @@ class SVGTiler(object):
                           tile_set.pixel_rect.height/self.__size[1])
         self.__definitions = DefinitionStore()
         self.__style_matcher = StyleMatcher(self.__svg.find(SVG_NS('style')))
+        self.__clip_paths = ObjectStore()
 
         # Transform from SVG pixels to tile pixels
         svg_to_tile_transform = Transform([[self.__scaling[0],               0.0, 0.0],
@@ -321,13 +324,20 @@ class SVGTiler(object):
         wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
         drawing_objects = self.__draw_element_list(wrapped_svg,
             svg_to_tile_transform@SVGTransform(wrapped_svg.etree_element.attrib.get('transform')), show_progress)
-        return CanvasGroup(drawing_objects, svg_to_tile_transform, wrapped_svg.etree_element.attrib, outermost=True)
+        attributes = wrapped_svg.etree_element.attrib
+        return CanvasGroup(drawing_objects, svg_to_tile_transform,
+                    attributes.get('transform'),
+                    None,
+                    outermost=True)
 
     def __draw_group(self, group, parent_transform):
     #===============================================
         drawing_objects = self.__draw_element_list(group,
             parent_transform@SVGTransform(group.etree_element.attrib.get('transform')))
-        return CanvasGroup(drawing_objects, parent_transform, group.etree_element.attrib)
+        group_style = self.__style_matcher.element_style(group)
+        return CanvasGroup(drawing_objects, parent_transform,
+                    group.etree_element.attrib.get('transform'),
+                    self.__clip_paths.get_by_url(group_style.get('clip-path')))
 
     def __draw_element_list(self, elements, parent_transform, show_progress=False):
     #==============================================================================
@@ -348,7 +358,10 @@ class SVGTiler(object):
             elif element.tag in [SVG_NS('linearGradient'), SVG_NS('radialGradient')]:
                 self.__definitions.add_definition(element)
                 continue
-            drawing_objects.extend(self.__draw_element(wrapped_element, parent_transform))
+            if element.tag == SVG_NS('clipPath'):
+                self.__add_clip_path(wrapped_element)
+            else:
+                drawing_objects.extend(self.__draw_element(wrapped_element, parent_transform))
             progress_bar.update(1)
         progress_bar.close()
         return drawing_objects
@@ -366,6 +379,28 @@ class SVGTiler(object):
         svg_transform = SVGTransform(gradient.attrib.get('gradientTransform'))
         return skia.Matrix(list((path_transform@svg_transform).flatten()))
 
+    def __add_clip_path(self, wrapped_clip_path):
+    #============================================
+        clip_path_element = wrapped_clip_path.etree_element
+        clip_id = clip_path_element.attrib.get('id')
+        clip_path = None
+        for wrapped_element in wrapped_clip_path.iter_children():
+            element = wrapped_element.etree_element
+            if element.tag == SVG_NS('use'):
+                element = self.__definitions.use(element)
+            if (element is not None
+            and element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
+                               SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
+                               SVG_NS('rect')]):
+                path = SVGTiler.__get_graphics_path(element)
+                if path is not None:
+                    if clip_path is None:
+                        clip_path = path
+                    else:
+                        clip_path.addPath(path)
+        if clip_id is not None and clip_path is not None:
+            self.__clip_paths.add(clip_id, clip_path)
+
     def __draw_element(self, wrapped_element, parent_transform):
     #==========================================================
         drawing_objects = []
@@ -379,7 +414,7 @@ class SVGTiler(object):
                              SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
                              SVG_NS('rect')]:
 
-            path = SVGTiler.get_graphics_path(element)
+            path = SVGTiler.__get_graphics_path(element)
             if path is None: return []
 
             ## Or simply don't stroke as Mapbox will draw boundaries...
@@ -390,7 +425,10 @@ class SVGTiler(object):
                     Style=skia.Paint.kStroke_Style,
                     Color=make_colour(stroke, opacity),
                     StrokeWidth=1)  ## Use actual stroke-width?? Scale??
-                drawing_objects.append(CanvasPath(path, paint, parent_transform, element.attrib))
+                drawing_objects.append(CanvasPath(path, paint, parent_transform,
+                    element.attrib.get('transform'),
+                    self.__clip_paths.get_by_url(element.attrib.get('clip-path'))
+                    ))
 
             fill = element_style.get('fill', '#FFF')
             if fill == 'none': return []
@@ -435,7 +473,10 @@ class SVGTiler(object):
                     opacity = 0.5
             if fill.startswith('#'):
                 paint.setColor(make_colour(fill, opacity))
-            drawing_objects.append(CanvasPath(path, paint, parent_transform, element.attrib))
+            drawing_objects.append(CanvasPath(path, paint, parent_transform,
+                element.attrib.get('transform'),
+                self.__clip_paths.get_by_url(element_style.get('clip-path'))
+                ))
 
         elif element.tag == SVG_NS('image'):
             image_href = element.attrib.get(XLINK_HREF)
@@ -462,7 +503,10 @@ class SVGTiler(object):
                     paint = skia.Paint()
                     opacity = float(element_style.get('opacity', 1.0))
                     paint.setAlpha(round(opacity * 255))
-                    drawing_objects.append(CanvasImage(image, paint, parent_transform, element.attrib))
+                    drawing_objects.append(CanvasImage(image, paint, parent_transform,
+                        element.attrib.get('transform'),
+                        self.__clip_paths.get_by_url(element_style.get('clip-path'))
+                        ))
 
         return drawing_objects
 
@@ -477,8 +521,8 @@ class SVGTiler(object):
         return c
 
     @staticmethod
-    def get_graphics_path(element):
-    #==============================
+    def __get_graphics_path(element):
+    #================================
         if element.tag == SVG_NS('path'):
             tokens = re.sub('.', SVGTiler.__svg_path_matcher,
                             element.attrib.get('d', '')).split()

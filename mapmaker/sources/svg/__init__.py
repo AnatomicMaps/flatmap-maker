@@ -55,6 +55,7 @@ from mapmaker.utils import FilePath, ProgressBar
 # These SVG tags are not used to determine feature geometry
 
 IGNORED_SVG_TAGS = [
+    SVG_NS('clipPath'),
     SVG_NS('linearGradient'),
     SVG_NS('radialGradient'),
     SVG_NS('style'),
