@@ -252,9 +252,6 @@ class SVGTiler(object):
         self.__scaling = (tile_set.pixel_rect.width/self.__size[0],
                           tile_set.pixel_rect.height/self.__size[1])
         self.__definitions = DefinitionStore()
-        defs = self.__svg.find(SVG_NS('defs'))
-        if defs is not None:
-            self.__definitions.add_definitions(defs)
         self.__style_matcher = StyleMatcher(self.__svg.find(SVG_NS('style')))
 
         # Transform from SVG pixels to tile pixels
@@ -342,7 +339,10 @@ class SVGTiler(object):
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for wrapped_element in children:
             element = wrapped_element.etree_element
-            if element.tag == SVG_NS('use'):
+            if element.tag == SVG_NS('defs'):
+                self.__definitions.add_definitions(element)
+                continue
+            elif element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
                 wrapped_element = cssselect2.ElementWrapper.from_xml_root(element)
             elif element.tag in [SVG_NS('linearGradient'), SVG_NS('radialGradient')]:
