@@ -54,6 +54,10 @@ IMAGE_MEDIA_TYPES = ['image/jpeg']
 
 #===============================================================================
 
+UNIMPLEMENTED_STYLES = ['filter']
+
+#===============================================================================
+
 def make_colour(hex_string, opacity):
     if hex_string.startswith('#'):
         if len(hex_string) == 4:
@@ -137,7 +141,10 @@ class StyleMatcher(cssselect2.Matcher):
         if parent_style is None:
             parent_style = {}
         for key, value in self.match(wrapped_element).items():
-            parent_style[key] = ' '.join([t.serialize() for t in value])
+            if key in UNIMPLEMENTED_STYLES:
+                log.warn("'{}: {}' not implemented".format(key, value))
+            else:
+                parent_style[key] = ' '.join([t.serialize() for t in value])
         return ElementStyleDict(wrapped_element.etree_element, parent_style)
 
 #===============================================================================
@@ -513,6 +520,9 @@ class SVGTiler(object):
                         self.__clip_paths.get_by_url(element_style.get('clip-path'))
                         ))
 
+        elif element.tag != SVG_NS('style'):
+            log.warn("'{}' not supported...".format(element.tag))
+
         return drawing_objects
 
     @staticmethod
@@ -732,6 +742,7 @@ class SVGTiler(object):
 
             else:
                 print('Unknown path command: {}'.format(cmd))
+
         return path
 
 #===============================================================================
