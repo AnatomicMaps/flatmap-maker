@@ -430,6 +430,55 @@ class SVGTiler(object):
             if path is None: return []
 
             ## Or simply don't stroke as Mapbox will draw boundaries...
+            fill = element_style.get('fill', '#FFF')
+            if fill != 'none':
+                path.setFillType(skia.PathFillType.kWinding)
+                opacity = float(element_style.get('opacity', 1.0))
+                paint = skia.Paint(AntiAlias=True)
+                if fill.startswith('url('):
+                    gradient = self.__definitions.get_by_url(fill)
+                    if gradient is None:
+                        fill = '#800'     # Something's wrong show show in image...
+                        opacity = 0.5
+                    elif gradient.tag == SVG_NS('linearGradient'):
+                        gradient_stops = GradientStops(gradient)
+                        points = [(float(gradient.attrib.get('x1', 0.0)),
+                                   float(gradient.attrib.get('y1', 0.0))),
+                                  (float(gradient.attrib.get('x2', 1.0)),
+                                   float(gradient.attrib.get('y2', 0.0)))]
+                        paint.setShader(skia.GradientShader.MakeLinear(
+                            points=points,
+                            positions=gradient_stops.offsets,
+                            colors=gradient_stops.colours,
+                            localMatrix=SVGTiler.__gradient_matrix(gradient, path)
+                        ))
+                    elif gradient.tag == SVG_NS('radialGradient'):
+                        gradient_stops = GradientStops(gradient)
+                        centre = (float(gradient.attrib.get('cx')),
+                                  float(gradient.attrib.get('cy')))
+                        radius = float(gradient.attrib.get('r'))
+                        # TODO: fx, fy
+                        #       This will need a two point conical shader
+                        #       -- see chromium/blink sources
+                        paint.setShader(skia.GradientShader.MakeRadial(
+                            center=centre,
+                            radius=radius,
+                            positions=gradient_stops.offsets,
+                            colors=gradient_stops.colours,
+                            localMatrix=SVGTiler.__gradient_matrix(gradient, path)
+                        ))
+                    else:
+                        fill = '#008'     # Something's wrong so show show in image...
+                        opacity = 0.5
+                if fill.startswith('#'):
+                    paint.setColor(make_colour(fill, opacity))
+                elif opacity < 1.0:
+                    paint.setAlphaf(opacity)
+                drawing_objects.append(CanvasPath(path, paint, parent_transform,
+                    element.attrib.get('transform'),
+                    self.__clip_paths.get_by_url(element_style.get('clip-path'))
+                    ))
+
             stroke = element_style.get('stroke', 'none')
             if False and stroke.startswith('#'):
                 opacity = float(element_style.get('stroke-opacity', 1.0))
@@ -441,54 +490,6 @@ class SVGTiler(object):
                     element.attrib.get('transform'),
                     self.__clip_paths.get_by_url(element.attrib.get('clip-path'))
                     ))
-
-            fill = element_style.get('fill', '#FFF')
-            if fill == 'none': return []
-
-            path.setFillType(skia.PathFillType.kWinding)
-            opacity = float(element_style.get('opacity', 1.0))
-            paint = skia.Paint(AntiAlias=True)
-            if fill.startswith('url('):
-                gradient = self.__definitions.get_by_url(fill)
-                if gradient is None:
-                    fill = '#800'     # Something's wrong show show in image...
-                    opacity = 0.5
-                elif gradient.tag == SVG_NS('linearGradient'):
-                    gradient_stops = GradientStops(gradient)
-                    points = [(float(gradient.attrib.get('x1', 0.0)),
-                               float(gradient.attrib.get('y1', 0.0))),
-                              (float(gradient.attrib.get('x2', 1.0)),
-                               float(gradient.attrib.get('y2', 0.0)))]
-                    paint.setShader(skia.GradientShader.MakeLinear(
-                        points=points,
-                        positions=gradient_stops.offsets,
-                        colors=gradient_stops.colours,
-                        localMatrix=SVGTiler.__gradient_matrix(gradient, path)
-                    ))
-                elif gradient.tag == SVG_NS('radialGradient'):
-                    gradient_stops = GradientStops(gradient)
-                    centre = (float(gradient.attrib.get('cx')),
-                              float(gradient.attrib.get('cy')))
-                    radius = float(gradient.attrib.get('r'))
-                    # TODO: fx, fy
-                    #       This will need a two point conical shader
-                    #       -- see chromium/blink sources
-                    paint.setShader(skia.GradientShader.MakeRadial(
-                        center=centre,
-                        radius=radius,
-                        positions=gradient_stops.offsets,
-                        colors=gradient_stops.colours,
-                        localMatrix=SVGTiler.__gradient_matrix(gradient, path)
-                    ))
-                else:
-                    fill = '#008'     # Something's wrong so show show in image...
-                    opacity = 0.5
-            if fill.startswith('#'):
-                paint.setColor(make_colour(fill, opacity))
-            drawing_objects.append(CanvasPath(path, paint, parent_transform,
-                element.attrib.get('transform'),
-                self.__clip_paths.get_by_url(element_style.get('clip-path'))
-                ))
 
         elif element.tag == SVG_NS('image'):
             image_href = element.attrib.get(XLINK_HREF)
