@@ -73,7 +73,7 @@ class GradientStops(object):
         self.__colours = []
         for stop in element:
             if stop.tag == SVG_NS('stop'):
-                styling = ElementStyle(stop)
+                styling = ElementStyleDict(stop)
                 self.__offsets.append(float(stop.attrib['offset']))
                 self.__colours.append(make_colour(styling.get('stop-color'),
                                                   float(styling.get('stop-opacity', 1.0))))
@@ -88,24 +88,20 @@ class GradientStops(object):
 
 #===============================================================================
 
-class ElementStyle(object):
+class ElementStyleDict(dict):
     def __init__(self, element, style_dict={}):
-        self.__attributes = element.attrib
-        self.__style_dict = style_dict
-        if 'style' in self.__attributes:
+        super().__init__(style_dict)   # Copies dict
+        attributes = dict(element.attrib)
+        if 'style' in attributes:
+            style_attribute = attributes.pop('style')
             local_style = {}
             for declaration in tinycss2.parse_declaration_list(
-                self.__attributes['style'],
+                style_attribute,
                 skip_comments=True, skip_whitespace=True):
                 local_style[declaration.lower_name] = ' '.join(
                     [t.serialize() for t in declaration.value])
-            self.__style_dict.update(local_style)
-
-    def get(self, key, default=None):
-    #================================
-        if key in self.__attributes:
-            return self.__attributes[key]
-        return self.__style_dict.get(key, default)
+            super().update(local_style)
+        super().update(attributes)
 
 #===============================================================================
 
@@ -136,12 +132,13 @@ class StyleMatcher(cssselect2.Matcher):
                     styling[declaration.lower_name] = declaration.value
         return styling
 
-    def element_style(self, wrapped_element):
-    #========================================
-        return ElementStyle(wrapped_element.etree_element,
-                            { key: ' '.join([t.serialize() for t in value])
-                                for key, value in self.match(wrapped_element).items()
-                            })
+    def element_style(self, wrapped_element, parent_style=None):
+    #===========================================================
+        if parent_style is None:
+            parent_style = {}
+        for key, value in self.match(wrapped_element).items():
+            parent_style[key] = ' '.join([t.serialize() for t in value])
+        return ElementStyleDict(wrapped_element.etree_element, parent_style)
 
 #===============================================================================
 #===============================================================================
@@ -323,24 +320,30 @@ class SVGTiler(object):
     #================================================================
         wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
         drawing_objects = self.__draw_element_list(wrapped_svg,
-            svg_to_tile_transform@SVGTransform(wrapped_svg.etree_element.attrib.get('transform')), show_progress)
+            svg_to_tile_transform@SVGTransform(wrapped_svg.etree_element.attrib.get('transform')),
+            None,
+            show_progress=show_progress)
         attributes = wrapped_svg.etree_element.attrib
         return CanvasGroup(drawing_objects, svg_to_tile_transform,
                     attributes.get('transform'),
                     None,
                     outermost=True)
 
-    def __draw_group(self, group, parent_transform):
-    #===============================================
+    def __draw_group(self, group, parent_transform, parent_style):
+    #=============================================================
+        group_style = self.__style_matcher.element_style(group, parent_style)
+        group_clip_path = group_style.get('clip-path')
+        if group_clip_path is not None:
+            del group_style['clip-path']
         drawing_objects = self.__draw_element_list(group,
-            parent_transform@SVGTransform(group.etree_element.attrib.get('transform')))
-        group_style = self.__style_matcher.element_style(group)
+            parent_transform@SVGTransform(group.etree_element.attrib.get('transform')),
+            group_style)
         return CanvasGroup(drawing_objects, parent_transform,
                     group.etree_element.attrib.get('transform'),
-                    self.__clip_paths.get_by_url(group_style.get('clip-path')))
+                    self.__clip_paths.get_by_url(group_clip_path))
 
-    def __draw_element_list(self, elements, parent_transform, show_progress=False):
-    #==============================================================================
+    def __draw_element_list(self, elements, parent_transform, parent_style, show_progress=False):
+    #============================================================================================
         drawing_objects = []
         children = list(elements.iter_children())
         progress_bar = ProgressBar(show=show_progress,
@@ -363,7 +366,7 @@ class SVGTiler(object):
             if element.tag == SVG_NS('clipPath'):
                 self.__add_clip_path(wrapped_element)
             else:
-                drawing_objects.extend(self.__draw_element(wrapped_element, parent_transform))
+                drawing_objects.extend(self.__draw_element(wrapped_element, parent_transform, parent_style))
             progress_bar.update(1)
         progress_bar.close()
         return drawing_objects
@@ -403,14 +406,14 @@ class SVGTiler(object):
         if clip_id is not None and clip_path is not None:
             self.__clip_paths.add(clip_id, clip_path)
 
-    def __draw_element(self, wrapped_element, parent_transform):
-    #==========================================================
+    def __draw_element(self, wrapped_element, parent_transform, parent_style):
+    #=========================================================================
         drawing_objects = []
         element = wrapped_element.etree_element
-        element_style = self.__style_matcher.element_style(wrapped_element)
+        element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
 
         if element.tag == SVG_NS('g'):
-            drawing_objects.append(self.__draw_group(wrapped_element, parent_transform))
+            drawing_objects.append(self.__draw_group(wrapped_element, parent_transform, parent_style))
 
         elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
                              SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
