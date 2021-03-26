@@ -43,7 +43,7 @@ from mapmaker.geometry import ellipse_point
 from mapmaker.geometry import bezier_sample
 from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
-from mapmaker.utils import ProgressBar
+from mapmaker.utils import ProgressBar, log
 
 from ..markup import parse_layer_directive, parse_markup
 
@@ -144,7 +144,7 @@ class PowerpointSlide(MapLayer):
                or shape.shape_type == MSO_SHAPE_TYPE.PICTURE):
                 pass
             else:
-                print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
+                log.warn('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
             progress_bar.update(1)
         progress_bar.close()
         return features

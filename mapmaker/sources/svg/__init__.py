@@ -48,7 +48,7 @@ from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import bezier_sample, radians, Transform, reflect_point
 from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
-from mapmaker.utils import FilePath, ProgressBar
+from mapmaker.utils import FilePath, ProgressBar, log
 
 #===============================================================================
 
@@ -211,7 +211,7 @@ class SVGLayer(MapLayer):
         elif element.tag in IGNORED_SVG_TAGS:
             pass
         else:
-            print('"{}" {} not processed...'.format(markup, element.tag))
+            log.warn('"{}" {} not processed...'.format(markup, element.tag))
 
     @staticmethod
     def __path_matcher(m):
