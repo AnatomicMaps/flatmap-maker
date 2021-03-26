@@ -33,9 +33,9 @@ from mapmaker.utils import FilePath, log
 
 ILX_ENDPOINT = 'http://uri.interlex.org/base/ilx_{:0>7}.json'
 
-SCIGRAPH_ONTOLOGIES = ['UBERON']
 SCIGRAPH_VOCAB_ENDPOINT = 'https://scicrunch.org/api/1/sparc-scigraph/vocabulary/id/{}.json'
 SCIGRAPH_KEY = "xBOrIfnZTvJQtobGo8XHRvThdMYGTxtf"
+SCIGRAPH_ONTOLOGIES = ['UBERON', 'FMA']
 
 #===============================================================================
 
