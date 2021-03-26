@@ -50,7 +50,7 @@ from .utils import adobe_decode, length_as_pixels, SVG_NS, XLINK_HREF
 
 #===============================================================================
 
-IMAGE_MEDIA_TYPES = ['image/jpeg']
+IMAGE_MEDIA_TYPES = ['image/jpeg', 'image/png']
 
 #===============================================================================
 
