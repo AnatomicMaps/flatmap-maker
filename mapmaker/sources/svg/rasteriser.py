@@ -480,12 +480,34 @@ class SVGTiler(object):
                     ))
 
             stroke = element_style.get('stroke', 'none')
-            if False and stroke.startswith('#'):
+            if stroke != 'none':
                 opacity = float(element_style.get('stroke-opacity', 1.0))
                 paint = skia.Paint(AntiAlias=True,
                     Style=skia.Paint.kStroke_Style,
                     Color=make_colour(stroke, opacity),
-                    StrokeWidth=1)  ## Use actual stroke-width?? Scale??
+                    StrokeWidth=float(element_style.get('stroke-width', 1.0)),
+                    )
+
+                stroke_linejoin = element_style.get('stroke-linejoin')
+                if stroke_linejoin == 'bevel':
+                    paint.setStrokeJoin(skia.Paint.Join.kBevel_Join)
+                elif stroke_linejoin == 'miter':
+                    paint.setStrokeJoin(skia.Paint.Join.kMiter_Join)
+                elif stroke_linejoin == 'round':
+                    paint.setStrokeJoin(skia.Paint.Join.kRound_Join)
+
+                stroke_linecap = element_style.get('stroke-linecap')
+                if stroke_linecap == 'butt':
+                    paint.setStrokeCap(skia.Paint.Cap.kButt_Cap)
+                elif stroke_linecap == 'round':
+                    paint.setStrokeCap(skia.Paint.Cap.kRound_Cap)
+                elif stroke_linecap == 'square':
+                    paint.setStrokeCap(skia.Paint.Cap.kSquare_Cap)
+
+                stroke_miterlimit = element_style.get('stroke-miterlimit')
+                if stroke_miterlimit is not None:
+                    paint.setStrokeMiter(float(stroke_miterlimit))
+
                 drawing_objects.append(CanvasPath(path, paint, parent_transform,
                     element.attrib.get('transform'),
                     self.__clip_paths.get_by_url(element.attrib.get('clip-path'))
