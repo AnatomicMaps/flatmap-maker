@@ -197,7 +197,7 @@ class CanvasDrawingObject(object):
             if self.__clip_path is not None:
                 canvas.clipPath(self.__clip_path, doAntiAlias=True)
         yield
-        if self.__matrix is not None:
+        if self.__matrix is not None or self.__clip_path is not None:
             canvas.restore()
 
 #===============================================================================
