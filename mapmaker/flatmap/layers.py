@@ -222,7 +222,7 @@ class MapLayer(FeatureLayer):
                     dividers.append(feature.geometry)
                 elif feature.geom_type == 'Polygon':
                     dividers.append(feature.geometry.boundary)
-                if not feature.get_property('invisible'):
+                if feature.visible():
                     layer_features.append(feature)
             elif feature.has_property('class') or not feature.get_property('interior'):
                 layer_features.append(feature)

@@ -71,6 +71,9 @@ class Feature(object):
     def properties(self) -> dict:
         return self.__properties
 
+    def visible(self) -> bool:
+        return not self.get_property('invisible')
+
     def del_property(self, property: str) -> Any:
         if property in self.__properties:
             return self.__properties.pop(property)
