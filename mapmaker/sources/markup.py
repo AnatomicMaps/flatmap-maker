@@ -65,6 +65,8 @@ CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
 CHILDCLASSES = Group(Keyword('children') + Suppress('(') + ID_TEXT + Suppress(')'))
 DETAILS = Group(Keyword('details') + Suppress('(') + ID_TEXT + Suppress(',') + ZOOM_LEVEL + Suppress(')'))
 PATH = Group(Keyword('path') + Suppress('(') + ID_TEXT + Suppress(')'))
+
+# Deprecated...
 STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
 
 FEATURE_PROPERTIES = CLASS | CHILDCLASSES | IDENTIFIER | STYLE
@@ -75,8 +77,9 @@ SHAPE_FLAGS = Group(Keyword('boundary')
                   | Keyword('interior')
                   )
 
-DEPRECATED_FLAGS = Group(Keyword('siblings')
-                       | Keyword('marker')
+DEPRECATED_FLAGS = Group(Keyword('marker')
+                       | Keyword('siblings')
+                       | Keyword('style')
                        )
 
 FEATURE_FLAGS = Group(Keyword('group')
