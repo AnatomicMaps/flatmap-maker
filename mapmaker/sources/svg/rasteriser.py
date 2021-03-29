@@ -171,6 +171,8 @@ class CanvasDrawingObject(object):
         self.__prep_bbox = shapely.prepared.prep(bbox) if bbox is not None else None
         self.__clip_path = clip_path
         self.__paint = paint
+        self.__save_state = (self.__matrix is not None
+                          or self.__clip_path is not None)
 
     @property
     def bbox(self):
@@ -191,14 +193,14 @@ class CanvasDrawingObject(object):
     @contextlib.contextmanager
     def transformed_clipped_canvas(self, canvas):
     #============================================
-        if self.__matrix is not None or self.__clip_path is not None:
+        if self.__save_state:
             canvas.save()
             if self.__matrix is not None:
                 canvas.concat(self.__matrix)
             if self.__clip_path is not None:
                 canvas.clipPath(self.__clip_path, doAntiAlias=True)
         yield
-        if self.__matrix is not None or self.__clip_path is not None:
+        if self.__save_state:
             canvas.restore()
 
 #===============================================================================
