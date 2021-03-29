@@ -68,10 +68,10 @@ class Feature(object):
         return self.__properties.get('models')
 
     @property
-    def properties(self):
+    def properties(self) -> dict:
         return self.__properties
 
-    def del_property(self, property: str):
+    def del_property(self, property: str) -> Any:
         if property in self.__properties:
             return self.__properties.pop(property)
 
@@ -81,7 +81,7 @@ class Feature(object):
     def has_property(self, property: str) -> bool:
         return self.__properties.get(property, '') != ''
 
-    def set_property(self, property: str, value: Any):
+    def set_property(self, property: str, value: Any) -> None:
         self.__properties[property] = value
 
 #===============================================================================
