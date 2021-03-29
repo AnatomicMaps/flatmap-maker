@@ -110,24 +110,24 @@ def parse_layer_directive(s):
 
 #===============================================================================
 
-def parse_markup(name_text):
-    markup = {'markup': name_text}
+def parse_markup(markup):
+    properties = {'markup': markup}
     try:
-        parsed = SHAPE_MARKUP.parseString(name_text, parseAll=True)
+        parsed = SHAPE_MARKUP.parseString(markup, parseAll=True)
         for prop in parsed[1:]:
             if (FEATURE_FLAGS.matches(prop[0])
              or SHAPE_FLAGS.matches(prop[0])):
-                markup[prop[0]] = True
+                properties[prop[0]] = True
             elif DEPRECATED_FLAGS.matches(prop[0]):
-                markup['warning'] = "'{}' property is deprecated".format(prop[0])
+                properties['warning'] = "'{}' property is deprecated".format(prop[0])
             elif prop[0] == 'details':
-                markup[prop[0]] = prop[1]
-                markup['maxzoom'] = int(prop[2]) - 1
+                properties[prop[0]] = prop[1]
+                properties['maxzoom'] = int(prop[2]) - 1
             else:
-                markup[prop[0]] = prop[1]
+                properties[prop[0]] = prop[1]
     except ParseException:
-        markup['error'] = 'Syntax error in shape markup'
-    return markup
+        properties['error'] = 'Syntax error in element markup'
+    return properties
 
 #===============================================================================
 
