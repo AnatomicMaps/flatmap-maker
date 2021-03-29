@@ -82,11 +82,12 @@ DEPRECATED_FLAGS = Group(Keyword('marker')
                        | Keyword('style')
                        )
 
-FEATURE_FLAGS = Group(Keyword('group')
-                    | Keyword('invisible')
+FEATURE_FLAGS = Group(Keyword('centreline')
                     | Keyword('divider')
+                    | Keyword('group')
+                    | Keyword('invisible')
                     | Keyword('region')
-                    | Keyword('centreline')
+                    | Keyword('styling')       # Element (and sub-elements) are just for stylistic effects
                   )
 
 SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS
@@ -130,6 +131,9 @@ def parse_markup(markup):
                 properties[prop[0]] = prop[1]
     except ParseException:
         properties['error'] = 'Syntax error in element markup'
+    if ('styling' in properties
+    and ('id' in properties or 'class' in properties)):
+        properties['error'] = "A 'styling' element can't have an 'id' nor 'class' property"
     return properties
 
 #===============================================================================

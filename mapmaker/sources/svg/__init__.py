@@ -189,6 +189,8 @@ class SVGLayer(MapLayer):
             pass
         elif 'path' in properties:
             pass
+        elif 'styling' in properties:
+            pass
         elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('image'),
                              SVG_NS('line'), SVG_NS('path'), SVG_NS('polyline'),
                              SVG_NS('polygon'), SVG_NS('rect')]:
