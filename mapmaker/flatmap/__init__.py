@@ -213,7 +213,6 @@ class FlatMap(object):
             ## when mouse over a path through the nerve
             new_feature.set_property('tile-layer', 'pathways')
         detail_layer.add_feature(new_feature)
-        self.save_feature_id(new_feature)
         return new_feature
 
     def __add_detail_features(self, layer, detail_layer, lowres_features):

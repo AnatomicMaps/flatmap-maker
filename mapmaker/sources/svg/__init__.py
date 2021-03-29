@@ -196,17 +196,12 @@ class SVGLayer(MapLayer):
             if geometry is None:
                 return
             feature = self.flatmap.new_feature(geometry, properties)
-            if self.base_layer and not feature.get_property('group'):
-                # Save relationship between id/class and internal feature id
-                self.flatmap.save_feature_id(feature)
             features.append(feature)
         elif element.tag == SVG_NS('g'):
             self.__current_group.append(properties.get('markup', "''"))
             grouped_feature = self.__process_group(element, properties, transform)
             self.__current_group.pop()
             if grouped_feature is not None:
-                if self.base_layer:
-                    self.flatmap.save_feature_id(grouped_feature)
                 features.append(grouped_feature)
         elif element.tag in IGNORED_SVG_TAGS:
             pass

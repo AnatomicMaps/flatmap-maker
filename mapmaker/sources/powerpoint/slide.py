@@ -128,17 +128,12 @@ class PowerpointSlide(MapLayer):
              or isinstance(shape, pptx.shapes.connector.Connector)):
                 geometry = self.__get_geometry(shape, properties, transform)
                 feature = self.flatmap.new_feature(geometry, properties)
-                if self.base_layer and not feature.get_property('group'):
-                    # Save relationship between id/class and internal feature id
-                    self.flatmap.save_feature_id(feature)
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 self.__current_group.append(properties.get('markup', "''"))
                 grouped_feature = self.__process_group(shape, properties, transform)
                 self.__current_group.pop()
                 if grouped_feature is not None:
-                    if self.base_layer:
-                        self.flatmap.save_feature_id(grouped_feature)
                     features.append(grouped_feature)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
                or shape.shape_type == MSO_SHAPE_TYPE.PICTURE):

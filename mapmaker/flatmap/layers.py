@@ -30,13 +30,13 @@ from mapmaker.geometry import save_geometry
 #===============================================================================
 
 class FeatureLayer(object):
-    def __init__(self, id, base_layer=False):
+    def __init__(self, id, flatmap, base_layer=False):
         self.__id = id
+        self.__flatmap = flatmap
         self.__annotations = {}
         self.__base_layer = base_layer
         self.__description = 'Layer {}'.format(id)
         self.__features = []
-        self.__features_by_id = {}
 
     @property
     def annotations(self):
@@ -59,8 +59,8 @@ class FeatureLayer(object):
         return self.__features
 
     @property
-    def features_by_id(self):
-        return self.__features_by_id
+    def flatmap(self):
+        return self.__flatmap
 
     @property
     def id(self):
@@ -73,8 +73,9 @@ class FeatureLayer(object):
     def add_feature(self, feature):
     #==============================
         self.__features.append(feature)
-        if feature.id is not None:
-            self.__features_by_id[feature.id] = feature
+        if self.__base_layer:
+            # Save relationship between id/class and internal feature id
+            self.__flatmap.save_feature_id(feature)
 
     def annotate(self, feature, properties):
     #=======================================
@@ -90,9 +91,8 @@ class FeatureLayer(object):
 
 class MapLayer(FeatureLayer):
     def __init__(self, id, source, base_layer=False):
-        super().__init__(id, base_layer)
+        super().__init__(id, source.flatmap, base_layer)
         self.__source = source
-        self.__flatmap = source.flatmap
         self.__boundary_feature = None
         self.__detail_features = []
 #*        self.__ontology_data = self.options.ontology_data
@@ -115,10 +115,6 @@ class MapLayer(FeatureLayer):
     @property
     def details_layer(self):
         return self.__details_layer
-
-    @property
-    def flatmap(self):
-        return self.__flatmap
 
     @property
     def nerve_tracks(self):
@@ -176,7 +172,7 @@ class MapLayer(FeatureLayer):
             'tile-layer': 'features'
             }
 
-        group_features = []
+        layer_features = []    # Features that will be added to the layer
         grouped_properties = {
             'group': True,
             'interior': True,
@@ -200,15 +196,15 @@ class MapLayer(FeatureLayer):
                     if self.__boundary_feature is not None:
                         raise ValueError('Layer cannot have multiple boundaries: {}'.format(feature))
                     self.__boundary_feature = feature
-                    group_features.append(feature)
+                    layer_features.append(feature)
                 elif feature.geom_type == 'LineString':
                     boundary_lines.append(extend_line(feature.geometry))
                 elif feature.geom_type == 'Polygon':
                     if boundary_polygon is not None:
                         raise GroupValueError('{} can only have one boundary shape:'.format(group_name), features)
                     boundary_polygon = feature.geometry
-                    if not feature.get_property('invisible'):
-                        group_features.append(feature)
+                    if feature.visible():
+                        layer_features.append(feature)
                 cls = feature.get_property('class')
                 if cls is not None:
                     if cls != boundary_class:
@@ -220,16 +216,16 @@ class MapLayer(FeatureLayer):
                 child_class = feature.del_property('children')
                 grouped_properties.update(feature.properties)
             elif feature.get_property('region'):
-                regions.append(self.__flatmap.new_feature(feature.geometry.representative_point(), feature.properties))
+                regions.append(self.flatmap.new_feature(feature.geometry.representative_point(), feature.properties))
             elif not feature.has_property('markup') or feature.get_property('divider'):
                 if feature.geom_type == 'LineString':
                     dividers.append(feature.geometry)
                 elif feature.geom_type == 'Polygon':
                     dividers.append(feature.geometry.boundary)
                 if not feature.get_property('invisible'):
-                    group_features.append(feature)
+                    layer_features.append(feature)
             elif feature.has_property('class') or not feature.get_property('interior'):
-                group_features.append(feature)
+                layer_features.append(feature)
 
         interior_features = []
         for feature in features:
@@ -248,8 +244,8 @@ class MapLayer(FeatureLayer):
                 except ValueError as err:
                     raise GroupValueError('{}: {}'.format(group_name, str(err)), features)
 
-            group_features.append(
-                self.__flatmap.new_feature(
+            layer_features.append(
+                self.flatmap.new_feature(
                     boundary_polygon,
                     base_properties))
 
@@ -280,7 +276,7 @@ class MapLayer(FeatureLayer):
                     region_properties = base_properties.copy()
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_properties.update(region.properties)
-                        group_features.append(self.__flatmap.new_feature(polygon, region_properties))
+                        layer_features.append(self.flatmap.new_feature(polygon, region_properties))
                         break
         else:
             for feature in features:
@@ -295,7 +291,7 @@ class MapLayer(FeatureLayer):
                 elif feature.geom_type == 'MultiPolygon':
                     interior_polygons.extend(list(feature.geometry))
             interior_polygon = shapely.ops.unary_union(interior_polygons)
-            for feature in group_features:
+            for feature in layer_features:
                 if (feature.has_property('markup')
                 and feature.get_property('exterior')
                 and feature.geom_type in ['Polygon', 'MultiPolygon']):
@@ -307,7 +303,7 @@ class MapLayer(FeatureLayer):
         feature_group = None  # Our returned Feature
         if generate_group:
             grouped_polygon_features = [ feature for feature in features if feature.has_children ]
-            for feature in group_features:
+            for feature in layer_features:
                 grouped_polygon_features.append(feature)
 
             grouped_lines = []
@@ -318,10 +314,10 @@ class MapLayer(FeatureLayer):
                     elif feature.geom_type == 'MultiLineString':
                         grouped_lines.extend(list(feature.geometry))
             if len(grouped_lines):
-                feature_group = self.__flatmap.new_feature(
+                feature_group = self.flatmap.new_feature(
                       shapely.geometry.MultiLineString(grouped_lines),
                       grouped_properties, True)
-                group_features.append(feature_group)
+                layer_features.append(feature_group)
             grouped_polygons = []
             for feature in grouped_polygon_features:
                 if feature.geom_type == 'Polygon':
@@ -329,10 +325,10 @@ class MapLayer(FeatureLayer):
                 elif feature.geom_type == 'MultiPolygon':
                     grouped_polygons.extend(list(feature.geometry))
             if len(grouped_polygons):
-                feature_group = self.__flatmap.new_feature(
+                feature_group = self.flatmap.new_feature(
                         shapely.geometry.MultiPolygon(grouped_polygons),
                         grouped_properties, True)
-                group_features.append(feature_group)
+                layer_features.append(feature_group)
 
         # Feature specific properties have precedence over group's
 
@@ -341,7 +337,7 @@ class MapLayer(FeatureLayer):
             # Default class for all of the group's child shapes
             default_properties['class'] = child_class
 
-        for feature in group_features:
+        for feature in layer_features:
             if feature.geometry is not None:
                 for (key, value) in default_properties.items():
                     if not feature.has_property(key):
