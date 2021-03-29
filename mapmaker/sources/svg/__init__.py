@@ -312,15 +312,16 @@ class SVGLayer(MapLayer):
                            'A', rx, ry, 0, 0, 0, cx+rx, cy,
                            'Z']
 
-        elif element.tag == SVG_NS('image'):   ## But only if element is annotated (has id and/or class)
-            width = length_as_pixels(element.attrib.get('width', 0))
-            height = length_as_pixels(element.attrib.get('height', 0))
-            path_tokens = ['M', 0, 0,
-                           'H', width,
-                           'V', height,
-                           'H', 0,
-                           'V', 0,
-                           'Z']
+        elif element.tag == SVG_NS('image'):
+            if 'id' in properties or 'class' in properties:
+                width = length_as_pixels(element.attrib.get('width', 0))
+                height = length_as_pixels(element.attrib.get('height', 0))
+                path_tokens = ['M', 0, 0,
+                               'H', width,
+                               'V', height,
+                               'H', 0,
+                               'V', 0,
+                               'Z']
 
         pos = 0
         while pos < len(path_tokens):
