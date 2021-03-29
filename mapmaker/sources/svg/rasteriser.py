@@ -39,6 +39,7 @@ import tinycss2
 #===============================================================================
 
 from .. import WORLD_METRES_PER_PIXEL
+from ..markup import parse_markup
 
 from mapmaker.geometry import degrees, extent_to_bounds, Identity, radians, Transform, reflect_point
 from mapmaker.utils import ProgressBar, log
@@ -429,7 +430,6 @@ class SVGTiler(object):
             path = SVGTiler.__get_graphics_path(element)
             if path is None: return []
 
-            ## Or simply don't stroke as Mapbox will draw boundaries...
             fill = element_style.get('fill', '#FFF')
             if fill != 'none':
                 path.setFillType(skia.PathFillType.kWinding)
@@ -480,14 +480,22 @@ class SVGTiler(object):
                     ))
 
             stroke = element_style.get('stroke', 'none')
-            if stroke != 'none':
+            stroked = (stroke != 'none')
+            if stroked:
+                markup = adobe_decode(element.attrib.get('id', ''))
+                if markup.startswith('.'):
+                    if markup.split()[-1].isnumeric():
+                            markup = ' '.join(markup.split()[:-1])
+                    properties = parse_markup(markup)
+                    if 'id' in properties or 'class' in properties:
+                        stroked = False
+            if stroked:
                 opacity = float(element_style.get('stroke-opacity', 1.0))
                 paint = skia.Paint(AntiAlias=True,
                     Style=skia.Paint.kStroke_Style,
                     Color=make_colour(stroke, opacity),
                     StrokeWidth=float(element_style.get('stroke-width', 1.0)),
                     )
-
                 stroke_linejoin = element_style.get('stroke-linejoin')
                 if stroke_linejoin == 'bevel':
                     paint.setStrokeJoin(skia.Paint.Join.kBevel_Join)
@@ -495,7 +503,6 @@ class SVGTiler(object):
                     paint.setStrokeJoin(skia.Paint.Join.kMiter_Join)
                 elif stroke_linejoin == 'round':
                     paint.setStrokeJoin(skia.Paint.Join.kRound_Join)
-
                 stroke_linecap = element_style.get('stroke-linecap')
                 if stroke_linecap == 'butt':
                     paint.setStrokeCap(skia.Paint.Cap.kButt_Cap)
@@ -503,11 +510,9 @@ class SVGTiler(object):
                     paint.setStrokeCap(skia.Paint.Cap.kRound_Cap)
                 elif stroke_linecap == 'square':
                     paint.setStrokeCap(skia.Paint.Cap.kSquare_Cap)
-
                 stroke_miterlimit = element_style.get('stroke-miterlimit')
                 if stroke_miterlimit is not None:
                     paint.setStrokeMiter(float(stroke_miterlimit))
-
                 drawing_objects.append(CanvasPath(path, paint, parent_transform,
                     element.attrib.get('transform'),
                     self.__clip_paths.get_by_url(element.attrib.get('clip-path'))
