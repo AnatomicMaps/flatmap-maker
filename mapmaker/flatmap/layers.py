@@ -384,6 +384,10 @@ class RasterLayer(object):
         return self.__id
 
     @property
+    def local_world_to_base(self):
+        return self.__local_world_to_base
+
+    @property
     def map_source(self):
         return self.__map_source
 
@@ -404,8 +408,6 @@ class RasterLayer(object):
         return self.__map_source.raster_source.source_kind
 
     @property
-    def local_world_to_base(self):
-        return self.__local_world_to_base
     def source_params(self):
         return self.__map_source.raster_source.source_params
 
