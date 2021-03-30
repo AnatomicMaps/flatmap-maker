@@ -35,6 +35,7 @@ import shapely.ops
 import shapely.prepared
 import skia
 import tinycss2
+import webcolors
 
 #===============================================================================
 
@@ -59,16 +60,18 @@ UNIMPLEMENTED_STYLES = ['filter']
 
 #===============================================================================
 
-def make_colour(hex_string, opacity):
-    if hex_string.startswith('#'):
-        if len(hex_string) == 4:
-            rgb = tuple(2*c for c in hex_string[1:])
+def make_colour(colour_string, opacity=1.0):
+    if colour_string.startswith('#'):
+        colour = webcolors.hex_to_rgb(colour_string)
+    elif colour_string.startswith('rgb('):
+        rgb = colour_string[4:-1].split(',')
+        if '%' in colour_string:
+            colour = webcolors.rgb_percent_to_rgb(rgb)
         else:
-            rgb = tuple(hex_string[n:n+2] for n in range(1, 6, 2))
-        colour = tuple(int(c, 16) for c in rgb)
-        return skia.Color(*colour, int(255*opacity))
+            colour = [int(c) for c in rgb]
     else:
-        return skia.Color(0, 0, 0, 128)
+        colour = webcolors.html5_parse_legacy_color(colour_string)
+    return skia.Color(*tuple(colour), int(255*opacity))
 
 #===============================================================================
 
@@ -472,10 +475,13 @@ class SVGTiler(object):
                     else:
                         fill = '#008'     # Something's wrong so show show in image...
                         opacity = 0.5
-                if fill.startswith('#'):
+
+                if fill.startswith('url('):
+                    if opacity < 1.0:
+                        paint.setAlphaf(opacity)
+                else:
                     paint.setColor(make_colour(fill, opacity))
-                elif opacity < 1.0:
-                    paint.setAlphaf(opacity)
+
                 drawing_objects.append(CanvasPath(path, paint, parent_transform,
                     element.attrib.get('transform'),
                     self.__clip_paths.get_by_url(element_style.get('clip-path'))
