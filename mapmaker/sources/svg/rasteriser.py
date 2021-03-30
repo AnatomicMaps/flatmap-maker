@@ -556,7 +556,7 @@ class SVGTiler(object):
                         self.__clip_paths.get_by_url(element_style.get('clip-path'))
                         ))
 
-        elif element.tag != SVG_NS('style'):
+        elif element.tag not in [SVG_NS('style'), SVG_NS('text')]:
             log.warn("'{}' not supported...".format(element.tag))
 
         return drawing_objects
