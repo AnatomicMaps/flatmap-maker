@@ -443,7 +443,7 @@ class SVGTiler(object):
                 if fill.startswith('url('):
                     gradient = self.__definitions.get_by_url(fill)
                     if gradient is None:
-                        fill = '#800'     # Something's wrong show show in image...
+                        fill = '#800'     # Something's wrong so show show in image...
                         opacity = 0.5
                     elif gradient.tag == SVG_NS('linearGradient'):
                         gradient_stops = GradientStops(gradient)
