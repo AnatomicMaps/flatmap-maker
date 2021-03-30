@@ -13,12 +13,12 @@ Requirements
 Installation
 ------------
 
-* Download the latest released Python wheel from https://github.com/dbrnz/flatmap-maker/releases/latest, currently ``mapmaker-1.0.0b1-py3-none-any.whl``.
+* Download the latest released Python wheel from https://github.com/dbrnz/flatmap-maker/releases/latest, currently ``mapmaker-1.1.0-beta.1-py3-none-any.whl``.
 * Create a directory in which to install ``mapmaker`` and change into it.
 
 ::
 
-    $ pipenv install mapmaker-1.0.0b1-py3-none-any.whl
+    $ pipenv install mapmaker-1.1.0-beta.1-py3-none-any.whl
 
 Running
 -------
