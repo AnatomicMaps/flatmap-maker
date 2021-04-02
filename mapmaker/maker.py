@@ -106,13 +106,13 @@ class Manifest(object):
 
 class MapMaker(object):
     def __init__(self, options):
-        # ``silent`` implies ``quiet``
+        # ``silent`` implies not ``verbose``
         if options.get('silent', False):
-            options['quiet'] = True
+            options['verbose'] = False
 
         # Setup logging
         configure_logging(options.get('logFile'),
-            quiet=options.get('quiet', False),
+            verbose=options.get('verbose', False),
             silent=options.get('silent', False))
         log('Mapmaker {}'.format(__version__))
 
@@ -287,7 +287,7 @@ class MapMaker(object):
                         ]
         if not compressed:
             tippe_command.append('--no-tile-compression')
-        if settings.get('quiet', False):
+        if not settings.get('verbose', True):
             tippe_command.append('--quiet')
         tippe_command += list(["-L{}".format(json.dumps(input)) for input in self.__tippe_inputs])
 

@@ -32,7 +32,7 @@ from mapmaker.settings import settings
 
 logger = logging.getLogger(__name__)
 
-def configure_logging(log_file, quiet=False, silent=False):
+def configure_logging(log_file, verbose=False, silent=False):
     log_format = '%(asctime)s %(levelname)s: %(message)s'
     if silent:
         logging.lastResort = None
@@ -40,10 +40,10 @@ def configure_logging(log_file, quiet=False, silent=False):
             logger.setLevel(logging.INFO)
     else:
         logger.setLevel(logging.INFO)
-        if quiet:
-            logging.basicConfig(format=log_format)
-        else:
+        if verbose:
             logging.basicConfig(format='%(message)s')
+        else:
+            logging.basicConfig(format=log_format)
     if log_file is not None:
         file_handler = logging.FileHandler(log_file)
         formatter = logging.Formatter(log_format)
@@ -81,7 +81,7 @@ class log(object):
 
 class ProgressBar(object):
     def __init__(self, *args, show=True, **kwargs):
-        if show and not settings.get('quiet', False):
+        if show and settings.get('verbose', False):
             self.__progress_bar = tqdm.tqdm(*args, **kwargs)
         else:
             self.__progress_bar = None
