@@ -75,6 +75,8 @@ class GeoJSONOutput(object):
 
         for feature in features:
             properties = feature.properties.copy()
+            if 'bezier-segments' in properties:  # There's no need to export paths
+                properties.pop('bezier-segments')
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
