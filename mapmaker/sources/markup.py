@@ -77,25 +77,29 @@ SHAPE_FLAGS = Group(Keyword('boundary')
                   | Keyword('interior')
                   )
 
-DEPRECATED_FLAGS = Group(Keyword('marker')
-                       | Keyword('siblings')
-                       | Keyword('style')
-                       )
-
 FEATURE_FLAGS = Group(Keyword('centreline')
                     | Keyword('divider')
                     | Keyword('group')
                     | Keyword('invisible')
+                    | Keyword('marker')
                     | Keyword('region')
+                    | Keyword('siblings')
                     | Keyword('styling')       # Element (and sub-elements) are just for stylistic effects
                   )
 
-SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS
-                              | DETAILS
+SHAPE_MARKUP = '.' + ZeroOrMore(DETAILS
                               | FEATURE_FLAGS
                               | FEATURE_PROPERTIES
                               | PATH
                               | SHAPE_FLAGS)
+
+#===============================================================================
+
+DEPRECATED_MARKUP = [
+    'marker',
+    'siblings',
+    'style'
+]
 
 #===============================================================================
 
@@ -118,12 +122,13 @@ def parse_markup(markup):
     properties = {'markup': markup}
     try:
         parsed = SHAPE_MARKUP.parseString(markup, parseAll=True)
+        deprecated = []
         for prop in parsed[1:]:
+            if prop[0] in DEPRECATED_MARKUP:
+                deprecated.append(prop[0])
             if (FEATURE_FLAGS.matches(prop[0])
              or SHAPE_FLAGS.matches(prop[0])):
                 properties[prop[0]] = True
-            elif DEPRECATED_FLAGS.matches(prop[0]):
-                properties['warning'] = "'{}' property is deprecated".format(prop[0])
             elif prop[0] == 'details':
                 properties[prop[0]] = prop[1]
                 properties['maxzoom'] = int(prop[2]) - 1
@@ -131,6 +136,8 @@ def parse_markup(markup):
                 properties[prop[0]] = prop[1]
     except ParseException:
         properties['error'] = 'Syntax error in element markup'
+    if len(deprecated):
+        properties['warning'] = "Deprecated '{}'".format("', '".join(deprecated))
     if ('styling' in properties
     and ('id' in properties or 'class' in properties)):
         properties['error'] = "A 'styling' element can't have an 'id' nor 'class' property"
@@ -139,7 +146,7 @@ def parse_markup(markup):
 #===============================================================================
 
 def ignore_property(name):
-    return DEPRECATED_FLAGS.matches(name) or SHAPE_FLAGS.matches(name)
+    return SHAPE_FLAGS.matches(name) or name in DEPRECATED_MARKUP
 
 #===============================================================================
 
