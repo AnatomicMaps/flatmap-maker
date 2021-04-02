@@ -168,7 +168,7 @@ class CanvasDrawingObject(object):
                 local_transform = SVGTransform(transform_attribute)
                 self.__matrix = skia.Matrix(list(local_transform.flatten()))
                 T = T@local_transform
-        if bbox is None:
+        if bounds is not None and bbox is None:
             bbox = T.transform_geometry(shapely.geometry.box(*tuple(bounds)))
         self.__bbox = bbox
         self.__prep_bbox = shapely.prepared.prep(bbox) if bbox is not None else None
