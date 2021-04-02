@@ -45,7 +45,7 @@ from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tup
 from mapmaker.settings import settings
 from mapmaker.utils import ProgressBar, log
 
-from ..markup import parse_layer_directive, parse_markup
+from ..markup import parse_layer_directive
 
 from .formula import Geometry, radians
 from .presets import DML
@@ -63,7 +63,7 @@ class PowerpointSlide(MapLayer):
             if notes_text.startswith('.'):
                 layer_directive = parse_layer_directive(notes_text)
                 if 'error' in layer_directive:
-                    source.error('Slide {}: invalid layer directive: {}'
+                    source.error('error', 'Slide {}: invalid layer directive: {}'
                                  .format(slide_number, notes_text))
                 if 'id' in layer_directive:
                     id = layer_directive['id']
@@ -71,7 +71,6 @@ class PowerpointSlide(MapLayer):
         self.__slide = slide
         self.__slide_number = slide_number
         self.__transform = source.transform
-        self.__current_group = []
 
     @property
     def slide(self):
@@ -87,7 +86,6 @@ class PowerpointSlide(MapLayer):
 
     def process(self):
     #=================
-        self.__current_group.append('SLIDE')
         features = self.__process_shape_list(self.slide.shapes, self.__transform, show_progress=True)
         self.add_features('Slide', features, outermost=True)
 
@@ -105,20 +103,7 @@ class PowerpointSlide(MapLayer):
         features = []
         for shape in shapes:
             properties = {'tile-layer': 'features'}   # Passed through to map viewer
-            if shape.name.startswith('.'):
-                group_name = self.__current_group[-1]  # For error reporting
-                properties.update(parse_markup(shape.name))
-                if 'error' in properties:
-                    self.source.error('Shape in slide {}, group {}, has annotation syntax error: {}'
-                                        .format(self.__slide_number, group_name, shape.name))
-                if 'warning' in properties:
-                    self.source.error('Warning, slide {}, group {}: {}'
-                                        .format(self.__slide_number, group_name, properties['warning']))
-                for key in ['id', 'path']:
-                    if key in properties:
-                        if self.flatmap.is_duplicate_feature_id(properties[key]):
-                           self.source.error('Shape in slide {}, group {}, has a duplicate id: {}'
-                                               .format(self.__slide_number, group_name, shape.name))
+            properties.update(self.source.properties_from_markup(shape.name))
             if 'error' in properties:
                 pass
             elif 'path' in properties:
@@ -130,9 +115,7 @@ class PowerpointSlide(MapLayer):
                 feature = self.flatmap.new_feature(geometry, properties)
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
-                self.__current_group.append(properties.get('markup', "''"))
                 grouped_feature = self.__process_group(shape, properties, transform)
-                self.__current_group.pop()
                 if grouped_feature is not None:
                     features.append(grouped_feature)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX

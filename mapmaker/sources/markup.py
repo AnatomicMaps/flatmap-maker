@@ -135,12 +135,12 @@ def parse_markup(markup):
             else:
                 properties[prop[0]] = prop[1]
     except ParseException:
-        properties['error'] = 'Syntax error in element markup'
+        properties['error'] = 'Syntax error'
     if len(deprecated):
         properties['warning'] = "Deprecated '{}'".format("', '".join(deprecated))
     if ('styling' in properties
     and ('id' in properties or 'class' in properties)):
-        properties['error'] = "A 'styling' element can't have an 'id' nor 'class' property"
+        properties['error'] = "'styling' element can't have an 'id' nor 'class'"
     return properties
 
 #===============================================================================

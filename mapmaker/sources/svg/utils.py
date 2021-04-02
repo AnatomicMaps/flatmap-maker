@@ -79,8 +79,9 @@ def __match_to_char(m):
     else:
         return chr(int(s[2:4], 16))
 
-def adobe_decode(s):
-#===================
+def adobe_decode_markup(element):
+#================================
+    s = element.attrib.get('id', '')
     if s.startswith('_x2E_'):
         return re.sub('(_x.._)|(_)', __match_to_char, s)
     else:

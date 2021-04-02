@@ -37,12 +37,11 @@ import shapely.geometry
 
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_PIXEL
-from ..markup import parse_markup
 
 from .cleaner import SVGCleaner
 from .definitions import DefinitionStore
 from .transform import SVGTransform
-from .utils import adobe_decode, length_as_pixels, SVG_NS
+from .utils import adobe_decode_markup, length_as_pixels, SVG_NS
 
 from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import bezier_sample, radians, Transform, reflect_point
@@ -129,12 +128,10 @@ class SVGLayer(MapLayer):
     def __init__(self, id, source, base_layer=True):
         super().__init__(id, source, base_layer=base_layer)
         self.__transform = source.transform
-        self.__current_group = []
         self.__definitions = DefinitionStore()
 
     def process(self, svg):
     #======================
-        self.__current_group.append('ROOT')
         features = self.__process_element_list(svg, self.__transform, show_progress=True)
         self.add_features('SVG', features, outermost=True)
 
@@ -142,7 +139,7 @@ class SVGLayer(MapLayer):
     #=======================================================
         features = self.__process_element_list(group,
             transform@SVGTransform(group.attrib.get('transform')))
-        return self.add_features(adobe_decode(group.attrib.get('id', '')), features)
+        return self.add_features(adobe_decode_markup(group), features)
 
     def __process_element_list(self, elements, transform, show_progress=False):
     #==========================================================================
@@ -168,23 +165,7 @@ class SVGLayer(MapLayer):
     def __process_element(self, element, transform, features):
     #=========================================================
         properties = {'tile-layer': 'features'}   # Passed through to map viewer
-        markup = adobe_decode(element.attrib.get('id', ''))
-        if markup.startswith('.'):
-            if markup.split()[-1].isnumeric():
-                markup = ' '.join(markup.split()[:-1])
-            properties.update(parse_markup(markup))
-            group_name = self.__current_group[-1]  # For error reporting
-            if 'error' in properties:
-                self.source.error('{} error: {}: annotation syntax error: {}'
-                                    .format(self.id, group_name, markup))
-            if 'warning' in properties:
-                self.source.error('{} warning: {}: {}'
-                                    .format(self.id, group_name, properties['warning']))
-            for key in ['id', 'path']:
-                if key in properties:
-                    if self.flatmap.is_duplicate_feature_id(properties[key]):
-                       self.source.error('{} error: {}: duplicate id: {}'
-                                           .format(self.id, group_name, markup))
+        properties.update(self.source.properties_from_markup(adobe_decode_markup(element)))
         if 'error' in properties:
             pass
         elif 'path' in properties:
@@ -200,9 +181,7 @@ class SVGLayer(MapLayer):
             feature = self.flatmap.new_feature(geometry, properties)
             features.append(feature)
         elif element.tag == SVG_NS('g'):
-            self.__current_group.append(properties.get('markup', "''"))
             grouped_feature = self.__process_group(element, properties, transform)
-            self.__current_group.pop()
             if grouped_feature is not None:
                 features.append(grouped_feature)
         elif element.tag in IGNORED_SVG_TAGS:

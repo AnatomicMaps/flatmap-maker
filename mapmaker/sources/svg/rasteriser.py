@@ -48,7 +48,7 @@ from mapmaker.utils.image import image_size
 
 from .definitions import DefinitionStore, ObjectStore
 from .transform import SVGTransform
-from .utils import adobe_decode, length_as_pixels, SVG_NS, XLINK_HREF
+from .utils import adobe_decode_markup, length_as_pixels, SVG_NS, XLINK_HREF
 
 #===============================================================================
 
@@ -490,10 +490,8 @@ class SVGTiler(object):
             stroke = element_style.get('stroke', 'none')
             stroked = (stroke != 'none')
             if stroked:
-                markup = adobe_decode(element.attrib.get('id', ''))
+                markup = adobe_decode_markup(element)
                 if markup.startswith('.'):
-                    if markup.split()[-1].isnumeric():
-                            markup = ' '.join(markup.split()[:-1])
                     properties = parse_markup(markup)
                     if 'id' in properties or 'class' in properties:
                         stroked = False

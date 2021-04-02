@@ -25,6 +25,8 @@ import numpy as np
 
 from mapmaker.geometry import bounds_to_extent
 
+from .markup import parse_markup
+
 #===============================================================================
 
 # Internal PPT units are EMUs (English Metric Units)
@@ -146,13 +148,31 @@ class MapSource(object):
     #==========================
         self.__layers.append(layer)
 
-    def error(self, msg):
-    #====================
-        self.__errors.append(msg)
+    def error(self, kind, msg):
+    #==========================
+        self.__errors.append((kind, msg))
 
     def map_area(self):
     #==================
         return abs(self.__bounds[2] - self.__bounds[0]) * (self.__bounds[3] - self.__bounds[1])
+
+    def properties_from_markup(self, markup):
+    #========================================
+        if not markup.startswith('.'):
+            return {}
+        properties = parse_markup(markup)
+        if 'error' in properties:
+            self.error('error', '{}: {} in markup: {}'
+                       .format(self.id, properties['error'], markup))
+        if 'warning' in properties:
+            self.error('warning', '{}: {} in markup: {}'
+                       .format(self.id, properties['warning'], markup))
+        for key in ['id', 'path']:
+            if key in properties:
+                if self.__flatmap.is_duplicate_feature_id(properties[key]):
+                   self.error('error', '{}: duplicate id in markup: {}'
+                              .format(self.id, markup))
+        return properties
 
     def process(self):
     #=================
