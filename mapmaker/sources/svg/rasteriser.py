@@ -236,9 +236,15 @@ class CanvasImage(CanvasDrawingObject):
 
 class CanvasGroup(CanvasDrawingObject):
     def __init__(self, drawing_objects, parent_transform, transform_attribute, clip_path, outermost=False):
-        bbox = shapely.ops.unary_union([element.bbox for element in drawing_objects]).envelope
+        bbox = (shapely.ops.unary_union([element.bbox for element in drawing_objects]).envelope
+                    if len(drawing_objects) > 0 else
+                None)
         super().__init__(None, None, parent_transform, transform_attribute, clip_path, bbox=bbox, root_object=outermost)
         self.__drawing_objects = drawing_objects
+
+    @property
+    def is_valid(self):
+        return len(self.__drawing_objects) > 0
 
     def draw_element(self, canvas, tile_bbox):
     #=========================================
@@ -426,7 +432,9 @@ class SVGTiler(object):
         element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
 
         if element.tag == SVG_NS('g'):
-            drawing_objects.append(self.__draw_group(wrapped_element, parent_transform, parent_style))
+            canvas_group = self.__draw_group(wrapped_element, parent_transform, parent_style)
+            if canvas_group.is_valid:
+                drawing_objects.append(canvas_group)
 
         elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
                              SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
