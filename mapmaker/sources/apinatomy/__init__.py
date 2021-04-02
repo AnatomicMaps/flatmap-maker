@@ -227,7 +227,7 @@ class ApiNATOMY(object):
                 print("  Target: " + self.__get_primary_name(target_root))
 
             part = self.__find_object(target, 'apinatomy:sourceOf>')
-            self.__routes[neuron] = self.__get_route_part('    -->', part, self.__graphs[neuron])[1]
+            self.__routes[neuron] = self.__get_route_part('    -->', part)[1] #, self.__graphs[neuron])[1]
 
             if self.__debug:
                 print("  Source: " + self.__get_primary_name(source_root))
