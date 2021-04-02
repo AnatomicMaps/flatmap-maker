@@ -675,7 +675,7 @@ class SVGTiler(object):
                 if moved:
                     path.moveTo(*current_point)
                     moved = False
-                (rx, ry) = transform.scale_length(params[0:2])
+                (rx, ry) = (params[0], params[1])
                 path.arcTo(rx, ry, degrees(phi),
                     skia.Path.ArcSize.kSmall_ArcSize if params[3] == 0
                         else skia.Path.ArcSize.kLarge_ArcSize,
