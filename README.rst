@@ -30,7 +30,7 @@ Command line help::
 ::
 
     usage: mapmaker [-h] [-v]
-                    [--log LOG_FILE] [-q] [--silent]
+                    [--log LOG_FILE] [--silent] [--verbose]
                     [--clean] [--background-tiles]
                     [--check-errors] [--save-beziers] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initialZoom N] [--max-zoom N] [--min-zoom N]
@@ -45,7 +45,7 @@ Command line help::
 
     logging:
       --log LOG_FILE        append messages to a log file
-      -q, --quiet           don't show progress bars
+      --verbose             don't show progress bars
       --silent              suppress all messages to screen
 
     image tiling:

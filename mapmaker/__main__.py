@@ -39,10 +39,10 @@ def arg_parser():
     log_options = parser.add_argument_group('logging')
     log_options.add_argument('--log', dest='logFile', metavar='LOG_FILE',
                         help="append messages to a log file")
-    log_options.add_argument('--verbose', action='store_true',
-                        help="show progress bars")
     log_options.add_argument('--silent', action='store_true',
                         help='suppress all messages to screen')
+    log_options.add_argument('--verbose', action='store_true',
+                        help="show progress bars")
 
     tile_options = parser.add_argument_group('image tiling')
     tile_options.add_argument('--clean', action='store_true',
