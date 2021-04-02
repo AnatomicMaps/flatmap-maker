@@ -75,7 +75,7 @@ class FeatureLayer(object):
         self.__features.append(feature)
         if self.__exported:
             # Save relationship between id/class and internal feature id
-            self.__flatmap.add_feature(feature)
+            self.__flatmap.save_feature_id(feature)
 
     def annotate(self, feature, properties):
     #=======================================
