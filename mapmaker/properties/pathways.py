@@ -350,7 +350,7 @@ class Pathways(object):
                     for error in errors:
                         log.warn('    {}'.format(error))
 
-        layer = FeatureLayer('{}_routes'.format(self.__flatmap.id), self.__flatmap, base_layer=True)
+        layer = FeatureLayer('{}_routes'.format(self.__flatmap.id), self.__flatmap, exported=True)
         self.__flatmap.add_layer(layer)
         for model_id in path_models:
             for route in router.get_routes(model_id):

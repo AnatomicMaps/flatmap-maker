@@ -245,7 +245,7 @@ class MapMaker(object):
                     raise ValueError('An image source must specify a boundary')
                 source_layer = MBFSource(self.__flatmap, source_id, source_href,
                                          boundary_id=source.get('boundary'),
-                                         base_layer=(layer_number==0))
+                                         exported=(layer_number==0))
             elif source_kind in ['base', 'details']:
                 source_layer = SVGSource(self.__flatmap, source_id, source_href, source_kind)
             else:
@@ -310,7 +310,7 @@ class MapMaker(object):
     #==========================
         log('Outputting GeoJson features...')
         for layer in self.__flatmap.layers:
-            if layer.base_layer:
+            if layer.exported:
                 log('Layer: {}'.format(layer.id))
                 geojson_output = GeoJSONOutput(layer, self.__flatmap.area, self.__map_dir)
                 saved_layer = geojson_output.save(layer.features, settings.get('saveGeoJSON', False))

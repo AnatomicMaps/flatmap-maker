@@ -137,14 +137,14 @@ class FlatMap(object):
         if layer.id in self.__layer_dict:
             raise KeyError('Duplicate layer id: {}'.format(layer.id))
         self.__layer_dict[layer.id] = layer
-        if layer.base_layer:
+        if layer.exported:
             self.__visible_layer_count += 1
 
     def add_source_layers(self, layer_number, map_source):
     #=====================================================
         for layer in map_source.layers:
             self.add_layer(layer)
-            if layer.base_layer:
+            if layer.exported:
                 layer.add_raster_layer(layer.id, map_source.extent, map_source, self.__maker.zoom[0])
         # The first layer is used as the base map
         if layer_number == 0:
@@ -161,7 +161,7 @@ class FlatMap(object):
     #========================
         metadata = []
         for layer in self.__layer_dict.values():
-            if layer.base_layer:
+            if layer.exported:
                 map_layer = {
                     'id': layer.id,
                     'description': layer.description,
@@ -193,8 +193,8 @@ class FlatMap(object):
         log('Adding details...')
         detail_layers = []
         for layer in self.__layer_dict.values():
-            if layer.base_layer and layer.detail_features:
-                detail_layer = MapLayer('{}_details'.format(layer.id), layer.source, base_layer=True)
+            if layer.exported and layer.detail_features:
+                detail_layer = MapLayer('{}_details'.format(layer.id), layer.source, exported=True)
                 detail_layers.append(detail_layer)
                 self.__add_detail_features(layer, detail_layer, layer.detail_features)
         for layer in detail_layers:

@@ -67,7 +67,7 @@ class SVGSource(MapSource):
     def __init__(self, flatmap, id, source_path, source_kind):  # maker v's flatmap (esp. id)
         super().__init__(flatmap, id, source_kind)
         self.__source_file = FilePath(source_path)
-        self.__base_layer = (source_kind=='base')
+        self.__exported = (source_kind=='base')
         self.__svg = etree.parse(self.__source_file.get_fp()).getroot()
         if 'viewBox' in self.__svg.attrib:
             (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
@@ -84,7 +84,7 @@ class SVGSource(MapSource):
         bottom_right = self.__transform.transform_point((width, height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-        self.__layer = SVGLayer(id, self, self.__base_layer)
+        self.__layer = SVGLayer(id, self, exported=self.__exported)
         self.add_layer(self.__layer)
         self.__raster_source = None
         self.__boundary_geometry = None
@@ -106,7 +106,7 @@ class SVGSource(MapSource):
         self.__layer.process(self.__svg)
         if self.__layer.boundary_feature is not None:
             self.__boundary_geometry = self.__layer.boundary_feature.geometry
-        if self.__base_layer:
+        if self.__exported:
             # Save a cleaned copy of the SVG in the map's output directory
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties)
             cleaner.clean()
@@ -125,8 +125,8 @@ class SVGSource(MapSource):
 #===============================================================================
 
 class SVGLayer(MapLayer):
-    def __init__(self, id, source, base_layer=True):
-        super().__init__(id, source, base_layer=base_layer)
+    def __init__(self, id, source, exported=True):
+        super().__init__(id, source, exported=exported)
         self.__transform = source.transform
         self.__definitions = DefinitionStore()
 

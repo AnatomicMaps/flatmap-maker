@@ -30,11 +30,11 @@ from mapmaker.geometry import save_geometry
 #===============================================================================
 
 class FeatureLayer(object):
-    def __init__(self, id, flatmap, base_layer=False):
+    def __init__(self, id, flatmap, exported=False):
         self.__id = id
         self.__flatmap = flatmap
         self.__annotations = {}
-        self.__base_layer = base_layer
+        self.__exported = exported
         self.__description = 'Layer {}'.format(id)
         self.__features = []
 
@@ -43,8 +43,8 @@ class FeatureLayer(object):
         return self.__annotations
 
     @property
-    def base_layer(self):
-        return self.__base_layer
+    def exported(self):
+        return self.__exported
 
     @property
     def description(self):
@@ -73,9 +73,9 @@ class FeatureLayer(object):
     def add_feature(self, feature):
     #==============================
         self.__features.append(feature)
-        if self.__base_layer:
+        if self.__exported:
             # Save relationship between id/class and internal feature id
-            self.__flatmap.save_feature_id(feature)
+            self.__flatmap.add_feature(feature)
 
     def annotate(self, feature, properties):
     #=======================================
@@ -90,8 +90,8 @@ class FeatureLayer(object):
 #===============================================================================
 
 class MapLayer(FeatureLayer):
-    def __init__(self, id, source, base_layer=False):
-        super().__init__(id, source.flatmap, base_layer)
+    def __init__(self, id, source, exported=False):
+        super().__init__(id, source.flatmap, exported)
         self.__source = source
         self.__boundary_feature = None
         self.__detail_features = []

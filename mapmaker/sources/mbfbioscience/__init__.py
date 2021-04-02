@@ -43,12 +43,12 @@ from mapmaker.utils import FilePath
 #===============================================================================
 
 class MBFSource(MapSource):
-    def __init__(self, flatmap, id, source_path, boundary_id=None, base_layer=False):
+    def __init__(self, flatmap, id, source_path, boundary_id=None, exported=False):
         super().__init__(flatmap, id, 'image')
         self.__boundary_id = boundary_id
         self.__boundary_geometry = None
 
-        self.__layer = MapLayer(id, self, base_layer=base_layer)
+        self.__layer = MapLayer(id, self, exported=exported)
         self.add_layer(self.__layer)
 
         self.__mbf = etree.parse(FilePath(source_path).get_fp()).getroot()

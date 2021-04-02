@@ -67,7 +67,7 @@ class PowerpointSlide(MapLayer):
                                  .format(slide_number, notes_text))
                 if 'id' in layer_directive:
                     id = layer_directive['id']
-        super().__init__(id, source, base_layer=(slide_number==1))
+        super().__init__(id, source, exported=(slide_number==1))
         self.__slide = slide
         self.__slide_number = slide_number
         self.__transform = source.transform
