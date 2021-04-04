@@ -100,6 +100,7 @@ setup(
         "tqdm==4.59.0",
         "transforms3d==0.3.1",
         "urllib3==1.26.4; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'",
+        "webcolors==1.11.1",
         "webencodings==0.5.1",
         "xlsxwriter==1.3.8",
     ],
