@@ -39,6 +39,8 @@ def arg_parser():
     log_options = parser.add_argument_group('logging')
     log_options.add_argument('--log', dest='logFile', metavar='LOG_FILE',
                         help="append messages to a log file")
+    log_options.add_argument('--show-deprecated', dest='showDeprecated', action='store_true',
+                        help='issue a warning for deprecated markup properties')
     log_options.add_argument('--silent', action='store_true',
                         help='suppress all messages to screen')
     log_options.add_argument('--verbose', action='store_true',
