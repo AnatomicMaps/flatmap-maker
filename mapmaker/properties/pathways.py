@@ -83,23 +83,21 @@ def parse_nerves(node_ids):
 
 #===============================================================================
 
-class FeatureIdMap(object):
+class FeatureMap(object):
     def __init__(self, id_map, class_map):
         self.__id_map = id_map
         self.__class_map = class_map
 
-    def map(self, id):
+    def features(self, id):
         feature = self.__id_map.get(id)
         if feature is None:
-            return [feature.feature_id for feature in self.__class_map.get(id, [])]
-        return [feature.feature_id]
+            return self.__class_map.get(id, [])
+        return [feature]
 
-    def map_list(self, ids):
+    def feature_ids(self, ids):
         feature_ids = []
         for id in ids:
-            feature_id = self.map(id)
-            if feature_id is not None:
-                feature_ids.extend(feature_id)
+            feature_ids.extend([f.feature_id for f in self.features(id)])
         return feature_ids
 
 #===============================================================================
@@ -119,7 +117,8 @@ class NodePaths(object):
 
     def __resolve_paths(self, path_id, nodes):
         for id in nodes:
-            for node_id in self.__feature_map.map(id):
+            for feature in self.__feature_map.features(id):
+                node_id = feature.feature_id
                 self.__paths[node_id].append(path_id)
 
     def add_route(self, path_id, route):
@@ -136,7 +135,7 @@ class NodePaths(object):
 
 class ResolvedPathways(object):
     def __init__(self, id_map, class_map):
-        self.__feature_map = FeatureIdMap(id_map, class_map)
+        self.__feature_map = FeatureMap(id_map, class_map)
         self.__path_lines = defaultdict(list)
         self.__path_nerves = defaultdict(list)
         self.__node_paths = NodePaths(self.__feature_map)
@@ -170,7 +169,8 @@ class ResolvedPathways(object):
         self.__type_paths[path_type].append(path_id)
 
     def resolve_pathway(self, path_id, lines, nerves, route):
-        self.__add_pathway(path_id, self.__feature_map.map_list(lines), self.__feature_map.map_list(nerves))
+        self.__add_pathway(path_id, self.__feature_map.feature_ids(lines),
+                                    self.__feature_map.feature_ids(nerves))
         self.__node_paths.resolve_route(path_id, route)
 
 #===============================================================================
