@@ -216,6 +216,7 @@ class Pathways(object):
         self.__nerve_tracks = []
         self.__path_models = {}
         self.__apinatomy_models = []
+        self.extend_pathways('', paths_list)
 
     @staticmethod
     def make_list(lst):
