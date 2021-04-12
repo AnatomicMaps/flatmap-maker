@@ -25,6 +25,10 @@ from pyparsing import ParseException, ParseResults
 
 #===============================================================================
 
+from mapmaker.settings import settings
+
+#===============================================================================
+
 FREE_TEXT = Word(printables + ' ', excludeChars='()')
 INTEGER = Word(nums)
 
@@ -136,7 +140,7 @@ def parse_markup(markup):
                 properties[prop[0]] = prop[1]
     except ParseException:
         properties['error'] = 'Syntax error'
-    if len(deprecated):
+    if len(deprecated) and settings.get('showDeprecated', False):
         properties['warning'] = "Deprecated '{}'".format("', '".join(deprecated))
     if ('styling' in properties
     and ('id' in properties or 'class' in properties)):

@@ -132,17 +132,26 @@ class SVGLayer(MapLayer):
 
     def process(self, svg):
     #======================
-        features = self.__process_element_list(svg, self.__transform, show_progress=True)
+        properties = {'tile-layer': 'features'}   # Passed through to map viewer
+        features = self.__process_element_list(svg, self.__transform, properties, show_progress=True)
         self.add_features('SVG', features, outermost=True)
 
     def __process_group(self, group, properties, transform):
     #=======================================================
         features = self.__process_element_list(group,
-            transform@SVGTransform(group.attrib.get('transform')))
+            transform@SVGTransform(group.attrib.get('transform')),
+            properties)
+        # If the group element has markup then add a dummy `.group` feature
+        # to pass it to the MapLayer
+        if 'tile-layer' in properties:
+            del properties['tile-layer']
+        if len(properties):
+            properties['group'] = True
+            features.append(self.flatmap.new_feature(shapely.geometry.Polygon(), properties))
         return self.add_features(adobe_decode_markup(group), features)
 
-    def __process_element_list(self, elements, transform, show_progress=False):
-    #==========================================================================
+    def __process_element_list(self, elements, transform, parent_properties, show_progress=False):
+    #=============================================================================================
         progress_bar = ProgressBar(show=show_progress,
             total=len(elements),
             unit='shp', ncols=40,
@@ -153,18 +162,19 @@ class SVGLayer(MapLayer):
                 pass
             elif element.tag == SVG_NS('defs'):
                 self.__definitions.add_definitions(element)
-                progress_bar.update(1)
-                continue
             elif element.tag == SVG_NS('use'):
-                element = self.__definitions.use(element)
-            self.__process_element(element, transform, features)
+                self.__process_element(self.__definitions.use(element), transform, features, parent_properties)
+            else:
+                self.__process_element(element, transform, features, parent_properties)
             progress_bar.update(1)
         progress_bar.close()
         return features
 
-    def __process_element(self, element, transform, features):
-    #=========================================================
-        properties = {'tile-layer': 'features'}   # Passed through to map viewer
+    def __process_element(self, element, transform, features, parent_properties):
+    #============================================================================
+        properties = parent_properties.copy()
+        if 'id' in properties:   # We don't inherit `id`  (or do we have a list of inheritable properties??)
+            del properties['id']
         properties.update(self.source.properties_from_markup(adobe_decode_markup(element)))
         if 'error' in properties:
             pass
