@@ -332,13 +332,16 @@ class MapLayer(FeatureLayer):
             for feature in layer_features:
                 grouped_polygon_features.append(feature)
 
+            bezier_segments = []
             grouped_lines = []
             for feature in grouped_polygon_features:
                 if feature.get_property('tile-layer') != 'pathways':
                     if feature.geom_type == 'LineString':
                         grouped_lines.append(feature.geometry)
+                        bezier_segments.extend(feature.get_property('bezier-segments', []))
                     elif feature.geom_type == 'MultiLineString':
                         grouped_lines.extend(list(feature.geometry))
+                        bezier_segments.extend(feature.get_property('bezier-segments', []))
             if len(grouped_lines):
                 feature_group = self.flatmap.new_feature(
                       shapely.geometry.MultiLineString(grouped_lines),
@@ -348,13 +351,18 @@ class MapLayer(FeatureLayer):
             for feature in grouped_polygon_features:
                 if feature.geom_type == 'Polygon':
                     grouped_polygons.append(feature.geometry)
+                    bezier_segments.extend(feature.get_property('bezier-segments', []))
                 elif feature.geom_type == 'MultiPolygon':
                     grouped_polygons.extend(list(feature.geometry))
+                    bezier_segments.extend(feature.get_property('bezier-segments', []))
             if len(grouped_polygons):
                 feature_group = self.flatmap.new_feature(
                         shapely.geometry.MultiPolygon(grouped_polygons),
                         grouped_properties, True)
                 layer_features.append(feature_group)
+
+            if feature_group is not None and len(bezier_segments):
+                feature_group.set_property('bezier-segments', bezier_segments)
 
         # Feature specific properties have precedence over group's
 
