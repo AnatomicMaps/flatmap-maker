@@ -106,25 +106,26 @@ class NodePaths(object):
     def __init__(self, feature_map):
         self.__feature_map = feature_map
         self.__paths = defaultdict(list)     # node_id: [ path_ids ]
+        self.__nodes = defaultdict(list)     # path_id: [ node ]
 
     @property
-    def as_dict(self):
+    def path_dict(self):
         return self.__paths
 
-    def __add_paths(self, path_id, nodes):
-        for id in nodes:
-            self.__paths[id].append(path_id)
+    @property
+    def node_dict(self):
+        return self.__nodes
+
+    @property
+    def route_dict(self):
+        return self.__route_features
 
     def __resolve_paths(self, path_id, nodes):
         for id in nodes:
             for feature in self.__feature_map.features(id):
                 node_id = feature.feature_id
                 self.__paths[node_id].append(path_id)
-
-    def add_route(self, path_id, route):
-        self.__add_paths(path_id, route.start_nodes)
-        self.__add_paths(path_id, route.through_nodes)
-        self.__add_paths(path_id, route.end_nodes)
+                self.__nodes[path_id].append(node_id)
 
     def resolve_route(self, path_id, route):
         self.__resolve_paths(path_id, route.start_nodes)
@@ -161,10 +162,6 @@ class ResolvedPathways(object):
         self.__path_lines[path_id].extend(lines)
         self.__path_nerves[path_id].extend(nerves)
 
-    def add_pathway(self, path_id, lines, nerves, route):
-        self.__add_pathway(path_id, lines, route)
-        self.__node_paths.add_route(path_id, route)
-
     def add_path_type(self, path_id, path_type):
         self.__type_paths[path_type].append(path_id)
 
@@ -189,16 +186,24 @@ class Route(object):
         self.__end_nodes = Pathways.make_list(routing[-1])
 
     @property
+    def end_nodes(self):
+        return self.__end_nodes
+
+    @property
+    def nodes(self):
+        return set(self.__start_nodes + self.__through_nodes + self.__end_nodes)
+
+    @property
+    def path_id(self):
+        return self.__path_id
+
+    @property
     def start_nodes(self):
         return self.__start_nodes
 
     @property
     def through_nodes(self):
         return self.__through_nodes
-
-    @property
-    def end_nodes(self):
-        return self.__end_nodes
 
 #===============================================================================
 
@@ -226,11 +231,13 @@ class Pathways(object):
 
     @property
     def resolved_pathways(self):
+        node_paths = self.__resolved_pathways.node_paths
         return {
+            'node-paths': node_paths.path_dict,
             'path-lines': self.__resolved_pathways.path_lines,
             'path-nerves': self.__resolved_pathways.path_nerves,
-            'node-paths': self.__resolved_pathways.node_paths.as_dict,
-            'type-paths': self.__resolved_pathways.type_paths
+            'path-nodes': node_paths.node_dict,
+            'type-paths': self.__resolved_pathways.type_paths,
             }
 
     def add_apinatomy_routes(self, apinatomy_model):
