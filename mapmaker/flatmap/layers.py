@@ -29,6 +29,14 @@ from mapmaker.geometry import save_geometry
 
 #===============================================================================
 
+import mapmaker.pathrouter.autoroute as autoroute
+
+KEAST_N9_REGIONS = [ 2127, 2909, 2193, 2931, 277 ]
+KEAST_N9_TRACKS = [ 3981 ]
+KEAST_N9_SEGMENTS = [ (2127, 2909, None), (2193, 2931, None), ((2909, 2931), 377, 3981)]
+
+#===============================================================================
+
 class FeatureLayer(object):
     def __init__(self, id, flatmap, exported=False):
         self.__id = id
@@ -97,6 +105,8 @@ class MapLayer(FeatureLayer):
         self.__detail_features = []
 #*        self.__ontology_data = self.options.ontology_data
         self.__nerve_tracks = []
+        self.__path_regions = []
+        self.__path_tracks = []
         self.__raster_layers = []
         self.__zoom = None
 
@@ -119,6 +129,14 @@ class MapLayer(FeatureLayer):
     @property
     def nerve_tracks(self):
         return self.__nerve_tracks
+
+    @property
+    def path_regions(self):
+        return self.__path_regions
+
+    @property
+    def path_tracks(self):
+        return self.__path_tracks
 
     @property
     def raster_layers(self):
@@ -164,6 +182,14 @@ class MapLayer(FeatureLayer):
             elif (feature.get_property('type') == 'nerve-track'
               and feature.geom_type == 'LineString'):
                 self.__nerve_tracks.append(feature)
+            elif feature.feature_id in KEAST_N9_REGIONS:
+                self.__path_regions.append(feature)
+            elif feature.feature_id in KEAST_N9_TRACKS:
+                self.__path_tracks.append(feature)
+
+        if len(self.__path_regions):
+            autoroute.save_data(self.__path_regions, self.__path_tracks, KEAST_N9_SEGMENTS)
+
         self.features.extend(nerve_polygons)
 
     def add_features(self, group_name, features, outermost=False):
