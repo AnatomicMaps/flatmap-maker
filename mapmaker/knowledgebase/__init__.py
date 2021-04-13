@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import json
 import os
 import sqlite3
 
@@ -31,11 +32,30 @@ from mapmaker.utils import FilePath, log
 
 #===============================================================================
 
-ILX_ENDPOINT = 'http://uri.interlex.org/base/ilx_{:0>7}.json'
-
 SCIGRAPH_VOCAB_ENDPOINT = 'https://scicrunch.org/api/1/sparc-scigraph/vocabulary/id/{}.json'
 SCIGRAPH_KEY = "xBOrIfnZTvJQtobGo8XHRvThdMYGTxtf"
-SCIGRAPH_ONTOLOGIES = ['UBERON', 'FMA']
+SCIGRAPH_ONTOLOGIES = ['FMA', 'ILX', 'UBERON']
+
+#===============================================================================
+
+LOOKUP_TIMEOUT = 5    # seconds
+
+#===============================================================================
+
+def request_json(endpoint):
+    try:
+        response = requests.get(endpoint, timeout=LOOKUP_TIMEOUT)
+        if response.status_code == requests.codes.ok:
+            try:
+                return response.json()
+            except json.JSONDecodeError:
+                error = 'invalid JSON returned'
+        else:
+            error = 'status: {}'.format(response.status_code)
+    except requests.exceptions.RequestException as exception:
+        error = 'exception: {}'.format(exception)
+    log.warn("Couldn't access {}: {}".format(endpoint, error))
+    return None
 
 #===============================================================================
 
@@ -66,29 +86,20 @@ class LabelDatabase(object):
         row = self.__cursor.fetchone()
         if row is not None:
             return row[0]
-        label = entity
+        label = None
         ontology = entity.split(':')[0]
         if ontology in SCIGRAPH_ONTOLOGIES:
-            try:
-                response = requests.get('{}?api_key={}'.format(
+            data = request_json('{}?api_key={}'.format(
                     SCIGRAPH_VOCAB_ENDPOINT.format(entity),
                     SCIGRAPH_KEY))
-                if response:
-                    label = response.json().get('labels', [entity])[0]
-                    self.set_label(entity, label)
-            except:
-                log.warn("Couldn't access {}".format(VOCAB_ENDPOINT.format(entity)))
-        elif ontology == 'ILX':
-            endpoint = ILX_ENDPOINT.format(entity.strip().split(':')[-1])
-            try:
-                response = requests.get(endpoint)
-                if response:
-                    triples = response.json().get('triples')
-                    for triple in triples:
-                        if triple[1] == 'rdfs:label':
-                            self.set_label(entity, triple[2])
-            except:
-                log.warn("Couldn't access {} for {}".format(endpoint, entity))
+            if data is not None:
+                label = data.get('labels', [entity])[0]
+        else:
+            log.warn('Unknown anatomical entity: {}'.format(entity))
+        if label is None:
+            label = entity
+        else:
+            self.set_label(entity, label)
         return label
 
 #===============================================================================
