@@ -27,7 +27,7 @@ import numpy as np
 
 #===============================================================================
 
-from mapmaker.geometry import Transform
+from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import bounds_to_extent, extent_to_bounds, normalised_coords
 from mapmaker.properties import ManifestProperties
 from mapmaker.properties.pathways import Route
@@ -59,6 +59,10 @@ class FlatMap(object):
         self.__last_feature_id = 0
         self.__class_to_feature = defaultdict(list)
         self.__id_to_feature = {}
+        self.__features = OrderedDict()
+
+        # Used to find annotated features containing a region
+        self.__feature_search = None
 
     def __len__(self):
         return self.__visible_layer_count
@@ -113,6 +117,8 @@ class FlatMap(object):
         self.__add_details()
         # Set additional properties from properties file
         self.__set_feature_properties()
+        # Initialise geographical search for annotated features
+        self.__setup_feature_search()
         # Generate metadata with connection information
         self.__resolve_paths()
 
@@ -127,10 +133,16 @@ class FlatMap(object):
         if feature.has_property('class'):
             self.__class_to_feature[feature.get_property('class')].append(feature)
 
+    def get_feature(self, feature_id):
+    #=================================
+        return self.__features.get(feature_id)
+
     def new_feature(self, geometry, properties, has_children=False):
     #===============================================================
         self.__last_feature_id += 1
-        return Feature(self.__last_feature_id, geometry, properties, has_children)
+        feature = Feature(self.__last_feature_id, geometry, properties, has_children)
+        self.__features[self.__last_feature_id] = feature
+        return feature
 
     def add_layer(self, layer):
     #==========================
@@ -277,6 +289,31 @@ class FlatMap(object):
             self.__class_to_feature,
             self.__map_properties.features_by_model)
 
+    def __setup_feature_search(self):
+    #================================
+        annotated_features = []
+        for layer in self.__layer_dict.values():
+            if layer.exported:
+                annotated_features.extend([f for f in layer.features
+                                              if f.models is not None
+                                                and 'Polygon' in f.geom_type])
+        self.__feature_search = FeatureSearch(annotated_features)
+
+    def features_covering(self, feature):
+    #====================================
+        if self.__feature_search is not None:
+            return self.__feature_search.features_covering(feature)
+        log.error("Feature search hasn't been initialised")
+        return []
+
+    def features_inside(self, feature):
+    #==================================
+        if self.__feature_search is not None:
+            return self.__feature_search.features_inside(feature)
+        log.error("Feature search hasn't been initialised")
+        return []
+
+#===============================================================================
 # Keep layers (and hence features)
 
 # Need to find feature by anatomical id

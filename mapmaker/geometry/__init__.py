@@ -36,6 +36,10 @@ import transforms3d
 
 #===============================================================================
 
+from .feature_search import FeatureSearch
+
+#===============================================================================
+
 END_MATCH_RATIO = 0.9
 ALMOST_TOUCHING = 500
 LINE_EXTENSION  = 100
