@@ -75,8 +75,6 @@ class GeoJSONOutput(object):
 
         for feature in features:
             properties = feature.properties.copy()
-            if 'bezier-segments' in properties:  # There's no need to export paths
-                properties.pop('bezier-segments')
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
@@ -107,6 +105,11 @@ class GeoJSONOutput(object):
                     geojson['tippecanoe']['minzoom'] = 5
             else:
                 geojson['properties']['scale'] = 10
+
+            if 'bezier-paths' in properties:   # There's no need to export Bezier paths or segments
+                properties.pop('bezier-paths')
+            elif 'bezier-segments' in properties:
+                properties.pop('bezier-segments')
 
             for (key, value) in properties.items():
                 if not ignore_property(key):
