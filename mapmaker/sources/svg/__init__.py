@@ -220,6 +220,7 @@ class SVGLayer(MapLayer):
         first_point = None
         current_point = None
         closed = False
+        path_tokens = []
 
         T = transform@SVGTransform(element.attrib.get('transform'))
         if element.tag == SVG_NS('path'):
