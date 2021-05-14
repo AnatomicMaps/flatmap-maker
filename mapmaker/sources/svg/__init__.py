@@ -201,6 +201,12 @@ class SVGLayer(MapLayer):
             geometry = self.__get_geometry(element, properties, transform)
             if geometry is None:
                 return
+
+            # Ignore element if fill is none and no stroke is specified
+            if (element_style.get('fill', '#FFF') == 'none'
+            and element_style.get('stroke', 'none') == 'none'):
+                return
+
             feature = self.flatmap.new_feature(geometry, properties)
             features.append(feature)
         elif element.tag == SVG_NS('g'):
