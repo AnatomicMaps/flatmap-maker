@@ -555,7 +555,7 @@ class SVGTiler(object):
             path = SVGTiler.__path_from_tokens(['M'] + points)
 
         elif element.tag == SVG_NS('polygon'):
-            points = element.attrib.get('points', '').replace(',', ' ').split()
+            points = [ float(p) for p in element.attrib.get('points', '').replace(',', ' ').split() ]
             skia_points = [skia.Point(*points[n:n+2]) for n in range(0, len(points), 2)]
             path = skia.Path.Polygon(skia_points, True)
 
