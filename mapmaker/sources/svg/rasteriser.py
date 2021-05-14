@@ -25,7 +25,6 @@ import re
 
 #===============================================================================
 
-import cssselect2
 import cv2
 from lxml import etree
 import numpy as np
@@ -34,7 +33,6 @@ import shapely.geometry
 import shapely.ops
 import shapely.prepared
 import skia
-import tinycss2
 import webcolors
 
 #===============================================================================
@@ -47,16 +45,13 @@ from mapmaker.utils import ProgressBar, log
 from mapmaker.utils.image import image_size
 
 from .definitions import DefinitionStore, ObjectStore
+from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import adobe_decode_markup, length_as_pixels, SVG_NS, XLINK_HREF
 
 #===============================================================================
 
 IMAGE_MEDIA_TYPES = ['image/jpeg', 'image/png']
-
-#===============================================================================
-
-UNIMPLEMENTED_STYLES = ['filter']
 
 #===============================================================================
 
@@ -94,64 +89,6 @@ class GradientStops(object):
     def colours(self):
         return self.__colours
 
-#===============================================================================
-
-class ElementStyleDict(dict):
-    def __init__(self, element, style_dict={}):
-        super().__init__(style_dict)   # Copies dict
-        attributes = dict(element.attrib)
-        if 'style' in attributes:
-            style_attribute = attributes.pop('style')
-            local_style = {}
-            for declaration in tinycss2.parse_declaration_list(
-                style_attribute,
-                skip_comments=True, skip_whitespace=True):
-                local_style[declaration.lower_name] = ' '.join(
-                    [t.serialize() for t in declaration.value])
-            super().update(local_style)
-        super().update(attributes)
-
-#===============================================================================
-
-class StyleMatcher(cssselect2.Matcher):
-    '''Parse CSS and add rules to the matcher.'''
-    def __init__(self, style_element):
-        super().__init__()
-        rules = tinycss2.parse_stylesheet(style_element.text
-                    if style_element is not None else '',
-                    skip_comments=True, skip_whitespace=True)
-        for rule in rules:
-            selectors = cssselect2.compile_selector_list(rule.prelude)
-            declarations = [obj for obj in tinycss2.parse_declaration_list(
-                                               rule.content,
-                                               skip_whitespace=True)
-                            if obj.type == 'declaration']
-            for selector in selectors:
-                self.add_selector(selector, declarations)
-
-    def match(self, element):
-    #========================
-        styling = {}
-        matches = super().match(element)
-        if matches:
-            for match in matches:
-                specificity, order, pseudo, declarations = match
-                for declaration in declarations:
-                    styling[declaration.lower_name] = declaration.value
-        return styling
-
-    def element_style(self, wrapped_element, parent_style=None):
-    #===========================================================
-        if parent_style is None:
-            parent_style = {}
-        for key, value in self.match(wrapped_element).items():
-            if key in UNIMPLEMENTED_STYLES:
-                log.warn("'{}: {}' not implemented".format(key, value))
-            else:
-                parent_style[key] = ' '.join([t.serialize() for t in value])
-        return ElementStyleDict(wrapped_element.etree_element, parent_style)
-
-#===============================================================================
 #===============================================================================
 
 class CanvasDrawingObject(object):
@@ -337,7 +274,7 @@ class SVGTiler(object):
 
     def __draw_svg(self, svg_to_tile_transform, show_progress=False):
     #================================================================
-        wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
+        wrapped_svg = wrap_element(self.__svg)
         drawing_objects = self.__draw_element_list(wrapped_svg,
             svg_to_tile_transform@SVGTransform(wrapped_svg.etree_element.attrib.get('transform')),
             None,
@@ -378,7 +315,7 @@ class SVGTiler(object):
                 continue
             elif element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
-                wrapped_element = cssselect2.ElementWrapper.from_xml_root(element)
+                wrapped_element = wrap_element(element)
             elif element.tag in [SVG_NS('linearGradient'), SVG_NS('radialGradient')]:
                 self.__definitions.add_definition(element)
                 continue

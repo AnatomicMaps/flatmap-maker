@@ -40,6 +40,7 @@ from .. import WORLD_METRES_PER_PIXEL
 
 from .cleaner import SVGCleaner
 from .definitions import DefinitionStore
+from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import adobe_decode_markup, length_as_pixels, SVG_NS
 
@@ -68,9 +69,9 @@ class SVGSource(MapSource):
         super().__init__(flatmap, id, source_kind)
         self.__source_file = FilePath(source_path)
         self.__exported = (source_kind=='base')
-        self.__svg = etree.parse(self.__source_file.get_fp()).getroot()
-        if 'viewBox' in self.__svg.attrib:
-            (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
+        svg = etree.parse(self.__source_file.get_fp()).getroot()
+        if 'viewBox' in svg.attrib:
+            (width, height) = tuple(float(x) for x in svg.attrib['viewBox'].split()[2:])
         else:
             width = length_as_pixels(self.__svg.attrib['width'])
             height = length_as_pixels(self.__svg.attrib['height'])
@@ -84,7 +85,7 @@ class SVGSource(MapSource):
         bottom_right = self.__transform.transform_point((width, height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-        self.__layer = SVGLayer(id, self, exported=self.__exported)
+        self.__layer = SVGLayer(id, self, svg, exported=self.__exported)
         self.add_layer(self.__layer)
         self.__raster_source = None
         self.__boundary_geometry = None
@@ -103,7 +104,7 @@ class SVGSource(MapSource):
 
     def process(self):
     #=================
-        self.__layer.process(self.__svg)
+        self.__layer.process()
         if self.__layer.boundary_feature is not None:
             self.__boundary_geometry = self.__layer.boundary_feature.geometry
         if self.__exported:
@@ -125,22 +126,29 @@ class SVGSource(MapSource):
 #===============================================================================
 
 class SVGLayer(MapLayer):
-    def __init__(self, id, source, exported=True):
+    def __init__(self, id, source, svg, exported=True):
         super().__init__(id, source, exported=exported)
+        self.__svg = svg
+        self.__style_matcher = StyleMatcher(svg.find(SVG_NS('style')))
         self.__transform = source.transform
         self.__definitions = DefinitionStore()
 
-    def process(self, svg):
-    #======================
+    def process(self):
+    #=================
         properties = {'tile-layer': 'features'}   # Passed through to map viewer
-        features = self.__process_element_list(svg, self.__transform, properties, show_progress=True)
+        features = self.__process_element_list(wrap_element(self.__svg),
+                                               self.__transform,
+                                               properties,
+                                               None, show_progress=True)
         self.add_features('SVG', features, outermost=True)
 
-    def __process_group(self, group, properties, transform):
-    #=======================================================
+    def __process_group(self, group, properties, transform, parent_style):
+    #=====================================================================
+        group_style = self.__style_matcher.element_style(group, parent_style)
         features = self.__process_element_list(group,
             transform@SVGTransform(group.attrib.get('transform')),
-            properties)
+            properties,
+            group_style)
         # If the group element has markup then add a dummy `.group` feature
         # to pass it to the MapLayer
         if 'tile-layer' in properties:
@@ -150,28 +158,33 @@ class SVGLayer(MapLayer):
             features.append(self.flatmap.new_feature(shapely.geometry.Polygon(), properties))
         return self.add_features(adobe_decode_markup(group), features)
 
-    def __process_element_list(self, elements, transform, parent_properties, show_progress=False):
-    #=============================================================================================
+    def __process_element_list(self, elements, transform, parent_properties, parent_style, show_progress=False):
+    #===========================================================================================================
+        children = list(elements.iter_children())
         progress_bar = ProgressBar(show=show_progress,
-            total=len(elements),
+            total=len(children),
             unit='shp', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         features = []
-        for element in elements:
+        for wrapped_element in children:
+            element = wrapped_element.etree_element
             if element.tag is etree.Comment or element.tag is etree.PI:
-                pass
+                continue
             elif element.tag == SVG_NS('defs'):
                 self.__definitions.add_definitions(element)
+                continue
             elif element.tag == SVG_NS('use'):
-                self.__process_element(self.__definitions.use(element), transform, features, parent_properties)
-            else:
-                self.__process_element(element, transform, features, parent_properties)
             progress_bar.update(1)
+                element = self.__definitions.use(element)
+                wrapped_element = wrap_element(element)
+            self.__process_element(wrapped_element, transform, features, parent_properties, parent_style)
         progress_bar.close()
         return features
 
-    def __process_element(self, element, transform, features, parent_properties):
-    #============================================================================
+    def __process_element(self, wrapped_element, transform, features, parent_properties, parent_style):
+    #==================================================================================================
+        element = wrapped_element.etree_element
+        element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
         properties = parent_properties.copy()
         if 'id' in properties:   # We don't inherit `id`  (or do we have a list of inheritable properties??)
             del properties['id']
