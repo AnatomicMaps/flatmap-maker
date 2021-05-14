@@ -142,10 +142,11 @@ class SVGLayer(MapLayer):
                                                None, show_progress=True)
         self.add_features('SVG', features, outermost=True)
 
-    def __process_group(self, group, properties, transform, parent_style):
-    #=====================================================================
-        group_style = self.__style_matcher.element_style(group, parent_style)
-        features = self.__process_element_list(group,
+    def __process_group(self, wrapped_group, properties, transform, parent_style):
+    #=============================================================================
+        group_style = self.__style_matcher.element_style(wrapped_group, parent_style)
+        group = wrapped_group.etree_element
+        features = self.__process_element_list(wrapped_group,
             transform@SVGTransform(group.attrib.get('transform')),
             properties,
             group_style)
@@ -210,7 +211,7 @@ class SVGLayer(MapLayer):
             feature = self.flatmap.new_feature(geometry, properties)
             features.append(feature)
         elif element.tag == SVG_NS('g'):
-            grouped_feature = self.__process_group(element, properties, transform)
+            grouped_feature = self.__process_group(wrapped_element, properties, transform, parent_style)
             if grouped_feature is not None:
                 features.append(grouped_feature)
         elif element.tag in IGNORED_SVG_TAGS:
