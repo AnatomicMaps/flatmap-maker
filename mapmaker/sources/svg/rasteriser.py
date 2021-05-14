@@ -307,6 +307,7 @@ class SVGTiler(object):
             unit='shp', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for wrapped_element in children:
+            progress_bar.update(1)
             element = wrapped_element.etree_element
             if element.tag is etree.Comment or element.tag is etree.PI:
                 continue
@@ -323,7 +324,6 @@ class SVGTiler(object):
                 self.__add_clip_path(wrapped_element)
             else:
                 drawing_objects.extend(self.__draw_element(wrapped_element, parent_transform, parent_style))
-            progress_bar.update(1)
         progress_bar.close()
         return drawing_objects
 

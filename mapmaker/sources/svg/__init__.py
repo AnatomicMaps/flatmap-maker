@@ -167,6 +167,7 @@ class SVGLayer(MapLayer):
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         features = []
         for wrapped_element in children:
+            progress_bar.update(1)
             element = wrapped_element.etree_element
             if element.tag is etree.Comment or element.tag is etree.PI:
                 continue
@@ -174,7 +175,6 @@ class SVGLayer(MapLayer):
                 self.__definitions.add_definitions(element)
                 continue
             elif element.tag == SVG_NS('use'):
-            progress_bar.update(1)
                 element = self.__definitions.use(element)
                 wrapped_element = wrap_element(element)
             self.__process_element(wrapped_element, transform, features, parent_properties, parent_style)
