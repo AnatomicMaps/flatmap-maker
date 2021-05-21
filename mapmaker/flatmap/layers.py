@@ -242,7 +242,7 @@ class MapLayer(FeatureLayer):
                 try:
                     boundary_polygon = make_boundary(boundary_lines)
                 except ValueError as err:
-                    raise GroupValueError('{}: {}'.format(group_name, str(err)), features)
+                    raise GroupValueError('{}: {}'.format(group_name, str(err)), features) from None
 
             layer_features.append(
                 self.flatmap.new_feature(

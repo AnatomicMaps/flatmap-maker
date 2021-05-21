@@ -20,6 +20,6 @@
 
 class GroupValueError(ValueError):
     def __init__(self, msg, features):
-        super().__init__('\n  '.join([msg] + [str(f) for f in features]))
+        super().__init__('\n    '.join([msg] + [str(f) for f in features]))
 
 #===============================================================================
