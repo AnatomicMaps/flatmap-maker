@@ -73,8 +73,8 @@ class SVGSource(MapSource):
         if 'viewBox' in svg.attrib:
             (width, height) = tuple(float(x) for x in svg.attrib['viewBox'].split()[2:])
         else:
-            width = length_as_pixels(self.__svg.attrib['width'])
-            height = length_as_pixels(self.__svg.attrib['height'])
+            width = length_as_pixels(svg.attrib['width'])
+            height = length_as_pixels(svg.attrib['height'])
         # Transform from SVG pixels to world coordinates
         self.__transform = Transform([[WORLD_METRES_PER_PIXEL,                      0, 0],
                                       [                     0, WORLD_METRES_PER_PIXEL, 0],
