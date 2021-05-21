@@ -173,8 +173,7 @@ class ResolvedPathways(object):
 #===============================================================================
 
 class Route(object):
-    def __init__(self, model_id, path_id, route):
-        self.__model_id = model_id
+    def __init__(self, path_id, route):
         self.__path_id = path_id
         routing = parse_route_nodes(route)
         if len(routing) < 2:
@@ -207,6 +206,25 @@ class Route(object):
 
 #===============================================================================
 
+class ConnectivityModel(object):
+    def __init__(self, id, dataset=None):
+        self.__id = id
+        self.__dataset = dataset
+        self.__path_ids = []
+
+    @property
+    def dataset(self):
+        return self.__dataset
+
+    @property
+    def path_ids(self):
+        return self.__path_ids
+
+    def add_path_id(self, path_id):
+        self.__path_ids.append(path_id)
+
+#===============================================================================
+
 class Pathways(object):
     def __init__(self, flatmap, paths_list):
         self.__flatmap = flatmap
@@ -221,7 +239,8 @@ class Pathways(object):
         self.__nerve_tracks = []
         self.__path_models = {}
         self.__apinatomy_models = []
-        self.extend_pathways('', paths_list)
+        self.__connectivity_models = [ ConnectivityModel('') ]
+        self.__extend_pathways(self.__connectivity_models[0], paths_list)
 
     @staticmethod
     def make_list(lst):
@@ -233,6 +252,9 @@ class Pathways(object):
     def resolved_pathways(self):
         node_paths = self.__resolved_pathways.node_paths
         return {
+            'connectivity-models': { model.dataset: model.path_ids
+                                        for model in self.__connectivity_models
+                                            if model.dataset is not None },
             'node-paths': node_paths.path_dict,
             'path-lines': self.__resolved_pathways.path_lines,
             'path-nerves': self.__resolved_pathways.path_nerves,
@@ -265,22 +287,29 @@ class Pathways(object):
             self.__layer_paths.add(path_id)
         return properties
 
+    def add_connectivity(self, connectivity):
+    #========================================
+        connectivity_model = ConnectivityModel(connectivity['id'], connectivity.get('dataset'))
+        self.__connectivity_models.append(connectivity_model)
+        self.__extend_pathways(connectivity_model, connectivity.get('paths', []))
+
     def add_nerve_tracks(self, nerve_tracks):
     #========================================
         self.__nerve_tracks.extend(nerve_tracks)
 
-    def extend_pathways(self, model_id, paths_list, layout=False):
-    #=============================================================
+    def __extend_pathways(self, connectivity_model, paths_list):
+    #===========================================================
         lines_by_path_id = defaultdict(list)
         nerves_by_path_id = {}
         for path in paths_list:
             path_id = path['id']
+            connectivity_model.add_path_id(path_id)
             if 'path' in path:
                 for line_group in parse_path_lines(path['path']):
                     lines_by_path_id[path_id] += Pathways.make_list(line_group)
                 if 'route' not in path:
                     raise ValueError("Path '{}' doesn't have a route".format(path_id))
-                self.__routes_by_path_id[path_id] = Route(model_id, path_id, path['route'])
+                self.__routes_by_path_id[path_id] = Route(path_id, path['route'])
                 if 'nerves' in path:
                     nerves_by_path_id[path_id] = list(parse_nerves(path['nerves']))
                 if 'type' in path:

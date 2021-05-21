@@ -44,10 +44,9 @@ class ManifestProperties(object):
 
         # Load path definitions
         self.__pathways = Pathways(flatmap, properties_dict.get('paths', []))
-        for manifest_path in manifest.paths:
-            path = FilePath(manifest_path['href']).get_json()
-            path_model_id = path['id']
-            self.__pathways.extend_pathways(path_model_id, path.get('paths', []), layout=True)
+        for connectivity_source in manifest.connectivity:
+            connectivity = FilePath(connectivity_source).get_json()
+            self.__pathways.add_connectivity(connectivity)
 
         # Load routes from ApiNATOMY
         if manifest.soma_processes is not None:
