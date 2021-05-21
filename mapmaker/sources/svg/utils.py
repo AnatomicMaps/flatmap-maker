@@ -82,12 +82,9 @@ def __match_to_char(m):
 def adobe_decode_markup(element):
 #================================
     s = element.attrib.get('id', '')
-    if s.startswith('_x2E_'):
-        markup = re.sub('(_x.._)|(_)', __match_to_char, s).strip()
-        numeric_suffix = re.search('([0-9]+)$', markup)
-        return markup if numeric_suffix is None else markup[0:-len(numeric_suffix[1])].strip()
-    else:
-        return s
+    markup = re.sub('(_x.._)|(_)', __match_to_char, s).strip()
+    numeric_suffix = re.search('([0-9]+)$', markup)
+    return markup if numeric_suffix is None else markup[0:-len(numeric_suffix[1])].strip()
 
 def __match_to_hex(m):
 #=====================
