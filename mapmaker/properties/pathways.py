@@ -259,6 +259,7 @@ class Pathways(object):
             'path-lines': self.__resolved_pathways.path_lines,
             'path-nerves': self.__resolved_pathways.path_nerves,
             'path-nodes': node_paths.node_dict,
+            'path-routes': node_paths.route_dict,
             'type-paths': self.__resolved_pathways.type_paths,
             }
 
