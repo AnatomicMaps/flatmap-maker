@@ -43,10 +43,11 @@ from mapmaker.utils import FilePath
 #===============================================================================
 
 class MBFSource(MapSource):
-    def __init__(self, flatmap, id, source_path, boundary_id=None, exported=False):
+    def __init__(self, flatmap, id, source_path, boundary_id=None, dataset=None, exported=False):
         super().__init__(flatmap, id, source_path, 'image')
         self.__boundary_id = boundary_id
         self.__boundary_geometry = None
+        self.__dataset = dataset
 
         self.__layer = MapLayer(id, self, exported=exported)
         self.add_layer(self.__layer)
@@ -146,6 +147,7 @@ class MBFSource(MapSource):
             if anatomical_id is not None:
                 properties['models'] = anatomical_id
             feature = self.flatmap.new_feature(geometry, properties)
+            feature.set_property('dataset', self.__dataset)
             self.__layer.add_feature(feature)
             if anatomical_id == self.__boundary_id:
                 boundary_geometry = feature.geometry
