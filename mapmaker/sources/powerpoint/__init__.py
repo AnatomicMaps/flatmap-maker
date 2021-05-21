@@ -41,7 +41,7 @@ from .slide import PowerpointSlide
 
 class PowerpointSource(MapSource):
     def __init__(self, flatmap, id, source_path, get_background=False):
-        super().__init__(flatmap, id, 'slides')
+        super().__init__(flatmap, id, source_path, 'slides')
         self.__pptx = Presentation(FilePath(source_path).get_BytesIO())
         self.__slides = self.__pptx.slides
 

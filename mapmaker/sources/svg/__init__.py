@@ -66,7 +66,7 @@ IGNORED_SVG_TAGS = [
 
 class SVGSource(MapSource):
     def __init__(self, flatmap, id, source_path, source_kind):  # maker v's flatmap (esp. id)
-        super().__init__(flatmap, id, source_kind)
+        super().__init__(flatmap, id, source_path, source_kind)
         self.__source_file = FilePath(source_path)
         self.__exported = (source_kind=='base')
         svg = etree.parse(self.__source_file.get_fp()).getroot()
