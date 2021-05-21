@@ -58,13 +58,7 @@ class PowerpointSource(MapSource):
 
         if get_background:
             pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_path)[0]))
-            self.__raster_source = RasterSource('pdf', pdf_source.get_data())
-        else:
-            self.__raster_source = None
-
-    @property
-    def raster_source(self):
-        return self.__raster_source
+            self.set_raster_source(RasterSource('pdf', pdf_source.get_data()))
 
     @property
     def transform(self):

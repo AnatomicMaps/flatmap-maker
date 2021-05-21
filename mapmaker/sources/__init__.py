@@ -99,6 +99,7 @@ class MapSource(object):
         self.__errors = []
         self.__layers = []
         self.__bounds = (0, 0, 0, 0)
+        self.__raster_source = None
 
     @property
     def bounds(self):
@@ -142,7 +143,7 @@ class MapSource(object):
 
     @property
     def raster_source(self):
-        return None
+        return self.__raster_source
 
     def add_layer(self, layer):
     #==========================
@@ -177,6 +178,10 @@ class MapSource(object):
     def process(self):
     #=================
         raise TypeError('`process()` must be implemented by `MapSource` sub-class')
+
+    def set_raster_source(self, source):
+    #===================================
+        self.__raster_source = source
 
 #===============================================================================
 

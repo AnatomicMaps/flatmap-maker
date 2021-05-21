@@ -89,7 +89,6 @@ class MBFSource(MapSource):
         bottom_right = self.__um_to_world.transform_point((width, -height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-        self.__raster_source = None
 
     @property
     def boundary_geometry(self):
@@ -107,10 +106,6 @@ class MBFSource(MapSource):
     def species(self):
         return self.__species
 
-    @property
-    def raster_source(self):
-        return self.__raster_source
-
     def __set_raster_source(self, boundary_geometry):
     #================================================
         if boundary_geometry is not None and boundary_geometry.geom_type == 'Polygon':
@@ -119,7 +114,7 @@ class MBFSource(MapSource):
             # Mask image with boundary to remove artifacts
             self.__image = mask_image(self.__image,
                                       self.__world_to_image.transform_geometry(boundary_geometry))
-        self.__raster_source = RasterSource('image', self.__image)
+        self.set_raster_source(RasterSource('image', self.__image))
 
     def ns_tag(self, tag):
     #=====================

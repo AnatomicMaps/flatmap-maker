@@ -87,16 +87,11 @@ class SVGSource(MapSource):
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
         self.__layer = SVGLayer(id, self, svg, exported=self.__exported)
         self.add_layer(self.__layer)
-        self.__raster_source = None
         self.__boundary_geometry = None
 
     @property
     def boundary_geometry(self):
         return self.__boundary_geometry
-
-    @property
-    def raster_source(self):
-        return self.__raster_source
 
     @property
     def transform(self):
@@ -121,7 +116,7 @@ class SVGSource(MapSource):
             cleaned_svg = io.BytesIO()
             cleaner.save(cleaned_svg)
             cleaned_svg.seek(0)
-            self.__raster_source = RasterSource('svg', cleaned_svg, source_path=self.__source_file)
+            self.set_raster_source(RasterSource('svg', cleaned_svg, source_path=self.__source_file))
 
 #===============================================================================
 
