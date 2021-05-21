@@ -720,7 +720,7 @@ class SVGTiler(object):
                 first_point = None
 
             else:
-                print('Unknown path command: {}'.format(cmd))
+                log.warn('Unknown path command: {}'.format(cmd))
 
         return path
 

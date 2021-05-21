@@ -206,7 +206,7 @@ class PowerpointSlide(MapLayer):
                     coordinates.extend(bezier_sample(bz))
 
                 else:
-                    print('Unknown path element: {}'.format(c.tag))
+                    log.warn('Unknown path element: {}'.format(c.tag))
 
         if len(bezier_segments) > 0:
             properties['bezier-segments'] = [repr(bz) for bz in bezier_segments]
