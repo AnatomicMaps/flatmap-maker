@@ -86,6 +86,9 @@ class Feature(object):
         return self.__properties.get(property, '') != ''
 
     def set_property(self, property: str, value: Any) -> None:
-        self.__properties[property] = value
+        if value is None:
+            self.del_property(property)
+        else:
+            self.__properties[property] = value
 
 #===============================================================================
