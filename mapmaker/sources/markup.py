@@ -124,9 +124,9 @@ def parse_layer_directive(s):
 
 def parse_markup(markup):
     properties = {'markup': markup}
+    deprecated = []
     try:
         parsed = SHAPE_MARKUP.parseString(markup, parseAll=True)
-        deprecated = []
         for prop in parsed[1:]:
             if prop[0] in DEPRECATED_MARKUP:
                 deprecated.append(prop[0])
