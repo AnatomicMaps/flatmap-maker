@@ -244,9 +244,8 @@ class MapMaker(object):
             elif source_kind == 'image':
                 if layer_number > 0 and 'boundary' not in source:
                     raise ValueError('An image source must specify a boundary')
-                source_layer = MBFSource(self.__flatmap, source_id, source_href,
+                source_layer = MBFSource(self.__flatmap, id, href,
                                          boundary_id=source.get('boundary'),
-                                         dataset=source.get('dataset'),
                                          exported=(layer_number==0))
             elif source_kind in ['base', 'details']:
                 source_layer = SVGSource(self.__flatmap, source_id, source_href, source_kind)

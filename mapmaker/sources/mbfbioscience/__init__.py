@@ -42,17 +42,29 @@ from mapmaker.utils import FilePath
 
 #===============================================================================
 
+SPARC_DATASET_SIGNATURE = 'https://api.sparc.science/s3-resource/'
+
+SPARC_DATASET_URL_FORMAT = 'https://sparc.science/datasets/{}?type=dataset'
+
+def sparc_dataset(url):
+#======================
+    if url.startswith(SPARC_DATASET_SIGNATURE):
+        return SPARC_DATASET_URL_FORMAT.format(url.split('/')[4])
+
+#===============================================================================
+
 class MBFSource(MapSource):
-    def __init__(self, flatmap, id, source_path, boundary_id=None, dataset=None, exported=False):
-        super().__init__(flatmap, id, source_path, 'image')
+    def __init__(self, flatmap, id, source_href, boundary_id=None, exported=False):
+        super().__init__(flatmap, id, source_href, 'image')
+        self.__sparc_dataset = sparc_dataset(source_href)
+
         self.__boundary_id = boundary_id
         self.__boundary_geometry = None
-        self.__dataset = dataset
 
         self.__layer = MapLayer(id, self, exported=exported)
         self.add_layer(self.__layer)
 
-        self.__mbf = etree.parse(FilePath(source_path).get_fp()).getroot()
+        self.__mbf = etree.parse(FilePath(source_href).get_fp()).getroot()
         self.__ns = self.__mbf.nsmap[None]
 
         sparcdata = self.__mbf.find(self.ns_tag('sparcdata'))
@@ -66,7 +78,7 @@ class MBFSource(MapSource):
         offset = (float(coord_element.get('x', 0.0)), float(coord_element.get('y', 0.0)))
 
         filename = image_element.find(self.ns_tag('filename')).text
-        image_file = FilePath(urljoin(source_path, filename.split('\\')[-1]))
+        image_file = FilePath(urljoin(source_href, filename.split('\\')[-1]))
         image_array = np.frombuffer(image_file.get_data(), dtype=np.uint8)
         self.__image = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
         if self.__image.shape[2] == 3:
@@ -147,7 +159,8 @@ class MBFSource(MapSource):
             if anatomical_id is not None:
                 properties['models'] = anatomical_id
             feature = self.flatmap.new_feature(geometry, properties)
-            feature.set_property('dataset', self.__dataset)
+            feature.set_property('dataset', self.__sparc_dataset)
+            feature.set_property('source', self.source_href)
             self.__layer.add_feature(feature)
             if anatomical_id == self.__boundary_id:
                 boundary_geometry = feature.geometry
