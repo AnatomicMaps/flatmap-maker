@@ -182,6 +182,10 @@ class FlatMap(object):
                 metadata.append(map_layer)
         return metadata
 
+    def update_annotations(self, annotations):
+    #=========================================
+        self.__annotations.update(annotations)
+
     def __set_feature_properties(self):
     #==================================
         for layer in self.__layer_dict.values():

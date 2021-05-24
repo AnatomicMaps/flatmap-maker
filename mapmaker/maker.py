@@ -323,7 +323,7 @@ class MapMaker(object):
                         'layer': layer_name,
                         'description': '{} -- {}'.format(layer.description, layer_name)
                     })
-                self.__flatmap.annotations.update(layer.annotations)
+                self.__flatmap.update_annotations(layer.annotations)
 
     def __save_metadata(self):
     #=========================
