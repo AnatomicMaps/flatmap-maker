@@ -65,10 +65,10 @@ IGNORED_SVG_TAGS = [
 #===============================================================================
 
 class SVGSource(MapSource):
-    def __init__(self, flatmap, id, source_path, source_kind):  # maker v's flatmap (esp. id)
-        super().__init__(flatmap, id, source_path, source_kind)
-        self.__source_file = FilePath(source_path)
-        self.__exported = (source_kind=='base')
+    def __init__(self, flatmap, id, href, kind):  # maker v's flatmap (esp. id)
+        super().__init__(flatmap, id, href, kind)
+        self.__source_file = FilePath(href)
+        self.__exported = (kind=='base')
         svg = etree.parse(self.__source_file.get_fp()).getroot()
         if 'viewBox' in svg.attrib:
             (width, height) = tuple(float(x) for x in svg.attrib['viewBox'].split()[2:])
@@ -116,7 +116,7 @@ class SVGSource(MapSource):
             cleaned_svg = io.BytesIO()
             cleaner.save(cleaned_svg)
             cleaned_svg.seek(0)
-            self.set_raster_source(RasterSource('svg', cleaned_svg, source_path=self.__source_file))
+            self.set_raster_source(RasterSource('svg', cleaned_svg, source=self.__source_file))
 
 #===============================================================================
 

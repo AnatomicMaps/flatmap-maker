@@ -235,22 +235,22 @@ class MapMaker(object):
             kind = source.get('kind', '')
             return ('0' if kind in ['base', 'slides'] else '1') + kind
         for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
-            source_id = source.get('id')
-            source_kind = source.get('kind')
-            source_href = source['href']
-            if source_kind == 'slides':
-                source_layer = PowerpointSource(self.__flatmap, source_id, source_href,
+            id = source.get('id')
+            kind = source.get('kind')
+            href = source['href']
+            if kind == 'slides':
+                source_layer = PowerpointSource(self.__flatmap, id, href,
                                                 get_background=tile_background)
-            elif source_kind == 'image':
+            elif kind == 'image':
                 if layer_number > 0 and 'boundary' not in source:
                     raise ValueError('An image source must specify a boundary')
                 source_layer = MBFSource(self.__flatmap, id, href,
                                          boundary_id=source.get('boundary'),
                                          exported=(layer_number==0))
-            elif source_kind in ['base', 'details']:
-                source_layer = SVGSource(self.__flatmap, source_id, source_href, source_kind)
+            elif kind in ['base', 'details']:
+                source_layer = SVGSource(self.__flatmap, id, href, kind)
             else:
-                raise ValueError('Unsupported source kind: {}'.format(source_kind))
+                raise ValueError('Unsupported source kind: {}'.format(kind))
             source_layer.process()
             for (kind, msg) in source_layer.errors:
                 if kind == 'error':

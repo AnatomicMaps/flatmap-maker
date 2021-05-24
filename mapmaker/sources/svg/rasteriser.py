@@ -197,7 +197,7 @@ class SVGTiler(object):
     def __init__(self, raster_layer, tile_set):
         self.__bbox = shapely.geometry.box(*extent_to_bounds(raster_layer.extent))
         self.__svg = etree.parse(raster_layer.source_data).getroot()
-        self.__source_path = raster_layer.source_params.get('source_path')
+        self.__source = raster_layer.source_params.get('source')
         if 'viewBox' in self.__svg.attrib:
             self.__size = tuple(float(x)
                 for x in self.__svg.attrib['viewBox'].split()[2:])
@@ -480,7 +480,7 @@ class SVGTiler(object):
                         if media_type in IMAGE_MEDIA_TYPES:
                             pixel_bytes = base64.b64decode(parts[1])
                 else:
-                    pixel_bytes = self.__source_path.join_path(image_href).get_data()
+                    pixel_bytes = self.__source.join_path(image_href).get_data()
                 if pixel_bytes is not None:
                     pixel_array = np.frombuffer(pixel_bytes, dtype=np.uint8)
                     pixels = cv2.imdecode(pixel_array, cv2.IMREAD_UNCHANGED)

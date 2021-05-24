@@ -92,10 +92,10 @@ def not_empty(image):
 #===============================================================================
 
 class MapSource(object):
-    def __init__(self, flatmap, id, source_path, kind):
+    def __init__(self, flatmap, id, source_href, kind):
         self.__flatmap = flatmap
         self.__id = id
-        self.__source = source_path
+        self.__source_href = source_href
         self.__kind = kind
         self.__errors = []
         self.__layers = []
@@ -147,8 +147,8 @@ class MapSource(object):
         return self.__raster_source
 
     @property
-    def source(self):
-        return self.__source
+    def source_href(self):
+        return self.__source_href
 
     def add_layer(self, layer):
     #==========================
@@ -191,22 +191,22 @@ class MapSource(object):
 #===============================================================================
 
 class RasterSource(object):
-    def __init__(self, source_kind, source_data, **kwds):
-        self.__source_kind = source_kind
-        self.__source_data = source_data
-        self.__source_params = kwds
+    def __init__(self, kind, data, **kwds):
+        self.__kind = kind
+        self.__data = data
+        self.__params = kwds
 
     @property
-    def source_data(self):
-        return self.__source_data
+    def data(self):
+        return self.__data
 
     @property
-    def source_kind(self):
-        return self.__source_kind
+    def kind(self):
+        return self.__kind
 
     @property
-    def source_params(self):
-        return self.__source_params
+    def params(self):
+        return self.__params
 
 #===============================================================================
 

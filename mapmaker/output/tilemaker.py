@@ -493,12 +493,12 @@ class RasterTileMaker(object):
     def make_tiles(self):
     #====================
         log('Tiling {}...'.format(self.__id))
-        source_kind = self.__raster_layer.source_kind
-        if source_kind == 'image':
+        kind = self.__raster_layer.source_kind
+        if kind == 'image':
             tile_extractor = ImageTiler(self.__raster_layer, self.__tile_set)
-        elif source_kind == 'pdf':
+        elif kind == 'pdf':
             tile_extractor = PDFTiler(self.__raster_layer, self.__tile_set)
-        elif source_kind == 'svg':
+        elif kind == 'svg':
             if self.__raster_layer.local_world_to_base is None:
                 tile_extractor = SVGTiler(self.__raster_layer, self.__tile_set)
             else:
