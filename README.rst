@@ -97,7 +97,7 @@ For instance::
 Manifest files
 --------------
 
-The sources of a flatmap are specified using a JSON file called ``manifest.json``.
+The sources of a flatmap are specified using a JSON file, usually called ``manifest.json``.
 
 The manifest is a JSON dictionary that MUST specify:
 
@@ -109,6 +109,7 @@ It MAY optionally specify:
 * a taxon identifier specifying what the flatmap ``models`.
 * the name of a ``properties`` JSON file specifying properties of features.
 * the name of an ``anatomicalMap`` file assigning anatomical identifiers to features.
+* The map's ``connectivity`` as a list of JSON files, each specifying a connectivity model.
 
 A source is a JSON dictionary that MUST specify:
 
@@ -147,7 +148,7 @@ For example::
             },
             {
                 "id": "vagus",
-                "href": "sub-10_sam-1_P10-1MergeMask.xml",
+                "href": "https://api.sparc.science/s3-resource/64/4/files/derivative/sub-10/sam-1/sub-10_sam-1_P10-1MergeMask.xml",
                 "kind": "image",
                 "boundary": "http://purl.org/sig/ont/fma/fma5731"
             }
