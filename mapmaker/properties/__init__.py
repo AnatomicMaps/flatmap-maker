@@ -55,7 +55,7 @@ class ManifestProperties(object):
                 self.__pathways.add_apinatomy_routes(ApiNATOMY(soma_processes, model))
 
     @property
-    def features_by_model(self):
+    def anatomical_map(self):
         return self.__features_by_model
 
     @property

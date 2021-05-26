@@ -291,7 +291,7 @@ class FlatMap(object):
         self.__map_properties.resolve_pathways(
             self.__id_to_feature,
             self.__class_to_feature,
-            self.__map_properties.features_by_model)
+            self.__map_properties.anatomical_map)
 
     def __setup_feature_search(self):
     #================================
