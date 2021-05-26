@@ -216,14 +216,14 @@ class Route(object):
 #===============================================================================
 
 class ConnectivityModel(object):
-    def __init__(self, id, dataset=None):
+    def __init__(self, id, source=None):
         self.__id = id
-        self.__dataset = dataset
+        self.__source = source
         self.__path_ids = []
 
     @property
-    def dataset(self):
-        return self.__dataset
+    def source(self):
+        return self.__source
 
     @property
     def path_ids(self):
@@ -260,9 +260,12 @@ class Pathways(object):
     @property
     def resolved_pathways(self):
         return {
-            'connectivity-models': { model.dataset: model.path_ids
-                                        for model in self.__connectivity_models
-                                            if model.dataset is not None },
+            'models': [
+                { 'id': model.source,
+                  'paths': model.path_ids
+                } for model in self.__connectivity_models
+                    if model.source is not None
+            ],
             'paths': self.__resolved_pathways.paths_dict,
             'node-paths': self.__resolved_pathways.node_paths,
             'type-paths': self.__resolved_pathways.type_paths,
@@ -295,7 +298,7 @@ class Pathways(object):
 
     def add_connectivity(self, connectivity):
     #========================================
-        connectivity_model = ConnectivityModel(connectivity['id'], connectivity.get('dataset'))
+        connectivity_model = ConnectivityModel(connectivity['id'], connectivity.get('source'))
         self.__connectivity_models.append(connectivity_model)
         self.__extend_pathways(connectivity_model, connectivity.get('paths', []))
 
