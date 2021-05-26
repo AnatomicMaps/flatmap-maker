@@ -457,7 +457,7 @@ class SVGLayer(MapLayer):
                 first_point = None
 
             else:
-                print('Unknown path command: {}'.format(cmd))
+                log.warn('Unknown path command: {}'.format(cmd))
 
         if len(bezier_segments) > 0:
             properties['bezier-segments'] = [repr(bz) for bz in bezier_segments]
