@@ -102,73 +102,82 @@ class FeatureMap(object):
 
 #===============================================================================
 
-class NodePaths(object):
-    def __init__(self, feature_map):
-        self.__feature_map = feature_map
-        self.__paths = defaultdict(list)     # node_id: [ path_ids ]
-        self.__nodes = defaultdict(list)     # path_id: [ node ]
+class ResolvedPath(object):
+    def __init__(self):
+        self.__lines = set()
+        self.__nerves = set()
+        self.__nodes = set()
+        self.__models = None
 
     @property
-    def path_dict(self):
-        return self.__paths
+    def as_dict(self):
+        path_dict = {
+            'lines': list(self.__lines),
+            'nerves': list(self.__nerves),
+            'nodes': list(self.__nodes)
+        }
+        if self.__models is not None:
+            path_dict['models'] = self.__models
+        return path_dict
 
-    @property
-    def node_dict(self):
-        return self.__nodes
+    def extend_lines(self, lines):
+        self.__lines.update(lines)
 
-    @property
-    def route_dict(self):
-        return self.__route_features
+    def extend_nerves(self, nerves):
+        self.__nerves.update(nerves)
 
-    def __resolve_paths(self, path_id, nodes):
-        for id in nodes:
-            for feature in self.__feature_map.features(id):
-                node_id = feature.feature_id
-                self.__paths[node_id].append(path_id)
-                self.__nodes[path_id].append(node_id)
+    def extend_nodes(self, nodes):
+        self.__nodes.update(nodes)
 
-    def resolve_route(self, path_id, route):
-        self.__resolve_paths(path_id, route.start_nodes)
-        self.__resolve_paths(path_id, route.through_nodes)
-        self.__resolve_paths(path_id, route.end_nodes)
+    def set_model_id(self, model_id):
+        self.__models = model_id
 
 #===============================================================================
 
 class ResolvedPathways(object):
     def __init__(self, id_map, class_map):
         self.__feature_map = FeatureMap(id_map, class_map)
-        self.__path_lines = defaultdict(list)
-        self.__path_nerves = defaultdict(list)
-        self.__node_paths = NodePaths(self.__feature_map)
-        self.__type_paths = defaultdict(list)
+        self.__paths = defaultdict(ResolvedPath)  # path_id: ResolvedPath
+        self.__node_paths = defaultdict(list)     # node_id: [ path_ids ]
+        self.__type_paths = defaultdict(list)     # type: [ path _ids ]
 
     @property
     def node_paths(self):
         return self.__node_paths
 
     @property
-    def path_lines(self):
-        return self.__path_lines
-
-    @property
-    def path_nerves(self):
-        return self.__path_nerves
+    def paths_dict(self):
+        return { path_id: resolved_path.as_dict
+                    for path_id, resolved_path in self.__paths.items()
+               }
 
     @property
     def type_paths(self):
         return self.__type_paths
 
-    def __add_pathway(self, path_id, lines, nerves):
-        self.__path_lines[path_id].extend(lines)
-        self.__path_nerves[path_id].extend(nerves)
-
     def add_path_type(self, path_id, path_type):
         self.__type_paths[path_type].append(path_id)
 
+    def __resolve_nodes_for_path(self, path_id, nodes):
+        node_ids = []
+        for id in nodes:
+            for feature in self.__feature_map.features(id):
+                node_id = feature.feature_id
+                self.__node_paths[node_id].append(path_id)
+                node_ids.append(node_id)
+        return node_ids
+
     def resolve_pathway(self, path_id, lines, nerves, route):
-        self.__add_pathway(path_id, self.__feature_map.feature_ids(lines),
-                                    self.__feature_map.feature_ids(nerves))
-        self.__node_paths.resolve_route(path_id, route)
+        resolved_path = self.__paths[path_id]
+        resolved_path.extend_lines(self.__feature_map.feature_ids(lines))
+        resolved_path.extend_nerves(self.__feature_map.feature_ids(nerves))
+        resolved_path.extend_nodes(
+            self.__resolve_nodes_for_path(path_id, route.start_nodes)
+          + self.__resolve_nodes_for_path(path_id, route.through_nodes)
+          + self.__resolve_nodes_for_path(path_id, route.end_nodes))
+
+    def set_model_id(self, path_id, model_id):
+        self.__paths[path_id].set_model_id(model_id)
 
 #===============================================================================
 
@@ -239,6 +248,7 @@ class Pathways(object):
         self.__nerve_tracks = []
         self.__apinatomy_models = []
         self.__connectivity_models = [ ConnectivityModel('') ]
+        self.__path_models = {}
         self.__extend_pathways(self.__connectivity_models[0], paths_list)
 
     @staticmethod
@@ -249,18 +259,14 @@ class Pathways(object):
 
     @property
     def resolved_pathways(self):
-        node_paths = self.__resolved_pathways.node_paths
         return {
             'connectivity-models': { model.dataset: model.path_ids
                                         for model in self.__connectivity_models
                                             if model.dataset is not None },
-            'node-paths': node_paths.path_dict,
-            'path-lines': self.__resolved_pathways.path_lines,
-            'path-nerves': self.__resolved_pathways.path_nerves,
-            'path-nodes': node_paths.node_dict,
-            'path-routes': node_paths.route_dict,
+            'paths': self.__resolved_pathways.paths_dict,
+            'node-paths': self.__resolved_pathways.node_paths,
             'type-paths': self.__resolved_pathways.type_paths,
-            }
+        }
 
     def add_apinatomy_routes(self, apinatomy_model):
     #===============================================
@@ -314,6 +320,8 @@ class Pathways(object):
                     nerves_by_path_id[path_id] = list(parse_nerves(path['nerves']))
                 if 'type' in path:
                     self.__types_by_path_id[path_id] = path['type']
+                if 'models' in path:
+                    self.__path_models[path_id] = path['models']
         self.__lines_by_path_id.update(lines_by_path_id)
         for path_id, lines in lines_by_path_id.items():
             for line_id in lines:
