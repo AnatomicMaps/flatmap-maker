@@ -136,8 +136,7 @@ class MapMaker(object):
         # Save options into global ``settings`` dict
         settings.update(options)
 
-        # Check we have been given a map source and get
-        # our manifest
+        # Check we have been given a map source and get our manifest
         if 'source' in options:
             self.__manifest = Manifest(options['source'])
         else:
