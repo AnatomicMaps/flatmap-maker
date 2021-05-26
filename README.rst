@@ -154,3 +154,47 @@ For example::
             }
         ]
     }
+
+
+Anatomical map file
+-------------------
+
+TODO...
+
+Properties file
+---------------
+
+TODO...
+
+Connectivity files
+------------------
+
+TODO...
+
+Example::
+
+    {
+        "id": "keast-bladder",
+        "source": "https://apinatomy.org/uris/models/keast-bladder",
+        "paths": [
+            .
+            .
+            .
+            {
+                "id": "path_3",
+                "type": "somatic",
+                "path": "P38, P39, P40, P41",
+                "route": "(S41_2_L5, S41_2_L6), C5, C6, S43_L5, S43_L6, S50_L5_T, S50_L6_T, S50_L5_B, S50_L6_B, urinary_5",
+                "nerves": "keast_2",
+                "models": "ilxtr:neuron-type-keast-9"
+            },
+            .
+            .
+            .
+        ]
+    }
+
+Shape markup
+------------
+
+TODO...
