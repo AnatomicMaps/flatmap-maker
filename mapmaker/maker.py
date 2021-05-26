@@ -163,8 +163,10 @@ class MapMaker(object):
         self.__tippe_inputs = []
         self.__upload_files = []
 
-        # Whose making the map
-        self.__creator = 'mapmaker {}'.format(__version__)
+        self.__metadata = {
+            # Whose making the map
+            'creator': 'mapmaker {}'.format(__version__)
+        }
 
         # The map we are making
         self.__flatmap = FlatMap(self)
@@ -330,21 +332,24 @@ class MapMaker(object):
         tile_db = MBTiles(self.__mbtiles_file)
 
         # Save the URL of the map's manifest
-        tile_db.add_metadata(source=self.__manifest.url)
-
+        self.__metadata['source'] = self.__manifest.url
         # What the map models
         if self.__flatmap.models is not None:
-            tile_db.add_metadata(describes=self.__flatmap.models)
+            self.__metadata['describes'] = self.__flatmap.models
+        # The maps creation time
+        self.__metadata['created'] = datetime.datetime.utcnow().isoformat()
+        # Save flatmap's metadata
+        tile_db.add_metadata(metadata=json.dumps(self.__metadata))
+        ## Backwards compatibility...
+        tile_db.add_metadata(**self.__metadata)
+
         # Save layer details in metadata
         tile_db.add_metadata(layers=json.dumps(self.__flatmap.layer_metadata()))
         # Save pathway details in metadata
         tile_db.add_metadata(pathways=json.dumps(self.__flatmap.pathways()))
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(self.__flatmap.annotations))
-        # Save command used to run mapmaker
-        tile_db.add_metadata(created_by=self.__creator)
-        # Save the maps creation time
-        tile_db.add_metadata(created=datetime.datetime.utcnow().isoformat())
+
         # Commit updates to the database
         tile_db.execute("COMMIT")
 
