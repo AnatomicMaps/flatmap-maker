@@ -32,9 +32,15 @@ from mapmaker.utils import FilePath, log
 
 #===============================================================================
 
-SCIGRAPH_VOCAB_ENDPOINT = 'https://scicrunch.org/api/1/sparc-scigraph/vocabulary/id/{}.json'
-SCIGRAPH_KEY = "xBOrIfnZTvJQtobGo8XHRvThdMYGTxtf"
-SCIGRAPH_ONTOLOGIES = ['FMA', 'ILX', 'UBERON']
+INTERLEX_ONTOLOGIES = ['ILX', 'NLX']
+
+SCIGRAPH_ONTOLOGIES = ['FMA', 'UBERON']
+
+#===============================================================================
+
+SCICRUNCH_API_KEY = "xBOrIfnZTvJQtobGo8XHRvThdMYGTxtf"
+SCICRUNCH_INTERLEX_VOCAB = 'https://scicrunch.org/api/1/ilx/search/curie/{}'
+SCICRUNCH_SCIGRAPH_VOCAB = 'https://scicrunch.org/api/1/sparc-scigraph/vocabulary/id/{}.json'
 
 #===============================================================================
 
@@ -88,10 +94,16 @@ class LabelDatabase(object):
             return row[0]
         label = None
         ontology = entity.split(':')[0]
-        if ontology in SCIGRAPH_ONTOLOGIES:
+        if   ontology in INTERLEX_ONTOLOGIES:
             data = request_json('{}?api_key={}'.format(
-                    SCIGRAPH_VOCAB_ENDPOINT.format(entity),
-                    SCIGRAPH_KEY))
+                    SCICRUNCH_INTERLEX_VOCAB.format(entity),
+                    SCICRUNCH_API_KEY))
+            if data is not None:
+                label = data.get('data', {}).get('label', entity)
+        elif ontology in SCIGRAPH_ONTOLOGIES:
+            data = request_json('{}?api_key={}'.format(
+                    SCICRUNCH_SCIGRAPH_VOCAB.format(entity),
+                    SCICRUNCH_API_KEY))
             if data is not None:
                 label = data.get('labels', [entity])[0]
         else:
