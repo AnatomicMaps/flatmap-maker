@@ -30,9 +30,9 @@ Command line help::
 ::
 
     usage: mapmaker [-h] [-v]
-                    [--log LOG_FILE] [--silent] [--verbose]
+                    [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
                     [--clean] [--background-tiles]
-                    [--check-errors] [--save-beziers] [--save-drawml] [--save-geojson] [--tippecanoe]
+                    [--check-errors] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initialZoom N] [--max-zoom N] [--min-zoom N]
                     [--refresh-labels] [--upload USER@SERVER]
                     --output OUTPUT --source SOURCE
@@ -45,8 +45,9 @@ Command line help::
 
     logging:
       --log LOG_FILE        append messages to a log file
-      --verbose             don't show progress bars
+      --show-deprecated     issue a warning for deprecated markup properties
       --silent              suppress all messages to screen
+      --verbose             show progress bars
 
     image tiling:
       --clean               Remove all files from generated map's directory before generating new map
@@ -54,7 +55,6 @@ Command line help::
 
     diagnostics:
       --check-errors        check for errors without generating a map
-      --save-beziers        Save Bezier curve segments as a feature property
       --save-drawml         save a slide's DrawML for debugging
       --save-geojson        Save GeoJSON files for each layer
       --tippecanoe          Show command used to run Tippecanoe
@@ -70,12 +70,13 @@ Command line help::
 
     required arguments:
       --output OUTPUT       base directory for generated flatmaps
-      --source SOURCE       URL or directory path containing a flatmap manifest
+      --source SOURCE       URL or path of a flatmap manifest
 
 For instance::
 
     $ pipenv run python -m mapmaker --output ./flatmaps   \
-                                    --source ../PMR/rat
+                                    --source ../PMR/rat   \
+                                    --verbose
 ::
 
     Mapmaker 0.11.0.b4
