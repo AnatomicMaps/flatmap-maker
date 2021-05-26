@@ -18,7 +18,7 @@ Installation
 
 ::
 
-    $ pipenv install mapmaker-1.2.0b1-py3-none-any.whl
+    $ pipenv install --python 3.8 mapmaker-1.2.0b1-py3-none-any.whl
 
 Running
 -------
