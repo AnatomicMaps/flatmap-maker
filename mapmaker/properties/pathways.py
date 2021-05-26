@@ -237,7 +237,6 @@ class Pathways(object):
         self.__routes_by_path_id = {}
         self.__types_by_path_id = {}
         self.__nerve_tracks = []
-        self.__path_models = {}
         self.__apinatomy_models = []
         self.__connectivity_models = [ ConnectivityModel('') ]
         self.__extend_pathways(self.__connectivity_models[0], paths_list)
@@ -323,8 +322,6 @@ class Pathways(object):
         for path_id, nerves in nerves_by_path_id.items():
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
-        if layout:
-            self.__path_models[model_id] = paths_list
 
     def __route_paths(self, id_map, class_map, anatomical_map):
     #==========================================================
