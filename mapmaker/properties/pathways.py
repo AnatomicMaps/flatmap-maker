@@ -347,31 +347,12 @@ class Pathways(object):
                 error_list.append("Cannot find feature for {}".format(anatomical_id))
             return None
 
-        def get_point_for_node(node_id):
-            if node_id in id_map:
-                return id_map[node_id].geometry.centroid.coords[0]
-            elif node_id in class_map:
-                features = class_map[node_id]
-                if len(features) == 1:
-                    return features[0].geometry.centroid.coords[0]
-            log.warn("Cannot find node '{}' for route".format(node_id))
-
         log('Routing paths...')
         router = PathRouter([track.properties['bezier-segments']
                     for track in self.__nerve_tracks])
 
-        path_models = []
-        for model_id, paths in self.__path_models.items():
-            path_models.append(model_id)
-            for path in paths:
-                if ( path['id'] != 'path_1' and #'path' not in path and
-                    'route' in path):
-                    route = Route(model_id, path['id'], path['route'])
-                    points = ([ [ get_point_for_node(node) for node in route.start_nodes ] ]
-                            + [ get_point_for_node(node) for node in route.through_nodes ]
-                            + [ [ get_point_for_node(node) for node in route.end_nodes ] ])
-                    router.add_route(model_id, path['id'], path.get('type', ''), points)
 
+        path_models = []
         for apinatomy_model in self.__apinatomy_models:
             model_id = apinatomy_model.uri
             path_models.append(model_id)
