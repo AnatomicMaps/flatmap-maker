@@ -162,11 +162,6 @@ class MapMaker(object):
         self.__tippe_inputs = []
         self.__upload_files = []
 
-        self.__metadata = {
-            # Whose making the map
-            'creator': 'mapmaker {}'.format(__version__)
-        }
-
         # The map we are making
         self.__flatmap = FlatMap(self)
 
@@ -330,17 +325,25 @@ class MapMaker(object):
         log('Creating index and style files...')
         tile_db = MBTiles(self.__mbtiles_file)
 
-        # Save the URL of the map's manifest
-        self.__metadata['source'] = self.__manifest.url
+        metadata = {
+            # The maps creation time
+            'created': datetime.datetime.utcnow().isoformat(),
+            # Who made the map
+            'creator': 'mapmaker {}'.format(__version__),
+            # The URL of the map's manifest
+            'source': self.__manifest.url,
+            'version': FLATMAP_VERSION
+        }
         # What the map models
         if self.__flatmap.models is not None:
-            self.__metadata['describes'] = self.__flatmap.models
-        # The maps creation time
-        self.__metadata['created'] = datetime.datetime.utcnow().isoformat()
+            metadata['describes'] = self.__flatmap.models
+
         # Save flatmap's metadata
-        tile_db.add_metadata(metadata=json.dumps(self.__metadata))
+        tile_db.add_metadata(metadata=json.dumps(metadata))
         ## Backwards compatibility...
-        tile_db.add_metadata(**self.__metadata)
+        # NB: we need to set version and if newer just save with name `metadata`
+        # The map server needs to recognise the new way of doing things...
+        tile_db.add_metadata(**metadata)
 
         # Save layer details in metadata
         tile_db.add_metadata(layers=json.dumps(self.__flatmap.layer_metadata()))
