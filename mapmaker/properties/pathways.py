@@ -423,6 +423,7 @@ class Pathways(object):
                                                          self.__routes_by_path_id.get(path_id)
                                                         )
                 self.__resolved_pathways.add_path_type(path_id, self.__types_by_path_id.get(path_id))
+                self.__resolved_pathways.set_model_id(path_id, self.__path_models.get(path_id))
             except ValueError as err:
                 log.error('Path {}: {}'.format(path_id, str(err)))
                 errors = True
