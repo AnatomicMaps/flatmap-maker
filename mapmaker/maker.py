@@ -297,8 +297,8 @@ class MapMaker(object):
         # the map's metadata
         tile_db = MBTiles(self.__mbtiles_file)
         tile_db.add_metadata(compressed=compressed)
-        tile_db.update_metadata(center=','.join([str(x) for x in self.__flatmap.centre]),
-                                bounds=','.join([str(x) for x in self.__flatmap.extent]))
+        tile_db.add_metadata(center=','.join([str(x) for x in self.__flatmap.centre]),
+                             bounds=','.join([str(x) for x in self.__flatmap.extent]))
         tile_db.execute("COMMIT")
         tile_db.close();
         self.__upload_files.append('index.mbtiles')
