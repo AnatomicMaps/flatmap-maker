@@ -247,6 +247,7 @@ class Pathways(object):
         self.__types_by_path_id = {}
         self.__nerve_tracks = []
         self.__apinatomy_models = []
+        self.__connectivity_by_path = {}
         self.__connectivity_models = [ ConnectivityModel('') ]
         self.__path_models = {}
         self.__extend_pathways(self.__connectivity_models[0], paths_list)
@@ -277,22 +278,30 @@ class Pathways(object):
 
     def add_line_or_nerve(self, id_or_class):
     #========================================
+        path_id = None
         properties = {}
         # Is the id_or_class that of a line?
         if id_or_class in self.__paths_by_line_id:
             path_id = self.__paths_by_line_id[id_or_class][0]
             if path_id in self.__types_by_path_id:
-                properties['kind'] = self.__types_by_path_id[path_id]
+                properties['kind'] = self.__types_by_path_id[path_id]  ## Can we just put this into `kind`
+                                                                       ## and have viewer work out if dashed??
                 properties['type'] = 'line-dash' if properties['kind'].endswith('-post') else 'line'
             else:
                 properties['type'] = 'line'
-            properties['tile-layer'] = 'pathways'
-            self.__layer_paths.add(path_id)
+            if path_id in self.__path_models:
+                properties['models'] = self.__path_models[path_id]
+            if path_id in self.__connectivity_by_path:
+                source = self.__connectivity_by_path[path_id].source
+                if source is not None:
+                    properties['source'] = source
         # Is the id_or_class that of a nerve cuff?
         elif id_or_class in self.__paths_by_nerve_id:
             path_id = self.__paths_by_nerve_id[id_or_class][0]
-            properties['tile-layer'] = 'pathways'
             properties['type'] = 'nerve'
+        # Have we found a path?
+        if path_id is not None:
+            properties['tile-layer'] = 'pathways'
             self.__layer_paths.add(path_id)
         return properties
 
@@ -313,6 +322,7 @@ class Pathways(object):
         for path in paths_list:
             path_id = path['id']
             connectivity_model.add_path_id(path_id)
+            self.__connectivity_by_path[path_id] = connectivity_model
             if 'path' in path:
                 for line_group in parse_path_lines(path['path']):
                     lines_by_path_id[path_id] += Pathways.make_list(line_group)
