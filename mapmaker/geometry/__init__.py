@@ -107,6 +107,10 @@ class Transform(object):
     def __str__(self):
         return str(self.__matrix)
 
+    @classmethod
+    def Identity(cls):
+        return cls(np.identity(3))
+
     @property
     def matrix(self):
         return self.__matrix
@@ -148,12 +152,6 @@ class Transform(object):
     def transform_point(self, point):
     #================================
         return (self.__matrix@[point[0], point[1], 1.0])[:2]
-
-#===============================================================================
-
-class Identity(Transform):
-    def __init__(self):
-        super().__init__(np.identity(3))
 
 #===============================================================================
 

@@ -373,7 +373,7 @@ class RasterLayer(object):
     :param local_world_to_base: an optional transform from the raster layer's
                                 local world coordinates to the base map's
                                 world coordinates. Defaults to ``None``, meaning
-                                the :class:`~mapmaker.geometry.Identity` transform
+                                the :class:`~mapmaker.geometry.Transform.Identity()` transform
     :type local_world_to_base: :class:`~mapmaker.geometry.Transform`
     """
     def __init__(self, id, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):

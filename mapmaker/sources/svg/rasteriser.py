@@ -40,7 +40,7 @@ import webcolors
 from .. import WORLD_METRES_PER_PIXEL
 from ..markup import parse_markup
 
-from mapmaker.geometry import degrees, extent_to_bounds, Identity, radians, Transform, reflect_point
+from mapmaker.geometry import degrees, extent_to_bounds, radians, Transform, reflect_point
 from mapmaker.utils import ProgressBar, log
 from mapmaker.utils.image import image_size
 
@@ -331,7 +331,7 @@ class SVGTiler(object):
     def __gradient_matrix(gradient, path):
     #=====================================
         if gradient.attrib.get('gradientUnits') == 'userSpaceOnUse':
-            path_transform = Identity()
+            path_transform = Transform.Identity()
         else:                                    #  objectBoundingBox'
             bounds = path.getBounds()
             path_transform = Transform([[bounds.width(),               0, bounds.left()],
