@@ -79,6 +79,7 @@ class LabelDatabase(object):
         if new_db:
             self.__cursor.execute('CREATE TABLE labels (entity text, label text)')
             self.__db.commit()
+        self.__unknown_entities = []
 
     def close(self):
         self.__db.close()
@@ -106,8 +107,9 @@ class LabelDatabase(object):
                     SCICRUNCH_API_KEY))
             if data is not None:
                 label = data.get('labels', [entity])[0]
-        else:
+        elif entity not in self.__unknown_entities:
             log.warn('Unknown anatomical entity: {}'.format(entity))
+            self.__unknown_entities.append(entity)
         if label is None:
             label = entity
         else:
