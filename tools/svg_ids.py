@@ -28,11 +28,12 @@ from mapmaker.sources.svg.utils import adobe_decode_markup
 
 def print_ids(element, indent=0):
 #================================
-    id = adobe_decode_markup(element)
-    if id != '': print('{}{}'.format(indent*' ', id))  # id.startswith('.') ??
-    for child in element:
-        print_ids(child, indent+4)
-
+    if 'Gradient' not in element.tag:
+        id = adobe_decode_markup(element)
+        if id != '':
+            print('{}{}'.format(indent*' ', id))
+        for child in element:
+            print_ids(child, indent+4)
 
 if __name__ == '__main__':
 #=========================
