@@ -32,6 +32,8 @@ def print_ids(element, indent=0):
         id = adobe_decode_markup(element)
         if id != '':
             print('{}{}'.format(indent*' ', id))
+        elif len(element):
+            print('{}<Group>'.format(indent*' '))
         for child in element:
             print_ids(child, indent+4)
 
