@@ -21,8 +21,7 @@ Installation
 
 * Or install the package directly from Github with::
 
-    $ pipenv install --python 3.8 https://github.com/dbrnz/flatmap-maker/releases/download/v1.2.0b1/mapmaker-1.2.0b2-py3-none-any.whl
-
+    $ pipenv install --python 3.8 https://github.com/dbrnz/flatmap-maker/releases/download/v1.2.0b2/mapmaker-1.2.0b2-py3-none-any.whl
 
 Running
 -------
