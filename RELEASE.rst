@@ -24,3 +24,4 @@ Making a new release
 
 * On Github, at https://github.com/dbrnz/flatmap-maker/releases/new, create a release
   using the new VERSION tag and upload the generated wheel to it.
+* Update ``__version__`` in ``mapmaker/__init__.py`` to reflect we are now back in development mode.
