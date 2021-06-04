@@ -15,8 +15,8 @@ Making a new release
 * With the new version identifier::
 
     $ git tag VERSION
-    $ git push dbrnz
-    $ git push dbrnz VERSION
+    $ git push origin
+    $ git push origin VERSION
     # We don't want untracked files bundled into the release
     $ git stash --include-untracked
     $ python setup.py bdist_wheel
