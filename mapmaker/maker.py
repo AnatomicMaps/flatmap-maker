@@ -112,7 +112,13 @@ class MapMaker(object):
             options['verbose'] = False
 
         # Setup logging
-        configure_logging(options.get('logFile'),
+
+        log_file = options.get('logFile')
+        if log_file is None:
+            log_path = options.get('logPath')
+            if log_path is not None:
+                log_file = os.path.join(log_path, '{}.log'.format(os.getpid()))
+        configure_logging(log_file,
             verbose=options.get('verbose', False),
             silent=options.get('silent', False))
         log('Mapmaker {}'.format(__version__))
