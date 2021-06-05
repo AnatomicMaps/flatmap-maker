@@ -30,7 +30,7 @@ from mapmaker import __version__
 
 from .. import EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
 from ..markup import parse_markup
-from .utils import adobe_decode
+from .utils import adobe_decode_markup
 
 #===============================================================================
 
@@ -64,9 +64,9 @@ class SVGCleaner(object):
 
     def __exclude(self, element):
     #============================
-        if element.attrib.get('id', '').startswith('_x2E_'):
-            markup = adobe_decode(element.attrib['id'])
-            properties = self.__map_properties.update_feature_properties(parse_markup(markup))
+        markup = adobe_decode_markup(element)
+        if markup.startswith('.'):
+            properties = self.__map_properties.update_properties(parse_markup(markup))
             for key, value in properties.items():
                 if key in EXCLUDE_SHAPE_TYPES:
                     return True

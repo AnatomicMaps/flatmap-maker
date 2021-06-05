@@ -40,9 +40,9 @@ from .slide import PowerpointSlide
 #===============================================================================
 
 class PowerpointSource(MapSource):
-    def __init__(self, flatmap, id, source_path, get_background=False):
-        super().__init__(flatmap, id)
-        self.__pptx = Presentation(FilePath(source_path).get_BytesIO())
+    def __init__(self, flatmap, id, source_href, get_background=False):
+        super().__init__(flatmap, id, source_href, 'slides')
+        self.__pptx = Presentation(FilePath(source_href).get_BytesIO())
         self.__slides = self.__pptx.slides
 
         (width, height) = (self.__pptx.slide_width, self.__pptx.slide_height)
@@ -57,14 +57,8 @@ class PowerpointSource(MapSource):
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
         if get_background:
-            pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_path)[0]))
-            self.__raster_source = RasterSource('pdf', pdf_source.get_data())
-        else:
-            self.__raster_source = None
-
-    @property
-    def raster_source(self):
-        return self.__raster_source
+            pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_href)[0]))
+            self.set_raster_source(RasterSource('pdf', pdf_source.get_data()))
 
     @property
     def transform(self):
@@ -78,15 +72,13 @@ class PowerpointSource(MapSource):
             slide_layer = PowerpointSlide(self, slide, slide_number)
             log('Slide {}, {}'.format(slide_number, slide_layer.id))
             if settings.get('saveDrawML'):
-                xml = open(os.path.join(self.flatmap.map_directory,
+                xml = open(os.path.join(settings.get('output'),
+                                        self.flatmap.maker_id,
                                         '{}.xml'.format(slide_layer.id)), 'w')
                 xml.write(slide.element.xml)
                 xml.close()
             slide_layer.process()
-            for error in self.errors:
-                log.warn(error)
-            else:
-                self.add_layer(slide_layer)
+            self.add_layer(slide_layer)
 
 #===============================================================================
 

@@ -62,10 +62,6 @@ class MBTiles(object):
             self._cursor.execute('replace into metadata(name, value) values (?, ?);',
                                                                             (name, value))
 
-    def update_metadata(self, **metadata):
-        for name, value in metadata.items():
-            self._cursor.execute('update metadata set value=? where name=?;',
-                                                     (value,        name))
     def metadata(self, name=None):
         if name is not None:
             return self._cursor.execute('select value from metadata where name=?;', (name, )).fetchone()[0]

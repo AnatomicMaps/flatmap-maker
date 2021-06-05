@@ -25,6 +25,10 @@ from pyparsing import ParseException, ParseResults
 
 #===============================================================================
 
+from mapmaker.settings import settings
+
+#===============================================================================
+
 FREE_TEXT = Word(printables + ' ', excludeChars='()')
 INTEGER = Word(nums)
 
@@ -65,6 +69,8 @@ CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
 CHILDCLASSES = Group(Keyword('children') + Suppress('(') + ID_TEXT + Suppress(')'))
 DETAILS = Group(Keyword('details') + Suppress('(') + ID_TEXT + Suppress(',') + ZOOM_LEVEL + Suppress(')'))
 PATH = Group(Keyword('path') + Suppress('(') + ID_TEXT + Suppress(')'))
+
+# Deprecated...
 STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
 
 FEATURE_PROPERTIES = CLASS | CHILDCLASSES | IDENTIFIER | STYLE
@@ -75,23 +81,29 @@ SHAPE_FLAGS = Group(Keyword('boundary')
                   | Keyword('interior')
                   )
 
-DEPRECATED_FLAGS = Group(Keyword('siblings')
-                       | Keyword('marker')
-                       )
-
-FEATURE_FLAGS = Group(Keyword('group')
-                    | Keyword('invisible')
+FEATURE_FLAGS = Group(Keyword('centreline')
                     | Keyword('divider')
+                    | Keyword('group')
+                    | Keyword('invisible')
+                    | Keyword('marker')
                     | Keyword('region')
-                    | Keyword('centreline')
+                    | Keyword('siblings')
+                    | Keyword('styling')       # Element (and sub-elements) are just for stylistic effects
                   )
 
-SHAPE_MARKUP = '.' + ZeroOrMore(DEPRECATED_FLAGS
-                              | DETAILS
+SHAPE_MARKUP = '.' + ZeroOrMore(DETAILS
                               | FEATURE_FLAGS
                               | FEATURE_PROPERTIES
                               | PATH
                               | SHAPE_FLAGS)
+
+#===============================================================================
+
+DEPRECATED_MARKUP = [
+    'marker',
+    'siblings',
+    'style'
+]
 
 #===============================================================================
 
@@ -110,29 +122,35 @@ def parse_layer_directive(s):
 
 #===============================================================================
 
-def parse_markup(name_text):
-    markup = {'markup': name_text}
+def parse_markup(markup):
+    properties = {'markup': markup}
+    deprecated = []
     try:
-        parsed = SHAPE_MARKUP.parseString(name_text, parseAll=True)
+        parsed = SHAPE_MARKUP.parseString(markup, parseAll=True)
         for prop in parsed[1:]:
+            if prop[0] in DEPRECATED_MARKUP:
+                deprecated.append(prop[0])
             if (FEATURE_FLAGS.matches(prop[0])
              or SHAPE_FLAGS.matches(prop[0])):
-                markup[prop[0]] = True
-            elif DEPRECATED_FLAGS.matches(prop[0]):
-                markup['warning'] = "'{}' property is deprecated".format(prop[0])
+                properties[prop[0]] = True
             elif prop[0] == 'details':
-                markup[prop[0]] = prop[1]
-                markup['maxzoom'] = int(prop[2]) - 1
+                properties[prop[0]] = prop[1]
+                properties['maxzoom'] = int(prop[2]) - 1
             else:
-                markup[prop[0]] = prop[1]
+                properties[prop[0]] = prop[1]
     except ParseException:
-        markup['error'] = 'Syntax error in shape markup'
-    return markup
+        properties['error'] = 'Syntax error'
+    if len(deprecated) and settings.get('showDeprecated', False):
+        properties['warning'] = "Deprecated '{}'".format("', '".join(deprecated))
+    if ('styling' in properties
+    and ('id' in properties or 'class' in properties)):
+        properties['error'] = "'styling' element can't have an 'id' nor 'class'"
+    return properties
 
 #===============================================================================
 
 def ignore_property(name):
-    return DEPRECATED_FLAGS.matches(name) or SHAPE_FLAGS.matches(name)
+    return SHAPE_FLAGS.matches(name) or name in DEPRECATED_MARKUP
 
 #===============================================================================
 

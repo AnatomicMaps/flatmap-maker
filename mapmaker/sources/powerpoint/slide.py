@@ -38,14 +38,14 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 #===============================================================================
 
-from mapmaker.flatmap.layers import FeatureLayer
+from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import ellipse_point
 from mapmaker.geometry import bezier_sample
 from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
-from mapmaker.utils import ProgressBar
+from mapmaker.utils import ProgressBar, log
 
-from ..markup import parse_layer_directive, parse_markup
+from ..markup import parse_layer_directive
 
 from .formula import Geometry, radians
 from .presets import DML
@@ -53,7 +53,7 @@ from .transform import DrawMLTransform
 
 #===============================================================================
 
-class PowerpointSlide(FeatureLayer):
+class PowerpointSlide(MapLayer):
     def __init__(self, source, slide, slide_number):
         id = 'slide-{:02d}'.format(slide_number)
         # Get any layer directives
@@ -63,15 +63,14 @@ class PowerpointSlide(FeatureLayer):
             if notes_text.startswith('.'):
                 layer_directive = parse_layer_directive(notes_text)
                 if 'error' in layer_directive:
-                    source.error('Slide {}: invalid layer directive: {}'
+                    source.error('error', 'Slide {}: invalid layer directive: {}'
                                  .format(slide_number, notes_text))
                 if 'id' in layer_directive:
                     id = layer_directive['id']
-        super().__init__(id, source, base_layer=(slide_number==1))
+        super().__init__(id, source, exported=(slide_number==1))
         self.__slide = slide
         self.__slide_number = slide_number
         self.__transform = source.transform
-        self.__current_group = []
 
     @property
     def slide(self):
@@ -87,7 +86,6 @@ class PowerpointSlide(FeatureLayer):
 
     def process(self):
     #=================
-        self.__current_group.append('SLIDE')
         features = self.__process_shape_list(self.slide.shapes, self.__transform, show_progress=True)
         self.add_features('Slide', features, outermost=True)
 
@@ -105,20 +103,7 @@ class PowerpointSlide(FeatureLayer):
         features = []
         for shape in shapes:
             properties = {'tile-layer': 'features'}   # Passed through to map viewer
-            if shape.name.startswith('.'):
-                group_name = self.__current_group[-1]  # For error reporting
-                properties.update(parse_markup(shape.name))
-                if 'error' in properties:
-                    self.source.error('Shape in slide {}, group {}, has annotation syntax error: {}'
-                                        .format(self.__slide_number, group_name, shape.name))
-                if 'warning' in properties:
-                    self.source.error('Warning, slide {}, group {}: {}'
-                                        .format(self.__slide_number, group_name, properties['warning']))
-                for key in ['id', 'path']:
-                    if key in properties:
-                        if self.flatmap.is_duplicate_feature_id(properties[key]):
-                           self.source.error('Shape in slide {}, group {}, has a duplicate id: {}'
-                                               .format(self.__slide_number, group_name, shape.name))
+            properties.update(self.source.properties_from_markup(shape.name))
             if 'error' in properties:
                 pass
             elif 'path' in properties:
@@ -128,23 +113,16 @@ class PowerpointSlide(FeatureLayer):
              or isinstance(shape, pptx.shapes.connector.Connector)):
                 geometry = self.__get_geometry(shape, properties, transform)
                 feature = self.flatmap.new_feature(geometry, properties)
-                if self.base_layer and not feature.get_property('group'):
-                    # Save relationship between id/class and internal feature id
-                    self.flatmap.save_feature_id(feature)
                 features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
-                self.__current_group.append(properties.get('markup', "''"))
                 grouped_feature = self.__process_group(shape, properties, transform)
-                self.__current_group.pop()
                 if grouped_feature is not None:
-                    if self.base_layer:
-                        self.flatmap.save_feature_id(grouped_feature)
                     features.append(grouped_feature)
             elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
                or shape.shape_type == MSO_SHAPE_TYPE.PICTURE):
                 pass
             else:
-                print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
+                log.warn('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
             progress_bar.update(1)
         progress_bar.close()
         return features
@@ -228,9 +206,9 @@ class PowerpointSlide(FeatureLayer):
                     coordinates.extend(bezier_sample(bz))
 
                 else:
-                    print('Unknown path element: {}'.format(c.tag))
+                    log.warn('Unknown path element: {}'.format(c.tag))
 
-        if settings.get('saveBeziers', False) and len(bezier_segments) > 0:
+        if len(bezier_segments) > 0:
             properties['bezier-segments'] = [repr(bz) for bz in bezier_segments]
 
         if closed:

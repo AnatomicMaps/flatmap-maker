@@ -30,6 +30,8 @@ from .. import PIXELS_PER_INCH
 def SVG_NS(tag):
     return '{{http://www.w3.org/2000/svg}}{}'.format(tag)
 
+XLINK_HREF = '{http://www.w3.org/1999/xlink}href'
+
 #===============================================================================
 
 CM_PER_INCH = 2.54
@@ -77,12 +79,12 @@ def __match_to_char(m):
     else:
         return chr(int(s[2:4], 16))
 
-def adobe_decode(s):
-#===================
-    if s.startswith('_x2E_'):
-        return re.sub('(_x.._)|(_)', __match_to_char, s)
-    else:
-        return s
+def adobe_decode_markup(element):
+#================================
+    s = element.attrib.get('id', '')
+    markup = re.sub('(_x.._)|(_)', __match_to_char, s).strip()
+    numeric_suffix = re.search('( [0-9]+)$', markup)
+    return markup if numeric_suffix is None else markup[0:-len(numeric_suffix[1])].strip()
 
 def __match_to_hex(m):
 #=====================

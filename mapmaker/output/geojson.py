@@ -42,7 +42,8 @@ class GeoJSONOutput(object):
         self.__output_dir = output_dir
         self.__geojson_layers = {
             'features': [],
-            'pathways': []
+            'pathways': [],
+            'autopaths': [],
         }
 
     def save(self, features, pretty_print=False):
@@ -104,6 +105,11 @@ class GeoJSONOutput(object):
                     geojson['tippecanoe']['minzoom'] = 5
             else:
                 geojson['properties']['scale'] = 10
+
+            if 'bezier-paths' in properties:   # There's no need to export Bezier paths or segments
+                properties.pop('bezier-paths')
+            elif 'bezier-segments' in properties:
+                properties.pop('bezier-segments')
 
             for (key, value) in properties.items():
                 if not ignore_property(key):

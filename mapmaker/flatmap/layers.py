@@ -30,38 +30,21 @@ from mapmaker.geometry import save_geometry
 #===============================================================================
 
 class FeatureLayer(object):
-    def __init__(self, id, source, base_layer=False):
+    def __init__(self, id, flatmap, exported=False):
         self.__id = id
-        self.__source = source
-        self.__flatmap = source.flatmap
+        self.__flatmap = flatmap
         self.__annotations = {}
-        self.__boundary_id = None
+        self.__exported = exported
         self.__description = 'Layer {}'.format(id)
         self.__features = []
-        self.__features_by_id = {}
-        self.__detail_features = []
-        self.__feature_types = []
-#*        self.__ontology_data = self.options.ontology_data
-        self.__base_layer = base_layer
-        self.__queryable_nodes = False
-        self.__raster_layers = []
-        self.__zoom = None
 
     @property
     def annotations(self):
         return self.__annotations
 
     @property
-    def base_layer(self):
-        return self.__base_layer
-
-    @property
-    def boundary_id(self):
-        return self.__boundary_id
-
-    @boundary_id.setter
-    def boundary_id(self, value):
-        self.__boundary_id = value
+    def exported(self):
+        return self.__exported
 
     @property
     def description(self):
@@ -72,24 +55,8 @@ class FeatureLayer(object):
         self.__description = value
 
     @property
-    def detail_features(self):
-        return self.__detail_features
-
-    @property
-    def details_layer(self):
-        return self.__details_layer
-
-    @property
-    def features_by_id(self):
-        return self.__features_by_id
-
-    @property
     def features(self):
         return self.__features
-
-    @property
-    def feature_types(self):
-        return self.__feature_types
 
     @property
     def flatmap(self):
@@ -101,15 +68,61 @@ class FeatureLayer(object):
 
     @property
     def raster_layers(self):
-        return self.__raster_layers
+        return []
+
+    def add_feature(self, feature):
+    #==============================
+        self.__features.append(feature)
+        if self.__exported:
+            # Save relationship between id/class and internal feature id
+            self.__flatmap.save_feature_id(feature)
+
+    def annotate(self, feature, properties):
+    #=======================================
+        self.__annotations[feature.feature_id] = properties
+
+    def set_feature_properties(self, map_properties):
+    #===============================================
+        # Update feature properties from JSON properties file
+        for feature in self.__features:
+            map_properties.update_feature_properties(feature)
+
+#===============================================================================
+
+class MapLayer(FeatureLayer):
+    def __init__(self, id, source, exported=False):
+        super().__init__(id, source.flatmap, exported)
+        self.__source = source
+        self.__boundary_feature = None
+        self.__detail_features = []
+#*        self.__ontology_data = self.options.ontology_data
+        self.__nerve_tracks = []
+        self.__raster_layers = []
+        self.__zoom = None
 
     @property
-    def queryable_nodes(self):
-        return self.__queryable_nodes
+    def boundary_feature(self):
+        return self.__boundary_feature
 
-    @queryable_nodes.setter
-    def queryable_nodes(self, value):
-        self.__queryable_nodes = value
+    @boundary_feature.setter
+    def boundary_feature(self, value):
+        self.__boundary_feature = value
+
+    @property
+    def detail_features(self):
+        return self.__detail_features
+
+    @property
+    def details_layer(self):
+        return self.__details_layer
+
+    @property
+    def nerve_tracks(self):
+        return self.__nerve_tracks
+
+    @property
+    def raster_layers(self):
+        return self.__raster_layers
 
     @property
     def source(self):
@@ -125,34 +138,20 @@ class FeatureLayer(object):
 
     def add_feature(self, feature):
     #==============================
-        self.__features.append(feature)
-        self.__features_by_id[feature.feature_id] = feature
+        super().add_feature(feature)
         if feature.has_property('details'):
             self.__detail_features.append(feature)
-        self.__feature_types.append({
-            'type': feature.get_property('geometry')
-        })
 
     def add_raster_layer(self, id, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):
     #===============================================================================================
         if map_source.raster_source is not None:
             self.__raster_layers.append(RasterLayer(id, extent, map_source, min_zoom, local_world_to_base))
 
-    def annotate(self, feature, properties):
-    #=======================================
-        self.__annotations[feature.feature_id] = properties
-
-    def set_feature_properties(self, map_properties):
-    #===============================================
-        # Update feature properties from JSON properties file
-        for feature in self.__features:
-            map_properties.update_feature_properties(feature.properties)
-
     def add_nerve_details(self):
     #===========================
         # Add polygon features for nerve cuffs
         nerve_polygons = []
-        for feature in self.__features:
+        for feature in self.features:
             if feature.get_property('type') == 'nerve':
                 if not feature.has_property('nerveId'):
                     feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
@@ -162,7 +161,10 @@ class FeatureLayer(object):
                     nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
-        self.__features.extend(nerve_polygons)
+            elif (feature.get_property('type') == 'nerve-track'
+              and feature.geom_type == 'LineString'):
+                self.__nerve_tracks.append(feature)
+        self.features.extend(nerve_polygons)
 
     def add_features(self, group_name, features, outermost=False):
     #=============================================================
@@ -170,7 +172,7 @@ class FeatureLayer(object):
             'tile-layer': 'features'
             }
 
-        group_features = []
+        layer_features = []    # Features that will be added to the layer
         grouped_properties = {
             'group': True,
             'interior': True,
@@ -191,18 +193,18 @@ class FeatureLayer(object):
         for feature in single_features:
             if feature.get_property('boundary'):
                 if outermost:
-                    if self.__boundary_id is not None:
+                    if self.__boundary_feature is not None:
                         raise ValueError('Layer cannot have multiple boundaries: {}'.format(feature))
-                    self.__boundary_id = feature.feature_id
-                    group_features.append(feature)
+                    self.__boundary_feature = feature
+                    layer_features.append(feature)
                 elif feature.geom_type == 'LineString':
                     boundary_lines.append(extend_line(feature.geometry))
                 elif feature.geom_type == 'Polygon':
                     if boundary_polygon is not None:
                         raise GroupValueError('{} can only have one boundary shape:'.format(group_name), features)
                     boundary_polygon = feature.geometry
-                    if not feature.get_property('invisible'):
-                        group_features.append(feature)
+                    if feature.visible():
+                        layer_features.append(feature)
                 cls = feature.get_property('class')
                 if cls is not None:
                     if cls != boundary_class:
@@ -214,16 +216,16 @@ class FeatureLayer(object):
                 child_class = feature.del_property('children')
                 grouped_properties.update(feature.properties)
             elif feature.get_property('region'):
-                regions.append(self.__flatmap.new_feature(feature.geometry.representative_point(), feature.properties))
+                regions.append(self.flatmap.new_feature(feature.geometry.representative_point(), feature.properties))
             elif not feature.has_property('markup') or feature.get_property('divider'):
                 if feature.geom_type == 'LineString':
                     dividers.append(feature.geometry)
                 elif feature.geom_type == 'Polygon':
                     dividers.append(feature.geometry.boundary)
-                if not feature.get_property('invisible'):
-                    group_features.append(feature)
+                if feature.visible():
+                    layer_features.append(feature)
             elif feature.has_property('class') or not feature.get_property('interior'):
-                group_features.append(feature)
+                layer_features.append(feature)
 
         interior_features = []
         for feature in features:
@@ -240,10 +242,10 @@ class FeatureLayer(object):
                 try:
                     boundary_polygon = make_boundary(boundary_lines)
                 except ValueError as err:
-                    raise GroupValueError('{}: {}'.format(group_name, str(err)), features)
+                    raise GroupValueError('{}: {}'.format(group_name, str(err)), features) from None
 
-            group_features.append(
-                self.__flatmap.new_feature(
+            layer_features.append(
+                self.flatmap.new_feature(
                     boundary_polygon,
                     base_properties))
 
@@ -274,7 +276,7 @@ class FeatureLayer(object):
                     region_properties = base_properties.copy()
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_properties.update(region.properties)
-                        group_features.append(self.__flatmap.new_feature(polygon, region_properties))
+                        layer_features.append(self.flatmap.new_feature(polygon, region_properties))
                         break
         else:
             for feature in features:
@@ -289,7 +291,7 @@ class FeatureLayer(object):
                 elif feature.geom_type == 'MultiPolygon':
                     interior_polygons.extend(list(feature.geometry))
             interior_polygon = shapely.ops.unary_union(interior_polygons)
-            for feature in group_features:
+            for feature in layer_features:
                 if (feature.has_property('markup')
                 and feature.get_property('exterior')
                 and feature.geom_type in ['Polygon', 'MultiPolygon']):
@@ -301,32 +303,40 @@ class FeatureLayer(object):
         feature_group = None  # Our returned Feature
         if generate_group:
             grouped_polygon_features = [ feature for feature in features if feature.has_children ]
-            for feature in group_features:
+            for feature in layer_features:
                 grouped_polygon_features.append(feature)
 
+            bezier_paths = []
             grouped_lines = []
             for feature in grouped_polygon_features:
                 if feature.get_property('tile-layer') != 'pathways':
                     if feature.geom_type == 'LineString':
                         grouped_lines.append(feature.geometry)
+                        bezier_paths.append(feature.get_property('bezier-segments', []))
                     elif feature.geom_type == 'MultiLineString':
                         grouped_lines.extend(list(feature.geometry))
+                        bezier_paths.extend(feature.get_property('bezier-paths', []))
             if len(grouped_lines):
-                feature_group = self.__flatmap.new_feature(
+                feature_group = self.flatmap.new_feature(
                       shapely.geometry.MultiLineString(grouped_lines),
                       grouped_properties, True)
-                group_features.append(feature_group)
+                layer_features.append(feature_group)
             grouped_polygons = []
             for feature in grouped_polygon_features:
                 if feature.geom_type == 'Polygon':
                     grouped_polygons.append(feature.geometry)
+                    bezier_paths.append(feature.get_property('bezier-segments', []))
                 elif feature.geom_type == 'MultiPolygon':
                     grouped_polygons.extend(list(feature.geometry))
+                    bezier_paths.extend(feature.get_property('bezier-paths', []))
             if len(grouped_polygons):
-                feature_group = self.__flatmap.new_feature(
-                        shapely.geometry.MultiPolygon(grouped_polygons),
+                feature_group = self.flatmap.new_feature(
+                        shapely.geometry.MultiPolygon(grouped_polygons).buffer(0),
                         grouped_properties, True)
-                group_features.append(feature_group)
+                layer_features.append(feature_group)
+
+            if feature_group is not None and len(bezier_paths):
+                feature_group.set_property('bezier-paths', bezier_paths)
 
         # Feature specific properties have precedence over group's
 
@@ -335,7 +345,7 @@ class FeatureLayer(object):
             # Default class for all of the group's child shapes
             default_properties['class'] = child_class
 
-        for feature in group_features:
+        for feature in layer_features:
             if feature.geometry is not None:
                 for (key, value) in default_properties.items():
                     if not feature.has_property(key):
@@ -363,7 +373,7 @@ class RasterLayer(object):
     :param local_world_to_base: an optional transform from the raster layer's
                                 local world coordinates to the base map's
                                 world coordinates. Defaults to ``None``, meaning
-                                the :class:`~mapmaker.geometry.Identity` transform
+                                the :class:`~mapmaker.geometry.Transform.Identity()` transform
     :type local_world_to_base: :class:`~mapmaker.geometry.Transform`
     """
     def __init__(self, id, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):
@@ -382,6 +392,10 @@ class RasterLayer(object):
         return self.__id
 
     @property
+    def local_world_to_base(self):
+        return self.__local_world_to_base
+
+    @property
     def map_source(self):
         return self.__map_source
 
@@ -391,18 +405,18 @@ class RasterLayer(object):
 
     @property
     def source_data(self):
-        return self.__map_source.raster_source.source_data
+        return self.__map_source.raster_source.data
+
+    @property
+    def source_kind(self):
+        return self.__map_source.raster_source.kind
+
+    @property
+    def source_params(self):
+        return self.__map_source.raster_source.params
 
     @property
     def source_extent(self):
         return self.__map_source.extent
-
-    @property
-    def source_kind(self):
-        return self.__map_source.raster_source.source_kind
-
-    @property
-    def local_world_to_base(self):
-        return self.__local_world_to_base
 
 #===============================================================================

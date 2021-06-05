@@ -26,7 +26,7 @@ import requests
 
 #===============================================================================
 
-from mapmaker import Flatmap, __version__
+from mapmaker import MapMaker, __version__
 from mapmaker.utils import log
 
 #===============================================================================
@@ -39,10 +39,12 @@ def arg_parser():
     log_options = parser.add_argument_group('logging')
     log_options.add_argument('--log', dest='logFile', metavar='LOG_FILE',
                         help="append messages to a log file")
-    log_options.add_argument('-q', '--quiet', action='store_true',
-                        help="don't show progress bars")
+    log_options.add_argument('--show-deprecated', dest='showDeprecated', action='store_true',
+                        help='issue a warning for deprecated markup properties')
     log_options.add_argument('--silent', action='store_true',
                         help='suppress all messages to screen')
+    log_options.add_argument('--verbose', action='store_true',
+                        help="show progress bars")
 
     tile_options = parser.add_argument_group('image tiling')
     tile_options.add_argument('--clean', action='store_true',
@@ -53,8 +55,6 @@ def arg_parser():
     debug_options = parser.add_argument_group('diagnostics')
     debug_options.add_argument('--check-errors', dest='errorCheck', action='store_true',
                         help='check for errors without generating a map')
-    debug_options.add_argument('--save-beziers', dest='saveBeziers', action='store_true',
-                        help='Save Bezier curve segments as a feature property')
     debug_options.add_argument('--save-drawml', dest='saveDrawML', action='store_true',
                         help="save a slide's DrawML for debugging")
     debug_options.add_argument('--save-geojson', dest='saveGeoJSON', action='store_true',
@@ -89,8 +89,8 @@ def main():
     parser = arg_parser()
     args = parser.parse_args()
     try:
-        flatmap = Flatmap(vars(args))
-        flatmap.make()
+        mapmaker = MapMaker(vars(args))
+        mapmaker.make()
     except Exception as error:
         log.exception(str(error))
 

@@ -37,25 +37,25 @@ import shapely.geometry
 
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_PIXEL
-from ..markup import parse_markup
 
 from .cleaner import SVGCleaner
 from .definitions import DefinitionStore
+from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import adobe_decode, length_as_pixels, SVG_NS
+from .utils import adobe_decode_markup, length_as_pixels, SVG_NS
 
-from mapmaker.flatmap.layers import FeatureLayer
+from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import bezier_sample, radians, Transform, reflect_point
 from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
-from mapmaker.utils import FilePath, ProgressBar
+from mapmaker.utils import FilePath, ProgressBar, log
 
 #===============================================================================
 
 # These SVG tags are not used to determine feature geometry
 
 IGNORED_SVG_TAGS = [
-    SVG_NS('image'),
+    SVG_NS('clipPath'),
     SVG_NS('linearGradient'),
     SVG_NS('radialGradient'),
     SVG_NS('style'),
@@ -65,16 +65,16 @@ IGNORED_SVG_TAGS = [
 #===============================================================================
 
 class SVGSource(MapSource):
-    def __init__(self, flatmap, id, source_path, base_layer=True):
-        super().__init__(flatmap, id)
-        self.__source_file = FilePath(source_path)
-        self.__base_layer = base_layer
-        self.__svg = etree.parse(self.__source_file.get_fp()).getroot()
-        if 'viewBox' in self.__svg.attrib:
-            (width, height) = tuple(float(x) for x in self.__svg.attrib['viewBox'].split()[2:])
+    def __init__(self, flatmap, id, href, kind):  # maker v's flatmap (esp. id)
+        super().__init__(flatmap, id, href, kind)
+        self.__source_file = FilePath(href)
+        self.__exported = (kind=='base')
+        svg = etree.parse(self.__source_file.get_fp()).getroot()
+        if 'viewBox' in svg.attrib:
+            (width, height) = tuple(float(x) for x in svg.attrib['viewBox'].split()[2:])
         else:
-            width = length_as_pixels(self.__svg.attrib['width'])
-            height = length_as_pixels(self.__svg.attrib['height'])
+            width = length_as_pixels(svg.attrib['width'])
+            height = length_as_pixels(svg.attrib['height'])
         # Transform from SVG pixels to world coordinates
         self.__transform = Transform([[WORLD_METRES_PER_PIXEL,                      0, 0],
                                       [                     0, WORLD_METRES_PER_PIXEL, 0],
@@ -85,9 +85,8 @@ class SVGSource(MapSource):
         bottom_right = self.__transform.transform_point((width, height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-        self.__layer = SVGLayer(id, self, base_layer)
+        self.__layer = SVGLayer(id, self, svg, exported=self.__exported)
         self.add_layer(self.__layer)
-        self.__raster_source = None
         self.__boundary_geometry = None
 
     @property
@@ -95,25 +94,21 @@ class SVGSource(MapSource):
         return self.__boundary_geometry
 
     @property
-    def raster_source(self):
-        return self.__raster_source
-
-    @property
     def transform(self):
         return self.__transform
 
     def process(self):
     #=================
-        self.__layer.process(self.__svg)
-        if self.__layer.boundary_id is not None:
-            self.__boundary_geometry = self.__layer.features_by_id.get(self.__layer.boundary_id).geometry
-        if self.__base_layer:
+        self.__layer.process()
+        if self.__layer.boundary_feature is not None:
+            self.__boundary_geometry = self.__layer.boundary_feature.geometry
+        if self.__exported:
             # Save a cleaned copy of the SVG in the map's output directory
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties)
             cleaner.clean()
             with open(os.path.join(settings.get('output'),
-                      self.flatmap.id,
-                      '{}.svg'.format(self.flatmap.id)), 'wb') as fp:
+                      self.flatmap.maker_id,
+                      '{}.svg'.format(self.flatmap.maker_id)), 'wb') as fp:
                 cleaner.save(fp)
         if settings.get('backgroundTiles', False):
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
@@ -121,95 +116,103 @@ class SVGSource(MapSource):
             cleaned_svg = io.BytesIO()
             cleaner.save(cleaned_svg)
             cleaned_svg.seek(0)
-            self.__raster_source = RasterSource('svg', cleaned_svg)
+            self.set_raster_source(RasterSource('svg', cleaned_svg, source=self.__source_file))
 
 #===============================================================================
 
-class SVGLayer(FeatureLayer):
-    def __init__(self, id, source, base_layer=True):
-        super().__init__(id, source, base_layer=base_layer)
+class SVGLayer(MapLayer):
+    def __init__(self, id, source, svg, exported=True):
+        super().__init__(id, source, exported=exported)
+        self.__svg = svg
+        self.__style_matcher = StyleMatcher(svg.find(SVG_NS('style')))
         self.__transform = source.transform
-        self.__current_group = []
         self.__definitions = DefinitionStore()
 
-    def process(self, svg):
-    #======================
-        self.__current_group.append('ROOT')
-        features = self.__process_element_list(svg, self.__transform, show_progress=True)
+    def process(self):
+    #=================
+        properties = {'tile-layer': 'features'}   # Passed through to map viewer
+        features = self.__process_element_list(wrap_element(self.__svg),
+                                               self.__transform,
+                                               properties,
+                                               None, show_progress=True)
         self.add_features('SVG', features, outermost=True)
 
-    def __process_group(self, group, properties, transform):
-    #=======================================================
-        features = self.__process_element_list(group,
-            transform@SVGTransform(group.attrib.get('transform')))
-        return self.add_features(adobe_decode(group.attrib.get('id', '')), features)
+    def __process_group(self, wrapped_group, properties, transform, parent_style):
+    #=============================================================================
+        group_style = self.__style_matcher.element_style(wrapped_group, parent_style)
+        group = wrapped_group.etree_element
+        features = self.__process_element_list(wrapped_group,
+            transform@SVGTransform(group.attrib.get('transform')),
+            properties,
+            group_style)
+        # If the group element has markup then add a dummy `.group` feature
+        # to pass it to the MapLayer
+        if 'tile-layer' in properties:
+            del properties['tile-layer']
+        if len(properties):
+            properties['group'] = True
+            features.append(self.flatmap.new_feature(shapely.geometry.Polygon(), properties))
+        return self.add_features(adobe_decode_markup(group), features)
 
-    def __process_element_list(self, elements, transform, show_progress=False):
-    #==========================================================================
+    def __process_element_list(self, elements, transform, parent_properties, parent_style, show_progress=False):
+    #===========================================================================================================
+        children = list(elements.iter_children())
         progress_bar = ProgressBar(show=show_progress,
-            total=len(elements),
+            total=len(children),
             unit='shp', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         features = []
-        for element in elements:
-            if element.tag == SVG_NS('defs'):
+        for wrapped_element in children:
+            progress_bar.update(1)
+            element = wrapped_element.etree_element
+            if element.tag is etree.Comment or element.tag is etree.PI:
+                continue
+            elif element.tag == SVG_NS('defs'):
                 self.__definitions.add_definitions(element)
-                progress_bar.update(1)
                 continue
             elif element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
-            self.__process_element(element, transform, features)
-            progress_bar.update(1)
+                wrapped_element = wrap_element(element)
+            self.__process_element(wrapped_element, transform, features, parent_properties, parent_style)
         progress_bar.close()
         return features
 
-    def __process_element(self, element, transform, features):
-    #=========================================================
-        properties = {'tile-layer': 'features'}   # Passed through to map viewer
-        markup = adobe_decode(element.attrib.get('id', ''))
-        if markup.startswith('.'):
-            if markup.split()[-1].isnumeric():
-                markup = ' '.join(markup.split()[:-1])
-            properties.update(parse_markup(markup))
-            group_name = self.__current_group[-1]  # For error reporting
-            if 'error' in properties:
-                self.source.error('{} error: {}: annotation syntax error: {}'
-                                    .format(self.id, group_name, markup))
-            if 'warning' in properties:
-                self.source.error('{} warning: {}: {}'
-                                    .format(self.id, group_name, properties['warning']))
-            for key in ['id', 'path']:
-                if key in properties:
-                    if self.flatmap.is_duplicate_feature_id(properties[key]):
-                       self.source.error('{} error: {}: duplicate id: {}'
-                                           .format(self.id, group_name, markup))
+    def __process_element(self, wrapped_element, transform, features, parent_properties, parent_style):
+    #==================================================================================================
+        element = wrapped_element.etree_element
+        element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
+        properties = parent_properties.copy()
+        if 'id' in properties:   # We don't inherit `id`  (or do we have a list of inheritable properties??)
+            del properties['id']
+        properties.update(self.source.properties_from_markup(adobe_decode_markup(element)))
         if 'error' in properties:
             pass
         elif 'path' in properties:
             pass
-        elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
-                             SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
-                             SVG_NS('rect')]:
+        elif 'styling' in properties:
+            pass
+        elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('image'),
+                             SVG_NS('line'), SVG_NS('path'), SVG_NS('polyline'),
+                             SVG_NS('polygon'), SVG_NS('rect')]:
             geometry = self.__get_geometry(element, properties, transform)
             if geometry is None:
                 return
+
+            # Ignore element if fill is none and no stroke is specified
+            if (element_style.get('fill', '#FFF') == 'none'
+            and element_style.get('stroke', 'none') == 'none'):
+                return
+
             feature = self.flatmap.new_feature(geometry, properties)
-            if self.base_layer and not feature.get_property('group'):
-                # Save relationship between id/class and internal feature id
-                self.flatmap.save_feature_id(feature)
             features.append(feature)
         elif element.tag == SVG_NS('g'):
-            self.__current_group.append(properties.get('markup', "''"))
-            grouped_feature = self.__process_group(element, properties, transform)
-            self.__current_group.pop()
+            grouped_feature = self.__process_group(wrapped_element, properties, transform, parent_style)
             if grouped_feature is not None:
-                if self.base_layer:
-                    self.flatmap.save_feature_id(grouped_feature)
                 features.append(grouped_feature)
         elif element.tag in IGNORED_SVG_TAGS:
             pass
         else:
-            print('"{}" {} not processed...'.format(markup, element.tag))
+            log.warn('"{}" {} not processed...'.format(markup, element.tag))
 
     @staticmethod
     def __path_matcher(m):
@@ -232,6 +235,7 @@ class SVGLayer(FeatureLayer):
         first_point = None
         current_point = None
         closed = False
+        path_tokens = []
 
         T = transform@SVGTransform(element.attrib.get('transform'))
         if element.tag == SVG_NS('path'):
@@ -312,6 +316,17 @@ class SVGLayer(FeatureLayer):
                            'A', rx, ry, 0, 0, 0, cx, cy+ry,
                            'A', rx, ry, 0, 0, 0, cx+rx, cy,
                            'Z']
+
+        elif element.tag == SVG_NS('image'):
+            if 'id' in properties or 'class' in properties:
+                width = length_as_pixels(element.attrib.get('width', 0))
+                height = length_as_pixels(element.attrib.get('height', 0))
+                path_tokens = ['M', 0, 0,
+                               'H', width,
+                               'V', height,
+                               'H', 0,
+                               'V', 0,
+                               'Z']
 
         pos = 0
         while pos < len(path_tokens):
@@ -442,19 +457,21 @@ class SVGLayer(FeatureLayer):
                 first_point = None
 
             else:
-                print('Unknown path command: {}'.format(cmd))
+                log.warn('Unknown path command: {}'.format(cmd))
 
-        if settings.get('saveBeziers', False) and len(bezier_segments) > 0:
+        if len(bezier_segments) > 0:
             properties['bezier-segments'] = [repr(bz) for bz in bezier_segments]
 
-        if closed:
+        if closed and len(coordinates) >= 3:
             geometry = shapely.geometry.Polygon(coordinates)
-        else:
+        elif properties.get('closed', False) and len(coordinates) >= 3:
+            # Return a polygon if flagged as `closed`
+            coordinates.append(coordinates[0])
+            geometry = shapely.geometry.Polygon(coordinates)
+        elif len(coordinates) >= 2:
             geometry = shapely.geometry.LineString(coordinates)
-            if properties.get('closed', False):
-                # Return a polygon if flagged as `closed`
-                coordinates.append(coordinates[0])
-                return shapely.geometry.Polygon(coordinates)
+        else:
+            geometry = None
         return geometry
 
 #===============================================================================

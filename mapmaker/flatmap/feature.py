@@ -37,7 +37,8 @@ class Feature(object):
         self.__has_children = has_children
 
     def __str__(self):
-        return 'Feature {}: {}'.format(self.__geometry.geom_type, self.__properties)
+        return 'Feature {}: {}'.format(self.__geometry.geom_type,
+            { k:v for k, v in self.__properties.items() if k != 'bezier-segments'})
 
     @property
     def feature_id(self) -> int:
@@ -64,10 +65,17 @@ class Feature(object):
         return self.__properties.get('id')
 
     @property
-    def properties(self):
+    def models(self) -> str:
+        return self.__properties.get('models')
+
+    @property
+    def properties(self) -> dict:
         return self.__properties
 
-    def del_property(self, property: str):
+    def visible(self) -> bool:
+        return not self.get_property('invisible')
+
+    def del_property(self, property: str) -> Any:
         if property in self.__properties:
             return self.__properties.pop(property)
 
@@ -77,9 +85,10 @@ class Feature(object):
     def has_property(self, property: str) -> bool:
         return self.__properties.get(property, '') != ''
 
-    def set_property(self, property: str, value: Any):
-        self.__properties[property] = value
-
-
+    def set_property(self, property: str, value: Any) -> None:
+        if value is None:
+            self.del_property(property)
+        else:
+            self.__properties[property] = value
 
 #===============================================================================

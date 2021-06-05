@@ -40,34 +40,11 @@ from mapmaker.output.mbtiles import MBTiles, ExtractionError
 from mapmaker.sources import add_alpha, blank_image, mask_image, not_empty
 from mapmaker.sources.svg.rasteriser import SVGTiler
 from mapmaker.utils import log, ProgressBar
+from mapmaker.utils.image import *
 
 #===============================================================================
 
 TILE_SIZE = (512, 512)
-
-#===============================================================================
-
-def image_offset(dimension, max_dim, limit, bounds, scale):
-#==========================================================
-    if dimension < max_dim:
-        if limit[0] < bounds[0]:
-            if limit[1] < bounds[1]:
-                return max_dim - dimension
-            else:
-                return int(math.floor(0.5 - limit[0]*scale))
-    elif dimension != max_dim:
-        raise AssertionError('Image size mismatch: {} != {}'.format(dimension, max_dim))
-    return 0
-
-def image_size(img):
-#===================
-    return tuple(reversed(img.shape[:2]))
-
-def paste_image(destination, source, offset):
-#============================================
-    destination[offset[1]:offset[1]+source.shape[0],
-                offset[0]:offset[0]+source.shape[1]] = source
-    return destination
 
 #===============================================================================
 
@@ -313,10 +290,6 @@ class RasterTiler(object):
         return self.__image_rect
 
     @property
-    def tile_coords_to_pixels(self):
-        return self.__tile_coords_to_pixels
-
-    @property
     def tile_coords_to_world(self):
         return self.__tile_coords_to_world
 
@@ -520,12 +493,12 @@ class RasterTileMaker(object):
     def make_tiles(self):
     #====================
         log('Tiling {}...'.format(self.__id))
-        source_kind = self.__raster_layer.source_kind
-        if source_kind == 'image':
+        kind = self.__raster_layer.source_kind
+        if kind == 'image':
             tile_extractor = ImageTiler(self.__raster_layer, self.__tile_set)
-        elif source_kind == 'pdf':
+        elif kind == 'pdf':
             tile_extractor = PDFTiler(self.__raster_layer, self.__tile_set)
-        elif source_kind == 'svg':
+        elif kind == 'svg':
             if self.__raster_layer.local_world_to_base is None:
                 tile_extractor = SVGTiler(self.__raster_layer, self.__tile_set)
             else:

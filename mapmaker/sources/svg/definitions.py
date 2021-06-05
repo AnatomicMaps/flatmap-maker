@@ -22,35 +22,67 @@ import copy
 
 #===============================================================================
 
-class DefinitionStore(object):
+from .utils import XLINK_HREF
+
+#===============================================================================
+
+class ObjectStore(object):
     def __init__(self):
-        self.__definitions = {}
+        self.__objects = {}
+
+    def __str__(self):
+        return '\n'.join(['{}: {}'.format(k, v) for k, v in self.__objects.items()])
+
+    @staticmethod
+    def __id_from_url(url_id):
+        if url_id is not None:
+            url_id = url_id.strip()
+            if url_id[:4] == 'url(' and url_id[-1] == ')':
+                id = url_id[4:-1].strip()
+                if id.startswith('#'):
+                    return id[1:]
+        return None
+
+    def add(self, id, obj):
+    #======================
+        if id is not None:
+            self.__objects[id] = obj
+
+    def get(self, id):
+    #=================
+        return self.__objects.get(id)
+
+    def get_by_url(self, url_id):
+    #============================
+        return self.__objects.get(ObjectStore.__id_from_url(url_id))
+
+#===============================================================================
+
+class DefinitionStore(ObjectStore):
 
     def add_definition(self, element):
     #=================================
-        id = element.attrib.get('id')
-        if id is not None:
-            self.__definitions[id] = element
+        super().add(element.attrib.get('id'), element)
 
     def add_definitions(self, defs_element):
     #=======================================
         for element in defs_element:
             self.add_definition(element)
 
-    def lookup(self, id):
-    #====================
-        if id is not None and id.startswith('#'):
-            definition = self.__definitions.get(id[1:])
-            if definition is not None:
-                return copy.copy(definition)
+    def get_by_url(self, url_id):
+    #============================
+        definition = super().get_by_url(url_id)
+        if definition is not None:
+            return copy.copy(definition)
+        return None
 
     def use(self, element):
     #======================
-        id = element.attrib.get('xlink:href')
+        id = element.attrib.get(XLINK_HREF)
         if id is not None and id.startswith('#'):
-            definition = self.__definitions.get(id[1:])
+            definition = self.get(id[1:])
             if definition is not None:
-                del element.attrib['xlink:href']
+                del element.attrib[XLINK_HREF]
                 result = copy.copy(definition)
                 result.attrib.update(element.attrib)
                 return result

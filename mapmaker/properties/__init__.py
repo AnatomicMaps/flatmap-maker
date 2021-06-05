@@ -18,15 +18,20 @@
 #
 #===============================================================================
 
-from ..knowledgebase import AnatomicalMap
-from ..utils import FilePath
+from collections import defaultdict
+
+#===============================================================================
+
+from mapmaker.knowledgebase import AnatomicalMap
+from mapmaker.sources.apinatomy import ApiNATOMY
+from mapmaker.utils import FilePath
 
 from .pathways import Pathways
 
 #===============================================================================
 
-class JsonProperties(object):
-    def __init__(self, manifest):
+class ManifestProperties(object):
+    def __init__(self, flatmap, manifest):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
         self.__properties_by_class = {}
         self.__properties_by_id = {}
@@ -35,9 +40,37 @@ class JsonProperties(object):
         else:
             properties_dict = FilePath(manifest.properties).get_json()
         self.__set_properties(properties_dict.get('features', []))
-        self.__pathways = Pathways(properties_dict.get('paths', []))
+        self.__features_by_model = defaultdict(set)
+
+        # Load path definitions
+        self.__pathways = Pathways(flatmap, properties_dict.get('paths', []))
+        for connectivity_source in manifest.connectivity:
+            connectivity = FilePath(connectivity_source).get_json()
+            self.__pathways.add_connectivity(connectivity)
+
+        # Load routes from ApiNATOMY
+        if manifest.soma_processes is not None:
+            soma_processes = FilePath(manifest.soma_processes['href']).get_json()
+            for model in manifest.soma_processes['models']:
+                self.__pathways.add_apinatomy_routes(ApiNATOMY(soma_processes, model))
+
+    @property
+    def anatomical_ids(self):
+        anatomical_ids = set()
+        for ids in self.__features_by_model.values():
+            anatomical_ids.update(ids)
+        return list(anatomical_ids)
+
+    @property
+    def anatomical_map(self):
+        return self.__features_by_model
+
+    @property
+    def resolved_pathways(self):
+        return self.__pathways.resolved_pathways
 
     def __set_properties(self, features_list):
+    #=========================================
         for feature in features_list:
             if 'class' in feature:
                 cls = feature['class']
@@ -54,38 +87,45 @@ class JsonProperties(object):
                 else:
                     self.__properties_by_id[id] = properties
 
-    @property
-    def resolved_pathways(self):
-        return self.__pathways.resolved_pathways
-
-    def resolve_pathways(self, id_map, class_map):
-    #=============================================
+    def add_nerve_tracks(self, nerve_tracks):
+    #========================================
         if self.__pathways is not None:
-            self.__pathways.resolve_pathways(id_map, class_map)
+            self.__pathways.add_nerve_tracks(nerve_tracks)
 
-    def update_feature_properties(self, feature_properties):
-    #=======================================================
-        cls = feature_properties.get('class')
+    def resolve_pathways(self, id_map, class_map, anatomical_map):
+    #=============================================================
+        if self.__pathways is not None:
+            self.__pathways.resolve_pathways(id_map, class_map, anatomical_map)
+
+    def update_properties(self, properties):
+    #=======================================
+        cls = properties.get('class')
         if cls is not None:
-            feature_properties.update(self.__anatomical_map.properties(cls))
-            feature_properties.update(self.__properties_by_class.get(cls, {}))
+            properties.update(self.__anatomical_map.properties(cls))
+            properties.update(self.__properties_by_class.get(cls, {}))
             if self.__pathways is not None:
-                feature_properties.update(self.__pathways.add_path(cls))
-        id = feature_properties.get('id')
+                properties.update(self.__pathways.add_line_or_nerve(cls))
+        id = properties.get('id')
         if id is not None:
-            feature_properties.update(self.__properties_by_id.get(id, {}))
+            properties.update(self.__properties_by_id.get(id, {}))
             if self.__pathways is not None:
-                feature_properties.update(self.__pathways.add_path(id))
-        if 'marker' in feature_properties:
-            feature_properties['type'] = 'marker'
-            if 'datasets' in feature_properties:
-                feature_properties['kind'] = 'dataset'
-            elif 'scaffolds' in feature_properties:
-                feature_properties['kind'] = 'scaffold'
-            elif 'simulations' in feature_properties:
-                feature_properties['kind'] = 'simulation'
-        if 'models' in feature_properties and 'label' not in feature_properties:
-            feature_properties['label'] = self.__anatomical_map.label(feature_properties['models'])
-        return feature_properties
+                properties.update(self.__pathways.add_line_or_nerve(id))
+        if 'marker' in properties:
+            properties['type'] = 'marker'
+            if 'datasets' in properties:
+                properties['kind'] = 'dataset'
+            elif 'scaffolds' in properties:
+                properties['kind'] = 'scaffold'
+            elif 'simulations' in properties:
+                properties['kind'] = 'simulation'
+        if 'models' in properties and 'label' not in properties:
+            properties['label'] = self.__anatomical_map.label(properties['models'])
+        return properties
+
+    def update_feature_properties(self, feature):
+    #============================================
+        self.update_properties(feature.properties)
+        if feature.models is not None:
+            self.__features_by_model[feature.models].add(feature)
 
 #===============================================================================

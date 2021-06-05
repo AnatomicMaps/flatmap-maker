@@ -18,45 +18,55 @@
 #
 #===============================================================================
 
+import base64
+import contextlib
 import math
 import re
 
 #===============================================================================
 
-import cssselect2
 import cv2
 from lxml import etree
 import numpy as np
 import mercantile
 import shapely.geometry
+import shapely.ops
 import shapely.prepared
 import skia
-import tinycss2
+import webcolors
 
 #===============================================================================
 
 from .. import WORLD_METRES_PER_PIXEL
-from .. import EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
+from ..markup import parse_markup
 
-from mapmaker.geometry import degrees, radians, Transform, reflect_point
+from mapmaker.geometry import degrees, extent_to_bounds, radians, Transform, reflect_point
 from mapmaker.utils import ProgressBar, log
+from mapmaker.utils.image import image_size
 
-from .definitions import DefinitionStore
+from .definitions import DefinitionStore, ObjectStore
+from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import adobe_decode, length_as_pixels, SVG_NS
+from .utils import adobe_decode_markup, length_as_pixels, SVG_NS, XLINK_HREF
 
 #===============================================================================
 
-def make_colour(hex_string, opacity):
-    if hex_string.startswith('#'):
-        if len(hex_string) == 4:
-            rgb = tuple(2*c for c in hex_string[1:])
+IMAGE_MEDIA_TYPES = ['image/jpeg', 'image/png']
+
+#===============================================================================
+
+def make_colour(colour_string, opacity=1.0):
+    if colour_string.startswith('#'):
+        colour = webcolors.hex_to_rgb(colour_string)
+    elif colour_string.startswith('rgb('):
+        rgb = colour_string[4:-1].split(',')
+        if '%' in colour_string:
+            colour = webcolors.rgb_percent_to_rgb(rgb)
         else:
-            rgb = tuple(hex_string[n:n+2] for n in range(1, 6, 2))
-        colour = tuple(int(c, 16) for c in rgb)
-        return skia.Color(*colour, int(255*opacity))
+            colour = [int(c) for c in rgb]
     else:
-        return skia.Color(0, 0, 0, 128)
+        colour = webcolors.html5_parse_legacy_color(colour_string)
+    return skia.Color(*tuple(colour), int(255*opacity))
 
 #===============================================================================
 
@@ -66,7 +76,7 @@ class GradientStops(object):
         self.__colours = []
         for stop in element:
             if stop.tag == SVG_NS('stop'):
-                styling = ElementStyle(stop)
+                styling = ElementStyleDict(stop)
                 self.__offsets.append(float(stop.attrib['offset']))
                 self.__colours.append(make_colour(styling.get('stop-color'),
                                                   float(styling.get('stop-opacity', 1.0))))
@@ -81,66 +91,113 @@ class GradientStops(object):
 
 #===============================================================================
 
-class ElementStyle(object):
-    def __init__(self, element, style_dict={}):
-        self.__attributes = element.attrib
-        self.__style_dict = style_dict
-        if 'style' in self.__attributes:
-            local_style = {}
-            for declaration in tinycss2.parse_declaration_list(
-                self.__attributes['style'],
-                skip_comments=True, skip_whitespace=True):
-                local_style[declaration.lower_name] = ' '.join(
-                    [t.serialize() for t in declaration.value])
-            self.__style_dict.update(local_style)
+class CanvasDrawingObject(object):
+    def __init__(self, paint, bounds, parent_transform,
+                    transform_attribute, clip_path, bbox=None, root_object=False):
+        if root_object:
+            T = parent_transform@SVGTransform(transform_attribute)
+            self.__matrix = skia.Matrix(list(T.flatten()))
+        else:
+            T = parent_transform
+            if transform_attribute is None:
+                self.__matrix = None
+            else:
+                local_transform = SVGTransform(transform_attribute)
+                self.__matrix = skia.Matrix(list(local_transform.flatten()))
+                T = T@local_transform
+        if bounds is not None and bbox is None:
+            bbox = T.transform_geometry(shapely.geometry.box(*tuple(bounds)))
+        self.__bbox = bbox
+        self.__prep_bbox = shapely.prepared.prep(bbox) if bbox is not None else None
+        self.__clip_path = clip_path
+        self.__paint = paint
+        self.__save_state = (self.__matrix is not None
+                          or self.__clip_path is not None)
 
-    def get(self, key, default=None):
-    #================================
-        if key in self.__attributes:
-            return self.__attributes[key]
-        return self.__style_dict.get(key, default)
+    @property
+    def bbox(self):
+        return self.__bbox
+
+    @property
+    def paint(self):
+        return self.__paint
+
+    def draw_element(self, canvas, tile_bbox):
+    #=========================================
+        pass
+
+    def intersects(self, bbox):
+    #==========================
+        return bbox is not None and (self.__bbox is None or self.__prep_bbox.intersects(bbox))
+
+    @contextlib.contextmanager
+    def transformed_clipped_canvas(self, canvas):
+    #============================================
+        if self.__save_state:
+            canvas.save()
+            if self.__matrix is not None:
+                canvas.concat(self.__matrix)
+            if self.__clip_path is not None:
+                canvas.clipPath(self.__clip_path, doAntiAlias=True)
+        yield
+        if self.__save_state:
+            canvas.restore()
 
 #===============================================================================
 
-class StyleMatcher(cssselect2.Matcher):
-    '''Parse CSS and add rules to the matcher.'''
-    def __init__(self, style_element):
-        super().__init__()
-        rules = tinycss2.parse_stylesheet(style_element.text
-                    if style_element is not None else '',
-                    skip_comments=True, skip_whitespace=True)
-        for rule in rules:
-            selectors = cssselect2.compile_selector_list(rule.prelude)
-            declarations = [obj for obj in tinycss2.parse_declaration_list(
-                                               rule.content,
-                                               skip_whitespace=True)
-                            if obj.type == 'declaration']
-            for selector in selectors:
-                self.add_selector(selector, declarations)
+class CanvasPath(CanvasDrawingObject):
+    def __init__(self, path, paint, parent_transform, transform_attribute, clip_path):
+        super().__init__(paint, path.getBounds(), parent_transform, transform_attribute, clip_path)
+        self.__path = path
 
-    def match(self, element):
-    #========================
-        styling = {}
-        matches = super().match(element)
-        if matches:
-            for match in matches:
-                specificity, order, pseudo, declarations = match
-                for declaration in declarations:
-                    styling[declaration.lower_name] = declaration.value
-        return styling
+    def draw_element(self, canvas, tile_bbox):
+    #=========================================
+        if self.intersects(tile_bbox):
+            with self.transformed_clipped_canvas(canvas):
+                canvas.drawPath(self.__path, self.paint)
 
-    def element_style(self, wrapped_element):
-    #========================================
-        return ElementStyle(wrapped_element.etree_element,
-                            { key: ' '.join([t.serialize() for t in value])
-                                for key, value in self.match(wrapped_element).items()
-                            })
+#===============================================================================
 
+class CanvasImage(CanvasDrawingObject):
+    def __init__(self, image, paint, parent_transform, transform_attribute, clip_path):
+        super().__init__(paint, image.bounds(), parent_transform, transform_attribute, clip_path)
+        self.__image = image
+
+    def draw_element(self, canvas, tile_bbox):
+    #=========================================
+        if self.intersects(tile_bbox):
+            with self.transformed_clipped_canvas(canvas):
+                canvas.drawImage(self.__image, 0, 0, self.paint)
+
+#===============================================================================
+
+class CanvasGroup(CanvasDrawingObject):
+    def __init__(self, drawing_objects, parent_transform, transform_attribute, clip_path, outermost=False):
+        bbox = (shapely.ops.unary_union([element.bbox for element in drawing_objects]).envelope
+                    if len(drawing_objects) > 0 else
+                None)
+        super().__init__(None, None, parent_transform, transform_attribute, clip_path, bbox=bbox, root_object=outermost)
+        self.__drawing_objects = drawing_objects
+
+    @property
+    def is_valid(self):
+        return len(self.__drawing_objects) > 0
+
+    def draw_element(self, canvas, tile_bbox):
+    #=========================================
+        if self.intersects(tile_bbox):
+            with self.transformed_clipped_canvas(canvas):
+                for element in self.__drawing_objects:
+                    element.draw_element(canvas, tile_bbox)
+
+#===============================================================================
 #===============================================================================
 
 class SVGTiler(object):
     def __init__(self, raster_layer, tile_set):
+        self.__bbox = shapely.geometry.box(*extent_to_bounds(raster_layer.extent))
         self.__svg = etree.parse(raster_layer.source_data).getroot()
+        self.__source = raster_layer.source_params.get('source')
         if 'viewBox' in self.__svg.attrib:
             self.__size = tuple(float(x)
                 for x in self.__svg.attrib['viewBox'].split()[2:])
@@ -150,18 +207,14 @@ class SVGTiler(object):
         self.__scaling = (tile_set.pixel_rect.width/self.__size[0],
                           tile_set.pixel_rect.height/self.__size[1])
         self.__definitions = DefinitionStore()
-        defs = self.__svg.find(SVG_NS('defs'))
-        if defs is not None:
-            self.__definitions.add_definitions(defs)
         self.__style_matcher = StyleMatcher(self.__svg.find(SVG_NS('style')))
-        self.__first_scan = True
+        self.__clip_paths = ObjectStore()
 
         # Transform from SVG pixels to tile pixels
-        transform = Transform([[self.__scaling[0],               0.0, 0.0],
-                               [              0.0, self.__scaling[1], 0.0],
-                               [              0.0,               0.0, 1.0]])
-        self.__path_list = []
-        self.__draw_svg(transform, self.__path_list)
+        svg_to_tile_transform = Transform([[self.__scaling[0],               0.0, 0.0],
+                                           [              0.0, self.__scaling[1], 0.0],
+                                           [              0.0,               0.0, 1.0]])
+        self.__svg_drawing = self.__draw_svg(svg_to_tile_transform)
 
         # Transform from SVG pixels to world coordinates
         self.__image_to_world = (Transform([
@@ -175,20 +228,16 @@ class SVGTiler(object):
         self.__tile_size = tile_set.tile_size
         self.__tile_origin = tile_set.start_coords
         self.__pixel_offset = tuple(tile_set.pixel_rect)[0:2]
-        path_bounding_boxes = [ (path, paint,
-                                    shapely.geometry.box(*tuple(path.getBounds())))
-                                for (path, paint) in self.__path_list ]
-        self.__tile_paths = {}
+
+        self.__tile_bboxes = {}
         for tile in tile_set:
             tile_set.tile_coords_to_pixels.transform_point((tile.x, tile.y))
             x0 = (tile.x - self.__tile_origin[0])*self.__tile_size[0] - self.__pixel_offset[0]
             y0 = (tile.y - self.__tile_origin[1])*self.__tile_size[1] - self.__pixel_offset[1]
-            tile_bbox = shapely.prepared.prep(shapely.geometry.box(x0, y0,
+            tile_bbox = shapely.geometry.box(x0, y0,
                                                                    x0 + self.__tile_size[0],
-                                                                   y0 + self.__tile_size[0]))
-            self.__tile_paths[mercantile.quadkey(tile)] = list(filter(
-                lambda ppb: tile_bbox.intersects(ppb[2]),
-                path_bounding_boxes))
+                                                                   y0 + self.__tile_size[0])
+            self.__tile_bboxes[mercantile.quadkey(tile)] = tile_bbox
 
     @property
     def size(self):
@@ -204,62 +253,86 @@ class SVGTiler(object):
         surface = skia.Surface(int(self.__scaling[0]*self.__size[0] + 0.5),
                                int(self.__scaling[1]*self.__size[1] + 0.5))
         canvas = surface.getCanvas()
-        for (path, paint) in self.__path_list:
-            canvas.drawPath(path, paint)
+        canvas.clear(skia.Color4f(0xFFFFFFFF))
+        self.__svg_drawing.draw_element(canvas, self.__bbox)
         log('Making image snapshot...')
         image = surface.makeImageSnapshot()
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
     def get_tile(self, tile):
     #========================
-        surface = skia.Surface(*self.__tile_size)
+        surface = skia.Surface(*self.__tile_size)  ## In pixels...
         canvas = surface.getCanvas()
+        canvas.clear(skia.Color4f(0xFFFFFFFF))
         canvas.translate(self.__pixel_offset[0] + (self.__tile_origin[0] - tile.x)*self.__tile_size[0],
                          self.__pixel_offset[1] + (self.__tile_origin[1] - tile.y)*self.__tile_size[1])
         quadkey = mercantile.quadkey(tile)
-        for path, paint, bbox in self.__tile_paths.get(quadkey, []):
-            canvas.drawPath(path, paint)
+        self.__svg_drawing.draw_element(canvas, self.__tile_bboxes.get(quadkey))
+
         image = surface.makeImageSnapshot()
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
-    def __draw_svg(self, transform, path_list, show_progress=False):
-    #===============================================================
-        wrapped_svg = cssselect2.ElementWrapper.from_xml_root(self.__svg)
-        self.__draw_element_list(wrapped_svg, transform, path_list, show_progress)
-        self.__first_scan = False
+    def __draw_svg(self, svg_to_tile_transform, show_progress=False):
+    #================================================================
+        wrapped_svg = wrap_element(self.__svg)
+        drawing_objects = self.__draw_element_list(wrapped_svg,
+            svg_to_tile_transform@SVGTransform(wrapped_svg.etree_element.attrib.get('transform')),
+            None,
+            show_progress=show_progress)
+        attributes = wrapped_svg.etree_element.attrib
+        return CanvasGroup(drawing_objects, svg_to_tile_transform,
+                    attributes.get('transform'),
+                    None,
+                    outermost=True)
 
-    def __draw_group(self, group, transform, path_list):
-    #===================================================
-        self.__draw_element_list(group,
-            transform@SVGTransform(group.etree_element.attrib.get('transform')),
-            path_list)
+    def __draw_group(self, group, parent_transform, parent_style):
+    #=============================================================
+        group_style = self.__style_matcher.element_style(group, parent_style)
+        group_clip_path = group_style.get('clip-path')
+        if group_clip_path is not None:
+            del group_style['clip-path']
+        drawing_objects = self.__draw_element_list(group,
+            parent_transform@SVGTransform(group.etree_element.attrib.get('transform')),
+            group_style)
+        return CanvasGroup(drawing_objects, parent_transform,
+                    group.etree_element.attrib.get('transform'),
+                    self.__clip_paths.get_by_url(group_clip_path))
 
-    def __draw_element_list(self, elements, transform, path_list, show_progress=False):
-    #==================================================================================
+    def __draw_element_list(self, elements, parent_transform, parent_style, show_progress=False):
+    #============================================================================================
+        drawing_objects = []
         children = list(elements.iter_children())
         progress_bar = ProgressBar(show=show_progress,
             total=len(children),
             unit='shp', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for wrapped_element in children:
-            element = wrapped_element.etree_element
-            if element.tag == SVG_NS('use'):
-                element = self.__definitions.use(element)
-                wrapped_element = cssselect2.ElementWrapper.from_xml_root(element)
-            elif element.tag in [SVG_NS('linearGradient'), SVG_NS('radialGradient')]:
-                if self.__first_scan:
-                    self.__definitions.add_definition(element)
-                continue
-            self.__draw_element(wrapped_element, transform, path_list)
             progress_bar.update(1)
+            element = wrapped_element.etree_element
+            if element.tag is etree.Comment or element.tag is etree.PI:
+                continue
+            if element.tag == SVG_NS('defs'):
+                self.__definitions.add_definitions(element)
+                continue
+            elif element.tag == SVG_NS('use'):
+                element = self.__definitions.use(element)
+                wrapped_element = wrap_element(element)
+            elif element.tag in [SVG_NS('linearGradient'), SVG_NS('radialGradient')]:
+                self.__definitions.add_definition(element)
+                continue
+            if element.tag == SVG_NS('clipPath'):
+                self.__add_clip_path(wrapped_element)
+            else:
+                drawing_objects.extend(self.__draw_element(wrapped_element, parent_transform, parent_style))
         progress_bar.close()
+        return drawing_objects
 
     @staticmethod
-    def __skia_matrix(gradient, path, transform):
-    #============================================
+    def __gradient_matrix(gradient, path):
+    #=====================================
         if gradient.attrib.get('gradientUnits') == 'userSpaceOnUse':
-            path_transform = transform
-        else:
+            path_transform = Transform.Identity()
+        else:                                    #  objectBoundingBox'
             bounds = path.getBounds()
             path_transform = Transform([[bounds.width(),               0, bounds.left()],
                                         [             0, bounds.height(), bounds.top()],
@@ -267,84 +340,169 @@ class SVGTiler(object):
         svg_transform = SVGTransform(gradient.attrib.get('gradientTransform'))
         return skia.Matrix(list((path_transform@svg_transform).flatten()))
 
-    def __draw_element(self, wrapped_element, transform, path_list):
-    #===============================================================
-        ## Why not simply get path from feature's GeoJSON??
-        ## Because some features are derived an not in SVG...
-        ## We still need style information from SVG (or store this
-        ## with the feature??)
-        ## What about gradient sizing??
-        ##
+    def __add_clip_path(self, wrapped_clip_path):
+    #============================================
+        clip_path_element = wrapped_clip_path.etree_element
+        clip_id = clip_path_element.attrib.get('id')
+        clip_path = None
+        for wrapped_element in wrapped_clip_path.iter_children():
+            element = wrapped_element.etree_element
+            if element.tag == SVG_NS('use'):
+                element = self.__definitions.use(element)
+            if (element is not None
+            and element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
+                               SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
+                               SVG_NS('rect')]):
+                path = SVGTiler.__get_graphics_path(element)
+                if path is not None:
+                    if clip_path is None:
+                        clip_path = path
+                    else:
+                        clip_path.addPath(path)
+        if clip_id is not None and clip_path is not None:
+            self.__clip_paths.add(clip_id, clip_path)
+
+    def __draw_element(self, wrapped_element, parent_transform, parent_style):
+    #=========================================================================
+        drawing_objects = []
         element = wrapped_element.etree_element
-        element_style = self.__style_matcher.element_style(wrapped_element)
+        element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
 
         if element.tag == SVG_NS('g'):
-            self.__draw_group(wrapped_element, transform, path_list)
+            canvas_group = self.__draw_group(wrapped_element, parent_transform, parent_style)
+            if canvas_group.is_valid:
+                drawing_objects.append(canvas_group)
 
         elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
                              SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
                              SVG_NS('rect')]:
 
-            path = self.__get_graphics_path(element, transform)
-            if path is None: return
+            path = SVGTiler.__get_graphics_path(element)
+            if path is None: return []
 
-            ## Or simply don't stroke as Mapbox will draw boundaries...
+            fill = element_style.get('fill', '#FFF')
+            if fill != 'none':
+                path.setFillType(skia.PathFillType.kWinding)
+                opacity = float(element_style.get('opacity', 1.0))
+                paint = skia.Paint(AntiAlias=True)
+                if fill.startswith('url('):
+                    gradient = self.__definitions.get_by_url(fill)
+                    if gradient is None:
+                        fill = '#800'     # Something's wrong so show show in image...
+                        opacity = 0.5
+                    elif gradient.tag == SVG_NS('linearGradient'):
+                        gradient_stops = GradientStops(gradient)
+                        points = [(float(gradient.attrib.get('x1', 0.0)),
+                                   float(gradient.attrib.get('y1', 0.0))),
+                                  (float(gradient.attrib.get('x2', 1.0)),
+                                   float(gradient.attrib.get('y2', 0.0)))]
+                        paint.setShader(skia.GradientShader.MakeLinear(
+                            points=points,
+                            positions=gradient_stops.offsets,
+                            colors=gradient_stops.colours,
+                            localMatrix=SVGTiler.__gradient_matrix(gradient, path)
+                        ))
+                    elif gradient.tag == SVG_NS('radialGradient'):
+                        gradient_stops = GradientStops(gradient)
+                        centre = (float(gradient.attrib.get('cx')),
+                                  float(gradient.attrib.get('cy')))
+                        radius = float(gradient.attrib.get('r'))
+                        # TODO: fx, fy
+                        #       This will need a two point conical shader
+                        #       -- see chromium/blink sources
+                        paint.setShader(skia.GradientShader.MakeRadial(
+                            center=centre,
+                            radius=radius,
+                            positions=gradient_stops.offsets,
+                            colors=gradient_stops.colours,
+                            localMatrix=SVGTiler.__gradient_matrix(gradient, path)
+                        ))
+                    else:
+                        fill = '#008'     # Something's wrong so show show in image...
+                        opacity = 0.5
+
+                if fill.startswith('url('):
+                    if opacity < 1.0:
+                        paint.setAlphaf(opacity)
+                else:
+                    paint.setColor(make_colour(fill, opacity))
+
+                drawing_objects.append(CanvasPath(path, paint, parent_transform,
+                    element.attrib.get('transform'),
+                    self.__clip_paths.get_by_url(element_style.get('clip-path'))
+                    ))
+
             stroke = element_style.get('stroke', 'none')
-            if False and stroke.startswith('#'):
+            stroked = (stroke != 'none')
+            if stroked:
+                markup = adobe_decode_markup(element)
+                if markup.startswith('.'):
+                    properties = parse_markup(markup)
+                    if 'id' in properties or 'class' in properties:
+                        stroked = False
+            if stroked:
                 opacity = float(element_style.get('stroke-opacity', 1.0))
                 paint = skia.Paint(AntiAlias=True,
                     Style=skia.Paint.kStroke_Style,
                     Color=make_colour(stroke, opacity),
-                    StrokeWidth=1)  ## Use actual stroke-width?? Scale??
-                path_list.append((path, paint))
-
-            fill = element_style.get('fill', '#FFF')
-            if fill == 'none': return
-
-            path.setFillType(skia.PathFillType.kWinding)
-            opacity = float(element_style.get('opacity', 1.0))
-            paint = skia.Paint(AntiAlias=True)
-
-            if fill.startswith('url('):
-                gradient = self.__definitions.lookup(fill[4:-1])
-                if gradient is None:
-                    fill = '#800'     # Something's wrong show show in image...
-                    opacity = 0.5
-                elif gradient.tag == SVG_NS('linearGradient'):
-                    gradient_stops = GradientStops(gradient)
-                    points = [(float(gradient.attrib.get('x1', 0.0)),
-                               float(gradient.attrib.get('y1', 0.0))),
-                              (float(gradient.attrib.get('x2', 1.0)),
-                               float(gradient.attrib.get('y2', 0.0)))]
-                    paint.setShader(skia.GradientShader.MakeLinear(
-                        points=points,
-                        positions=gradient_stops.offsets,
-                        colors=gradient_stops.colours,
-                        localMatrix=SVGTiler.__skia_matrix(gradient, path, transform)
+                    StrokeWidth=float(element_style.get('stroke-width', 1.0)),
+                    )
+                stroke_linejoin = element_style.get('stroke-linejoin')
+                if stroke_linejoin == 'bevel':
+                    paint.setStrokeJoin(skia.Paint.Join.kBevel_Join)
+                elif stroke_linejoin == 'miter':
+                    paint.setStrokeJoin(skia.Paint.Join.kMiter_Join)
+                elif stroke_linejoin == 'round':
+                    paint.setStrokeJoin(skia.Paint.Join.kRound_Join)
+                stroke_linecap = element_style.get('stroke-linecap')
+                if stroke_linecap == 'butt':
+                    paint.setStrokeCap(skia.Paint.Cap.kButt_Cap)
+                elif stroke_linecap == 'round':
+                    paint.setStrokeCap(skia.Paint.Cap.kRound_Cap)
+                elif stroke_linecap == 'square':
+                    paint.setStrokeCap(skia.Paint.Cap.kSquare_Cap)
+                stroke_miterlimit = element_style.get('stroke-miterlimit')
+                if stroke_miterlimit is not None:
+                    paint.setStrokeMiter(float(stroke_miterlimit))
+                drawing_objects.append(CanvasPath(path, paint, parent_transform,
+                    element.attrib.get('transform'),
+                    self.__clip_paths.get_by_url(element.attrib.get('clip-path'))
                     ))
-                elif gradient.tag == SVG_NS('radialGradient'):
-                    gradient_stops = GradientStops(gradient)
-                    centre = (float(gradient.attrib.get('cx')),
-                              float(gradient.attrib.get('cy')))
-                    radius = float(gradient.attrib.get('r'))
-                    # TODO: fx, fy
-                    #       This will need a two point conical shader
-                    #       -- see chromium/blink sources
-                    paint.setShader(skia.GradientShader.MakeRadial(
-                        center=centre,
-                        radius=radius,
-                        positions=gradient_stops.offsets,
-                        colors=gradient_stops.colours,
-                        localMatrix=SVGTiler.__skia_matrix(gradient, path, transform)
-                    ))
+
+        elif element.tag == SVG_NS('image'):
+            image_href = element.attrib.get(XLINK_HREF)
+            pixel_bytes = None
+            if image_href is not None:
+                if image_href.startswith('data:'):
+                    parts = image_href[5:].split(',', 1)
+                    if parts[0].endswith(';base64'):
+                        media_type = parts[0].split(';', 1)[0]
+                        if media_type in IMAGE_MEDIA_TYPES:
+                            pixel_bytes = base64.b64decode(parts[1])
                 else:
-                    fill = '#008'     # Something's wrong show show in image...
-                    opacity = 0.5
+                    pixel_bytes = self.__source.join_path(image_href).get_data()
+                if pixel_bytes is not None:
+                    pixel_array = np.frombuffer(pixel_bytes, dtype=np.uint8)
+                    pixels = cv2.imdecode(pixel_array, cv2.IMREAD_UNCHANGED)
+                    if pixels.shape[2] == 3:
+                        pixels = cv2.cvtColor(pixels, cv2.COLOR_RGB2RGBA)
+                    image = skia.Image.fromarray(pixels, colorType=skia.kBGRA_8888_ColorType)
+                    width = int(element.attrib.get('width', image.width()))
+                    height = int(element.attrib.get('height', image.height()))
+                    if width != image.width() or height != image.height():
+                        image = image.resize(width, height, skia.FilterQuality.kHigh_FilterQuality)
+                    paint = skia.Paint()
+                    opacity = float(element_style.get('opacity', 1.0))
+                    paint.setAlpha(round(opacity * 255))
+                    drawing_objects.append(CanvasImage(image, paint, parent_transform,
+                        element.attrib.get('transform'),
+                        self.__clip_paths.get_by_url(element_style.get('clip-path'))
+                        ))
 
-            if fill.startswith('#'):
-                paint.setColor(make_colour(fill, opacity))
-            path_list.append((path, paint))
+        elif element.tag not in [SVG_NS('style'), SVG_NS('text')]:
+            log.warn("'{}' not supported...".format(element.tag))
 
+        return drawing_objects
 
     @staticmethod
     def __svg_path_matcher(m):
@@ -356,20 +514,20 @@ class SVGTiler(object):
         if c == ',': return ' '
         return c
 
-    def __get_graphics_path(self, element, transform):
-    #=================================================
-        T = transform@SVGTransform(element.attrib.get('transform'))
+    @staticmethod
+    def __get_graphics_path(element):
+    #================================
         if element.tag == SVG_NS('path'):
             tokens = re.sub('.', SVGTiler.__svg_path_matcher,
                             element.attrib.get('d', '')).split()
-            path = self.__path_from_tokens(tokens, T)
+            path = SVGTiler.__path_from_tokens(tokens)
 
         elif element.tag == SVG_NS('rect'):
-            (width, height) = T.scale_length((length_as_pixels(element.attrib.get('width', 0)),
-                                              length_as_pixels(element.attrib.get('height', 0))))
+            (width, height) = (length_as_pixels(element.attrib.get('width', 0)),
+                               length_as_pixels(element.attrib.get('height', 0)))
             if width == 0 or height == 0: return None
-            (rx, ry) = T.scale_length((length_as_pixels(element.attrib.get('rx', 0)),
-                                       length_as_pixels(element.attrib.get('ry', 0))))
+            (rx, ry) = (length_as_pixels(element.attrib.get('rx', 0)),
+                        length_as_pixels(element.attrib.get('ry', 0)))
             if rx is None and ry is None:
                 rx = ry = 0
             elif ry is None:
@@ -378,8 +536,8 @@ class SVGTiler(object):
                 rx = ry
             rx = min(rx, width/2)
             ry = min(ry, height/2)
-            (x, y) = T.transform_point((length_as_pixels(element.attrib.get('x', 0)),
-                                        length_as_pixels(element.attrib.get('y', 0))))
+            (x, y) = (length_as_pixels(element.attrib.get('x', 0)),
+                      length_as_pixels(element.attrib.get('y', 0)))
             if rx == 0 and ry == 0:
                 path = skia.Path.Rect((x, y, width, height))
             else:
@@ -390,37 +548,37 @@ class SVGTiler(object):
             y1 = length_as_pixels(element.attrib.get('y1', 0))
             x2 = length_as_pixels(element.attrib.get('x2', 0))
             y2 = length_as_pixels(element.attrib.get('y2', 0))
-            path = self.__path_from_tokens(['M', x1, y1, x2, y2], T)
+            path = SVGTiler.__path_from_tokens(['M', x1, y1, x2, y2])
 
         elif element.tag == SVG_NS('polyline'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
-            path = self.__path_from_tokens(['M'] + points, T)
+            path = SVGTiler.__path_from_tokens(['M'] + points)
 
         elif element.tag == SVG_NS('polygon'):
-            points = element.attrib.get('points', '').replace(',', ' ').split()
-            skia_points = [skia.Point(*T.transform_point(points[n:n+2]))
-                                            for n in range(0, len(points), 2)]
+            points = [ float(p) for p in element.attrib.get('points', '').replace(',', ' ').split() ]
+            skia_points = [skia.Point(*points[n:n+2]) for n in range(0, len(points), 2)]
             path = skia.Path.Polygon(skia_points, True)
 
         elif element.tag == SVG_NS('circle'):
             r = length_as_pixels(element.attrib.get('r', 0))
             if r == 0: return None
-            (cx, cy) = T.transform_point((length_as_pixels(element.attrib.get('cx', 0)),
-                                          length_as_pixels(element.attrib.get('cy', 0))))
+            (cx, cy) = (length_as_pixels(element.attrib.get('cx', 0)),
+                        length_as_pixels(element.attrib.get('cy', 0)))
             path = skia.Path.Circle(cx, cy, r)
 
         elif element.tag == SVG_NS('ellipse'):
-            (rx, ry) = T.scale_length((length_as_pixels(element.attrib.get('rx', 0)),
-                                       length_as_pixels(element.attrib.get('ry', 0))))
+            (rx, ry) = (length_as_pixels(element.attrib.get('rx', 0)),
+                        length_as_pixels(element.attrib.get('ry', 0)))
             if rx == 0 or ry == 0: return None
-            (cx, cy) = T.transform_point((length_as_pixels(element.attrib.get('cx', 0)),
-                                          length_as_pixels(element.attrib.get('cy', 0))))
+            (cx, cy) = (length_as_pixels(element.attrib.get('cx', 0)),
+                        length_as_pixels(element.attrib.get('cy', 0)))
             path = skia.Path.Oval((cx-rx, cy-ry, cx+rx, cy+ry))
 
         return path
 
-    def __path_from_tokens(self, tokens, transform):
-    #===============================================
+    @staticmethod
+    def __path_from_tokens(tokens):
+    #==============================
         moved = False
         first_point = None
         current_point = None
@@ -452,20 +610,20 @@ class SVGTiler(object):
                     pt[1] += current_point[1]
                 phi = radians(params[2])
                 if moved:
-                    path.moveTo(*transform.transform_point(current_point))
+                    path.moveTo(*current_point)
                     moved = False
-                (rx, ry) = transform.scale_length(params[0:2])
-                path.arcTo(rx, ry, degrees(transform.rotate_angle(phi)),
+                (rx, ry) = (params[0], params[1])
+                path.arcTo(rx, ry, degrees(phi),
                     skia.Path.ArcSize.kSmall_ArcSize if params[3] == 0
                         else skia.Path.ArcSize.kLarge_ArcSize,
                     skia.PathDirection.kCCW if params[4] == 0
                         else skia.PathDirection.kCW,
-                    *transform.transform_point(pt))
+                    *pt)
                 current_point = pt
 
             elif cmd in ['c', 'C', 's', 'S']:
                 if moved:
-                    path.moveTo(*transform.transform_point(current_point))
+                    path.moveTo(*current_point)
                     moved = False
                 if cmd in ['c', 'C']:
                     n_params = 6
@@ -473,10 +631,9 @@ class SVGTiler(object):
                 else:
                     n_params = 4
                     if second_cubic_control is None:
-                        coords = list(transform.transform_point(current_point))
+                        coords = list(current_point)
                     else:
-                        coords = list(transform.transform_point(
-                                    reflect_point(second_cubic_control, current_point)))
+                        coords = list(reflect_point(second_cubic_control, current_point))
                 params = [float(x) for x in tokens[pos:pos+n_params]]
                 pos += n_params
                 for n in range(0, n_params, 2):
@@ -486,7 +643,7 @@ class SVGTiler(object):
                         pt[1] += current_point[1]
                     if n == (n_params - 4):
                         second_cubic_control = pt
-                    coords.extend(transform.transform_point(pt))
+                    coords.extend(pt)
                 path.cubicTo(*coords)
                 current_point = pt
 
@@ -510,9 +667,9 @@ class SVGTiler(object):
                     else:
                         pt = [current_point[0], param]
                 if moved:
-                    path.moveTo(*transform.transform_point(current_point))
+                    path.moveTo(*current_point)
                     moved = False
-                path.lineTo(*transform.transform_point(pt))
+                path.lineTo(*pt)
                 current_point = pt
 
             elif cmd in ['m', 'M']:
@@ -531,7 +688,7 @@ class SVGTiler(object):
 
             elif cmd in ['q', 'Q', 't', 'T']:
                 if moved:
-                    path.moveTo(*transform.transform_point(current_point))
+                    path.moveTo(*current_point)
                     moved = False
                 if cmd in ['t', 'T']:
                     n_params = 4
@@ -539,10 +696,9 @@ class SVGTiler(object):
                 else:
                     n_params = 2
                     if second_quad_control is None:
-                        coords = list(transform.transform_point(current_point))
+                        coords = list(current_point)
                     else:
-                        coords = list(transform.transform_point(
-                                    reflect_point(second_quad_control, current_point)))
+                        coords = list(reflect_point(second_quad_control, current_point))
                 params = [float(x) for x in tokens[pos:pos+n_params]]
                 pos += n_params
                 for n in range(0, n_params, 2):
@@ -552,7 +708,7 @@ class SVGTiler(object):
                         pt[1] += current_point[1]
                     if n == (n_params - 4):
                         second_quad_control = pt
-                    coords.extend(transform.transform_point(pt))
+                    coords.extend(pt)
                 path.quadTo(*coords)
                 current_point = pt
 
@@ -564,7 +720,8 @@ class SVGTiler(object):
                 first_point = None
 
             else:
-                print('Unknown path command: {}'.format(cmd))
+                log.warn('Unknown path command: {}'.format(cmd))
+
         return path
 
 #===============================================================================

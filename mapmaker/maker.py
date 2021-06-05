@@ -18,7 +18,6 @@
 #
 #===============================================================================
 
-from collections import defaultdict, OrderedDict
 import datetime
 import json
 import os
@@ -30,21 +29,12 @@ from urllib.parse import urljoin
 
 #===============================================================================
 
-import cv2
-import numpy as np
-
-#===============================================================================
-
 from mapmaker import FLATMAP_VERSION, __version__
-from mapmaker.geometry import Transform
 from mapmaker.utils import configure_logging, log, FilePath
 
 #===============================================================================
 
-from .flatmap.feature import Feature
-from .flatmap.layers import FeatureLayer
-
-from .geometry import bounds_to_extent, extent_to_bounds, normalised_coords
+from .flatmap import FlatMap
 
 from .knowledgebase import LabelDatabase
 
@@ -53,8 +43,6 @@ from .output.mbtiles import MBTiles
 from .output.styling import MapStyle
 from .output.tilejson import tile_json
 from .output.tilemaker import RasterTileMaker
-
-from .properties import JsonProperties
 
 from .settings import settings
 
@@ -65,12 +53,21 @@ from .sources import MBFSource, PowerpointSource, SVGSource
 class Manifest(object):
     def __init__(self, manifest_path):
         path = FilePath(manifest_path)
-        self.__manifest = path.get_json()
         self.__url = path.url
+        self.__manifest = path.get_json()
+        if 'id' not in self.__manifest:
+            raise ValueError('No id given for manifest')
+        if 'sources' not in self.__manifest:
+            raise ValueError('No sources given for manifest')
         if 'anatomicalMap' in self.__manifest:
             self.__manifest['anatomicalMap'] = urljoin(self.__url, self.__manifest['anatomicalMap'])
         if 'properties' in self.__manifest:
             self.__manifest['properties'] = urljoin(self.__url, self.__manifest['properties'])
+        if 'somaProcesses' in self.__manifest:
+            self.__manifest['somaProcesses']['href'] = urljoin(self.__url, self.__manifest['somaProcesses']['href'])
+        self.__connectivity = []
+        for path in self.__manifest.get('connectivity', []):
+            self.__connectivity.append(urljoin(self.__url, path))
         for source in self.__manifest['sources']:
             source['href'] = urljoin(self.__url, source['href'])
 
@@ -80,15 +77,23 @@ class Manifest(object):
 
     @property
     def id(self):
-        return self.__manifest.get('id')
+        return self.__manifest['id']
 
     @property
     def models(self):
         return self.__manifest.get('models')
 
     @property
+    def connectivity(self):
+        return self.__connectivity
+
+    @property
     def properties(self):
         return self.__manifest.get('properties')
+
+    @property
+    def soma_processes(self):
+        return self.__manifest.get('somaProcesses')
 
     @property
     def sources(self):
@@ -100,22 +105,23 @@ class Manifest(object):
 
 #===============================================================================
 
-class Flatmap(object):
+class MapMaker(object):
     def __init__(self, options):
-        # ``silent`` implies ``quiet``
+        # ``silent`` implies not ``verbose``
         if options.get('silent', False):
-            options['quiet'] = True
+            options['verbose'] = False
 
         # Setup logging
-        configure_logging(options.get('logFile'),
-            quiet=options.get('quiet', False),
-            silent=options.get('silent', False))
 
-        # Check we have been given a map source
-        if 'source' in options:
-            self.__manifest = Manifest(options['source'])
-        else:
-            raise ValueError('No map source specified')
+        log_file = options.get('logFile')
+        if log_file is None:
+            log_path = options.get('logPath')
+            if log_path is not None:
+                log_file = os.path.join(log_path, '{}.log'.format(os.getpid()))
+        configure_logging(log_file,
+            verbose=options.get('verbose', False),
+            silent=options.get('silent', False))
+        log('Mapmaker {}'.format(__version__))
 
         # Default base output directory to ``./flatmaps``.
         if 'output' not in options:
@@ -136,14 +142,15 @@ class Flatmap(object):
         # Save options into global ``settings`` dict
         settings.update(options)
 
-        log('Mapmaker {}'.format(__version__))
-
+        # Check we have been given a map source and get our manifest
+        if 'source' in options:
+            self.__manifest = Manifest(options['source'])
+        else:
+            raise ValueError('No source manifest specified')
         self.__id = options.get('id', self.__manifest.id)
         if self.__id is None:
-            raise ValueError('No `id` given for map')
-        log('Making map: {}'.format(self.id))
-
-        self.__models = self.__manifest.models
+            raise ValueError('No id given for map')
+        log('Making map: {}'.format(self.__id))
 
         # Make sure our output directories exist
         map_base = options.get('output')
@@ -157,69 +164,35 @@ class Flatmap(object):
 
         # The vector tiles' database that is created by `tippecanoe`
         self.__mbtiles_file = os.path.join(self.__map_dir, 'index.mbtiles')
-
         self.__geojson_files = []
         self.__tippe_inputs = []
         self.__upload_files = []
 
-        # Properties about map features
-        self.__map_properties = JsonProperties(self.__manifest)
-
-        self.__layer_dict = OrderedDict()
-        self.__visible_layer_count = 0
-
-        self.__annotations = {}
-        self.__creator = 'mapmaker' ## FIX, add version info creator
-
-        self.__map_area = None
-        self.__extent = None
-        self.__centre = None
-
-        self.__last_feature_id = 0
-        self.__class_to_feature = defaultdict(list)
-        self.__id_to_feature = {}
-
-    def __len__(self):
-        return self.__visible_layer_count
-
-    @property
-    def extent(self):
-        return self.__extent
+        # The map we are making
+        self.__flatmap = FlatMap(self)
 
     @property
     def id(self):
         return self.__id
 
     @property
-    def layer_ids(self):
-        return list(self.__layer_dict.keys())
+    def manifest(self):
+        return self.__manifest
 
     @property
-    def map_directory(self):
-        return self.__map_dir
-
-    @property
-    def map_properties(self):
-        return self.__map_properties
-
-    @property
-    def models(self):
-        return self.__models
+    def zoom(self):
+        return self.__zoom
 
     def make(self):
     #==============
         self.__begin_make()
 
-        # Process flatmap's sources to create FeatureLayers
+        # Process flatmap's sources to create MapLayers
         self.__process_sources()
 
         if not settings.get('errorCheck', False):
-            # Add high-resolution features showing details
-            self.__add_details()
-            # Set additional properties from properties file
-            self.__set_feature_properties()
-            # Generate metadata with connection information
-            self.__resolve_paths()
+            # Finish off flatmap
+            self.__flatmap.close()
             # Output all features (as GeoJSON)
             self.__output_geojson()
             # Generate vector tiles from GeoJSON
@@ -245,8 +218,8 @@ class Flatmap(object):
     def __finish_make(self):
     #=======================
         # Show what the map is about
-        if self.models is not None:
-            log('Generated map: {} for {}'.format(self.id, self.models))
+        if self.__flatmap.models is not None:
+            log('Generated map: {} for {}'.format(self.id, self.__flatmap.models))
         else:
             log('Generated map: {}'.format(self.id))
         ## FIX v's errorCheck
@@ -264,171 +237,36 @@ class Flatmap(object):
             kind = source.get('kind', '')
             return ('0' if kind in ['base', 'slides'] else '1') + kind
         for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
-            source_id = source.get('id')
-            source_kind = source.get('kind')
-            source_href = source.get('href')
-            if source_kind == 'slides':
-                source_layer = PowerpointSource(self, source_id, source_href,
+            id = source.get('id')
+            kind = source.get('kind')
+            href = source['href']
+            if kind == 'slides':
+                source_layer = PowerpointSource(self.__flatmap, id, href,
                                                 get_background=tile_background)
-            elif source_kind == 'image':
+            elif kind == 'image':
                 if layer_number > 0 and 'boundary' not in source:
                     raise ValueError('An image source must specify a boundary')
-                source_layer = MBFSource(self, source_id, source_href,
+                source_layer = MBFSource(self.__flatmap, id, href,
                                          boundary_id=source.get('boundary'),
-                                         base_layer=(layer_number==0))
-            elif source_kind in ['base', 'details']:
-                source_layer = SVGSource(self, source_id, source_href,
-                                         base_layer=(source_kind=='base'))
+                                         exported=(layer_number==0))
+            elif kind in ['base', 'details']:
+                source_layer = SVGSource(self.__flatmap, id, href, kind)
             else:
-                raise ValueError('Unsupported source kind: {}'.format(source_kind))
-
+                raise ValueError('Unsupported source kind: {}'.format(kind))
             source_layer.process()
-            self.__add_source_layers(source_layer)
-
-            # The first layer is used as the base map
-            if layer_number == 0:
-                if source_kind == 'details':
-                    raise ValueError('Details layer cannot be the base map')
-                self.__extent = source_layer.extent
-                self.__centre = ((self.__extent[0] + self.__extent[2])/2,
-                                 (self.__extent[1] + self.__extent[3])/2)
-                self.__map_area = source_layer.map_area()
-            elif source_kind not in ['details', 'image']:
-                raise ValueError('Can only have a single base map')
-
-        if self.__visible_layer_count == 0:
+            for (kind, msg) in source_layer.errors:
+                if kind == 'error':
+                    log.error(msg)
+                else:
+                    log.warn(msg)
+            self.__flatmap.add_source_layers(layer_number, source_layer)
+        if len(self.__flatmap) == 0:
             raise ValueError('No map layers in sources...')
-
-    def is_duplicate_feature_id(self, id):
-    #=====================================
-        return self.__id_to_feature.get(id, None) is not None
-
-    def save_feature_id(self, feature):
-    #==================================
-        if feature.has_property('id'):
-            self.__id_to_feature[feature.get_property('id')] = feature.feature_id
-        if feature.has_property('class'):
-            self.__class_to_feature[feature.get_property('class')].append(feature.feature_id)
-
-    def new_feature(self, geometry, properties, has_children=False):
-    #===============================================================
-        self.__last_feature_id += 1
-        return Feature(self.__last_feature_id, geometry, properties, has_children)
-
-    def __add_layer(self, layer):
-    #============================
-        if layer.id in self.__layer_dict:
-            raise KeyError('Duplicate layer id: {}'.format(layer.id))
-        self.__layer_dict[layer.id] = layer
-        if layer.base_layer:
-            self.__visible_layer_count += 1
-
-    def __add_source_layers(self, map_source):
-    #=========================================
-        for layer in map_source.layers:
-            self.__add_layer(layer)
-            if layer.base_layer:
-                layer.add_raster_layer(layer.id, map_source.extent, map_source, self.__zoom[0])
-
-    def __set_feature_properties(self):
-    #==================================
-        for layer in self.__layer_dict.values():
-            layer.set_feature_properties(self.__map_properties)
-            layer.add_nerve_details()
-
-    def __add_details(self):
-    #=======================
-        # Add details of high-resolution features by adding a details layer
-        # for features with details
-
-        ## Need image layers...
-        ##
-        ## have Image of slide with outline image and outline's BBOX
-        ## so can get Rect with just outline. Transform to match detail's feature.
-        ##
-        ## set layer.__image from slide when first making??
-        ## Also want image layers scaled and with minzoom set...
-
-        log('Adding details...')
-        detail_layers = []
-        for layer in self.__layer_dict.values():
-            if layer.base_layer and layer.detail_features:
-                detail_layer = FeatureLayer('{}_details'.format(layer.id), layer.source, base_layer=True)
-                detail_layers.append(detail_layer)
-                self.__add_detail_features(layer, detail_layer, layer.detail_features)
-        for layer in detail_layers:
-            self.__add_layer(layer)
-
-## Put all this into 'features.py' as a function??
-    def __new_detail_feature(self, layer_id, detail_layer, minzoom, geometry, properties):
-    #=====================================================================================
-        new_feature = self.new_feature(geometry, properties)
-        new_feature.set_property('layer', layer_id)
-        new_feature.set_property('minzoom', minzoom)
-        if properties.get('type') == 'nerve':
-            new_feature.set_property('type', 'nerve-section')
-            new_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
-            ## Need to link outline feature of nerve into paths through the nerve so it is highlighted
-            ## when mouse over a path through the nerve
-            new_feature.set_property('tile-layer', 'pathways')
-        detail_layer.add_feature(new_feature)
-        self.save_feature_id(new_feature)
-        return new_feature
-
-    def __add_detail_features(self, layer, detail_layer, lowres_features):
-    #=====================================================================
-        extra_details = []
-        for feature in lowres_features:
-            self.__map_properties.update_feature_properties(feature.properties)
-            hires_layer_id = feature.get_property('details')
-            hires_layer = self.__layer_dict.get(hires_layer_id)
-            if hires_layer is None:
-                log.warn("Cannot find details layer '{}'".format(feature.get_property('details')))
-                continue
-            boundary_feature = hires_layer.features_by_id.get(hires_layer.boundary_id)
-            if boundary_feature is None:
-                raise KeyError("Cannot find boundary of '{}' layer".format(hires_layer.id))
-
-            # Calculate transformation to map source shapes to the destination
-
-            # NOTE: We reorder the coordinates of the bounding rectangles so that the first
-            #       coordinate is the top left-most one. This should ensure that the source
-            #       and destination rectangles align as intended, without output features
-            #       being rotated by some multiple of 90 degrees.
-            src = np.array(normalised_coords(boundary_feature.geometry.minimum_rotated_rectangle), dtype="float32")
-            dst = np.array(normalised_coords(feature.geometry.minimum_rotated_rectangle), dtype="float32")
-            transform = Transform(cv2.getPerspectiveTransform(src, dst))
-
-            minzoom = feature.get_property('maxzoom') + 1
-            if feature.get_property('type') != 'nerve':
-                # Set the feature's geometry to that of the high-resolution outline
-                feature.geometry = transform.transform_geometry(boundary_feature.geometry)
-            else:                             # nerve
-                feature.del_property('maxzoom')
-
-            if hires_layer.source.raster_source is not None:
-                extent = transform.transform_extent(hires_layer.source.extent)
-                layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
-                                        extent, hires_layer.source, minzoom,
-                                        local_world_to_base=transform)
-
-            # The detail layer gets a scaled copy of each high-resolution feature
-            for hires_feature in hires_layer.features:
-                new_feature = self.__new_detail_feature(layer.id, detail_layer, minzoom,
-                                                        transform.transform_geometry(hires_feature.geometry),
-                                                        hires_feature.properties)
-                if new_feature.has_property('details'):
-                    extra_details.append(new_feature)
-
-        # If hires features that we've just added also have details then add them
-        # to the detail layer
-        if extra_details:
-            self.__add_detail_features(layer, detail_layer, extra_details)
 
     def __make_raster_tiles(self):
     #============================
         log('Generating background tiles (may take a while...)')
-        for layer in self.__layer_dict.values():
+        for layer in self.__flatmap.layers:
             for raster_layer in layer.raster_layers:
                 tilemaker = RasterTileMaker(raster_layer, self.__map_dir, self.__zoom[1])
                 raster_tile_file = tilemaker.make_tiles()
@@ -452,7 +290,7 @@ class Flatmap(object):
                         ]
         if not compressed:
             tippe_command.append('--no-tile-compression')
-        if settings.get('quiet', False):
+        if not settings.get('verbose', True):
             tippe_command.append('--quiet')
         tippe_command += list(["-L{}".format(json.dumps(input)) for input in self.__tippe_inputs])
 
@@ -465,37 +303,19 @@ class Flatmap(object):
         # the map's metadata
         tile_db = MBTiles(self.__mbtiles_file)
         tile_db.add_metadata(compressed=compressed)
-        tile_db.update_metadata(center=','.join([str(x) for x in self.__centre]),
-                                bounds=','.join([str(x) for x in self.__extent]))
+        tile_db.add_metadata(center=','.join([str(x) for x in self.__flatmap.centre]),
+                             bounds=','.join([str(x) for x in self.__flatmap.extent]))
         tile_db.execute("COMMIT")
         tile_db.close();
         self.__upload_files.append('index.mbtiles')
 
-    def __layer_metadata(self):
-    #==========================
-        metadata = []
-        for layer in self.__layer_dict.values():
-            if layer.base_layer:
-                map_layer = {
-                    'id': layer.id,
-                    'description': layer.description,
-                    'queryable-nodes': layer.queryable_nodes,
-                    'features': layer.feature_types,
-                    'image-layers': [source.id for source in layer.raster_layers]
-                }
-## FIX ??               if layer.slide_id is not None:
-## layer source v's map source v's spec info.
-##                         map_layer['source'] = layer.slide_id
-                metadata.append(map_layer)
-        return metadata
-
     def __output_geojson(self):
     #==========================
         log('Outputting GeoJson features...')
-        for layer in self.__layer_dict.values():
-            if layer.base_layer:
+        for layer in self.__flatmap.layers:
+            if layer.exported:
                 log('Layer: {}'.format(layer.id))
-                geojson_output = GeoJSONOutput(layer, self.__map_area, self.__map_dir)
+                geojson_output = GeoJSONOutput(layer, self.__flatmap.area, self.__map_dir)
                 saved_layer = geojson_output.save(layer.features, settings.get('saveGeoJSON', False))
                 for (layer_name, filename) in saved_layer.items():
                     self.__geojson_files.append(filename)
@@ -504,34 +324,40 @@ class Flatmap(object):
                         'layer': layer_name,
                         'description': '{} -- {}'.format(layer.description, layer_name)
                     })
-                self.__annotations.update(layer.annotations)
-
-    def __resolve_paths(self):
-    #=========================
-        # Set feature ids of path components
-        self.__map_properties.resolve_pathways(self.__id_to_feature, self.__class_to_feature)
+                self.__flatmap.update_annotations(layer.annotations)
 
     def __save_metadata(self):
     #=========================
         log('Creating index and style files...')
         tile_db = MBTiles(self.__mbtiles_file)
 
-        # Save the URL of the map's manifest
-        tile_db.add_metadata(source=self.__manifest.url)
-
+        metadata = {
+            # The maps creation time
+            'created': datetime.datetime.utcnow().isoformat(),
+            # Who made the map
+            'creator': 'mapmaker {}'.format(__version__),
+            # The URL of the map's manifest
+            'source': self.__manifest.url,
+            'version': FLATMAP_VERSION
+        }
         # What the map models
-        if self.__models is not None:
-            tile_db.add_metadata(describes=self.__models)
+        if self.__flatmap.models is not None:
+            metadata['describes'] = self.__flatmap.models
+
+        # Save flatmap's metadata
+        tile_db.add_metadata(metadata=json.dumps(metadata))
+        ## Backwards compatibility...
+        # NB: we need to set version and if newer just save with name `metadata`
+        # The map server needs to recognise the new way of doing things...
+        tile_db.add_metadata(**metadata)
+
         # Save layer details in metadata
-        tile_db.add_metadata(layers=json.dumps(self.__layer_metadata()))
+        tile_db.add_metadata(layers=json.dumps(self.__flatmap.layer_metadata()))
         # Save pathway details in metadata
-        tile_db.add_metadata(pathways=json.dumps(self.__map_properties.resolved_pathways))
+        tile_db.add_metadata(pathways=json.dumps(self.__flatmap.pathways()))
         # Save annotations in metadata
-        tile_db.add_metadata(annotations=json.dumps(self.__annotations))
-        # Save command used to run mapmaker
-        tile_db.add_metadata(created_by=self.__creator)
-        # Save the maps creation time
-        tile_db.add_metadata(created=datetime.datetime.utcnow().isoformat())
+        tile_db.add_metadata(annotations=json.dumps(self.__flatmap.annotations))
+
         # Commit updates to the database
         tile_db.execute("COMMIT")
 
@@ -540,7 +366,7 @@ class Flatmap(object):
 
         # Get list of all image sources from all layers
         raster_layers = []
-        for layer in self.__layer_dict.values():
+        for layer in self.__flatmap.layers:
             raster_layers.extend(layer.raster_layers)
 
         map_index = {
@@ -548,12 +374,12 @@ class Flatmap(object):
             'source': self.__manifest.url,
             'min-zoom': self.__zoom[0],
             'max-zoom': self.__zoom[1],
-            'bounds': self.__extent,
+            'bounds': self.__flatmap.extent,
             'version': FLATMAP_VERSION,
             'image_layer': len(raster_layers) > 0  ## For compatibility
         }
-        if self.__models is not None:
-            map_index['describes'] = self.__models
+        if self.__flatmap.models is not None:
+            map_index['describes'] = self.__flatmap.models
         # Create `index.json` for building a map in the viewer
         with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:
             json.dump(map_index, output_file)
@@ -565,7 +391,7 @@ class Flatmap(object):
             json.dump(style_dict, output_file)
 
         # Create TileJSON file
-        json_source = tile_json(self.__id, self.__zoom, self.__extent)
+        json_source = tile_json(self.__id, self.__zoom, self.__flatmap.extent)
         with open(os.path.join(self.__map_dir, 'tilejson.json'), 'w') as output_file:
             json.dump(json_source, output_file)
 

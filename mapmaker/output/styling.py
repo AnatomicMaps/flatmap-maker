@@ -78,9 +78,9 @@ class VectorTileSource(object):
 class TileSources(object):
     @staticmethod
     def style(raster_sources, vector_layer_dict, bounds, map_zoom):
-        sources = {
-            'vector-tiles': VectorTileSource.style(vector_layer_dict, bounds, map_zoom)
-        }
+        sources = {}
+        if len(vector_layer_dict):
+            sources['vector-tiles'] = VectorTileSource.style(vector_layer_dict, bounds, map_zoom)
         for source in raster_sources:
             sources[source.id] = RasterTileSource.style(source.id, bounds, source.min_zoom, map_zoom[1])
         return sources
@@ -90,9 +90,7 @@ class TileSources(object):
 class MapStyle(object):
     @staticmethod
     def style(raster_sources, metadata, map_zoom):
-        if 'json' not in metadata:
-            raise ValueError('Invalid metadata for tiles -- no geometry?')
-        vector_layer_dict = json.loads(metadata['json'])
+        vector_layer_dict = json.loads(metadata.get('json', '{}'))
         bounds = [float(x) for x in metadata['bounds'].split(',')]
         return {
             'version': 8,

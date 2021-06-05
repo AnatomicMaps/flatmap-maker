@@ -2,7 +2,7 @@
 #
 #  Flatmap viewer and annotation tools
 #
-#  Copyright (c) 2020  David Brooks
+#  Copyright (c) 2020, 2021  David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -18,21 +18,34 @@
 #
 #===============================================================================
 
-__version__ = '1.2.0b3dev'
+from lxml import etree
 
 #===============================================================================
 
-FLATMAP_VERSION  = 1.2
+from mapmaker.sources.svg.utils import adobe_decode_markup
 
 #===============================================================================
 
-# Default zoom range of generated flatmap
+def print_ids(element, indent=0):
+#================================
+    if 'Gradient' not in element.tag:
+        id = adobe_decode_markup(element)
+        if id != '':
+            print('{}{}'.format(indent*' ', id))
+        elif len(element):
+            print('{}<Group>'.format(indent*' '))
+        for child in element:
+            print_ids(child, indent+4)
 
-MIN_ZOOM  =  2   #: Default minimum zoom level for generated flatmaps
-MAX_ZOOM  = 10   #: Default maximum zoom level for generated flatmaps
+if __name__ == '__main__':
+#=========================
+    import sys
 
-#===============================================================================
+    if len(sys.argv) < 2:
+        sys.exit('Usage: {} SVG_FILE'.format(sys.argv[0]))
 
-from .maker import MapMaker
+    svg = etree.parse(sys.argv[1])
+
+    print_ids(svg.getroot())
 
 #===============================================================================

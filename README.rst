@@ -13,12 +13,15 @@ Requirements
 Installation
 ------------
 
-* Download the latest released Python wheel from https://github.com/dbrnz/flatmap-maker/releases/latest, currently ``mapmaker-1.0.0b1-py3-none-any.whl``.
 * Create a directory in which to install ``mapmaker`` and change into it.
 
-::
+* Either download the latest released Python wheel from https://github.com/dbrnz/flatmap-maker/releases/latest, currently ``mapmaker-1.2.0b2-py3-none-any.whl``, and install with::
 
-    $ pipenv install mapmaker-1.0.0b1-py3-none-any.whl
+    $ pipenv install --python 3.8 mapmaker-1.2.0b2-py3-none-any.whl
+
+* Or install the package directly from Github with::
+
+    $ pipenv install --python 3.8 https://github.com/dbrnz/flatmap-maker/releases/download/v1.2.0b2/mapmaker-1.2.0b2-py3-none-any.whl
 
 Running
 -------
@@ -30,9 +33,9 @@ Command line help::
 ::
 
     usage: mapmaker [-h] [-v]
-                    [--log LOG_FILE] [-q] [--silent]
+                    [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
                     [--clean] [--background-tiles]
-                    [--check-errors] [--save-beziers] [--save-drawml] [--save-geojson] [--tippecanoe]
+                    [--check-errors] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initialZoom N] [--max-zoom N] [--min-zoom N]
                     [--refresh-labels] [--upload USER@SERVER]
                     --output OUTPUT --source SOURCE
@@ -45,8 +48,9 @@ Command line help::
 
     logging:
       --log LOG_FILE        append messages to a log file
-      -q, --quiet           don't show progress bars
+      --show-deprecated     issue a warning for deprecated markup properties
       --silent              suppress all messages to screen
+      --verbose             show progress bars
 
     image tiling:
       --clean               Remove all files from generated map's directory before generating new map
@@ -54,7 +58,6 @@ Command line help::
 
     diagnostics:
       --check-errors        check for errors without generating a map
-      --save-beziers        Save Bezier curve segments as a feature property
       --save-drawml         save a slide's DrawML for debugging
       --save-geojson        Save GeoJSON files for each layer
       --tippecanoe          Show command used to run Tippecanoe
@@ -70,12 +73,13 @@ Command line help::
 
     required arguments:
       --output OUTPUT       base directory for generated flatmaps
-      --source SOURCE       URL or directory path containing a flatmap manifest
+      --source SOURCE       URL or path of a flatmap manifest
 
 For instance::
 
     $ pipenv run python -m mapmaker --output ./flatmaps   \
-                                    --source ../PMR/rat
+                                    --source ../PMR/rat   \
+                                    --verbose
 ::
 
     Mapmaker 0.11.0.b4
@@ -96,7 +100,7 @@ For instance::
 Manifest files
 --------------
 
-The sources of a flatmap are specified using a JSON file called ``manifest.json``.
+The sources of a flatmap are specified using a JSON file, usually called ``manifest.json``.
 
 The manifest is a JSON dictionary that MUST specify:
 
@@ -108,6 +112,7 @@ It MAY optionally specify:
 * a taxon identifier specifying what the flatmap ``models`.
 * the name of a ``properties`` JSON file specifying properties of features.
 * the name of an ``anatomicalMap`` file assigning anatomical identifiers to features.
+* The map's ``connectivity`` as a list of JSON files, each specifying a connectivity model.
 
 A source is a JSON dictionary that MUST specify:
 
@@ -146,9 +151,53 @@ For example::
             },
             {
                 "id": "vagus",
-                "href": "sub-10_sam-1_P10-1MergeMask.xml",
+                "href": "https://api.sparc.science/s3-resource/64/4/files/derivative/sub-10/sam-1/sub-10_sam-1_P10-1MergeMask.xml",
                 "kind": "image",
                 "boundary": "http://purl.org/sig/ont/fma/fma5731"
             }
         ]
     }
+
+
+Anatomical map file
+-------------------
+
+TODO...
+
+Properties file
+---------------
+
+TODO...
+
+Connectivity files
+------------------
+
+TODO...
+
+Example::
+
+    {
+        "id": "keast-bladder",
+        "source": "https://apinatomy.org/uris/models/keast-bladder",
+        "paths": [
+            .
+            .
+            .
+            {
+                "id": "path_3",
+                "type": "somatic",
+                "path": "P38, P39, P40, P41",
+                "route": "(S41_2_L5, S41_2_L6), C5, C6, S43_L5, S43_L6, S50_L5_T, S50_L6_T, S50_L5_B, S50_L6_B, urinary_5",
+                "nerves": "keast_2",
+                "models": "ilxtr:neuron-type-keast-9"
+            },
+            .
+            .
+            .
+        ]
+    }
+
+Shape markup
+------------
+
+TODO...

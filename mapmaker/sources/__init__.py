@@ -25,6 +25,8 @@ import numpy as np
 
 from mapmaker.geometry import bounds_to_extent
 
+from .markup import parse_markup
+
 #===============================================================================
 
 # Internal PPT units are EMUs (English Metric Units)
@@ -45,7 +47,7 @@ WORLD_METRES_PER_UM = 100
 
 #===============================================================================
 
-# Shapes/pathe with these marked up types and tile layers are excluded when
+# Shapes/path with these marked up types and tile layers are excluded when
 # image tiling.
 EXCLUDE_SHAPE_TYPES = ['group', 'invisible', 'marker', 'path', 'region', 'centreline']
 EXCLUDE_TILE_LAYERS = ['pathways']
@@ -90,12 +92,15 @@ def not_empty(image):
 #===============================================================================
 
 class MapSource(object):
-    def __init__(self, flatmap, id):
+    def __init__(self, flatmap, id, source_href, kind):
         self.__flatmap = flatmap
         self.__id = id
+        self.__source_href = source_href
+        self.__kind = kind
         self.__errors = []
         self.__layers = []
         self.__bounds = (0, 0, 0, 0)
+        self.__raster_source = None
 
     @property
     def bounds(self):
@@ -130,43 +135,78 @@ class MapSource(object):
         return self.__id
 
     @property
+    def kind(self):
+        return self.__kind
+
+    @property
     def layers(self):
         return self.__layers
 
     @property
     def raster_source(self):
-        return None
+        return self.__raster_source
+
+    @property
+    def source_href(self):
+        return self.__source_href
 
     def add_layer(self, layer):
     #==========================
         self.__layers.append(layer)
 
-    def error(self, msg):
-    #====================
-        self.__errors.append(msg)
+    def error(self, kind, msg):
+    #==========================
+        self.__errors.append((kind, msg))
 
     def map_area(self):
     #==================
         return abs(self.__bounds[2] - self.__bounds[0]) * (self.__bounds[3] - self.__bounds[1])
 
+    def properties_from_markup(self, markup):
+    #========================================
+        if not markup.startswith('.'):
+            return {}
+        properties = parse_markup(markup)
+        if 'error' in properties:
+            self.error('error', '{}: {} in markup: {}'
+                       .format(self.id, properties['error'], markup))
+        if 'warning' in properties:
+            self.error('warning', '{}: {} in markup: {}'
+                       .format(self.id, properties['warning'], markup))
+        for key in ['id', 'path']:
+            if key in properties:
+                if self.__flatmap.is_duplicate_feature_id(properties[key]):
+                   self.error('error', '{}: duplicate id in markup: {}'
+                              .format(self.id, markup))
+        return properties
+
     def process(self):
     #=================
         raise TypeError('`process()` must be implemented by `MapSource` sub-class')
 
+    def set_raster_source(self, source):
+    #===================================
+        self.__raster_source = source
+
 #===============================================================================
 
 class RasterSource(object):
-    def __init__(self, source_kind, source_data):
-        self.__source_kind = source_kind
-        self.__source_data = source_data
+    def __init__(self, kind, data, **kwds):
+        self.__kind = kind
+        self.__data = data
+        self.__params = kwds
 
     @property
-    def source_data(self):
-        return self.__source_data
+    def data(self):
+        return self.__data
 
     @property
-    def source_kind(self):
-        return self.__source_kind
+    def kind(self):
+        return self.__kind
+
+    @property
+    def params(self):
+        return self.__params
 
 #===============================================================================
 

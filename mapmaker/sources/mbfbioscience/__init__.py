@@ -34,7 +34,7 @@ import shapely.geometry
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_UM
 
-from mapmaker.flatmap.layers import FeatureLayer
+from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.settings import settings
 from mapmaker.sources import mask_image
@@ -42,16 +42,29 @@ from mapmaker.utils import FilePath
 
 #===============================================================================
 
+SPARC_DATASET_SIGNATURE = 'https://api.sparc.science/s3-resource/'
+
+SPARC_DATASET_URL_FORMAT = 'https://sparc.science/datasets/{}?type=dataset'
+
+def sparc_dataset(url):
+#======================
+    if url.startswith(SPARC_DATASET_SIGNATURE):
+        return SPARC_DATASET_URL_FORMAT.format(url.split('/')[4])
+
+#===============================================================================
+
 class MBFSource(MapSource):
-    def __init__(self, flatmap, id, source_path, boundary_id=None, base_layer=False):
-        super().__init__(flatmap, id)
+    def __init__(self, flatmap, id, source_href, boundary_id=None, exported=False):
+        super().__init__(flatmap, id, source_href, 'image')
+        self.__sparc_dataset = sparc_dataset(source_href)
+
         self.__boundary_id = boundary_id
         self.__boundary_geometry = None
 
-        self.__layer = FeatureLayer(id, self, base_layer=base_layer)
+        self.__layer = MapLayer(id, self, exported=exported)
         self.add_layer(self.__layer)
 
-        self.__mbf = etree.parse(FilePath(source_path).get_fp()).getroot()
+        self.__mbf = etree.parse(FilePath(source_href).get_fp()).getroot()
         self.__ns = self.__mbf.nsmap[None]
 
         sparcdata = self.__mbf.find(self.ns_tag('sparcdata'))
@@ -65,7 +78,7 @@ class MBFSource(MapSource):
         offset = (float(coord_element.get('x', 0.0)), float(coord_element.get('y', 0.0)))
 
         filename = image_element.find(self.ns_tag('filename')).text
-        image_file = FilePath(urljoin(source_path, filename.split('\\')[-1]))
+        image_file = FilePath(urljoin(source_href, filename.split('\\')[-1]))
         image_array = np.frombuffer(image_file.get_data(), dtype=np.uint8)
         self.__image = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
         if self.__image.shape[2] == 3:
@@ -89,7 +102,6 @@ class MBFSource(MapSource):
         bottom_right = self.__um_to_world.transform_point((width, -height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-        self.__raster_source = None
 
     @property
     def boundary_geometry(self):
@@ -107,10 +119,6 @@ class MBFSource(MapSource):
     def species(self):
         return self.__species
 
-    @property
-    def raster_source(self):
-        return self.__raster_source
-
     def __set_raster_source(self, boundary_geometry):
     #================================================
         if boundary_geometry is not None and boundary_geometry.geom_type == 'Polygon':
@@ -119,7 +127,7 @@ class MBFSource(MapSource):
             # Mask image with boundary to remove artifacts
             self.__image = mask_image(self.__image,
                                       self.__world_to_image.transform_geometry(boundary_geometry))
-        self.__raster_source = RasterSource('image', self.__image)
+        self.set_raster_source(RasterSource('image', self.__image))
 
     def ns_tag(self, tag):
     #=====================
@@ -151,10 +159,12 @@ class MBFSource(MapSource):
             if anatomical_id is not None:
                 properties['models'] = anatomical_id
             feature = self.flatmap.new_feature(geometry, properties)
+            feature.set_property('dataset', self.__sparc_dataset)
+            feature.set_property('source', self.source_href)
             self.__layer.add_feature(feature)
             if anatomical_id == self.__boundary_id:
                 boundary_geometry = feature.geometry
-                self.__layer.boundary_id = feature.feature_id
+                self.__layer.boundary_feature = feature
 
         if settings.get('backgroundTiles', False):
             self.__set_raster_source(boundary_geometry)

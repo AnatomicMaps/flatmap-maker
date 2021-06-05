@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import json
 import os
 import sqlite3
 
@@ -27,14 +28,40 @@ import openpyxl
 import requests
 
 from mapmaker.settings import settings
-from mapmaker.utils import FilePath
+from mapmaker.utils import FilePath, log
 
 #===============================================================================
 
-ILX_ENDPOINT = 'http://uri.interlex.org/base/ilx_{:0>7}.json'
+INTERLEX_ONTOLOGIES = ['ILX', 'NLX']
 
-VOCAB_ENDPOINT = 'https://scigraph.olympiangods.org/scigraph/vocabulary/id/{}.json'
-SCIGRAPH_ONTOLOGIES = ['UBERON']
+SCIGRAPH_ONTOLOGIES = ['FMA', 'UBERON']
+
+#===============================================================================
+
+SCICRUNCH_API_KEY = "xBOrIfnZTvJQtobGo8XHRvThdMYGTxtf"
+SCICRUNCH_INTERLEX_VOCAB = 'https://scicrunch.org/api/1/ilx/search/curie/{}'
+SCICRUNCH_SCIGRAPH_VOCAB = 'https://scicrunch.org/api/1/sparc-scigraph/vocabulary/id/{}.json'
+
+#===============================================================================
+
+LOOKUP_TIMEOUT = 5    # seconds
+
+#===============================================================================
+
+def request_json(endpoint):
+    try:
+        response = requests.get(endpoint, timeout=LOOKUP_TIMEOUT)
+        if response.status_code == requests.codes.ok:
+            try:
+                return response.json()
+            except json.JSONDecodeError:
+                error = 'invalid JSON returned'
+        else:
+            error = 'status: {}'.format(response.status_code)
+    except requests.exceptions.RequestException as exception:
+        error = 'exception: {}'.format(exception)
+    log.warn("Couldn't access {}: {}".format(endpoint, error))
+    return None
 
 #===============================================================================
 
@@ -52,6 +79,7 @@ class LabelDatabase(object):
         if new_db:
             self.__cursor.execute('CREATE TABLE labels (entity text, label text)')
             self.__db.commit()
+        self.__unknown_entities = []
 
     def close(self):
         self.__db.close()
@@ -65,27 +93,27 @@ class LabelDatabase(object):
         row = self.__cursor.fetchone()
         if row is not None:
             return row[0]
-        label = entity
+        label = None
         ontology = entity.split(':')[0]
-        if ontology in SCIGRAPH_ONTOLOGIES:
-            try:
-                response = requests.get(VOCAB_ENDPOINT.format(entity))
-                if response:
-                    label = response.json().get('labels', [entity])[0]
-                    self.set_label(entity, label)
-            except:
-                print("Couldn't access", VOCAB_ENDPOINT.format(entity))
-        elif ontology == 'ILX':
-            endpoint = ILX_ENDPOINT.format(entity.strip().split(':')[-1])
-            try:
-                response = requests.get(endpoint)
-                if response:
-                    triples = response.json().get('triples')
-                    for triple in triples:
-                        if triple[1] == 'rdfs:label':
-                            self.set_label(entity, triple[2])
-            except:
-                print("Couldn't access {} for {}".format(endpoint, entity))
+        if   ontology in INTERLEX_ONTOLOGIES:
+            data = request_json('{}?api_key={}'.format(
+                    SCICRUNCH_INTERLEX_VOCAB.format(entity),
+                    SCICRUNCH_API_KEY))
+            if data is not None:
+                label = data.get('data', {}).get('label', entity)
+        elif ontology in SCIGRAPH_ONTOLOGIES:
+            data = request_json('{}?api_key={}'.format(
+                    SCICRUNCH_SCIGRAPH_VOCAB.format(entity),
+                    SCICRUNCH_API_KEY))
+            if data is not None:
+                label = data.get('labels', [entity])[0]
+        elif entity not in self.__unknown_entities:
+            log.warn('Unknown anatomical entity: {}'.format(entity))
+            self.__unknown_entities.append(entity)
+        if label is None:
+            label = entity
+        else:
+            self.set_label(entity, label)
         return label
 
 #===============================================================================
@@ -116,7 +144,7 @@ class AnatomicalMap(object):
                                               'UBERON ID']:
                                 col_indices[cell.value] = cell.column - 1
                         if len(col_indices) < 3:
-                            print("Sheet '{}' doean't have a valid header row -- data ignored".format(sheet.title))
+                            log.warn("Sheet '{}' doean't have a valid header row -- data ignored".format(sheet.title))
                             break
                     else:
                         pp_id = row[col_indices['Power point identifier']].value
