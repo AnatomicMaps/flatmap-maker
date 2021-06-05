@@ -75,7 +75,7 @@ setup(
         "pillow==8.2.0; python_version >= '3.6'",
         "pybind11==2.6.2; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'",
         "pyclipper==1.2.1",
-        "pymupdf==1.18.13",
+        "pymupdf==1.18.14",
         "pyparsing==2.4.7",
         "pyproj==3.1.0",
         "python-pptx==0.6.19",
