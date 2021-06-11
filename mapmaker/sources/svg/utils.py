@@ -80,6 +80,8 @@ def parse_svg_path(path):
         if x in COMMANDS:
             yield x
         for token in FLOAT_RE.findall(x):
+            if token.upper().startswith('E'):
+                token = '1' + token
             yield token
 
 #===============================================================================
