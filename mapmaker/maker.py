@@ -51,25 +51,38 @@ from .sources import MBFSource, PowerpointSource, SVGSource
 #===============================================================================
 
 class Manifest(object):
-    def __init__(self, manifest_path):
+    def __init__(self, manifest_path, single_svg=False):
         path = FilePath(manifest_path)
         self.__url = path.url
-        self.__manifest = path.get_json()
-        if 'id' not in self.__manifest:
-            raise ValueError('No id given for manifest')
-        if 'sources' not in self.__manifest:
-            raise ValueError('No sources given for manifest')
-        if 'anatomicalMap' in self.__manifest:
-            self.__manifest['anatomicalMap'] = urljoin(self.__url, self.__manifest['anatomicalMap'])
-        if 'properties' in self.__manifest:
-            self.__manifest['properties'] = urljoin(self.__url, self.__manifest['properties'])
-        if 'somaProcesses' in self.__manifest:
-            self.__manifest['somaProcesses']['href'] = urljoin(self.__url, self.__manifest['somaProcesses']['href'])
         self.__connectivity = []
-        for path in self.__manifest.get('connectivity', []):
-            self.__connectivity.append(urljoin(self.__url, path))
-        for source in self.__manifest['sources']:
-            source['href'] = urljoin(self.__url, source['href'])
+        if single_svg:
+            id = self.__url.rsplit('/', 1)[-1].rsplit('.', 1)[0].replace('_', '-').replace(' ', '_')
+            self.__manifest = {
+                'id': id,
+                'sources': [
+                    {
+                        'id': id,
+                        'href': self.__url,
+                        'kind': 'base'
+                    }
+                ]
+            }
+        else:
+            self.__manifest = path.get_json()
+            if 'id' not in self.__manifest:
+                raise ValueError('No id given for manifest')
+            if 'sources' not in self.__manifest:
+                raise ValueError('No sources given for manifest')
+            if 'anatomicalMap' in self.__manifest:
+                self.__manifest['anatomicalMap'] = urljoin(self.__url, self.__manifest['anatomicalMap'])
+            if 'properties' in self.__manifest:
+                self.__manifest['properties'] = urljoin(self.__url, self.__manifest['properties'])
+            if 'somaProcesses' in self.__manifest:
+                self.__manifest['somaProcesses']['href'] = urljoin(self.__url, self.__manifest['somaProcesses']['href'])
+            for path in self.__manifest.get('connectivity', []):
+                self.__connectivity.append(urljoin(self.__url, path))
+            for source in self.__manifest['sources']:
+                source['href'] = urljoin(self.__url, source['href'])
 
     @property
     def anatomical_map(self):
@@ -144,7 +157,7 @@ class MapMaker(object):
 
         # Check we have been given a map source and get our manifest
         if 'source' in options:
-            self.__manifest = Manifest(options['source'])
+            self.__manifest = Manifest(options['source'], options.get('singleSvg', False))
         else:
             raise ValueError('No source manifest specified')
         self.__id = options.get('id', self.__manifest.id)

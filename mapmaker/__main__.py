@@ -73,6 +73,8 @@ def arg_parser():
     misc_options = parser.add_argument_group('miscellaneous')
     misc_options.add_argument('--refresh-labels', dest='refreshLabels', action='store_true',
                         help='Clear the label text cache before map making')
+    misc_options.add_argument('--single-svg', dest='singleSvg', action='store_true',
+                        help='Source is a single SVG file, not a flatmap manifest')
     misc_options.add_argument('--upload', dest='uploadHost', metavar='USER@SERVER',
                         help='Upload generated map to server')
 

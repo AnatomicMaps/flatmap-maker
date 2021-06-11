@@ -37,7 +37,7 @@ Command line help::
                     [--clean] [--background-tiles]
                     [--check-errors] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initialZoom N] [--max-zoom N] [--min-zoom N]
-                    [--refresh-labels] [--upload USER@SERVER]
+                    [--refresh-labels] [--single-svg] [--upload USER@SERVER]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -69,6 +69,7 @@ Command line help::
 
     miscellaneous:
       --refresh-labels      Clear the label text cache before map making
+      --single-svg          Source is a single SVG file, not a flatmap manifest
       --upload USER@SERVER  Upload generated map to server
 
     required arguments:
