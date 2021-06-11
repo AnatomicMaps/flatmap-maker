@@ -69,6 +69,21 @@ def length_as_pixels(length):
 
 #===============================================================================
 
+# From https://codereview.stackexchange.com/questions/28502/svg-path-parsing
+
+COMMANDS = set('MmZzLlHhVvCcSsQqTtAa')
+COMMAND_RE = re.compile("([MmZzLlHhVvCcSsQqTtAa])")
+FLOAT_RE = re.compile("[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?")
+
+def parse_svg_path(path):
+    for x in COMMAND_RE.split(path):
+        if x in COMMANDS:
+            yield x
+        for token in FLOAT_RE.findall(x):
+            yield token
+
+#===============================================================================
+
 # Helpers for encoding names for Adobe Illustrator
 
 def __match_to_char(m):

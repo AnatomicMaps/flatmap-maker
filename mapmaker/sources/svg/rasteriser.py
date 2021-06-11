@@ -47,7 +47,7 @@ from mapmaker.utils.image import image_size
 from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import adobe_decode_markup, length_as_pixels, SVG_NS, XLINK_HREF
+from .utils import adobe_decode_markup, length_as_pixels, parse_svg_path, SVG_NS, XLINK_HREF
 
 #===============================================================================
 
@@ -505,21 +505,10 @@ class SVGTiler(object):
         return drawing_objects
 
     @staticmethod
-    def __svg_path_matcher(m):
-    #=========================
-    # Helper for parsing `d` attrib of a path
-        c = m[0]
-        if c.isalpha(): return ' ' + c + ' '
-        if c == '-': return ' -'
-        if c == ',': return ' '
-        return c
-
-    @staticmethod
     def __get_graphics_path(element):
     #================================
         if element.tag == SVG_NS('path'):
-            tokens = re.sub('.', SVGTiler.__svg_path_matcher,
-                            element.attrib.get('d', '')).split()
+            tokens = list(parse_svg_path(element.attrib.get('d', '')))
             path = SVGTiler.__path_from_tokens(tokens)
 
         elif element.tag == SVG_NS('rect'):

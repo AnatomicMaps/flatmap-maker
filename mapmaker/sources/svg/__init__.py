@@ -42,7 +42,7 @@ from .cleaner import SVGCleaner
 from .definitions import DefinitionStore
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import adobe_decode_markup, length_as_pixels, SVG_NS
+from .utils import adobe_decode_markup, length_as_pixels, parse_svg_path, SVG_NS
 
 from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import bezier_sample, radians, Transform, reflect_point
@@ -214,16 +214,6 @@ class SVGLayer(MapLayer):
         else:
             log.warn('"{}" {} not processed...'.format(markup, element.tag))
 
-    @staticmethod
-    def __path_matcher(m):
-    #=====================
-    # Helper for parsing `d` attrib of a path
-        c = m[0]
-        if c.isalpha(): return ' ' + c + ' '
-        if c == '-': return ' -'
-        if c == ',': return ' '
-        return c
-
     def __get_geometry(self, element, properties, transform):
     #=======================================================
     ##
@@ -239,7 +229,7 @@ class SVGLayer(MapLayer):
 
         T = transform@SVGTransform(element.attrib.get('transform'))
         if element.tag == SVG_NS('path'):
-            path_tokens = re.sub('.', SVGLayer.__path_matcher, element.attrib.get('d', '')).split()
+            path_tokens = list(parse_svg_path(element.attrib.get('d', '')))
 
         elif element.tag == SVG_NS('rect'):
             x = length_as_pixels(element.attrib.get('x', 0))
