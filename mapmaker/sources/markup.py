@@ -100,6 +100,7 @@ SHAPE_MARKUP = '.' + ZeroOrMore(DETAILS
 #===============================================================================
 
 DEPRECATED_MARKUP = [
+    'centreline',
     'marker',
     'siblings',
     'style'
