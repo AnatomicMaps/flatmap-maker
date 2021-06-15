@@ -32,12 +32,14 @@ class Network(object):
         self.__networks = {}
         self.__path_connections = {}
         self.__path_networks = {}
+        self.__way_points = set()
         for network in network_list:
             paths = {}
             for path in network['paths']:
                 paths[path['id']] = path['connects']
                 self.__path_connections[path['id']] = path['connects']
                 self.__path_networks[path['id']] = network['id']
+                self.__way_points.update(path['connects'])
             self.__networks[network['id']] = paths
         self.__edges = {}
         self.__node_geometry = {}
@@ -73,10 +75,11 @@ class Network(object):
                         bezier_path = bezier_path.reverse()
                     self.__edges[path_id] = bezier_path
 
-    def path_properties(self, id):
-    #=============================
-        if id in self.__path_connections:
-            return { 'centreline': True }
+    def path_properties(self, id, properties):
+    #=========================================
+        if (id in self.__path_connections
+        or (id in self.__way_points and 'models' not in properties)):
+            return { 'exclude': True }
         else:
             return {}
 

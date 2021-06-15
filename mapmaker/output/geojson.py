@@ -74,6 +74,9 @@ class GeoJSONOutput(object):
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
 
         for feature in features:
+            if feature.get_property('exclude', False):
+                progress_bar.update(1)
+                continue
             properties = feature.properties.copy()
             geometry = feature.geometry
             area = geometry.area
