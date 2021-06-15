@@ -133,7 +133,7 @@ class PowerpointSlide(MapLayer):
     ## Returns shape's geometry as `shapely` object.
     ##
         coordinates = []
-        bezier_segments = []
+        bezier_paths = []
         pptx_geometry = Geometry(shape)
         for path in pptx_geometry.path_list:
             bbox = (shape.width, shape.height) if path.w is None or path.h is None else (path.w, path.h)
@@ -159,7 +159,7 @@ class PowerpointSlide(MapLayer):
                                         0, large_arc_flag, 1,
                                         tuple2(*current_point), tuple2(*pt),
                                         T)
-                    bezier_segments.extend(paths.asSegments())
+                    bezier_paths.extend(paths.asSegments())
                     coordinates.extend(bezier_sample(paths))
                     current_point = pt
 
@@ -177,7 +177,7 @@ class PowerpointSlide(MapLayer):
                         coords.append(BezierPoint(*T.transform_point(pt)))
                         current_point = pt
                     bz = CubicBezier(*coords)
-                    bezier_segments.append(bz)
+                    bezier_paths.append(bz)
                     coordinates.extend(bezier_sample(bz))
 
                 elif c.tag == DML('lnTo'):
@@ -202,14 +202,14 @@ class PowerpointSlide(MapLayer):
                         coords.append(BezierPoint(*T.transform_point(pt)))
                         current_point = pt
                     bz = QuadraticBezier(*coords)
-                    bezier_segments.append(bz)
+                    bezier_paths.append(bz)
                     coordinates.extend(bezier_sample(bz))
 
                 else:
                     log.warn('Unknown path element: {}'.format(c.tag))
 
-        if len(bezier_segments) > 0:
-            properties['bezier-segments'] = [repr(bz) for bz in bezier_segments]
+        if len(bezier_paths) > 0:
+            properties['bezier-paths'] = bezier_paths
 
         if closed:
             geometry = shapely.geometry.Polygon(coordinates)

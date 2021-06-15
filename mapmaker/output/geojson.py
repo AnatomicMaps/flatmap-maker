@@ -106,10 +106,8 @@ class GeoJSONOutput(object):
             else:
                 geojson['properties']['scale'] = 10
 
-            if 'bezier-paths' in properties:   # There's no need to export Bezier paths or segments
+            if 'bezier-paths' in properties:   # Don't export Bezier paths
                 properties.pop('bezier-paths')
-            elif 'bezier-segments' in properties:
-                properties.pop('bezier-segments')
 
             for (key, value) in properties.items():
                 if not ignore_property(key):

@@ -191,7 +191,6 @@ class FlatMap(object):
         for layer in self.__layer_dict.values():
             layer.set_feature_properties(self.__map_properties)
             layer.add_nerve_details()
-            self.__map_properties.add_nerve_tracks(layer.nerve_tracks)
 
     def __add_details(self):
     #=======================
@@ -288,7 +287,7 @@ class FlatMap(object):
     def __resolve_paths(self):
     #=========================
         # Route paths and set feature ids of path components
-        self.__map_properties.resolve_pathways(
+        self.__map_properties.generate_networks(
             self.__id_to_feature,
             self.__class_to_feature,
             self.__map_properties.anatomical_map)

@@ -23,6 +23,7 @@ from collections import defaultdict
 #===============================================================================
 
 from mapmaker.knowledgebase import AnatomicalMap
+from mapmaker.routing import Network
 from mapmaker.sources.apinatomy import ApiNATOMY
 from mapmaker.utils import FilePath
 
@@ -47,6 +48,9 @@ class ManifestProperties(object):
         for connectivity_source in manifest.connectivity:
             connectivity = FilePath(connectivity_source).get_json()
             self.__pathways.add_connectivity(connectivity)
+
+        # Load network definitions
+        self.__network = Network(flatmap, properties_dict.get('networks', []))
 
         # Load routes from ApiNATOMY
         if manifest.soma_processes is not None:
@@ -87,15 +91,10 @@ class ManifestProperties(object):
                 else:
                     self.__properties_by_id[id] = properties
 
-    def add_nerve_tracks(self, nerve_tracks):
-    #========================================
-        if self.__pathways is not None:
-            self.__pathways.add_nerve_tracks(nerve_tracks)
-
-    def resolve_pathways(self, id_map, class_map, anatomical_map):
-    #=============================================================
-        if self.__pathways is not None:
-            self.__pathways.resolve_pathways(id_map, class_map, anatomical_map)
+    def generate_networks(self, id_map, class_map, anatomical_map):
+    #==============================================================
+        self.__network.create_geometry(id_map)
+        self.__pathways.resolve_pathways(id_map, class_map, anatomical_map, self.__network.router())
 
     def update_properties(self, properties):
     #=======================================
@@ -103,13 +102,12 @@ class ManifestProperties(object):
         if cls is not None:
             properties.update(self.__anatomical_map.properties(cls))
             properties.update(self.__properties_by_class.get(cls, {}))
-            if self.__pathways is not None:
-                properties.update(self.__pathways.add_line_or_nerve(cls))
+            properties.update(self.__pathways.add_line_or_nerve(cls))
         id = properties.get('id')
         if id is not None:
             properties.update(self.__properties_by_id.get(id, {}))
-            if self.__pathways is not None:
-                properties.update(self.__pathways.add_line_or_nerve(id))
+            properties.update(self.__network.path_properties(id))
+            properties.update(self.__pathways.add_line_or_nerve(id))
         if 'marker' in properties:
             properties['type'] = 'marker'
             if 'datasets' in properties:

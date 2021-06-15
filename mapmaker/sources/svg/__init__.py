@@ -220,7 +220,7 @@ class SVGLayer(MapLayer):
     ## Returns path element as a `shapely` object.
     ##
         coordinates = []
-        bezier_segments = []
+        bezier_paths = []
         moved = False
         first_point = None
         current_point = None
@@ -345,7 +345,7 @@ class SVGLayer(MapLayer):
                 phi = radians(params[2])
                 paths = bezier_paths_from_arc_endpoints(tuple2(*params[0:2]), phi, *params[3:5],
                                                         tuple2(*current_point), tuple2(*pt), T)
-                bezier_segments.extend(paths.asSegments())
+                bezier_paths.extend(paths.asSegments())
                 coordinates.extend(bezier_sample(paths))
                 current_point = pt
 
@@ -371,7 +371,7 @@ class SVGLayer(MapLayer):
                         second_cubic_control = pt
                     coords.append(BezierPoint(*T.transform_point(pt)))
                 bz = CubicBezier(*coords)
-                bezier_segments.append(bz)
+                bezier_paths.append(bz)
                 coordinates.extend(bezier_sample(bz))
                 current_point = pt
 
@@ -436,7 +436,7 @@ class SVGLayer(MapLayer):
                         second_quad_control = pt
                     coords.append(BezierPoint(*T.transform_point(pt)))
                 bz = QuadraticBezier(*coords)
-                bezier_segments.append(bz)
+                bezier_paths.append(bz)
                 coordinates.extend(bezier_sample(bz))
                 current_point = pt
 
@@ -449,8 +449,8 @@ class SVGLayer(MapLayer):
             else:
                 log.warn('Unknown path command: {}'.format(cmd))
 
-        if len(bezier_segments) > 0:
-            properties['bezier-segments'] = [repr(bz) for bz in bezier_segments]
+        if len(bezier_paths) > 0:
+            properties['bezier-paths'] = bezier_paths
 
         if closed and len(coordinates) >= 3:
             geometry = shapely.geometry.Polygon(coordinates)
