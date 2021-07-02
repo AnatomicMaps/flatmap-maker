@@ -42,7 +42,7 @@ class Network(object):
                 self.__way_points.update(path['connects'])
             self.__networks[network['id']] = paths
         self.__edges = {}
-        self.__node_geometry = {}
+        self.__nodes = {}
 
     @staticmethod
     def __find_feature(id, id_map):
@@ -53,31 +53,33 @@ class Network(object):
 
     def __add_node(self, node):
     #==========================
-        if node is not None and node.id not in self.__node_geometry:
-            self.__node_geometry[node.id] = node.geometry
+        if node is not None and node.id not in self.__nodes:
+            self.__nodes[node.id] = node.geometry
 
     def create_geometry(self, id_map):
     #=================================
         for path_id, end_points in self.__path_connections.items():
             edge = self.__find_feature(path_id, id_map)
             if edge is not None:
-                self.__add_node(self.__find_feature(end_points[0], id_map))
-                self.__add_node(self.__find_feature(end_points[1], id_map))
+                for point in end_points:
+                    self.__add_node(self.__find_feature(point, id_map))
                 beziers = edge.get_property('bezier-paths', [])
                 assert(len(beziers) == 1)   ## TEMP, need to check earlier (svg.__get_geometry()) and give error?
                 bezier_path = beziers[0]
                 bezier_start = bezier_path.pointAtTime(0)
                 start_point = shapely.geometry.Point(bezier_start.x, bezier_start.y)
-                end_node_0 = self.__node_geometry.get(end_points[0])
-                end_node_1 = self.__node_geometry.get(end_points[1])
+                end_node_0 = self.__nodes.get(end_points[0])
+                end_node_1 = self.__nodes.get(end_points[-1])
                 if end_node_0 is not None and end_node_1 is not None:
                     if start_point.distance(end_node_0) > start_point.distance(end_node_1):
                         bezier_path = bezier_path.reverse()
                     self.__edges[path_id] = bezier_path
 
+
+
     def path_properties(self, id, properties):
     #=========================================
-        if (id in self.__path_connections
+        if ( False #id in self.__path_connections
         or (id in self.__way_points and 'models' not in properties)):
             return { 'exclude': True }
         else:
@@ -85,6 +87,6 @@ class Network(object):
 
     def router(self):
     #=================
-        return NetworkRouter(self.__networks, self.__edges, self.__node_geometry)
+        return NetworkRouter(self.__networks, self.__edges, self.__nodes)
 
 #===============================================================================

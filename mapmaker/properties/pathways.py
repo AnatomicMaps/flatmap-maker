@@ -244,7 +244,6 @@ class Pathways(object):
         self.__resolved_pathways = None
         self.__routes_by_path_id = {}
         self.__types_by_path_id = {}
-        self.__apinatomy_models = []
         self.__connectivity_by_path = {}
         self.__connectivity_models = [ ConnectivityModel('') ]
         self.__path_models = {}
@@ -269,10 +268,6 @@ class Pathways(object):
             'node-paths': self.__resolved_pathways.node_paths,
             'type-paths': self.__resolved_pathways.type_paths,
         }
-
-    def add_apinatomy_routes(self, apinatomy_model):
-    #===============================================
-        self.__apinatomy_models.append(apinatomy_model)
 
     def add_line_or_nerve(self, id_or_class):
     #========================================
@@ -338,8 +333,8 @@ class Pathways(object):
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
-    def __route_paths(self, id_map, class_map, anatomical_map, network_router):
-    #==========================================================================
+    def __route_paths(self, id_map, class_map, anatomical_map, network_router, connection_models):
+    #=============================================================================================
         def get_point_for_anatomy(anatomical_id, error_list):
             if anatomical_id in anatomical_map:
                 features_set = anatomical_map[anatomical_id]
@@ -352,47 +347,18 @@ class Pathways(object):
             return None
 
         log('Routing paths...')
-        """
-        path_models = []
-        for apinatomy_model in self.__apinatomy_models:
-            model_id = apinatomy_model.uri
-            path_models.append(model_id)
-            for path_id, route in apinatomy_model.routes.items():
-                errors = []
-                points = []
-                for anatomical_id in route:
-                    point = get_point_for_anatomy(anatomical_id, errors)
-                    if point is not None:
-                        if len(points) == 0:
-                            points.append([point])
-                        else:
-                            points.append(point)
-                if len(points) < 2:
-                    errors.append('Route is too short')
-                else:
-                    points[-1] = [points[-1]]
-                    path_type = 'symp'    #####  from where?????
-                    network_router.add_route(model_id, path_id, path_type, points)
-                if errors:
-                    log.warn('Path {}:'.format(path_id))
-                    for error in errors:
-                        log.warn('    {}'.format(error))
+        for model, path_connections in connection_models.items():
+            layer = FeatureLayer('{}_routes'.format(model), self.__flatmap, exported=True)
+            self.__flatmap.add_layer(layer)
+            for id, pathways in network_router.layout(model, path_connections).items():
+                for pathway in pathways:
+                    properties = { 'tile-layer': 'autopaths' }
+                    properties.update(pathway.properties())
+                    for line in pathway.geometry():
+                        layer.add_feature(self.__flatmap.new_feature(line, properties))
 
-        layer = FeatureLayer('{}_routes'.format(self.__flatmap.id), self.__flatmap, exported=True)
-        self.__flatmap.add_layer(layer)
-        for model_id in path_models:
-            for route in network_router.get_routes(model_id):
-                if route.geometry is not None:
-                    ## Properties need to come via `pathways` module...
-                    layer.add_feature(self.__flatmap.new_feature(route.geometry,
-                        { 'tile-layer': 'autopaths',
-                          'kind': route.kind,
-                          'type': 'line-dash' if route.kind.endswith('-post') else 'line'
-                        }))
-        """
-
-    def resolve_pathways(self, id_map, class_map, anatomical_map, network_router):
-    #=============================================================================
+    def resolve_pathways(self, id_map, class_map, anatomical_map, network_router, connection_models):
+    #================================================================================================
         if self.__resolved_pathways is not None:
             return
         self.__resolved_pathways = ResolvedPathways(id_map, class_map)
@@ -409,7 +375,7 @@ class Pathways(object):
             except ValueError as err:
                 log.error('Path {}: {}'.format(path_id, str(err)))
                 errors = True
-        self.__route_paths(id_map, class_map, anatomical_map, network_router)
+        self.__route_paths(id_map, class_map, anatomical_map, network_router, connection_models)
         if errors:
             raise ValueError('Errors in mapping paths and routes')
 

@@ -24,7 +24,6 @@ from collections import defaultdict
 
 from mapmaker.knowledgebase import AnatomicalMap
 from mapmaker.routing import Network
-from mapmaker.sources.apinatomy import ApiNATOMY
 from mapmaker.utils import FilePath
 
 from .pathways import Pathways
@@ -52,11 +51,10 @@ class ManifestProperties(object):
         # Load network definitions
         self.__network = Network(flatmap, properties_dict.get('networks', []))
 
-        # Load routes from ApiNATOMY
-        if manifest.soma_processes is not None:
-            soma_processes = FilePath(manifest.soma_processes['href']).get_json()
-            for model in manifest.soma_processes['models']:
-                self.__pathways.add_apinatomy_routes(ApiNATOMY(soma_processes, model))
+
+        # Neural connection information will eventually be derived from SciGraph queries...
+        self.__connections = { model: FilePath(source).get_json()
+                                for model, source in manifest.connections.items() }
 
     @property
     def anatomical_ids(self):
@@ -94,7 +92,7 @@ class ManifestProperties(object):
     def generate_networks(self, id_map, class_map, anatomical_map):
     #==============================================================
         self.__network.create_geometry(id_map)
-        self.__pathways.resolve_pathways(id_map, class_map, anatomical_map, self.__network.router())
+        self.__pathways.resolve_pathways(id_map, class_map, anatomical_map, self.__network.router(), self.__connections)
 
     def update_properties(self, properties):
     #=======================================
