@@ -75,18 +75,12 @@ class Network(object):
                         bezier_path = bezier_path.reverse()
                     self.__edges[path_id] = bezier_path
 
-
-
-    def path_properties(self, id, properties):
-    #=========================================
-        if ( False #id in self.__path_connections
-        or (id in self.__way_points and 'models' not in properties)):
-            return { 'exclude': True }
-        else:
-            return {}
-
     def router(self):
     #=================
         return NetworkRouter(self.__networks, self.__edges, self.__nodes)
+
+    def way_point(self, id):
+    #=======================
+        return id in self.__way_points
 
 #===============================================================================

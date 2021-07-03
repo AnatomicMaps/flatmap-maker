@@ -104,7 +104,9 @@ class ManifestProperties(object):
         id = properties.get('id')
         if id is not None:
             properties.update(self.__properties_by_id.get(id, {}))
-            properties.update(self.__network.path_properties(id, properties))
+            # Drop network nodes that don't have anatomical meaning
+            if self.__network.way_point(id) and 'models' not in properties:
+                properties['exclude'] = True
             properties.update(self.__pathways.add_line_or_nerve(id))
         if 'marker' in properties:
             properties['type'] = 'marker'
