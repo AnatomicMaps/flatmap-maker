@@ -18,21 +18,30 @@
 #
 #===============================================================================
 
+import beziers.path
 import shapely.geometry
 
 #===============================================================================
 
-class Route(object):
-    def __init__(self, start_node, end_node, edge_node_list, path_type):
-        self.__start_node = start_node
-        self.__end_node = end_node
-        self.__edge_node_list = edge_node_list
+from mapmaker.geometry import bezier_sample
+from mapmaker.utils import log
+
+#===============================================================================
+
+class RouteSegment(object):
+    def __init__(self, nodes_list, edge_list, path_type):
+        self.__nodes_list = nodes_list
+        self.__edge_list = edge_list
         self.__path_type = path_type
 
     def geometry(self):
         """ Override this method..."""
-        return [ shapely.geometry.LineString([ node.centroid for node in nodes ])
-                    for nodes in self.__edge_node_list ]
+        return shapely.geometry.MultiLineString(
+                        [ shapely.geometry.LineString([ node.centroid for node in nodes ])
+                            for nodes in self.__nodes_list ])
+        ## Test with sampled Beziers from edges
+        #path = beziers.path.BezierPath.fromSegments(self.__edge_list)
+        #return shapely.geometry.LineString(bezier_sample(path))
 
     def properties(self):
         return {
@@ -51,25 +60,29 @@ class NetworkRouter(object):
     def layout(self, model, path_connections):
         """ Override this method..."""
         network = self.__networks.get(model, {})
-        routes = { pathway['id']: Route(self.__nodes.get(pathway['start']),
-                                             self.__nodes.get(pathway['end']),
-                                             [ [ self.__nodes.get(node) for node in nodes ]
-                                                    for nodes in [ network.get(edge)
-                                                        for edge in pathway['paths']]],
-                                            pathway['type']
-                                            )
-            for pathway in path_connections['pathways']}
-        '''
-        {
-            "id": "neuron_1",
-            "start": "brain_40",        # index into self.__nodes
-            "end": "ganglion_1",        # index into self.__nodes
-            "paths": [ "n_1", "n_5" ],  # index into self.__networks and self.__edges
-            "type": "cns"
-        }
-        '''
+        route_segments = {}
+        for pathway in path_connections['pathways']:
+            '''
+            {
+                "id": "neuron_1",
+                "start": "brain_40",        # index into self.__nodes
+                "end": "ganglion_1",        # index into self.__nodes
+                "paths": [ "n_1", "n_5" ],  # index into self.__networks and self.__edges
+                "type": "para-pre"
+            }
+            '''
+            nodes_list = [network.get(edge) for edge in pathway['paths']]
+            if pathway['start'] != nodes_list[0][0]:
+                log.error("Start node doesn't match path start for '{}'".format(pathway['id']))
+            if pathway['end'] != nodes_list[-1][-1]:
+                log.error("End node doesn't match path end for '{}'".format(pathway['id']))
+            route_segments[pathway['id']] = RouteSegment([[self.__nodes.get(node) for node in nodes]
+                                                            for nodes in nodes_list],
+                                                         [self.__edges.get(edge)
+                                                            for edge in pathway['paths']],
+                                                         pathway['type'])
 
-        return { connection['id']: [ routes.get(pathway)
+        return { connection['id']: [ route_segments.get(pathway)
                                         for pathway in connection['pathways']]
             for connection in path_connections['connections']}
         '''
