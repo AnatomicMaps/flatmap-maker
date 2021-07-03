@@ -37,6 +37,7 @@ Command line help::
                     [--clean] [--background-tiles]
                     [--check-errors] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initialZoom N] [--max-zoom N] [--min-zoom N]
+                    [--path-layout {automatic,centreline,linear}]
                     [--refresh-labels] [--single-svg] [--upload USER@SERVER]
                     --output OUTPUT --source SOURCE
 
@@ -68,6 +69,8 @@ Command line help::
       --min-zoom N          minimum zoom level (defaults to 2)
 
     miscellaneous:
+      --path-layout {automatic,centreline,linear}
+                            How to layout connecting paths (default 'automatic')
       --refresh-labels      Clear the label text cache before map making
       --single-svg          Source is a single SVG file, not a flatmap manifest
       --upload USER@SERVER  Upload generated map to server

@@ -24,6 +24,7 @@ import shapely.geometry
 #===============================================================================
 
 from mapmaker.geometry import bezier_sample
+from mapmaker.settings import settings
 from mapmaker.utils import log
 
 #===============================================================================
@@ -35,13 +36,17 @@ class RouteSegment(object):
         self.__path_type = path_type
 
     def geometry(self):
-        """ Override this method..."""
-        return shapely.geometry.MultiLineString(
-                        [ shapely.geometry.LineString([ node.centroid for node in nodes ])
-                            for nodes in self.__nodes_list ])
-        ## Test with sampled Beziers from edges
-        #path = beziers.path.BezierPath.fromSegments(self.__edge_list)
-        #return shapely.geometry.LineString(bezier_sample(path))
+        path_layout = settings.get('pathLayout', 'automatic')
+        if path_layout == 'linear':
+            return shapely.geometry.MultiLineString(
+                [ shapely.geometry.LineString([ node.centroid for node in nodes ])
+                    for nodes in self.__nodes_geometry ])
+        elif path_layout == 'automatic':
+            # Automatic routing magic goes in here...
+            pass
+        # Fallback is centreline layout
+        path = beziers.path.BezierPath.fromSegments(self.__edge_geometry)
+        return shapely.geometry.LineString(bezier_sample(path))
 
     def properties(self):
         return {
