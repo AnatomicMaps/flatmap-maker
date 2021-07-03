@@ -30,10 +30,20 @@ from mapmaker.utils import log
 #===============================================================================
 
 class RouteSegment(object):
-    def __init__(self, nodes_list, edge_list, path_type):
-        self.__nodes_list = nodes_list
-        self.__edge_list = edge_list
+    def __init__(self, path_id, node_set, nodes_geometry, edge_geometry, path_type):
+        self.__id = path_id
+        self.__node_set = node_set
+        self.__nodes_geometry = nodes_geometry
+        self.__edge_geometry = edge_geometry
         self.__path_type = path_type
+
+    @property
+    def id(self):
+        return self.__id
+
+    @property
+    def node_set(self):
+        return self.__node_set
 
     def geometry(self):
         path_layout = settings.get('pathLayout', 'automatic')
@@ -63,7 +73,6 @@ class NetworkRouter(object):
         self.__nodes = nodes
 
     def layout(self, model, path_connections):
-        """ Override this method..."""
         network = self.__networks.get(model, {})
         route_segments = {}
         for pathway in path_connections['pathways']:
@@ -77,11 +86,15 @@ class NetworkRouter(object):
             }
             '''
             nodes_list = [network.get(edge) for edge in pathway['paths']]
+            node_set = set(nodes_list[0])
+            for nodes in nodes_list[1:]:
+                node_set.update(nodes)
             if pathway['start'] != nodes_list[0][0]:
                 log.error("Start node doesn't match path start for '{}'".format(pathway['id']))
             if pathway['end'] != nodes_list[-1][-1]:
                 log.error("End node doesn't match path end for '{}'".format(pathway['id']))
-            route_segments[pathway['id']] = RouteSegment([[self.__nodes.get(node) for node in nodes]
+            route_segments[pathway['id']] = RouteSegment(pathway['id'], node_set,
+                                                         [[self.__nodes.get(node) for node in nodes]
                                                             for nodes in nodes_list],
                                                          [self.__edges.get(edge)
                                                             for edge in pathway['paths']],

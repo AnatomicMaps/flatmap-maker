@@ -154,6 +154,14 @@ class ResolvedPathways(object):
     def type_paths(self):
         return self.__type_paths
 
+    def add_line_feature(self, path_id, feature):
+        resolved_path = self.__paths[path_id]
+        resolved_path.extend_lines([feature.feature_id])
+
+    def add_nodes(self, path_id, nodes):
+        resolved_path = self.__paths[path_id]
+        resolved_path.extend_nodes(self.__resolve_nodes_for_path(path_id, nodes))
+
     def add_path_type(self, path_id, path_type):
         self.__type_paths[path_type].append(path_id)
 
@@ -355,7 +363,11 @@ class Pathways(object):
                 for segment in segments:
                     properties = { 'tile-layer': 'autopaths' }
                     properties.update(segment.properties())
-                    layer.add_feature(self.__flatmap.new_feature(segment.geometry(), properties))
+                    feature = self.__flatmap.new_feature(segment.geometry(), properties)
+                    layer.add_feature(feature)
+                    self.__resolved_pathways.add_line_feature(segment.id, feature)
+                    self.__resolved_pathways.add_nodes(segment.id, segment.node_set)
+                    self.__resolved_pathways.add_path_type(segment.id, properties.get('type'))
 
     def resolve_pathways(self, id_map, class_map, anatomical_map, network_router, connection_models):
     #================================================================================================
