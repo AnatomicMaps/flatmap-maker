@@ -359,7 +359,9 @@ class Pathways(object):
         for model, path_connections in connection_models.items():
             layer = FeatureLayer('{}_routes'.format(model), self.__flatmap, exported=True)
             self.__flatmap.add_layer(layer)
-            for id, segments in network_router.layout(model, path_connections).items():
+            for id, segments in network_router.layout(model,
+                                                      path_connections['connections'],
+                                                      path_connections['pathways']).items():
                 for segment in segments:
                     properties = { 'tile-layer': 'autopaths' }
                     properties.update(segment.properties())

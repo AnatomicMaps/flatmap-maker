@@ -71,15 +71,15 @@ class RouteSegment(object):
 #===============================================================================
 
 class NetworkRouter(object):
-    def __init__(self, networks, edges, nodes):
+    def __init__(self, networks: dict, edges: dict, nodes: dict):
         self.__networks = networks
         self.__edges = edges
         self.__nodes = nodes
 
-    def layout(self, model, path_connections):
+    def layout(self, model: str, connections: dict, pathways: dict) -> dict:
         network = self.__networks.get(model, {})
         route_segments = {}
-        for pathway in path_connections['pathways']:
+        for pathway in pathways:
             '''
             {
                 "id": "neuron_1",
@@ -106,7 +106,7 @@ class NetworkRouter(object):
 
         return { connection['id']: [ route_segments.get(pathway)
                                         for pathway in connection['pathways']]
-            for connection in path_connections['connections']}
+            for connection in connections}
         '''
         {
             "id": "connection_1",
