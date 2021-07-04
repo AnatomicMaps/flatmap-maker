@@ -61,7 +61,11 @@ class RouteSegment(object):
     def properties(self):
         return {
             'kind': self.__path_type,
-            'type': 'line-dash' if self.__path_type.endswith('-post') else 'line'
+            'type': 'line-dash' if self.__path_type.endswith('-post') else 'line',
+            # this is were we could set flags to specify the line-end style.
+            # --->   <---    |---   ---|    o---   ---o    etc...
+            # See https://github.com/alantgeo/dataset-to-tileset/blob/master/index.js
+            # and https://github.com/mapbox/mapbox-gl-js/issues/4096#issuecomment-303367657
         }
 
 #===============================================================================
