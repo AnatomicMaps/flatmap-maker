@@ -18,8 +18,14 @@
 #
 #===============================================================================
 
+from .region import Roads
+
+#===============================================================================
+
+
 class NetworkRouter(object):
     def __init__(self, networks, edges, node_geometry):
+        roads = Roads(networks, edges, node_geometry)
         print('NetworkRouter:', networks, edges, node_geometry)
 
 #===============================================================================
