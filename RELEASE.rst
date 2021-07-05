@@ -10,8 +10,7 @@ Making a new release
 * Update ``__version__`` in ``mapmaker/__init__.py``.
 * Update the package name in ``README.rst`` to reflect the new version.
 * Update ``README.rst`` with any changed usage instructions.
-* Run ``$ pipenv-setup sync`` to update ``setup.py``.
-* Commit ``mapmaker/__init__.py``, ``README.rst``, and ``setup.py``.
+* Commit ``mapmaker/__init__.py`` and ``README.rst``.
 * With the new version identifier::
 
     $ git tag VERSION
@@ -19,7 +18,7 @@ Making a new release
     $ git push origin VERSION
     # We don't want untracked files bundled into the release
     $ git stash --include-untracked
-    $ python setup.py bdist_wheel
+    $ poetry build --format wheel
     $ git stash pop
 
 * On Github, at https://github.com/dbrnz/flatmap-maker/releases/new, create a release

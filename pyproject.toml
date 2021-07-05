@@ -1,0 +1,43 @@
+[tool.poetry]
+name = "mapmaker"
+version = "1.2.0dev"
+description = ""
+authors = ["David Brooks <dave@bcs.co.nz>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+python-pptx = "*"
+numpy = "*"
+beziers = "*"
+pymupdf = "*"
+requests = "*"
+pyparsing = "*"
+pyyaml = "*"
+rdflib = "*"
+shapely = "*"
+pyproj = "*"
+mercantile = "*"
+mbutil = "*"
+openpyxl = "*"
+tqdm = "*"
+lxml = "*"
+opencv-python-headless = "*"
+svglib = "*"
+reportlab = "*"
+skia-python = "*"
+transforms3d = "*"
+tinycss2 = "*"
+cssselect2 = "*"
+webcolors = "*"
+
+[tool.poetry.dev-dependencies]
+sphinx = "*"
+sphinx-rtd-theme = "*"
+sphinx-argparse = "*"
+
+[tool.poetry.scripts]
+mapmaker = 'mapmaker.__main__:main'
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
