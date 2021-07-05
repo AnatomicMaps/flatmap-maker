@@ -21,8 +21,10 @@
 import io
 import json
 import pathlib
+import sys
 import urllib.request
 
+from json.decoder import JSONDecodeError
 from urllib.parse import urljoin
 
 #===============================================================================
@@ -59,8 +61,9 @@ class FilePath(object):
     def get_json(self):
         try:
             return json.loads(self.get_data())
-        except json.decoder.JSONDecodeError as err:
-            raise ValueError('JSON decoder error: {}'.format(err))
+        except JSONDecodeError as err:
+            log.exception('JSON decoder error: {}, {}'.format(self.__url, err))
+            sys.exit(1)
 
     def get_BytesIO(self):
         bytesio = io.BytesIO(self.get_data())

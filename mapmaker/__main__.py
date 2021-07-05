@@ -71,6 +71,9 @@ def arg_parser():
                         help='minimum zoom level (defaults to 2)')
 
     misc_options = parser.add_argument_group('miscellaneous')
+    misc_options.add_argument('--path-layout', dest='pathLayout',
+                        choices=['automatic', 'centreline', 'linear'], default='automatic',
+                        help="How to layout connecting paths (default 'automatic')")
     misc_options.add_argument('--refresh-labels', dest='refreshLabels', action='store_true',
                         help='Clear the label text cache before map making')
     misc_options.add_argument('--single-svg', dest='singleSvg', action='store_true',
