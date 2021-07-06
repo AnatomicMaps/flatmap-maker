@@ -53,8 +53,6 @@ Command line help
 
     $ mapmaker --help
 
-::
-
 .. code-block:: text
 
     usage: mapmaker [-h] [-v]
@@ -110,8 +108,6 @@ An example run
 ::
 
     $ mapmaker --output ./flatmaps --source ../PMR/rat --verbose
-
-::
 
 .. code-block:: text
 
