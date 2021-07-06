@@ -1,6 +1,7 @@
-========
+.. highlight:: sh
+
 Overview
-========
+--------
 
 Mapmaker is a Python application for generating `Mapbox <https://www.mapbox.com/>`_ compatible tilesets from a range of sources, currently Powerpoint slides, SVG diagrams, and segmented image files from MBF Biosciences.
 
@@ -97,7 +98,6 @@ For instance::
     Creating index and style files...
     Generated map for NCBITaxon:10114
 
-
 Manifest files
 --------------
 
@@ -132,7 +132,9 @@ An image source MUST also specify:
 
 * ``boundary`` -- the id of an image feature that defines the image's boundary.
 
-For example::
+For example:
+
+.. code-block:: json
 
     {
         "id": "whole-rat",
@@ -175,15 +177,14 @@ Connectivity files
 
 TODO...
 
-Example::
+Example:
+
+.. code-block:: json
 
     {
         "id": "keast-bladder",
         "source": "https://apinatomy.org/uris/models/keast-bladder",
         "paths": [
-            .
-            .
-            .
             {
                 "id": "path_3",
                 "type": "somatic",
@@ -191,10 +192,7 @@ Example::
                 "route": "(S41_2_L5, S41_2_L6), C5, C6, S43_L5, S43_L6, S50_L5_T, S50_L6_T, S50_L5_B, S50_L6_B, urinary_5",
                 "nerves": "keast_2",
                 "models": "ilxtr:neuron-type-keast-9"
-            },
-            .
-            .
-            .
+            }
         ]
     }
 
