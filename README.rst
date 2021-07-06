@@ -110,7 +110,7 @@ The manifest is a JSON dictionary that MUST specify:
 
 It MAY optionally specify:
 
-* a taxon identifier specifying what the flatmap ``models`.
+* a taxon identifier specifying what the flatmap ``models``.
 * the name of a ``properties`` JSON file specifying properties of features.
 * the name of an ``anatomicalMap`` file assigning anatomical identifiers to features.
 * The map's ``connectivity`` as a list of JSON files, each specifying a connectivity model.
