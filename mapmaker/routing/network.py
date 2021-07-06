@@ -71,12 +71,31 @@ class RouteSegment(object):
 #===============================================================================
 
 class NetworkRouter(object):
+    """
+    This class describes a network router.
+
+    Args:
+        networks: description of `networks`.
+        edges: description of `edges`.
+        nodes: description of `nodes`.
+    """
     def __init__(self, networks: dict, edges: dict, nodes: dict):
         self.__networks = networks
         self.__edges = edges
         self.__nodes = nodes
 
     def layout(self, model: str, connections: list, pathways: list) -> dict:
+        """
+        Layout paths for a model.
+
+        Args:
+            model: The network model.
+            connections: description...
+            pathways: description...
+
+        Returns:
+            xxxx
+        """
         network = self.__networks.get(model, {})
         route_segments = {}
         for pathway in pathways:
