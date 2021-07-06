@@ -17,21 +17,28 @@
 #  limitations under the License.
 #
 # ===============================================================================
-from math import pi
 
 from beziers.cubicbezier import CubicBezier
-
+from math import pi
 import mercantile
+from itertools import tee
+
+#===============================================================================
 
 import networkx as nx
 
-from .utils.maths import add
-from .utils.maths import magnitude
-from .utils.maths import mult
-from .utils.maths import normalize
-from .utils.maths import set_magnitude
-from .utils.maths import sub
+#===============================================================================
 
+from mapmaker.routing.utils.maths import add
+from mapmaker.routing.utils.maths import magnitude
+from mapmaker.routing.utils.maths import mult
+from mapmaker.routing.utils.maths import normalize
+from mapmaker.routing.utils.maths import set_magnitude
+from mapmaker.routing.utils.maths import sub
+
+# ===============================================================================
+
+import matplotlib.pyplot as plt
 
 # ===============================================================================
 
@@ -46,6 +53,12 @@ def is_close(x: tuple, y: tuple, rel_tol=1e0, abs_tol=0.0) -> list:
     return [abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol) for a, b in (x, y)]
 
 
+def pairwise(iterable):
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
+
 class Roads(object):
 
     def __init__(self, networks, edges, node_geometry):
@@ -56,31 +69,16 @@ class Roads(object):
         self.__node_derivatives = {}
         self.__graphs = {}
         self.__continuous_paths = {}
+        self.__scaffold_settings = {}
+        self.__continuous_centreline_scaffolds = {}
+        self.__continuous_region_scaffolds = {}
 
-        self.__extract_components()
-        self.__build_graphs()
-        self.__find_continuous_paths()
-
+    def build(self):
+        self.__build_graphs()  # build a graph network for nerve sets
+        self.__find_continuous_paths()  # find all possible paths from sources to targets
+        self.__extract_components()  # get all the coordinates and derivatives
+        self.__generate_2d_descriptions()
         print(" ")
-
-    def __extract_components(self):
-        """
-        Extracts and stores network components (i.e., coordinates & derivatives) in a dictionary for every nerve set.
-        """
-        for nerve in self.__networks.keys():
-            self.__node_coordinates[nerve] = {}
-            for network, path in self.__networks.get(nerve).items():
-                self.__node_coordinates[nerve][network] = []
-                if not isinstance(path, list):
-                    path = [path]
-                for point in path:
-                    # get coordinates using the centroids of the geometry objects
-                    x = self.__node_geometry[point].centroid.x
-                    y = self.__node_geometry[point].centroid.y
-                    x, y = get_geo_coordinates(x, y)
-                    self.__node_coordinates[nerve][network].append((x, y))
-                    # get derivatives using the Bezier descriptions
-                    # TODO: extract derivatives as well.
 
     def __build_graphs(self):
         """
@@ -121,3 +119,67 @@ class Roads(object):
                         path = nx.shortest_path(self.__graphs.get(nerve), source=source, target=target)
                     self.__continuous_paths[nerve]['p_{}'.format(path_counter)] = path
                     path_counter += 1
+
+    def __extract_components(self):
+        """
+        Extracts and stores network components (i.e., coordinates & derivatives) in a dictionary for every nerve set.
+        Each nerve set is a dict with keys corresponding to the keys in self.__continuous_paths.
+        """
+        for nerve in self.__continuous_paths.keys():
+            self.__node_coordinates[nerve] = {}
+            self.__node_derivatives[nerve] = {}
+            for network, path in self.__continuous_paths.get(nerve).items():
+                self.__node_coordinates[nerve][network] = []
+                self.__node_derivatives[nerve][network] = []
+                if not isinstance(path, list):
+                    path = [path]
+                for point in path:
+                    # get coordinates using the centroids of the geometry objects
+                    x = self.__node_geometry[point].centroid.x
+                    y = self.__node_geometry[point].centroid.y
+                    x, y = get_geo_coordinates(x, y)
+                    self.__node_coordinates[nerve][network].append((x, y))
+                for p1, p2 in pairwise(path):
+                    # get derivatives using the Bezier descriptions
+                    segment = self.__get_segment_bezier(p1, p2)
+                    dx1, dy1 = segment.derivative()[0].x, segment.derivative()[0].y
+                    dx1, dy1 = get_geo_coordinates(dx1, dy1)
+                    self.__node_derivatives[nerve][network].append((dx1, dy1))
+                    if path.index(p2) == len(path) - 1:  # derivative of the last node
+                        dx2, dy2 = segment.derivative()[-1].x, segment.derivative()[-1].y
+                        dx2, dy2 = get_geo_coordinates(dx2, dy2)
+                        self.__node_derivatives[nerve][network].append((dx2, dy2))
+
+    def __get_segment_bezier(self, p1, p2):
+        return [self.__edges[k] for k, v in self.__networks['vagus'].items() if v == [p1, p2]][-1]
+
+    def __generate_2d_descriptions(self):
+        scaffold_settings = {}
+        for nerve in self.__continuous_paths.keys():
+            self.__continuous_region_scaffolds[nerve] = {}
+            scaffold_settings[nerve] = {}
+            for network, _ in self.__continuous_paths.get(nerve).items():
+                number_of_nodes = len(self.__continuous_paths.get(nerve).get(network))
+                nodes = []
+                d1 = []
+                d2 = []
+                for node_index in range(number_of_nodes):
+                    x, y = self.__node_coordinates[nerve][network][node_index]
+                    dx, dy = self.__node_derivatives[nerve][network][node_index]
+                    normal_left = mult(normalize((dy, -dx)), 1)
+                    normal_right = mult(normalize((-dy, dx)), 1)
+                    new_node1 = [x + normal_left[0], y + normal_left[1]]
+                    new_node2 = [x + normal_right[0], y + normal_right[1]]
+                    nodes.append(new_node1)
+                    nodes.append(new_node2)
+                    d1.append(set_magnitude(normal_left, magnitude(normal_left) * 1))
+                    d1.append(set_magnitude(normal_right, magnitude(normal_right) * 1))
+                    d2.append([dx, dy])
+                    d2.append([dx, dy])
+                scaffold_settings[nerve] = {
+                    'id': network,
+                    'node coordinates': nodes,
+                    'node derivatives 1': d1,
+                    'node derivatives 2': d2,
+                    'number of elements': number_of_nodes - 1
+                }
