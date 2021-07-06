@@ -72,4 +72,29 @@ latex_docclass = {
    'manual': 'report',
 }
 
+# -- Ensure apidoc is run ----------------------------------------------------
+
+
+def run_apidoc(app, config):
+    """
+    Hook to generate API documentation via sphinx-apidoc
+
+    Args:
+        app : the Sphinx application
+        config : the Sphinx configuration
+    """
+    import sphinx.ext.apidoc
+
+    args = [
+        "--force",
+        "--separate",
+        "--output-dir", "_source",
+        "../mapmaker"
+    ]
+    sphinx.ext.apidoc.main(args)
+
+
+def setup(app):
+    app.connect("config-inited", run_apidoc)
+
 # -- End of File -------------------------------------------------------------
