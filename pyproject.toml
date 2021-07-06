@@ -39,5 +39,6 @@ sphinx-argparse = "*"
 mapmaker = 'mapmaker.__main__:main'
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+# See https://github.com/chrahunt/rtd-poetry/issues/3
+requires = ["poetry-core>=1.0.0", "rtd-poetry-tmp"]
+build-backend = "rtd_poetry"
