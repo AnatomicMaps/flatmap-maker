@@ -3,5 +3,5 @@ Running mapmaker
 ================
 
 .. argparse::
-   :ref: mapmaker.__main__.arg__parser
+   :ref: mapmaker.__main__.arg_parser
    :prog: mapmaker

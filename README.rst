@@ -1,13 +1,14 @@
-========
+.. highlight:: sh
+
 Overview
-========
+--------
 
 Mapmaker is a Python application for generating `Mapbox <https://www.mapbox.com/>`_ compatible tilesets from a range of sources, currently Powerpoint slides, SVG diagrams, and segmented image files from MBF Biosciences.
 
 Requirements
 ------------
 
-* Python 3.8 with `pipenv <https://pipenv.pypa.io/en/latest/#install-pipenv-today>`_.
+* Python 3.8 with `poetry <https://python-poetry.org/docs/#installation>`_.
 * `Tippecanoe <https://github.com/mapbox/tippecanoe#installation>`_.
 
 Installation
@@ -28,9 +29,9 @@ Running
 
 Command line help::
 
-    $ pipenv run python -m mapmaker --help
+    $ poetry run python -m mapmaker --help
 
-::
+.. code-block:: text
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
@@ -81,10 +82,9 @@ Command line help::
 
 For instance::
 
-    $ pipenv run python -m mapmaker --output ./flatmaps   \
-                                    --source ../PMR/rat   \
-                                    --verbose
-::
+    $ poetry run python -m mapmaker --output ./flatmaps --source ../PMR/rat --verbose
+
+.. code-block:: text
 
     Mapmaker 0.11.0.b4
     100%|█████████████████████████▉| 678/679
@@ -113,7 +113,7 @@ The manifest is a JSON dictionary that MUST specify:
 
 It MAY optionally specify:
 
-* a taxon identifier specifying what the flatmap ``models`.
+* a taxon identifier specifying what the flatmap ``models``.
 * the name of a ``properties`` JSON file specifying properties of features.
 * the name of an ``anatomicalMap`` file assigning anatomical identifiers to features.
 * The map's ``connectivity`` as a list of JSON files, each specifying a connectivity model.
@@ -135,7 +135,9 @@ An image source MUST also specify:
 
 * ``boundary`` -- the id of an image feature that defines the image's boundary.
 
-For example::
+For example:
+
+.. code-block:: json
 
     {
         "id": "whole-rat",
@@ -178,15 +180,14 @@ Connectivity files
 
 TODO...
 
-Example::
+Example:
+
+.. code-block:: json
 
     {
         "id": "keast-bladder",
         "source": "https://apinatomy.org/uris/models/keast-bladder",
         "paths": [
-            .
-            .
-            .
             {
                 "id": "path_3",
                 "type": "somatic",
@@ -194,10 +195,7 @@ Example::
                 "route": "(S41_2_L5, S41_2_L6), C5, C6, S43_L5, S43_L6, S50_L5_T, S50_L6_T, S50_L5_B, S50_L6_B, urinary_5",
                 "nerves": "keast_2",
                 "models": "ilxtr:neuron-type-keast-9"
-            },
-            .
-            .
-            .
+            }
         ]
     }
 

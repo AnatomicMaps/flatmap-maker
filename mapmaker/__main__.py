@@ -36,7 +36,7 @@ def arg_parser():
 
     parser.add_argument('-v', '--version', action='version', version=__version__)
 
-    log_options = parser.add_argument_group('logging')
+    log_options = parser.add_argument_group('Logging')
     log_options.add_argument('--log', dest='logFile', metavar='LOG_FILE',
                         help="append messages to a log file")
     log_options.add_argument('--show-deprecated', dest='showDeprecated', action='store_true',
@@ -46,13 +46,13 @@ def arg_parser():
     log_options.add_argument('--verbose', action='store_true',
                         help="show progress bars")
 
-    tile_options = parser.add_argument_group('image tiling')
+    tile_options = parser.add_argument_group('Image tiling')
     tile_options.add_argument('--clean', action='store_true',
                         help="Remove all files from generated map's directory before generating new map")
     tile_options.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
                         help="generate image tiles of map's layers (may take a while...)")
 
-    debug_options = parser.add_argument_group('diagnostics')
+    debug_options = parser.add_argument_group('Diagnostics')
     debug_options.add_argument('--check-errors', dest='errorCheck', action='store_true',
                         help='check for errors without generating a map')
     debug_options.add_argument('--save-drawml', dest='saveDrawML', action='store_true',
@@ -62,7 +62,7 @@ def arg_parser():
     debug_options.add_argument('--tippecanoe', dest='showTippe', action='store_true',
                         help='Show command used to run Tippecanoe')
 
-    zoom_options = parser.add_argument_group('zoom level')
+    zoom_options = parser.add_argument_group('Zoom level')
     zoom_options.add_argument('--initialZoom', metavar='N', type=int, default=4,
                         help='initial zoom level (defaults to 4)')
     zoom_options.add_argument('--max-zoom', dest='maxZoom', metavar='N', type=int, default=10,
@@ -70,7 +70,7 @@ def arg_parser():
     zoom_options.add_argument('--min-zoom', dest='minZoom', metavar='N', type=int, default=2,
                         help='minimum zoom level (defaults to 2)')
 
-    misc_options = parser.add_argument_group('miscellaneous')
+    misc_options = parser.add_argument_group('Miscellaneous')
     misc_options.add_argument('--path-layout', dest='pathLayout',
                         choices=['automatic', 'centreline', 'linear'], default='automatic',
                         help="How to layout connecting paths (default 'automatic')")
@@ -81,7 +81,7 @@ def arg_parser():
     misc_options.add_argument('--upload', dest='uploadHost', metavar='USER@SERVER',
                         help='Upload generated map to server')
 
-    required = parser.add_argument_group('required arguments')
+    required = parser.add_argument_group('Required arguments')
     required.add_argument('--output', required=True,
                         help='base directory for generated flatmaps')
     required.add_argument('--source', required=True,
