@@ -33,8 +33,9 @@ release = '1.0.0'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx_rtd_theme',
+    'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
+    'sphinx_rtd_theme',
     'sphinxarg.ext',
 ]
 autodoc_member_order = 'bysource'
