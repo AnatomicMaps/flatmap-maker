@@ -7,51 +7,30 @@ Mapmaker is a Python application for generating `Mapbox <https://www.mapbox.com/
 Requirements
 ------------
 
-* Python 3.8.
+* Python 3.8 with `poetry <https://python-poetry.org/docs/#installation>`_.
 * `Tippecanoe <https://github.com/mapbox/tippecanoe#installation>`_.
 
 Installation
 ------------
 
-It is recommended to install and run ``mapmaker`` in its own Python virtual environment. Instructions for using `pipenv <https://pipenv.pypa.io/en/latest/#install-pipenv-today>`_ are given below, although any other virtual environment and package manager may be used instead.
+* Create a directory in which to install ``mapmaker`` and change into it.
 
-* Create and activate a Python virtual environment in which to install ``mapmaker``.
+* Either download the latest released Python wheel from https://github.com/dbrnz/flatmap-maker/releases/latest, currently ``mapmaker-1.2.0b3-py3-none-any.whl``, and install with::
 
-* Within this environment, install the latest ``mapmaker`` wheel from https://github.com/dbrnz/flatmap-maker/releases/latest (currently ``mapmaker-1.2.0b3-py3-none-any.whl``).
+    $ pipenv install --python 3.8 mapmaker-1.2.0b3-py3-none-any.whl
 
-
-Using pipenv
-~~~~~~~~~~~~
-
-* Create a directory in which to run ``mapmaker`` and change into it.
-
-* Install ``mapmaker`` directly from GitHub with::
+* Or install the package directly from Github with::
 
     $ pipenv install --python 3.8 https://github.com/dbrnz/flatmap-maker/releases/download/v1.2.0b3/mapmaker-1.2.0b3-py3-none-any.whl
-
-
-Development
------------
-
-``mapmaker`` uses `poetry <https://python-poetry.org/docs/#installation>`_ for dependency management and packaging. To create a development environment:
-
-* Clone this repository.
-* Run ``$ poetry install`` in the top-level directory of the cloned repository.
-
 
 Running
 -------
 
-* ``mapmaker`` must be run within its Python virtual environment. For instance, first run ``$ pipenv shell`` when using ``pipenv``.
+Command line help::
 
-Command line help
-~~~~~~~~~~~~~~~~~
+    $ poetry run python -m mapmaker --help
 
-::
-
-    $ mapmaker --help
-
-::
+.. code-block:: text
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
@@ -97,14 +76,11 @@ Command line help
       --output OUTPUT       base directory for generated flatmaps
       --source SOURCE       URL or path of a flatmap manifest
 
-An example run
-~~~~~~~~~~~~~~
+For instance::
 
-::
+    $ poetry run python -m mapmaker --output ./flatmaps --source ../PMR/rat --verbose
 
-    $ mapmaker --output ./flatmaps --source ../PMR/rat --verbose
-
-::
+.. code-block:: text
 
     Mapmaker 0.11.0.b4
     100%|█████████████████████████▉| 678/679
