@@ -76,7 +76,7 @@ class NetworkRouter(object):
         self.__edges = edges
         self.__nodes = nodes
 
-    def layout(self, model: str, connections: dict, pathways: dict) -> dict:
+    def layout(self, model: str, connections: list, pathways: list) -> dict:
         network = self.__networks.get(model, {})
         route_segments = {}
         for pathway in pathways:
