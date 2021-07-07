@@ -20,7 +20,7 @@ It is recommended to install and run ``mapmaker`` in its own Python virtual envi
 
 * Create and activate a Python virtual environment in which to install ``mapmaker``.
 
-* Within this environment, install the latest ``mapmaker`` wheel from https://github.com/dbrnz/flatmap-maker/releases/latest (currently ``mapmaker-1.2.0b3-py3-none-any.whl``).
+* Within this environment, install the latest ``mapmaker`` wheel from https://github.com/dbrnz/flatmap-maker/releases/latest (currently ``mapmaker-1.2.0b4-py3-none-any.whl``).
 
 Using pipenv
 ~~~~~~~~~~~~
@@ -29,7 +29,7 @@ Using pipenv
 
 * Install ``mapmaker`` directly from GitHub with::
 
-    $ pipenv install --python 3.8 https://github.com/dbrnz/flatmap-maker/releases/download/v1.2.0b3/mapmaker-1.2.0b3-py3-none-any.whl
+    $ pipenv install --python 3.8 https://github.com/dbrnz/flatmap-maker/releases/download/v1.2.0b4/mapmaker-1.2.0b4-py3-none-any.whl
 
 
 Development
