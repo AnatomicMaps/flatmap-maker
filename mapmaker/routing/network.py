@@ -18,6 +18,12 @@
 #
 #===============================================================================
 
+"""
+File doc...
+"""
+
+#===============================================================================
+
 import beziers.path
 import shapely.geometry
 
@@ -45,7 +51,11 @@ class RouteSegment(object):
     def node_set(self):
         return self.__node_set
 
-    def geometry(self):
+    def geometry(self) -> shapely.geometry:
+        """
+        Returns:
+            A ``LineString`` or ``MultiLineString`` object connecting the segment's nodes.
+        """
         path_layout = settings.get('pathLayout', 'automatic')
         if path_layout == 'linear':
             return shapely.geometry.MultiLineString(
@@ -58,7 +68,11 @@ class RouteSegment(object):
         path = beziers.path.BezierPath.fromSegments(self.__edge_geometry)
         return shapely.geometry.LineString(bezier_sample(path))
 
-    def properties(self):
+    def properties(self) -> dict:
+        """
+        Returns:
+            Properties of the line string object connecting the segment's nodes.
+        """
         return {
             'kind': self.__path_type,
             'type': 'line-dash' if self.__path_type.endswith('-post') else 'line',
@@ -72,14 +86,46 @@ class RouteSegment(object):
 
 class NetworkRouter(object):
     """
-    This class describes a network router.
+    Route paths through a pre-defined geometric network.
+
+    Networks are defined in terms of their topological connections and geometric
+    structures and can be thought of as conduit networks through which individual
+    wires are routed.
 
     Args:
-        networks: description of `networks`.
-        edges: description of `edges`.
-        nodes: description of `nodes`.
+        networks: a dictionary specifying network models.
+
+            Each network model is an item in this dictionary, in the form
+            ``MODEL_ID: EDGE_DICT``, where ``EDGE_DICT`` is of the form
+            ``EDGE_ID: NODE_LIST`` and specifies the nodes which an edge
+            connects. Nodes are specified as a list of identifiers, ordered
+            from start to end node, and including any intermediate nodes.
+
+            An example showing part of the ``vagus`` network::
+
+                'vagus': {
+                    'n_1': ['brain_40', 'point_1'],
+                    'n_5': ['point_1', 'skull_1', 'ganglion_1'],
+                    'n_6': ['ganglion_1', 'skull_2'],
+                    'n_7': ['ganglion_1', 'point_2', 'point_3'],
+                }
+
+        edges: a dictionary specifying the geometric paths of edges.
+
+            The geometric paths of edges are specified by items of the
+            form ``EDGE_ID: BEZIER_PATH``, where the path is an object
+            of type ``beziers.cubicbezier.CubicBezier``.
+
+        nodes: a dictionary specifying the geometric shapes of nodes.
+
+            The geometric shape of nodes are specified by items of the
+            form ``NODE_ID: SHAPE``, where the shape is specified by
+            a ``shapely.geometry`` object.
+
+
     """
     def __init__(self, networks: dict, edges: dict, nodes: dict):
+        print(type(nodes['brain_40']))
         self.__networks = networks
         self.__edges = edges
         self.__nodes = nodes
@@ -89,25 +135,43 @@ class NetworkRouter(object):
         Layout paths for a model.
 
         Args:
-            model: The network model.
-            connections: description...
-            pathways: description...
+            model: The identifier of the network model to use for path routing.
+
+            connections: a list of connections which require routing.
+
+                A connection is specified by a dictionary. It has an ``id`` and a
+                list of ``pathways`` specifying the individual segments used for the
+                connection.
+
+                Example::
+
+                    {
+                        "id": "connection_1",
+                        "pathways": [ "neuron_1", "neuron_6"]  # index into pathways
+                    }
+
+            pathways: a list of segments.
+
+                A segment is specified by a dictionary. It has an ``id``, start and end
+                nodes, a list of ``paths`` (edges) to follow, and a ``type``.
+
+                Example::
+
+                    {
+                        "id": "neuron_1",
+                        "start": "brain_40",        # index into self.__nodes
+                        "end": "ganglion_1",        # index into self.__nodes
+                        "paths": [ "n_1", "n_5" ],  # index into self.__networks and self.__edges
+                        "type": "para-pre"
+                    }
 
         Returns:
-            xxxx
+            A dictionary of ``RouteSegment``s which define the geometric path and
+            properties of each connection.
         """
         network = self.__networks.get(model, {})
         route_segments = {}
         for pathway in pathways:
-            '''
-            {
-                "id": "neuron_1",
-                "start": "brain_40",        # index into self.__nodes
-                "end": "ganglion_1",        # index into self.__nodes
-                "paths": [ "n_1", "n_5" ],  # index into self.__networks and self.__edges
-                "type": "para-pre"
-            }
-            '''
             nodes_list = [network.get(edge) for edge in pathway['paths']]
             node_set = set(nodes_list[0])
             for nodes in nodes_list[1:]:
@@ -126,11 +190,5 @@ class NetworkRouter(object):
         return { connection['id']: [ route_segments.get(pathway)
                                         for pathway in connection['pathways']]
             for connection in connections}
-        '''
-        {
-            "id": "connection_1",
-            "pathways": [ "neuron_1", "neuron_6"]  # index into pathways
-        }
-        '''
 
 #===============================================================================
