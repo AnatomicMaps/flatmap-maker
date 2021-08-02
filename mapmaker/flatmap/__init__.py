@@ -317,8 +317,7 @@ class FlatMap(object):
         # Route paths and set feature ids of path components
         self.__map_properties.resolve_pathways(
             self.__id_to_feature,
-            self.__class_to_feature,
-            self.__map_properties.anatomical_map)
+            self.__class_to_feature)
 
     def __setup_feature_search(self):
     #================================
