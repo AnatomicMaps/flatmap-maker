@@ -56,6 +56,7 @@ Running
 -------
 
 * ``mapmaker`` must be run within its Python virtual environment. For instance, first run ``$ pipenv shell`` when using ``pipenv``.
+* `SciCrunch <https://scicrunch.org/>`_ is used to lookup attributes (e.g. labels) of anatomical entities. In order to use these services a valid SciCrunch API key must be provided in the ``SCICRUNCH_API_KEY`` environment variable. (Keys are obtained by registering as a SciCrunch user).
 
 Command line help
 ~~~~~~~~~~~~~~~~~
