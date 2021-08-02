@@ -69,32 +69,32 @@ Command line help
       -h, --help            show this help message and exit
       -v, --version         show program's version number and exit
 
-    logging:
+    Logging:
       --log LOG_FILE        append messages to a log file
       --show-deprecated     issue a warning for deprecated markup properties
       --silent              suppress all messages to screen
       --verbose             show progress bars
 
-    image tiling:
+    Image tiling:
       --clean               Remove all files from generated map's directory before generating new map
       --background-tiles    generate image tiles of map's layers (may take a while...)
 
-    diagnostics:
+    Diagnostics:
       --check-errors        check for errors without generating a map
       --save-drawml         save a slide's DrawML for debugging
       --save-geojson        Save GeoJSON files for each layer
       --tippecanoe          Show command used to run Tippecanoe
 
-    zoom level:
+    Zoom level:
       --initialZoom N       initial zoom level (defaults to 4)
       --max-zoom N          maximum zoom level (defaults to 10)
       --min-zoom N          minimum zoom level (defaults to 2)
 
-    miscellaneous:
+    Miscellaneous:
       --id ID               Set explicit ID for flatmap, overriding manifest
       --single-svg          Source is a single SVG file, not a flatmap manifest
 
-    required arguments:
+    Required arguments:
       --output OUTPUT       base directory for generated flatmaps
       --source SOURCE       URL or path of a flatmap manifest
 
