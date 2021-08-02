@@ -40,10 +40,11 @@ from .layers import MapLayer
 #===============================================================================
 
 class FlatMap(object):
-    def __init__(self, maker):
         self.__maker = maker
-        self.__id = maker.manifest.id
-        self.__models = maker.manifest.models
+    def __init__(self, manifest, maker):
+        self.__id = maker.id
+        self.__local_id = manifest.id
+        self.__models = manifest.models
 
         # Properties about map features
         self.__map_properties = ManifestProperties(self, maker.manifest)
@@ -96,8 +97,8 @@ class FlatMap(object):
         return self.__layer_dict.values()
 
     @property
-    def maker_id(self):
-        return self.__maker.id
+    def local_id(self):
+        return self.__local_id
 
     @property
     def map_directory(self):

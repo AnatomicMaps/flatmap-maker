@@ -182,7 +182,7 @@ class MapMaker(object):
         self.__upload_files = []
 
         # The map we are making
-        self.__flatmap = FlatMap(self)
+        self.__flatmap = FlatMap(self.__manifest, self)
 
     @property
     def id(self):
