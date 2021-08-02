@@ -177,6 +177,10 @@ For example:
         "models": "NCBITaxon:10114",
         "anatomicalMap": "anatomical_map.xlsx",
         "properties": "rat_flatmap_properties.json",
+        "connectivity": [
+            "keast_bladder.json",
+            "rat_connectivity.json"
+        ],
         "sources": [
             {
                 "id": "whole-rat",
