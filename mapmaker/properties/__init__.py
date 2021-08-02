@@ -57,13 +57,6 @@ class ExternalProperties(object):
                 self.__pathways.add_apinatomy_routes(ApiNATOMY(soma_processes, model))
 
     @property
-    def anatomical_ids(self):
-        anatomical_ids = set()
-        for ids in self.__features_by_model.values():
-            anatomical_ids.update(ids)
-        return list(anatomical_ids)
-
-    @property
     def resolved_pathways(self):
         return self.__pathways.resolved_pathways
 
