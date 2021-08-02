@@ -381,11 +381,6 @@ class MapMaker(object):
         with open(os.path.join(self.__map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
-        # Create TileJSON file
-        json_source = tile_json(self.__id, self.__zoom, self.__flatmap.extent)
-        with open(os.path.join(self.__map_dir, 'tilejson.json'), 'w') as output_file:
-            json.dump(json_source, output_file)
-
         tile_db.close();
 
 #===============================================================================
