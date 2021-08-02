@@ -22,10 +22,10 @@ from collections import defaultdict
 
 #===============================================================================
 
-from mapmaker.knowledgebase import AnatomicalMap
 from mapmaker.sources.apinatomy import ApiNATOMY
 from mapmaker.utils import FilePath
 
+from .anatomicalmap import AnatomicalMap
 from .pathways import Pathways
 
 #===============================================================================

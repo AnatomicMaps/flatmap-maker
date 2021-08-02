@@ -116,55 +116,5 @@ class LabelDatabase(object):
             self.set_label(entity, label)
         return label
 
-#===============================================================================
 
-class AnatomicalMap(object):
-    """
-    Map ``class`` identifiers in Powerpoint to anatomical entities.
 
-    The mapping is specified in a CSV file:
-
-        - Has a header row which **must** include columns ``Power point identifier``, ``Preferred ID``, and `UBERON``.
-        - A shape's ``class`` is used as the key into the ``Power point identifier`` column to obtain a preferred anatomical identifier for the shape.
-        - If no ``Preferred ID`` is defined then the UBERON identifier is used.
-        - The shape's label is set from its anatomical identifier; if none was assigned then the label is set to the shape's class.
-    """
-    def __init__(self, mapping_spreadsheet):
-        # Use a local database to cache labels retrieved from knowledgebase
-        self.__label_cache = LabelDatabase()
-        self.__map = {}
-        if mapping_spreadsheet is not None:
-            for sheet in openpyxl.load_workbook(FilePath(mapping_spreadsheet).get_BytesIO()):
-                col_indices = {}
-                for (n, row) in enumerate(sheet.rows):
-                    if n == 0:
-                        for cell in row:
-                            if cell.value in ['Power point identifier',
-                                              'Preferred ID',
-                                              'UBERON ID']:
-                                col_indices[cell.value] = cell.column - 1
-                        if len(col_indices) < 3:
-                            log.warn("Sheet '{}' doean't have a valid header row -- data ignored".format(sheet.title))
-                            break
-                    else:
-                        pp_id = row[col_indices['Power point identifier']].value
-                        preferred = row[col_indices['Preferred ID']].value
-                        if preferred == '-': preferred = ''
-
-                        uberon = row[col_indices['UBERON ID']].value
-                        if uberon == '-': uberon = ''
-
-                        if pp_id and (preferred or uberon):
-                            self.__map[pp_id.strip()] = (preferred if preferred else uberon).strip()
-
-    def properties(self, cls):
-        props = {}
-        if cls in self.__map:
-            props['models'] = self.__map[cls]
-            props['label'] = self.__label_cache.get_label(props['models'])
-        else:
-            props['label'] = cls
-        return props
-
-    def label(self, entity):
-        return self.__label_cache.get_label(entity)
