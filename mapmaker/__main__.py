@@ -71,6 +71,8 @@ def arg_parser():
                         help='minimum zoom level (defaults to 2)')
 
     misc_options = parser.add_argument_group('Miscellaneous')
+    misc_options.add_argument('--id', metavar='ID',
+                        help='Set explicit ID for flatmap, overriding manifest')
     misc_options.add_argument('--single-svg', dest='singleSvg', action='store_true',
                         help='Source is a single SVG file, not a flatmap manifest')
 
@@ -86,6 +88,8 @@ def arg_parser():
 def main():
     parser = arg_parser()
     args = parser.parse_args()
+    if args.id is None:
+        del args.id
     try:
         mapmaker = MapMaker(vars(args))
         mapmaker.make()

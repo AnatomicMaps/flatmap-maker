@@ -60,7 +60,7 @@ Command line help
                     [--clean] [--background-tiles]
                     [--check-errors] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initialZoom N] [--max-zoom N] [--min-zoom N]
-                    [--single-svg]
+                    [--id ID] [--single-svg]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -91,6 +91,7 @@ Command line help
       --min-zoom N          minimum zoom level (defaults to 2)
 
     miscellaneous:
+      --id ID               Set explicit ID for flatmap, overriding manifest
       --single-svg          Source is a single SVG file, not a flatmap manifest
 
     required arguments:
