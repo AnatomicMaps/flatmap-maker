@@ -19,6 +19,7 @@
 #===============================================================================
 
 from collections import defaultdict, OrderedDict
+import datetime
 
 #===============================================================================
 
@@ -27,6 +28,7 @@ import numpy as np
 
 #===============================================================================
 
+from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import bounds_to_extent, extent_to_bounds, normalised_coords
 from mapmaker.properties import ManifestProperties
@@ -40,11 +42,23 @@ from .layers import MapLayer
 #===============================================================================
 
 class FlatMap(object):
-        self.__maker = maker
     def __init__(self, manifest, maker):
         self.__id = maker.id
         self.__local_id = manifest.id
+        self.__created = None   # Set when map closed
+        self.__metadata = {
+            'id': self.__id,
+            'name': self.__local_id,
+            # Who made the map
+            'creator': 'mapmaker {}'.format(__version__),
+            # The URL of the map's manifest
+            'source': manifest.url,
+            'version': FLATMAP_VERSION
+        }
+        self.__entities = set()
         self.__models = manifest.models
+        if self.__models is not None:
+            self.__metadata['describes'] = self.__models
 
         # Properties about map features
         self.__map_properties = ManifestProperties(self, maker.manifest)
@@ -56,6 +70,7 @@ class FlatMap(object):
         self.__map_area = None
         self.__extent = None
         self.__centre = None
+        self.__min_zoom = maker.zoom[0]
 
         self.__last_feature_id = 0
         self.__class_to_feature = defaultdict(list)
@@ -79,6 +94,10 @@ class FlatMap(object):
     @property
     def centre(self):
         return self.__centre
+
+    @property
+    def created(self):
+        return self.__created
 
     @property
     def extent(self):
@@ -109,6 +128,10 @@ class FlatMap(object):
         return self.__map_properties
 
     @property
+    def metadata(self):
+        return self.__metadata
+
+    @property
     def models(self):
         return self.__models
 
@@ -122,6 +145,9 @@ class FlatMap(object):
         self.__setup_feature_search()
         # Generate metadata with connection information
         self.__resolve_paths()
+        # Set creation time
+        self.__created = datetime.datetime.utcnow()
+        self.__metadata['created'] = self.__created.isoformat()
 
     def is_duplicate_feature_id(self, id):
     #=====================================
@@ -158,7 +184,7 @@ class FlatMap(object):
         for layer in map_source.layers:
             self.add_layer(layer)
             if layer.exported:
-                layer.add_raster_layer(layer.id, map_source.extent, map_source, self.__maker.zoom[0])
+                layer.add_raster_layer(layer.id, map_source.extent, map_source, self.__min_zoom)
         # The first layer is used as the base map
         if layer_number == 0:
             if map_source.kind == 'details':

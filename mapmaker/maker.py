@@ -18,7 +18,6 @@
 #
 #===============================================================================
 
-import datetime
 import json
 import os
 import pathlib
@@ -189,8 +188,6 @@ class MapMaker(object):
         return self.__id
 
     @property
-    def manifest(self):
-        return self.__manifest
 
     @property
     def zoom(self):
@@ -344,20 +341,8 @@ class MapMaker(object):
         log('Creating index and style files...')
         tile_db = MBTiles(self.__mbtiles_file)
 
-        metadata = {
-            # The maps creation time
-            'created': datetime.datetime.utcnow().isoformat(),
-            # Who made the map
-            'creator': 'mapmaker {}'.format(__version__),
-            # The URL of the map's manifest
-            'source': self.__manifest.url,
-            'version': FLATMAP_VERSION
-        }
-        # What the map models
-        if self.__flatmap.models is not None:
-            metadata['describes'] = self.__flatmap.models
-
         # Save flatmap's metadata
+        metadata = self.__flatmap.metadata
         tile_db.add_metadata(metadata=json.dumps(metadata))
         ## Backwards compatibility...
         # NB: we need to set version and if newer just save with name `metadata`
