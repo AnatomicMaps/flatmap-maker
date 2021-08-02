@@ -71,12 +71,8 @@ def arg_parser():
                         help='minimum zoom level (defaults to 2)')
 
     misc_options = parser.add_argument_group('Miscellaneous')
-    misc_options.add_argument('--refresh-labels', dest='refreshLabels', action='store_true',
-                        help='Clear the label text cache before map making')
     misc_options.add_argument('--single-svg', dest='singleSvg', action='store_true',
                         help='Source is a single SVG file, not a flatmap manifest')
-    misc_options.add_argument('--upload', dest='uploadHost', metavar='USER@SERVER',
-                        help='Upload generated map to server')
 
     required = parser.add_argument_group('Required arguments')
     required.add_argument('--output', required=True,

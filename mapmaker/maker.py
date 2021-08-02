@@ -178,7 +178,6 @@ class MapMaker(object):
         self.__mbtiles_file = os.path.join(self.__map_dir, 'index.mbtiles')
         self.__geojson_files = []
         self.__tippe_inputs = []
-        self.__upload_files = []
 
         # The map we are making
         self.__flatmap = FlatMap(self.__manifest, self)
@@ -212,9 +211,6 @@ class MapMaker(object):
                 self.__make_raster_tiles()
             # Save the flatmap's metadata
             self.__save_metadata()
-            # Upload the generated map to a server
-            if settings.get('uploadHost') is not None:
-                self.__upload_map(settings.get('uploadHost'))
 
         # All done so clean up
         self.__finish_make()
@@ -223,7 +219,6 @@ class MapMaker(object):
     #======================
         self.__geojson_files = []
         self.__tippe_inputs = []
-        self.__upload_files = []
 
     def __finish_make(self):
     #=======================
@@ -280,7 +275,6 @@ class MapMaker(object):
             for raster_layer in layer.raster_layers:
                 tilemaker = RasterTileMaker(raster_layer, self.__map_dir, self.__zoom[1])
                 raster_tile_file = tilemaker.make_tiles()
-                self.__upload_files.append(raster_tile_file)
 
     def __make_vector_tiles(self, compressed=True):
     #==============================================
@@ -317,7 +311,6 @@ class MapMaker(object):
                              bounds=','.join([str(x) for x in self.__flatmap.extent]))
         tile_db.execute("COMMIT")
         tile_db.close();
-        self.__upload_files.append('index.mbtiles')
 
     def __output_geojson(self):
     #==========================
@@ -394,13 +387,5 @@ class MapMaker(object):
             json.dump(json_source, output_file)
 
         tile_db.close();
-        self.__upload_files.extend(['index.json', 'style.json', 'tilejson.json'])
-
-    def __upload_map(self, host):
-    #============================
-        upload = ' '.join([ '{}/{}'.format(self.__id, f) for f in self.__upload_files ])
-        cmd_stream = os.popen('tar -C {} -c -z {} | ssh {} "tar -C /flatmaps -x -z"'
-                             .format(self.__map_dir, upload, host))
-        return cmd_stream.read()
 
 #===============================================================================
