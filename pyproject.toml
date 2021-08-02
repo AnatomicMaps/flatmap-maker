@@ -2,7 +2,7 @@
 name = "mapmaker"
 version = "1.2.0b4"
 description = ""
-authors = ["David Brooks <dave@bcs.co.nz>"]
+authors = ["David Brooks <d.brooks@auckland.ac.nz>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
