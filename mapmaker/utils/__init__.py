@@ -40,7 +40,7 @@ class FilePath(object):
          or path.startswith('https:')):
             self.__url = path
         else:
-            self.__url = pathlib.Path(path).absolute().as_uri()
+            self.__url = pathlib.Path(path).absolute().resolve().as_uri()
 
     @property
     def url(self):
