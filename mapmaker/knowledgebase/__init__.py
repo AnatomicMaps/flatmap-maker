@@ -95,9 +95,9 @@ class KnowledgeBase(object):
 
     def entity_knowledge(self, entity):
         # First check local cache
-        if entity in self.__entity_knowledge:
-            return self.__entity_knowledge[entity]
-        knowledge = {}
+        knowledge = self.__entity_knowledge.get(entity, {})
+        if len(knowledge):
+            return knowledge
         row = self.__db.execute('select label from labels where entity=?', (entity,)).fetchone()
         if row is not None:
             knowledge['label'] = row[0]
