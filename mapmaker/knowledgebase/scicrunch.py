@@ -2,7 +2,7 @@
 #
 #  Flatmap viewer and annotation tools
 #
-#  Copyright (c) 2019  David Brooks
+#  Copyright (c) 2019-21  David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -18,17 +18,8 @@
 #
 #===============================================================================
 
-import json
-import os
-import sqlite3
-
-#===============================================================================
-
-import openpyxl
-import requests
-
 from mapmaker.settings import settings
-from mapmaker.utils import FilePath, log
+from mapmaker.utils import log, request_json
 
 #===============================================================================
 
@@ -41,27 +32,6 @@ SCIGRAPH_ONTOLOGIES = ['FMA', 'UBERON']
 SCICRUNCH_API_KEY = "xBOrIfnZTvJQtobGo8XHRvThdMYGTxtf"
 SCICRUNCH_INTERLEX_VOCAB = 'https://scicrunch.org/api/1/ilx/search/curie/{}'
 SCICRUNCH_SCIGRAPH_VOCAB = 'https://scicrunch.org/api/1/sparc-scigraph/vocabulary/id/{}.json'
-
-#===============================================================================
-
-LOOKUP_TIMEOUT = 5    # seconds
-
-#===============================================================================
-
-def request_json(endpoint):
-    try:
-        response = requests.get(endpoint, timeout=LOOKUP_TIMEOUT)
-        if response.status_code == requests.codes.ok:
-            try:
-                return response.json()
-            except json.JSONDecodeError:
-                error = 'invalid JSON returned'
-        else:
-            error = 'status: {}'.format(response.status_code)
-    except requests.exceptions.RequestException as exception:
-        error = 'exception: {}'.format(exception)
-    log.warn("Couldn't access {}: {}".format(endpoint, error))
-    return None
 
 #===============================================================================
 
