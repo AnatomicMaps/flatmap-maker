@@ -35,56 +35,31 @@ SCICRUNCH_SCIGRAPH_VOCAB = 'https://scicrunch.org/api/1/sparc-scigraph/vocabular
 
 #===============================================================================
 
-class LabelDatabase(object):
+class SciCrunch(object):
     def __init__(self):
-        database = os.path.join(settings.get('output'), 'labels.sqlite')
-        if settings.get('refreshLabels', False):
-            try:
-                os.remove(database)
-            except FileNotFoundError:
-                pass
-        new_db = not os.path.exists(database)
-        self.__db = sqlite3.connect(database)
-        self.__cursor = self.__db.cursor()
-        if new_db:
-            self.__cursor.execute('CREATE TABLE labels (entity text, label text)')
-            self.__db.commit()
         self.__unknown_entities = []
 
-    def close(self):
-        self.__db.close()
-
-    def set_label(self, entity, label):
-        self.__cursor.execute('REPLACE INTO labels(entity, label) VALUES (?, ?)', (entity, label))
-        self.__db.commit()
-
-    def get_label(self, entity):
-        self.__cursor.execute('SELECT label FROM labels WHERE entity=?', (entity,))
-        row = self.__cursor.fetchone()
-        if row is not None:
-            return row[0]
-        label = None
+    def get_knowledge(self, entity):
+        knowledge = {}
         ontology = entity.split(':')[0]
         if   ontology in INTERLEX_ONTOLOGIES:
             data = request_json('{}?api_key={}'.format(
                     SCICRUNCH_INTERLEX_VOCAB.format(entity),
                     SCICRUNCH_API_KEY))
             if data is not None:
-                label = data.get('data', {}).get('label', entity)
+                knowledge['label'] = data.get('data', {}).get('label', entity)
+
         elif ontology in SCIGRAPH_ONTOLOGIES:
             data = request_json('{}?api_key={}'.format(
                     SCICRUNCH_SCIGRAPH_VOCAB.format(entity),
                     SCICRUNCH_API_KEY))
             if data is not None:
-                label = data.get('labels', [entity])[0]
-        elif entity not in self.__unknown_entities:
+                knowledge['label'] = data.get('labels', [entity])[0]
+
+        if len(knowledge) == 0 and entity not in self.__unknown_entities:
             log.warn('Unknown anatomical entity: {}'.format(entity))
             self.__unknown_entities.append(entity)
-        if label is None:
-            label = entity
-        else:
-            self.set_label(entity, label)
-        return label
 
+        return knowledge
 
-
+#===============================================================================

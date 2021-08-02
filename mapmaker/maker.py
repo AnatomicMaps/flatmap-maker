@@ -35,7 +35,7 @@ from mapmaker.utils import configure_logging, log, FilePath
 
 from .flatmap import FlatMap
 
-from .knowledgebase import LabelDatabase
+from .knowledgebase import KnowledgeBase
 
 from .output.geojson import GeoJSONOutput
 from .output.mbtiles import MBTiles
@@ -179,6 +179,10 @@ class MapMaker(object):
         self.__geojson_files = []
         self.__tippe_inputs = []
 
+        # Our source of knowledge, updated with information
+        # about maps we've made
+        self.__knowledgebase = KnowledgeBase(map_base)
+
         # The map we are making
         self.__flatmap = FlatMap(self.__manifest, self)
 
@@ -187,6 +191,8 @@ class MapMaker(object):
         return self.__id
 
     @property
+    def knowledgebase(self):
+        return self.__knowledgebase
 
     @property
     def zoom(self):
@@ -222,6 +228,7 @@ class MapMaker(object):
 
     def __finish_make(self):
     #=======================
+        self.__knowledgebase.close()
         # Show what the map is about
         if self.__flatmap.models is not None:
             log('Generated map: {} for {}'.format(self.id, self.__flatmap.models))
@@ -352,6 +359,9 @@ class MapMaker(object):
         # Commit updates to the database
         tile_db.execute("COMMIT")
 
+        # Update our knowledge base
+        self.__knowledgebase.add_flatmap(self.__flatmap)
+
 #*        ## TODO: set ``layer.properties`` for annotations...
 #*        ##update_RDF(options['map_base'], options['map_id'], source, annotations)
 
@@ -371,6 +381,7 @@ class MapMaker(object):
         }
         if self.__flatmap.models is not None:
             map_index['describes'] = self.__flatmap.models
+
         # Create `index.json` for building a map in the viewer
         with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:
             json.dump(map_index, output_file)

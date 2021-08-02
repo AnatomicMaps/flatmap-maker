@@ -30,9 +30,11 @@ from .pathways import Pathways
 
 #===============================================================================
 
-class ManifestProperties(object):
-    def __init__(self, flatmap, manifest):
+class ExternalProperties(object):
+    def __init__(self, flatmap, manifest, knowledgebase):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
+        self.__knowledgebase = knowledgebase
+
         self.__properties_by_class = {}
         self.__properties_by_id = {}
         if manifest.properties is None:
@@ -114,8 +116,11 @@ class ManifestProperties(object):
                 properties['kind'] = 'scaffold'
             elif 'simulations' in properties:
                 properties['kind'] = 'simulation'
-        if 'models' in properties and 'label' not in properties:
-            properties['label'] = self.__anatomical_map.label(properties['models'])
+        if 'models' in properties:
+            # Make sure our knowledgebase knows about the anatomical object
+            knowledge = self.__knowledgebase.entity_knowledge(properties['models'])
+            if 'label' not in properties:
+                properties['label'] = knowledge.get('label')
         return properties
 
     def update_feature_properties(self, feature):

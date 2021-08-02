@@ -31,7 +31,7 @@ import numpy as np
 from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import bounds_to_extent, extent_to_bounds, normalised_coords
-from mapmaker.properties import ManifestProperties
+from mapmaker.properties import ExternalProperties
 from mapmaker.properties.pathways import Route
 from mapmaker.settings import settings
 from mapmaker.utils import log
@@ -61,7 +61,7 @@ class FlatMap(object):
             self.__metadata['describes'] = self.__models
 
         # Properties about map features
-        self.__map_properties = ManifestProperties(self, maker.manifest)
+        self.__map_properties = ExternalProperties(self, manifest, maker.knowledgebase)
 
         self.__layer_dict = OrderedDict()
         self.__visible_layer_count = 0
@@ -102,6 +102,10 @@ class FlatMap(object):
     @property
     def extent(self):
         return self.__extent
+
+    @property
+    def entities(self):
+        return self.__entities
 
     @property
     def id(self):
@@ -211,6 +215,9 @@ class FlatMap(object):
 
     def update_annotations(self, annotations):
     #=========================================
+        for properties in annotations.values():
+            if 'models' in properties:
+                self.__entities.add(properties['models'])
         self.__annotations.update(annotations)
 
     def __set_feature_properties(self):
