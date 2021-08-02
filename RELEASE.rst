@@ -7,10 +7,10 @@ Making a new release
     $ sphinx-apidoc -f -o _source -e  ../mapmaker
     $ make html
 
-* Update ``__version__`` in ``mapmaker/__init__.py``.
+* Update ``__version__`` in ``mapmaker/__init__.py`` and ``pyproject.toml``.
 * Update the package name in ``README.rst`` to reflect the new version.
 * Update ``README.rst`` with any changed usage instructions.
-* Commit ``mapmaker/__init__.py`` and ``README.rst``.
+* Commit ``mapmaker/__init__.py``, ``README.rst`` and ``pyproject.toml``.
 * With the new version identifier::
 
     $ git tag VERSION
