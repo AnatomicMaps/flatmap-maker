@@ -40,7 +40,7 @@ class ManifestProperties(object):
         else:
             properties_dict = FilePath(manifest.properties).get_json()
         self.__set_properties(properties_dict.get('features', []))
-        self.__features_by_model = defaultdict(set)
+        self.__model_to_features = defaultdict(set)
 
         # Load path definitions
         self.__pathways = Pathways(flatmap, properties_dict.get('paths', []))
@@ -60,10 +60,6 @@ class ManifestProperties(object):
         for ids in self.__features_by_model.values():
             anatomical_ids.update(ids)
         return list(anatomical_ids)
-
-    @property
-    def anatomical_map(self):
-        return self.__features_by_model
 
     @property
     def resolved_pathways(self):
@@ -92,10 +88,10 @@ class ManifestProperties(object):
         if self.__pathways is not None:
             self.__pathways.add_nerve_tracks(nerve_tracks)
 
-    def resolve_pathways(self, id_map, class_map, anatomical_map):
-    #=============================================================
+    def resolve_pathways(self, id_map, class_map):
+    #=============================================
         if self.__pathways is not None:
-            self.__pathways.resolve_pathways(id_map, class_map, anatomical_map)
+            self.__pathways.resolve_pathways(id_map, class_map, self.__model_to_features)
 
     def update_properties(self, properties):
     #=======================================
@@ -126,6 +122,6 @@ class ManifestProperties(object):
     #============================================
         self.update_properties(feature.properties)
         if feature.models is not None:
-            self.__features_by_model[feature.models].add(feature)
+            self.__model_to_features[feature.models].add(feature)
 
 #===============================================================================
