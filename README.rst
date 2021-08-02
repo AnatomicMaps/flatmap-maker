@@ -5,6 +5,10 @@ Overview
 
 Mapmaker is a Python application for generating `Mapbox <https://www.mapbox.com/>`_ compatible tilesets from a range of sources, currently Powerpoint slides, SVG diagrams, and segmented image files from MBF Biosciences.
 
+Documentation
+-------------
+
+* https://flatmap-maker.readthedocs.io/en/latest/.
 
 Requirements
 ------------
@@ -40,6 +44,13 @@ Development
 * Clone this repository.
 * Run ``$ poetry install`` in the top-level directory of the cloned repository.
 
+Building documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+In development mode, and within the Python virtual environment::
+
+    $ cd docs
+    $ make html
 
 Running
 -------
