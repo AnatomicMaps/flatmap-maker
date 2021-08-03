@@ -60,36 +60,51 @@ KNOWLEDGE_SCHEMA = """
 #===============================================================================
 
 class KnowledgeBase(object):
-    def __init__(self, store_directory):
-        store = Path(store_directory, KNOWLEDGE_BASE)
-        initialise = not store.exists()
-        self.__db = sqlite3.connect(store, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
-        if initialise:
-            self.__initialise(store_directory)
-        self.__entity_knowledge = {}     # Cache lookups
-        self.__scicrunch = SciCrunch()
+    def __init__(self, store_directory, read_only=False, create=False):
+        self.__db_name = Path(store_directory, KNOWLEDGE_BASE).resolve()
+        if create and not self.__db_name.exists():
+            db = sqlite3.connect(self.__db_name,
+                detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
+            db.executescript(KNOWLEDGE_SCHEMA)
+            labels_db = Path(store_directory, LABELS_DB).resolve()
+            if labels_db.exists():
+                with db:
+                    db.executemany('insert into labels(entity, label) values (?, ?)',
+                        sqlite3.connect(labels_db).execute('select entity, label from labels').fetchall())
+            db.close()
+        db_uri = '{}?mode=ro'.format(self.__db_name.as_uri()) if read_only else self.__db_name.as_uri()
+        self.__db = sqlite3.connect(db_uri, uri=True,
+            detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
+
+    @property
+    def db(self):
+        return self.__db
+
+    @property
+    def db_name(self):
+        return self.__db_name
 
     def close(self):
         self.__db.close()
 
-    def __initialise(self, store_directory):
-        self.__db.executescript(KNOWLEDGE_SCHEMA)
-        labels_db = Path(store_directory, LABELS_DB)
-        if labels_db.exists():
-            with self.__db:
-                self.__db.executemany('insert into labels(entity, label) values (?, ?)',
-                    sqlite3.connect(labels_db).execute('select entity, label from labels').fetchall())
+#===============================================================================
+
+class KnowledgeStore(KnowledgeBase):
+    def __init__(self, store_directory):
+        super().__init__(store_directory, create=True)
+        self.__entity_knowledge = {}     # Cache lookups
+        self.__scicrunch = SciCrunch()
 
     #---------------------------------------------------------------------------
 
     def add_flatmap(self, flatmap):
-        self.__db.execute('begin')
-        self.__db.execute('replace into flatmaps(id, models, created) values (?, ?, ?)',
+        self.db.execute('begin')
+        self.db.execute('replace into flatmaps(id, models, created) values (?, ?, ?)',
             (flatmap.id, flatmap.models, flatmap.created))
-        self.__db.execute('delete from flatmap_entities where flatmap=?', (flatmap.id, ))
-        self.__db.executemany('insert into flatmap_entities(flatmap, entity) values (?, ?)',
+        self.db.execute('delete from flatmap_entities where flatmap=?', (flatmap.id, ))
+        self.db.executemany('insert into flatmap_entities(flatmap, entity) values (?, ?)',
             ((flatmap.id, entity) for entity in flatmap.entities))
-        self.__db.execute('commit')
+        self.db.execute('commit')
 
     #---------------------------------------------------------------------------
 
@@ -98,19 +113,19 @@ class KnowledgeBase(object):
         knowledge = self.__entity_knowledge.get(entity, {})
         if len(knowledge):
             return knowledge
-        row = self.__db.execute('select label from labels where entity=?', (entity,)).fetchone()
+        row = self.db.execute('select label from labels where entity=?', (entity,)).fetchone()
         if row is not None:
             knowledge['label'] = row[0]
         else:  # Consult SciCrunch if we don't know the entity's label
             knowledge = self.__scicrunch.get_knowledge(entity)
             if 'label' in knowledge:
-                self.__db.execute('replace into labels values (?, ?)', (entity, knowledge['label']))
+                self.db.execute('replace into labels values (?, ?)', (entity, knowledge['label']))
             # We don't return the list of publications to thenmap maker but just save them
             # in the knowledge base
             publications = knowledge.pop('publications', [])
-            with self.__db:
-                self.__db.execute('delete from publications where entity = ?', (entity, ))
-                self.__db.executemany('insert into publications(entity, publication) values (?, ?)',
+            with self.db:
+                self.db.execute('delete from publications where entity = ?', (entity, ))
+                self.db.executemany('insert into publications(entity, publication) values (?, ?)',
                     ((entity, publication) for publication in publications))
         # Use the entity's value as its label if none is defined
         if 'label' not in knowledge:

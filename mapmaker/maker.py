@@ -35,7 +35,7 @@ from mapmaker.utils import configure_logging, log, FilePath
 
 from .flatmap import FlatMap
 
-from .knowledgebase import KnowledgeBase
+from .knowledgebase import KnowledgeStore
 
 from .output.geojson import GeoJSONOutput
 from .output.mbtiles import MBTiles
@@ -181,7 +181,7 @@ class MapMaker(object):
 
         # Our source of knowledge, updated with information
         # about maps we've made
-        self.__knowledgebase = KnowledgeBase(map_base)
+        self.__knowledgebase = KnowledgeStore(map_base)
 
         # The map we are making
         self.__flatmap = FlatMap(self.__manifest, self)
