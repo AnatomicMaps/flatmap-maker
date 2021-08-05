@@ -41,6 +41,21 @@ SCICRUNCH_SCIGRAPH_VOCAB = 'https://scicrunch.org/api/1/sparc-scigraph/vocabular
 
 #===============================================================================
 
+MODEL_NAMES = {
+    'keast': 'Keast bladder'
+}
+
+def neurolator_label(entity):
+    #ilxtr:neuron-type-keast-11
+    ontology, name = entity.split(':', 1)
+    if ontology in NEUROLATOR_ONTOLOGIES:
+        parts = name.rsplit('-', 2)
+        if len(parts) == 3 and parts[0] == 'neuron-type':
+            return('Neuron population {} of the {} model'.format(parts[2], MODEL_NAMES.get(parts[1], '?')))
+    return entity
+
+#===============================================================================
+
 class SciCrunch(object):
     def __init__(self):
         self.__unknown_entities = []
@@ -74,6 +89,7 @@ class SciCrunch(object):
                         if edge['sub'] == apinatomy_neuron and edge['pred'] == 'apinatomy:publications':
                             publications.append(edge['obj'])
                     knowledge['publications'] = publications
+                knowledge['label'] = neurolator_label(entity)
 
             elif ontology in SCIGRAPH_ONTOLOGIES:
                 data = request_json('{}?api_key={}'.format(
