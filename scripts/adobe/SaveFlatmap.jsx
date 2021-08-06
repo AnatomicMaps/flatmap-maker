@@ -19,8 +19,14 @@ limitations under the License.
 ******************************************************************************/
 
 /**
- *   Saves current Adobe Illustrator document
- *   as an SVG file, optimised for flatmaps.
+ *  Saves current Adobe Illustrator document as an SVG file, optimised for
+ *  flatmaps.
+ *
+ *  Save this in Illustrator's ``Scripts`` directory to make it available
+ *  under ``File/Scripts``.
+ *
+ *  * macOS: ``/Applications/Adobe Illustrator 2021/Presets.localized/en_US/scripts``
+ *  * Windows: ``C:\Program Files\Adobe\Adobe Illustrator 2021\Presets\en_US\Scripts``
  */
 
 //==============================================================================
