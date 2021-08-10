@@ -125,7 +125,6 @@ class NetworkRouter(object):
 
     """
     def __init__(self, networks: dict, edges: dict, nodes: dict):
-        print(type(nodes['brain_40']))
         self.__networks = networks
         self.__edges = edges
         self.__nodes = nodes
