@@ -182,8 +182,8 @@ class NetworkRouter(object):
             route_segments[pathway['id']] = RouteSegment(pathway['id'], node_set,
                                                          [[self.__nodes.get(node) for node in nodes]
                                                             for nodes in nodes_list],
-                                                         [self.__edges.get(edge)
-                                                            for edge in pathway['paths']],
+                                                         [e for e in [self.__edges.get(edge)
+                                                            for edge in pathway['paths']] if e is not None],
                                                          pathway['type'])
 
         return { connection['id']: [ route_segments.get(pathway)
