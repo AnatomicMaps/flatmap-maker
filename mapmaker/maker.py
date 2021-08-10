@@ -18,7 +18,6 @@
 #
 #===============================================================================
 
-import datetime
 import json
 import os
 import pathlib
@@ -36,7 +35,7 @@ from mapmaker.utils import configure_logging, log, FilePath
 
 from .flatmap import FlatMap
 
-from .knowledgebase import LabelDatabase
+from .knowledgebase import KnowledgeStore
 
 from .output.geojson import GeoJSONOutput
 from .output.mbtiles import MBTiles
@@ -180,18 +179,21 @@ class MapMaker(object):
         self.__mbtiles_file = os.path.join(self.__map_dir, 'index.mbtiles')
         self.__geojson_files = []
         self.__tippe_inputs = []
-        self.__upload_files = []
+
+        # Our source of knowledge, updated with information
+        # about maps we've made
+        self.__knowledgebase = KnowledgeStore(map_base)
 
         # The map we are making
-        self.__flatmap = FlatMap(self)
+        self.__flatmap = FlatMap(self.__manifest, self)
 
     @property
     def id(self):
         return self.__id
 
     @property
-    def manifest(self):
-        return self.__manifest
+    def knowledgebase(self):
+        return self.__knowledgebase
 
     @property
     def zoom(self):
@@ -216,9 +218,6 @@ class MapMaker(object):
                 self.__make_raster_tiles()
             # Save the flatmap's metadata
             self.__save_metadata()
-            # Upload the generated map to a server
-            if settings.get('uploadHost') is not None:
-                self.__upload_map(settings.get('uploadHost'))
 
         # All done so clean up
         self.__finish_make()
@@ -227,10 +226,10 @@ class MapMaker(object):
     #======================
         self.__geojson_files = []
         self.__tippe_inputs = []
-        self.__upload_files = []
 
     def __finish_make(self):
     #=======================
+        self.__knowledgebase.close()
         # Show what the map is about
         if self.__flatmap.models is not None:
             log('Generated map: {} for {}'.format(self.id, self.__flatmap.models))
@@ -284,7 +283,6 @@ class MapMaker(object):
             for raster_layer in layer.raster_layers:
                 tilemaker = RasterTileMaker(raster_layer, self.__map_dir, self.__zoom[1])
                 raster_tile_file = tilemaker.make_tiles()
-                self.__upload_files.append(raster_tile_file)
 
     def __make_vector_tiles(self, compressed=True):
     #==============================================
@@ -321,7 +319,6 @@ class MapMaker(object):
                              bounds=','.join([str(x) for x in self.__flatmap.extent]))
         tile_db.execute("COMMIT")
         tile_db.close();
-        self.__upload_files.append('index.mbtiles')
 
     def __output_geojson(self):
     #==========================
@@ -345,20 +342,8 @@ class MapMaker(object):
         log('Creating index and style files...')
         tile_db = MBTiles(self.__mbtiles_file)
 
-        metadata = {
-            # The maps creation time
-            'created': datetime.datetime.utcnow().isoformat(),
-            # Who made the map
-            'creator': 'mapmaker {}'.format(__version__),
-            # The URL of the map's manifest
-            'source': self.__manifest.url,
-            'version': FLATMAP_VERSION
-        }
-        # What the map models
-        if self.__flatmap.models is not None:
-            metadata['describes'] = self.__flatmap.models
-
         # Save flatmap's metadata
+        metadata = self.__flatmap.metadata
         tile_db.add_metadata(metadata=json.dumps(metadata))
         ## Backwards compatibility...
         # NB: we need to set version and if newer just save with name `metadata`
@@ -374,6 +359,9 @@ class MapMaker(object):
 
         # Commit updates to the database
         tile_db.execute("COMMIT")
+
+        # Update our knowledge base
+        self.__knowledgebase.add_flatmap(self.__flatmap)
 
 #*        ## TODO: set ``layer.properties`` for annotations...
 #*        ##update_RDF(options['map_base'], options['map_id'], source, annotations)
@@ -394,6 +382,7 @@ class MapMaker(object):
         }
         if self.__flatmap.models is not None:
             map_index['describes'] = self.__flatmap.models
+
         # Create `index.json` for building a map in the viewer
         with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:
             json.dump(map_index, output_file)
@@ -404,19 +393,6 @@ class MapMaker(object):
         with open(os.path.join(self.__map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
-        # Create TileJSON file
-        json_source = tile_json(self.__id, self.__zoom, self.__flatmap.extent)
-        with open(os.path.join(self.__map_dir, 'tilejson.json'), 'w') as output_file:
-            json.dump(json_source, output_file)
-
         tile_db.close();
-        self.__upload_files.extend(['index.json', 'style.json', 'tilejson.json'])
-
-    def __upload_map(self, host):
-    #============================
-        upload = ' '.join([ '{}/{}'.format(self.__id, f) for f in self.__upload_files ])
-        cmd_stream = os.popen('tar -C {} -c -z {} | ssh {} "tar -C /flatmaps -x -z"'
-                             .format(self.__map_dir, upload, host))
-        return cmd_stream.read()
 
 #===============================================================================

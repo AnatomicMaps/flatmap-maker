@@ -342,11 +342,11 @@ class Pathways(object):
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
-    def __route_paths(self, id_map, class_map, anatomical_map, network_router, connection_models):
-    #=============================================================================================
+    def __route_paths(self, id_map, class_map, model_to_features, network_router, connection_models):
+    #================================================================================================
         def get_point_for_anatomy(anatomical_id, error_list):
-            if anatomical_id in anatomical_map:
-                features_set = anatomical_map[anatomical_id]
+            if anatomical_id in model_to_features:
+                features_set = model_to_features[anatomical_id]
                 if len(features_set) == 1:
                     return list(features_set)[0].geometry.centroid.coords[0]
                 else:
@@ -371,8 +371,8 @@ class Pathways(object):
                     self.__resolved_pathways.add_nodes(segment.id, segment.node_set)
                     self.__resolved_pathways.add_path_type(segment.id, properties.get('type'))
 
-    def resolve_pathways(self, id_map, class_map, anatomical_map, network_router, connection_models):
-    #================================================================================================
+    def resolve_pathways(self, id_map, class_map, model_to_features, network_router, connection_models):
+    #===================================================================================================
         if self.__resolved_pathways is not None:
             return
         self.__resolved_pathways = ResolvedPathways(id_map, class_map)
@@ -389,7 +389,7 @@ class Pathways(object):
             except ValueError as err:
                 log.error('Path {}: {}'.format(path_id, str(err)))
                 errors = True
-        self.__route_paths(id_map, class_map, anatomical_map, network_router, connection_models)
+        self.__route_paths(id_map, class_map, model_to_features, network_router, connection_models)
         if errors:
             raise ValueError('Errors in mapping paths and routes')
 

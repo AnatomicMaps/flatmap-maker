@@ -107,8 +107,8 @@ class SVGSource(MapSource):
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties)
             cleaner.clean()
             with open(os.path.join(settings.get('output'),
-                      self.flatmap.maker_id,
-                      '{}.svg'.format(self.flatmap.maker_id)), 'wb') as fp:
+                      self.flatmap.id,
+                      '{}.svg'.format(self.flatmap.id)), 'wb') as fp:
                 cleaner.save(fp)
         if settings.get('backgroundTiles', False):
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)

@@ -73,7 +73,7 @@ class PowerpointSource(MapSource):
             log('Slide {}, {}'.format(slide_number, slide_layer.id))
             if settings.get('saveDrawML'):
                 xml = open(os.path.join(settings.get('output'),
-                                        self.flatmap.maker_id,
+                                        self.flatmap.id,
                                         '{}.xml'.format(slide_layer.id)), 'w')
                 xml.write(slide.element.xml)
                 xml.close()

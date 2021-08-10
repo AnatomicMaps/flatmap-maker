@@ -2,7 +2,7 @@
 #
 #  Flatmap viewer and annotation tools
 #
-#  Copyright (c) 2019  David Brooks
+#  Copyright (c) 2019-21  David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -18,153 +18,121 @@
 #
 #===============================================================================
 
-import json
-import os
 import sqlite3
+import datetime
+
+from pathlib import Path
 
 #===============================================================================
 
-import openpyxl
-import requests
+from mapmaker.utils import log
 
-from mapmaker.settings import settings
-from mapmaker.utils import FilePath, log
+from .scicrunch import SciCrunch
 
 #===============================================================================
 
-INTERLEX_ONTOLOGIES = ['ILX', 'NLX']
+KNOWLEDGE_BASE = 'knowledgebase.db'
 
-SCIGRAPH_ONTOLOGIES = ['FMA', 'UBERON']
-
-#===============================================================================
-
-SCICRUNCH_API_KEY = "xBOrIfnZTvJQtobGo8XHRvThdMYGTxtf"
-SCICRUNCH_INTERLEX_VOCAB = 'https://scicrunch.org/api/1/ilx/search/curie/{}'
-SCICRUNCH_SCIGRAPH_VOCAB = 'https://scicrunch.org/api/1/sparc-scigraph/vocabulary/id/{}.json'
+LABELS_DB = 'labels.sqlite'
 
 #===============================================================================
 
-LOOKUP_TIMEOUT = 5    # seconds
+KNOWLEDGE_SCHEMA = """
+    begin;
+    -- will auto convert datetime.datetime objects
+    create table flatmaps(id text primary key, models text, created timestamp);
+    create unique index flatmaps_index on flatmaps(id);
+    create index flatmaps_models_index on flatmaps(models);
+
+    create table flatmap_entities (flatmap text, entity text);
+    create index flatmap_entities_flatmap_index on flatmap_entities(flatmap);
+    create index flatmap_entities_entity_index on flatmap_entities(entity);
+
+    create table labels (entity text primary key, label text);
+    create unique index labels_index on labels(entity);
+
+    create table publications (entity text, publication text);
+    create index publications_entity_index on publications(entity);
+    create index publications_publication_index on publications(publication);
+    commit;
+"""
 
 #===============================================================================
 
-def request_json(endpoint):
-    try:
-        response = requests.get(endpoint, timeout=LOOKUP_TIMEOUT)
-        if response.status_code == requests.codes.ok:
-            try:
-                return response.json()
-            except json.JSONDecodeError:
-                error = 'invalid JSON returned'
-        else:
-            error = 'status: {}'.format(response.status_code)
-    except requests.exceptions.RequestException as exception:
-        error = 'exception: {}'.format(exception)
-    log.warn("Couldn't access {}: {}".format(endpoint, error))
-    return None
+class KnowledgeBase(object):
+    def __init__(self, store_directory, read_only=False, create=False):
+        self.__db_name = Path(store_directory, KNOWLEDGE_BASE).resolve()
+        if create and not self.__db_name.exists():
+            db = sqlite3.connect(self.__db_name,
+                detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
+            db.executescript(KNOWLEDGE_SCHEMA)
+            labels_db = Path(store_directory, LABELS_DB).resolve()
+            if labels_db.exists():
+                with db:
+                    db.executemany('insert into labels(entity, label) values (?, ?)',
+                        sqlite3.connect(labels_db).execute('select entity, label from labels').fetchall())
+            db.close()
+        db_uri = '{}?mode=ro'.format(self.__db_name.as_uri()) if read_only else self.__db_name.as_uri()
+        self.__db = sqlite3.connect(db_uri, uri=True,
+            detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
 
-#===============================================================================
+    @property
+    def db(self):
+        return self.__db
 
-class LabelDatabase(object):
-    def __init__(self):
-        database = os.path.join(settings.get('output'), 'labels.sqlite')
-        if settings.get('refreshLabels', False):
-            try:
-                os.remove(database)
-            except FileNotFoundError:
-                pass
-        new_db = not os.path.exists(database)
-        self.__db = sqlite3.connect(database)
-        self.__cursor = self.__db.cursor()
-        if new_db:
-            self.__cursor.execute('CREATE TABLE labels (entity text, label text)')
-            self.__db.commit()
-        self.__unknown_entities = []
+    @property
+    def db_name(self):
+        return self.__db_name
 
     def close(self):
         self.__db.close()
 
-    def set_label(self, entity, label):
-        self.__cursor.execute('REPLACE INTO labels(entity, label) VALUES (?, ?)', (entity, label))
-        self.__db.commit()
-
-    def get_label(self, entity):
-        self.__cursor.execute('SELECT label FROM labels WHERE entity=?', (entity,))
-        row = self.__cursor.fetchone()
-        if row is not None:
-            return row[0]
-        label = None
-        ontology = entity.split(':')[0]
-        if   ontology in INTERLEX_ONTOLOGIES:
-            data = request_json('{}?api_key={}'.format(
-                    SCICRUNCH_INTERLEX_VOCAB.format(entity),
-                    SCICRUNCH_API_KEY))
-            if data is not None:
-                label = data.get('data', {}).get('label', entity)
-        elif ontology in SCIGRAPH_ONTOLOGIES:
-            data = request_json('{}?api_key={}'.format(
-                    SCICRUNCH_SCIGRAPH_VOCAB.format(entity),
-                    SCICRUNCH_API_KEY))
-            if data is not None:
-                label = data.get('labels', [entity])[0]
-        elif entity not in self.__unknown_entities:
-            log.warn('Unknown anatomical entity: {}'.format(entity))
-            self.__unknown_entities.append(entity)
-        if label is None:
-            label = entity
-        else:
-            self.set_label(entity, label)
-        return label
-
 #===============================================================================
 
-class AnatomicalMap(object):
-    """
-    Map ``class`` identifiers in Powerpoint to anatomical entities.
+class KnowledgeStore(KnowledgeBase):
+    def __init__(self, store_directory):
+        super().__init__(store_directory, create=True)
+        self.__entity_knowledge = {}     # Cache lookups
+        self.__scicrunch = SciCrunch()
 
-    The mapping is specified in a CSV file:
+    #---------------------------------------------------------------------------
 
-        - Has a header row which **must** include columns ``Power point identifier``, ``Preferred ID``, and `UBERON``.
-        - A shape's ``class`` is used as the key into the ``Power point identifier`` column to obtain a preferred anatomical identifier for the shape.
-        - If no ``Preferred ID`` is defined then the UBERON identifier is used.
-        - The shape's label is set from its anatomical identifier; if none was assigned then the label is set to the shape's class.
-    """
-    def __init__(self, mapping_spreadsheet):
-        # Use a local database to cache labels retrieved from knowledgebase
-        self.__label_cache = LabelDatabase()
-        self.__map = {}
-        if mapping_spreadsheet is not None:
-            for sheet in openpyxl.load_workbook(FilePath(mapping_spreadsheet).get_BytesIO()):
-                col_indices = {}
-                for (n, row) in enumerate(sheet.rows):
-                    if n == 0:
-                        for cell in row:
-                            if cell.value in ['Power point identifier',
-                                              'Preferred ID',
-                                              'UBERON ID']:
-                                col_indices[cell.value] = cell.column - 1
-                        if len(col_indices) < 3:
-                            log.warn("Sheet '{}' doean't have a valid header row -- data ignored".format(sheet.title))
-                            break
-                    else:
-                        pp_id = row[col_indices['Power point identifier']].value
-                        preferred = row[col_indices['Preferred ID']].value
-                        if preferred == '-': preferred = ''
+    def add_flatmap(self, flatmap):
+        self.db.execute('begin')
+        self.db.execute('replace into flatmaps(id, models, created) values (?, ?, ?)',
+            (flatmap.id, flatmap.models, flatmap.created))
+        self.db.execute('delete from flatmap_entities where flatmap=?', (flatmap.id, ))
+        self.db.executemany('insert into flatmap_entities(flatmap, entity) values (?, ?)',
+            ((flatmap.id, entity) for entity in flatmap.entities))
+        self.db.execute('commit')
 
-                        uberon = row[col_indices['UBERON ID']].value
-                        if uberon == '-': uberon = ''
+    #---------------------------------------------------------------------------
 
-                        if pp_id and (preferred or uberon):
-                            self.__map[pp_id.strip()] = (preferred if preferred else uberon).strip()
+    def entity_knowledge(self, entity):
+        # First check local cache
+        knowledge = self.__entity_knowledge.get(entity, {})
+        if len(knowledge):
+            return knowledge
+        row = self.db.execute('select label from labels where entity=?', (entity,)).fetchone()
+        if row is not None:
+            knowledge['label'] = row[0]
+        else:  # Consult SciCrunch if we don't know the entity's label
+            knowledge = self.__scicrunch.get_knowledge(entity)
+            if 'label' in knowledge:
+                self.db.execute('replace into labels values (?, ?)', (entity, knowledge['label']))
+            # We don't return the list of publications to thenmap maker but just save them
+            # in the knowledge base
+            publications = knowledge.pop('publications', [])
+            with self.db:
+                self.db.execute('delete from publications where entity = ?', (entity, ))
+                self.db.executemany('insert into publications(entity, publication) values (?, ?)',
+                    ((entity, publication) for publication in publications))
+        # Use the entity's value as its label if none is defined
+        if 'label' not in knowledge:
+            knowledge['label'] = entity
+        # Cache local knowledge
+        self.__entity_knowledge[entity] = knowledge
 
-    def properties(self, cls):
-        props = {}
-        if cls in self.__map:
-            props['models'] = self.__map[cls]
-            props['label'] = self.__label_cache.get_label(props['models'])
-        else:
-            props['label'] = cls
-        return props
+        return knowledge
 
-    def label(self, entity):
-        return self.__label_cache.get_label(entity)
+#===============================================================================
