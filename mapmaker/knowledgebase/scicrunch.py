@@ -45,13 +45,17 @@ MODEL_NAMES = {
     'keast': 'Keast bladder'
 }
 
+# To refresh neuron group labels:
+#
+#   delete from labels where entity like 'ilxtr:%';
+#
 def neurolator_label(entity):
     #ilxtr:neuron-type-keast-11
     ontology, name = entity.split(':', 1)
     if ontology in NEUROLATOR_ONTOLOGIES:
         parts = name.rsplit('-', 2)
         if len(parts) == 3 and parts[0] == 'neuron-type':
-            return('Neuron population {} of the {} model'.format(parts[2], MODEL_NAMES.get(parts[1], '?')))
+            return('{} neuron type {}'.format(MODEL_NAMES.get(parts[1], '?'), parts[2]))
     return entity
 
 #===============================================================================

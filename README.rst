@@ -24,7 +24,7 @@ It is recommended to install and run ``mapmaker`` in its own Python virtual envi
 
 * Create and activate a Python virtual environment in which to install ``mapmaker``.
 
-* Within this environment, install the latest ``mapmaker`` wheel from https://github.com/dbrnz/flatmap-maker/releases/latest (currently ``mapmaker-1.3.0b4-py3-none-any.whl``).
+* Within this environment, install the latest ``mapmaker`` wheel from https://github.com/dbrnz/flatmap-maker/releases/latest (currently ``mapmaker-1.3.0b5-py3-none-any.whl``).
 
 Using pipenv
 ~~~~~~~~~~~~
@@ -33,7 +33,7 @@ Using pipenv
 
 * Install ``mapmaker`` directly from GitHub with::
 
-    $ pipenv install --python 3.8 https://github.com/dbrnz/flatmap-maker/releases/download/v1.3.0b4/mapmaker-1.3.0b4-py3-none-any.whl
+    $ pipenv install --python 3.8 https://github.com/dbrnz/flatmap-maker/releases/download/v1.3.0b5/mapmaker-1.3.0b5-py3-none-any.whl
 
 
 Development
@@ -70,7 +70,7 @@ Command line help
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
                     [--clean] [--background-tiles]
-                    [--check-errors] [--save-drawml] [--save-geojson] [--tippecanoe]
+                    [--check-errors] [--debug] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initialZoom N] [--max-zoom N] [--min-zoom N]
                     [--id ID]  [--path-layout {automatic,centreline,linear}]
                     [--single-svg]
@@ -94,6 +94,7 @@ Command line help
 
     Diagnostics:
       --check-errors        check for errors without generating a map
+      --debug               show a traceback for error exceptions
       --save-drawml         save a slide's DrawML for debugging
       --save-geojson        Save GeoJSON files for each layer
       --tippecanoe          Show command used to run Tippecanoe
@@ -122,7 +123,7 @@ An example run
 
 .. code-block:: text
 
-    Mapmaker 1.3.0b4
+    Mapmaker 1.3.0b5
     100%|█████████████████████████▉| 678/679
      98%|███████████████████████████▌| 65/66
     Adding details...
