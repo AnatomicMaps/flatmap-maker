@@ -216,10 +216,24 @@ class Route(object):
 #===============================================================================
 
 class ConnectivityModel(object):
-    def __init__(self, id, source=None):
-        self.__id = id
-        self.__source = source
+    def __init__(self, description):
+        if description is None:
+            self.__id = None
+            self.__source = None
+            self.__publications = []
+        else:
+            self.__id = description['id']
+            self.__source = description.get('source')
+            self.__publications = description.get('publications', [])
         self.__path_ids = []
+
+    @property
+    def id(self):
+        return self.__id
+
+    @property
+    def publications(self):
+        return self.__publications
 
     @property
     def source(self):
@@ -248,7 +262,7 @@ class Pathways(object):
         self.__nerve_tracks = []
         self.__apinatomy_models = []
         self.__connectivity_by_path = {}
-        self.__connectivity_models = [ ConnectivityModel('') ]
+        self.__connectivity_models = [ ConnectivityModel(None) ]
         self.__path_models = {}
         self.__extend_pathways(self.__connectivity_models[0], paths_list)
 
@@ -307,7 +321,7 @@ class Pathways(object):
 
     def add_connectivity(self, connectivity):
     #========================================
-        connectivity_model = ConnectivityModel(connectivity['id'], connectivity.get('source'))
+        connectivity_model = ConnectivityModel(connectivity)
         self.__connectivity_models.append(connectivity_model)
         self.__extend_pathways(connectivity_model, connectivity.get('paths', []))
 
