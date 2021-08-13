@@ -51,7 +51,7 @@ def parse_path_lines(line_ids):
         else:
             path_lines = [LINE_ID.parseString(line_id)[0] for line_id in line_ids]
     except ParseException:
-        raise ValueError('Syntax error in path lines list: {}'.format(line_ids))
+        raise ValueError('Syntax error in path lines list: {}'.format(line_ids)) from None
     return path_lines
 
 def parse_route_nodes(node_ids):
@@ -71,14 +71,14 @@ def parse_route_nodes(node_ids):
             else:
                 route_nodes.append([NODE_ID.parseString(id)[0] for id in node_ids[-1]])
     except ParseException:
-        raise ValueError('Syntax error in route node list: {}'.format(node_ids))
+        raise ValueError('Syntax error in route node list: {}'.format(node_ids)) from None
     return list(route_nodes)
 
 def parse_nerves(node_ids):
     try:
         nerves = NERVES.parseString(node_ids, parseAll=True)
     except ParseException:
-        raise ValueError('Syntax error in nerve list: {}'.format(node_ids))
+        raise ValueError('Syntax error in nerve list: {}'.format(node_ids)) from None
     return nerves
 
 #===============================================================================

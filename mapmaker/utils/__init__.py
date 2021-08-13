@@ -39,6 +39,11 @@ from .logging import ProgressBar, configure_logging, log
 
 #===============================================================================
 
+class FilePathError(IOError):
+    pass
+
+#===============================================================================
+
 class FilePath(object):
     def __init__(self, path):
         if (path.startswith('file:')
@@ -60,13 +65,16 @@ class FilePath(object):
             return fp.read()
 
     def get_fp(self):
-        return urllib.request.urlopen(self.__url)
+        try:
+            return urllib.request.urlopen(self.__url)
+        except urllib.error.URLError:
+            raise FilePathError('Cannot open path: {}'.format(self.__url)) from None
 
     def get_json(self):
         try:
             return json.loads(self.get_data())
         except json.decoder.JSONDecodeError as err:
-            raise ValueError('JSON decoder error: {}'.format(err))
+            raise ValueError('{}: {}'.format(self.__url, err)) from None
 
     def get_BytesIO(self):
         bytesio = io.BytesIO(self.get_data())
