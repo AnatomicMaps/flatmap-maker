@@ -70,7 +70,7 @@ Command line help
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
                     [--clean] [--background-tiles]
-                    [--check-errors] [--save-drawml] [--save-geojson] [--tippecanoe]
+                    [--check-errors] [--debug] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initialZoom N] [--max-zoom N] [--min-zoom N]
                     [--id ID] [--single-svg]
                     --output OUTPUT --source SOURCE
@@ -93,6 +93,7 @@ Command line help
 
     Diagnostics:
       --check-errors        check for errors without generating a map
+      --debug               show a traceback for error exceptions
       --save-drawml         save a slide's DrawML for debugging
       --save-geojson        Save GeoJSON files for each layer
       --tippecanoe          Show command used to run Tippecanoe

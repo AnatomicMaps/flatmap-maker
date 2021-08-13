@@ -55,6 +55,8 @@ def arg_parser():
     debug_options = parser.add_argument_group('Diagnostics')
     debug_options.add_argument('--check-errors', dest='errorCheck', action='store_true',
                         help='check for errors without generating a map')
+    debug_options.add_argument('--debug', action='store_true',
+                        help='show a traceback for error exceptions')
     debug_options.add_argument('--save-drawml', dest='saveDrawML', action='store_true',
                         help="save a slide's DrawML for debugging")
     debug_options.add_argument('--save-geojson', dest='saveGeoJSON', action='store_true',
@@ -94,7 +96,11 @@ def main():
         mapmaker = MapMaker(vars(args))
         mapmaker.make()
     except Exception as error:
-        log.exception(str(error))
+        msg = str(error)
+        if args.debug:
+            log.exception(msg)
+        else:
+            log.error(msg)
 
 #===============================================================================
 
