@@ -81,7 +81,8 @@ SHAPE_FLAGS = Group(Keyword('boundary')
                   | Keyword('interior')
                   )
 
-FEATURE_FLAGS = Group(Keyword('centreline')
+FEATURE_FLAGS = Group(Keyword('branch')
+                    | Keyword('centreline')
                     | Keyword('divider')
                     | Keyword('group')
                     | Keyword('invisible')
@@ -100,7 +101,6 @@ SHAPE_MARKUP = '.' + ZeroOrMore(DETAILS
 #===============================================================================
 
 DEPRECATED_MARKUP = [
-    'centreline',
     'marker',
     'siblings',
     'style'
