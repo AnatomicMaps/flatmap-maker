@@ -51,7 +51,7 @@ WORLD_METRES_PER_UM = 100
 # image tiling.
 EXCLUDE_SHAPE_TYPES = [
     'group', 'invisible', 'marker', 'path', 'region',
-    'branch', 'centreline',
+    'centreline', 'node',
     ]
 EXCLUDE_TILE_LAYERS = ['pathways']
 
