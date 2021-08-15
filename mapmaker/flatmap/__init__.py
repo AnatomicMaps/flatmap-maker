@@ -41,6 +41,34 @@ from .layers import MapLayer
 
 #===============================================================================
 
+class FeatureMap(object):
+    def __init__(self):
+        self.__class_to_feature = defaultdict(list)
+        self.__id_to_feature = {}
+
+    def add_feature(self, feature):
+        if feature.has_property('id'):
+            self.__id_to_feature[feature.get_property('id')] = feature
+        if feature.has_property('class'):
+            self.__class_to_feature[feature.get_property('class')].append(feature)
+
+    def duplicate_id(self, id):
+        return self.__id_to_feature.get(id, None) is not None
+
+    def features(self, id):
+        feature = self.__id_to_feature.get(id)
+        if feature is None:
+            return self.__class_to_feature.get(id, [])
+        return [feature]
+
+    def feature_ids(self, ids):
+        feature_ids = []
+        for id in ids:
+            feature_ids.extend([f.feature_id for f in self.features(id)])
+        return feature_ids
+
+#===============================================================================
+
 class FlatMap(object):
     def __init__(self, manifest, maker):
         self.__id = maker.id
@@ -72,10 +100,9 @@ class FlatMap(object):
         self.__centre = None
         self.__min_zoom = maker.zoom[0]
 
-        self.__last_feature_id = 0
-        self.__class_to_feature = defaultdict(list)
-        self.__id_to_feature = {}
+        self.__feature_map = FeatureMap()
         self.__features = OrderedDict()
+        self.__last_feature_id = 0
 
         # Used to find annotated features containing a region
         self.__feature_search = None
@@ -155,14 +182,11 @@ class FlatMap(object):
 
     def is_duplicate_feature_id(self, id):
     #=====================================
-        return self.__id_to_feature.get(id, None) is not None
+        return self.__feature_map.duplicate_id(id)
 
     def save_feature_id(self, feature):
     #==================================
-        if feature.has_property('id'):
-            self.__id_to_feature[feature.get_property('id')] = feature
-        if feature.has_property('class'):
-            self.__class_to_feature[feature.get_property('class')].append(feature)
+        self.__feature_map.add_feature(feature)
 
     def get_feature(self, feature_id):
     #=================================
@@ -321,9 +345,7 @@ class FlatMap(object):
     def __resolve_paths(self):
     #=========================
         # Route paths and set feature ids of path components
-        self.__map_properties.generate_networks(
-            self.__id_to_feature,
-            self.__class_to_feature)
+        self.__map_properties.generate_networks(self.__feature_map)
 
     def __setup_feature_search(self):
     #================================

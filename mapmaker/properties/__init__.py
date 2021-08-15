@@ -76,12 +76,12 @@ class ExternalProperties(object):
                 else:
                     self.__properties_by_id[id] = properties
 
-    def generate_networks(self, id_map, class_map):
-    #==============================================
+    def generate_networks(self, feature_map):
+    #========================================
         for network in self.__networks.values():
             if network.id is not None:
-                network.create_geometry(id_map)
-                self.__pathways.resolve_pathways(network, id_map, class_map, self.__model_to_features)
+                network.create_geometry(feature_map)
+                self.__pathways.resolve_pathways(network, feature_map, self.__model_to_features)
 
     def update_properties(self, properties):
     #=======================================

@@ -85,25 +85,6 @@ def parse_nerves(node_ids):
 
 #===============================================================================
 
-class FeatureMap(object):
-    def __init__(self, id_map, class_map):
-        self.__id_map = id_map
-        self.__class_map = class_map
-
-    def features(self, id):
-        feature = self.__id_map.get(id)
-        if feature is None:
-            return self.__class_map.get(id, [])
-        return [feature]
-
-    def feature_ids(self, ids):
-        feature_ids = []
-        for id in ids:
-            feature_ids.extend([f.feature_id for f in self.features(id)])
-        return feature_ids
-
-#===============================================================================
-
 class ResolvedPath(object):
     def __init__(self):
         self.__lines = set()
@@ -137,8 +118,8 @@ class ResolvedPath(object):
 #===============================================================================
 
 class ResolvedPathways(object):
-    def __init__(self, id_map, class_map):
-        self.__feature_map = FeatureMap(id_map, class_map)
+    def __init__(self, feature_map):
+        self.__feature_map = feature_map
         self.__paths = defaultdict(ResolvedPath)  # path_id: ResolvedPath
         self.__node_paths = defaultdict(list)     # node_id: [ path_ids ]
         self.__type_paths = defaultdict(list)     # type: [ path _ids ]
@@ -378,8 +359,8 @@ class Pathways(object):
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
-    def __route_paths(self, network, id_map, class_map, model_to_features):
-    #======================================================================
+    def __route_paths(self, network, model_to_features):
+    #===================================================
         def get_point_for_anatomy(anatomical_id, error_list):
             if anatomical_id in model_to_features:
                 features_set = model_to_features[anatomical_id]
@@ -407,11 +388,11 @@ class Pathways(object):
                         self.__resolved_pathways.add_nodes(segment.id, segment.node_set)
                         self.__resolved_pathways.add_path_type(segment.id, properties.get('type'))
 
-    def resolve_pathways(self, network, id_map, class_map, model_to_features):
-    #=========================================================================
+    def resolve_pathways(self, network, feature_map, model_to_features):
+    #===================================================================
         if self.__resolved_pathways is not None:
             return
-        self.__resolved_pathways = ResolvedPathways(id_map, class_map)
+        self.__resolved_pathways = ResolvedPathways(feature_map)
         errors = False
         for path_id in self.__layer_paths:
             try:
@@ -425,7 +406,7 @@ class Pathways(object):
             except ValueError as err:
                 log.error('Path {}: {}'.format(path_id, str(err)))
                 errors = True
-        self.__route_paths(network, id_map, class_map, model_to_features)
+        self.__route_paths(network, model_to_features)
         if errors:
             raise ValueError('Errors in mapping paths and routes')
 
