@@ -55,15 +55,15 @@ def get_connected_subgraph(graph, v_prime):
 
     Arguments:
     ----------
-    G : networkx.Graph object
+    graph : networkx.Graph object
         The full graph.
     v_prime : list
         The chosen vertex set.
 
     Returns:
     --------
-    v_prime_prime : set
-        The set of nodes fullfilling criteria 1) and 2).
+    G_prime : networkx.Graph object
+        The subgraph of G fullfilling criteria 1) and 2).
 
     """
     vpp = set()
@@ -71,12 +71,14 @@ def get_connected_subgraph(graph, v_prime):
         paths = nx.all_shortest_paths(graph, source, target)
         for path in paths:
             vpp = vpp.union(path)
-    return vpp
+    return graph.subgraph(vpp)
 
 #===============================================================================
 
 class RouteSegment(object):
     def __init__(self, path_id, node_set, nodes_geometry, edge_geometry, path_type):
+        print('Route segment {}: nodes: {}\n    geometry: {}\n    edges: {}'
+            .format(path_id, node_set, nodes_geometry, edge_geometry))
         self.__id = path_id
         self.__node_set = node_set
         self.__nodes_geometry = nodes_geometry
