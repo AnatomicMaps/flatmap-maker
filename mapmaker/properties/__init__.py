@@ -54,10 +54,6 @@ class ExternalProperties(object):
         self.__networks = { network.get('id'): Network(flatmap, network)
                                 for network in properties_dict.get('networks', []) }
 
-        # Neural connection information will eventually be derived from SciGraph queries...
-        self.__connections = { model: FilePath(source).get_json()
-                                for model, source in manifest.connections.items() }
-
     @property
     def resolved_pathways(self):
         return self.__pathways.resolved_pathways
@@ -83,9 +79,9 @@ class ExternalProperties(object):
     def generate_networks(self, id_map, class_map):
     #==============================================
         for network in self.__networks.values():
-            network.create_geometry(id_map)
-            self.__pathways.resolve_pathways(id_map, class_map, self.__model_to_features,
-                network.router(), self.__connections)
+            if network.id is not None:
+                network.create_geometry(id_map)
+                self.__pathways.resolve_pathways(network, id_map, class_map, self.__model_to_features)
 
     def update_properties(self, properties):
     #=======================================

@@ -169,7 +169,7 @@ class NetworkRouter(object):
     def __init__(self, network_graph):
         self.__network_graph = network_graph
 
-    def layout(self, model: str, connections: list, pathways: list) -> dict:
+    def layout(self, connections: list) -> dict:
         """
         Layout paths for a model.
 
@@ -208,9 +208,12 @@ class NetworkRouter(object):
             A dictionary of ``RouteSegment``s which define the geometric path and
             properties of each connection.
         """
-        network = self.__networks.get(model, {})
+
         route_segments = {}
-        for pathway in pathways:
+        for connection in connections:
+            if connection[1] is not None:  # network-ends
+                route = get_connected_subgraph(self.__network_graph, connection[1])
+            '''  WIP...
             nodes_list = [network.get(edge) for edge in pathway['paths']]
             node_set = set(nodes_list[0])
             for nodes in nodes_list[1:]:
@@ -225,9 +228,9 @@ class NetworkRouter(object):
                                                          [e for e in [self.__edges.get(edge)
                                                             for edge in pathway['paths']] if e is not None],
                                                          pathway['type'])
-
-        return { connection['id']: [ route_segments.get(pathway)
-                                        for pathway in connection['pathways']]
-            for connection in connections}
+            '''
+        return { } #connection['id']: [ route_segments.get(pathway)
+                   #                     for pathway in connection['pathways']]
+            #for connection in connections}
 
 #===============================================================================

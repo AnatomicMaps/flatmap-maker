@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+from beziers.path import BezierPath
 import networkx as nx
 import shapely.geometry
 
@@ -34,7 +35,7 @@ class Network(object):
         self.__flatmap = flatmap
         self.__id = network.get('id')
         self.__graph = nx.Graph()
-        for centreline in network.get('centreline', []):
+        for centreline in network.get('centrelines', []):
             edge_id = centreline.get('id')
             if edge_id is None:
                 log.warn('Network {} has edge without an ID'.format(self.__id))
@@ -46,6 +47,12 @@ class Network(object):
                     self.__graph.add_edge(nodes[0], nodes[-1], id=edge_id, way_points=nodes[1:-1])
         self.__edges_by_id = { id: edge
                                 for edge, id in nx.get_edge_attributes(self.__graph, 'id').items() }
+        # The set of network nodes that have only one edge
+        self.__terminal_nodes = { n for n, d in self.__graph.degree() if d == 1 }
+
+    @property
+    def id(self):
+        return self.__id
 
     @staticmethod
     def __find_feature(id, id_map):
@@ -56,11 +63,12 @@ class Network(object):
 
     def __set_node_properties(self, feature):
     #========================================
-        if feature is not None and 'geometry' not in self.__graph.nodes[node]:
+        if feature is not None:
             node = self.__graph.nodes[feature.id]
-            for key, value in feature.properties.items():
-                node[key] = value
-            node['geometry'] = node.geometry
+            if 'geometry' not in node:
+                for key, value in feature.properties.items():
+                    node[key] = value
+                node['geometry'] = feature.geometry
 
     def create_geometry(self, id_map):
     #=================================
@@ -70,8 +78,8 @@ class Network(object):
             feature = self.__find_feature(edge[2], id_map)
             if feature is not None:
                 beziers = feature.get_property('bezier-paths', [])
-                assert(len(beziers) == 1)   ## TEMP, need to check earlier (svg.__get_geometry()) and give error?
-                bezier_path = beziers[0]
+                assert(len(beziers) > 0)   ## TEMP, need to check earlier (svg.__get_geometry()) and give error?
+                bezier_path = BezierPath.fromSegments(beziers)
                 bezier_start = bezier_path.pointAtTime(0)
                 start_point = shapely.geometry.Point(bezier_start.x, bezier_start.y)
                 end_node_0 = self.__graph.nodes[edge[0]].get('geometry')
