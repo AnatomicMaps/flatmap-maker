@@ -7,9 +7,19 @@
     {
         "id": "path_6",
         "type": "sensory",
-        "connects": [ ["urinary_6", "urinary_7", "urinary_8", "urinary_9", "urinary_10", "urinary_11"],
-                      ["S33_L1", "S34_L1", "S37_L1", "S39_L1", "S42_L1", "S33_L2", "S34_L2", "S37_L2", "S39_L2", "S42_L2"] ],
-        "network-ends": [ "bladder_n-bladder", "L1_dorsal_root_end", "L2_dorsal_root_end" ],
-        "models": "ilxtr:neuron-type-keast-11"
+        "models": "ilxtr:neuron-type-keast-11",
+        "connects": [
+        {
+            "node": "bladder_n-bladder",
+            "terminals": ["urinary_6", "urinary_7", "urinary_8", "urinary_9", "urinary_10", "urinary_11"]
+        },
+        {
+            "node": "L1_dorsal_root_end",
+            "terminals": ["S33_L1", "S34_L1", "S37_L1", "S39_L1", "S42_L1"]
+        },
+        {
+            "node": "L2_dorsal_root_end",
+            "terminals": ["S33_L2", "S34_L2", "S37_L2", "S39_L2", "S42_L2"]
+        }]
    }]
 }
