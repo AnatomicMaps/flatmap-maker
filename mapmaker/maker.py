@@ -77,8 +77,6 @@ class Manifest(object):
                 self.__manifest['anatomicalMap'] = urljoin(self.__url, self.__manifest['anatomicalMap'])
             if 'properties' in self.__manifest:
                 self.__manifest['properties'] = urljoin(self.__url, self.__manifest['properties'])
-            for connection in self.__manifest.get('connections', []):
-                self.__connections[connection['model']] = urljoin(self.__url, connection['href'])
             for path in self.__manifest.get('connectivity', []):
                 self.__connectivity.append(urljoin(self.__url, path))
             for source in self.__manifest['sources']:
