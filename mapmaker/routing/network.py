@@ -24,7 +24,11 @@ File doc...
 
 #===============================================================================
 
+import itertools
+
 import beziers.path
+import networkx as nx
+import numpy as np
 import shapely.geometry
 
 #===============================================================================
@@ -32,6 +36,42 @@ import shapely.geometry
 from mapmaker.geometry import bezier_sample
 from mapmaker.settings import settings
 from mapmaker.utils import log
+
+#===============================================================================
+
+"""
+Find the subgraph G' induced on G, that
+1) contain all nodes in a set of nodes V', and
+2) is a connected component.
+
+See: https://stackoverflow.com/questions/58076592/python-networkx-connect-subgraph-with-a-loose-node
+"""
+
+def get_connected_subgraph(graph, v_prime):
+#==========================================
+    """Given a graph G=(V,E), and a vertex set V', find the V'', that
+    1) is a superset of V', and
+    2) when used to induce a subgraph on G forms a connected component.
+
+    Arguments:
+    ----------
+    G : networkx.Graph object
+        The full graph.
+    v_prime : list
+        The chosen vertex set.
+
+    Returns:
+    --------
+    v_prime_prime : set
+        The set of nodes fullfilling criteria 1) and 2).
+
+    """
+    vpp = set()
+    for source, target in itertools.combinations(v_prime, 2):
+        paths = nx.all_shortest_paths(graph, source, target)
+        for path in paths:
+            vpp = vpp.union(path)
+    return vpp
 
 #===============================================================================
 
@@ -93,7 +133,9 @@ class NetworkRouter(object):
     wires are routed.
 
     Args:
-        networks: a dictionary specifying network models.
+        network_graph: a networkx.Graph specifying the network.
+
+            TODO: UPDATE...
 
             Each network model is an item in this dictionary, in the form
             ``MODEL_ID: EDGE_DICT``, where ``EDGE_DICT`` is of the form
@@ -124,10 +166,8 @@ class NetworkRouter(object):
 
 
     """
-    def __init__(self, networks: dict, edges: dict, nodes: dict):
-        self.__networks = networks
-        self.__edges = edges
-        self.__nodes = nodes
+    def __init__(self, network_graph):
+        self.__network_graph = network_graph
 
     def layout(self, model: str, connections: list, pathways: list) -> dict:
         """

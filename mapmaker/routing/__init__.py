@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import networkx as nx
 import shapely.geometry
 
 #===============================================================================
@@ -29,22 +30,22 @@ from .network import NetworkRouter
 #===============================================================================
 
 class Network(object):
-    def __init__(self, flatmap, network_list):
+    def __init__(self, flatmap, network):
         self.__flatmap = flatmap
-        self.__networks = {}
-        self.__path_connections = {}
-        self.__path_networks = {}
-        self.__way_points = set()
-        for network in network_list:
-            paths = {}
-            for path in network['paths']:
-                paths[path['id']] = path['connects']
-                self.__path_connections[path['id']] = path['connects']
-                self.__path_networks[path['id']] = network['id']
-                self.__way_points.update(path['connects'])
-            self.__networks[network['id']] = paths
-        self.__edges = {}
-        self.__nodes = {}
+        self.__id = network.get('id')
+        self.__graph = nx.Graph()
+        for centreline in network.get('centreline', []):
+            edge_id = centreline.get('id')
+            if edge_id is None:
+                log.warn('Network {} has edge without an ID'.format(self.__id))
+            else:
+                nodes = centreline.get('connects', [])
+                if len(nodes) < 2:
+                    log.warn('Edge {} in network {} has too few nodes'.format(edge_id, self.__id))
+                else:
+                    self.__graph.add_edge(nodes[0], nodes[-1], id=edge_id, way_points=nodes[1:-1])
+        self.__edges_by_id = { id: edge
+                                for edge, id in nx.get_edge_attributes(self.__graph, 'id').items() }
 
     @staticmethod
     def __find_feature(id, id_map):
@@ -53,36 +54,39 @@ class Network(object):
             log.warn('Unknown network feature: {}'.format(id))
         return id_map.get(id)
 
-    def __add_node(self, node):
-    #==========================
-        if node is not None and node.id not in self.__nodes:
-            self.__nodes[node.id] = node.geometry
+    def __set_node_properties(self, feature):
+    #========================================
+        if feature is not None and 'geometry' not in self.__graph.nodes[node]:
+            node = self.__graph.nodes[feature.id]
+            for key, value in feature.properties.items():
+                node[key] = value
+            node['geometry'] = node.geometry
 
     def create_geometry(self, id_map):
     #=================================
-        for path_id, end_points in self.__path_connections.items():
-            edge = self.__find_feature(path_id, id_map)
-            if edge is not None:
-                for point in end_points:
-                    self.__add_node(self.__find_feature(point, id_map))
-                beziers = edge.get_property('bezier-paths', [])
+        for edge in self.__graph.edges.data('id'):
+            for node in edge[0:2]:
+                self.__set_node_properties(self.__find_feature(node, id_map))
+            feature = self.__find_feature(edge[2], id_map)
+            if feature is not None:
+                beziers = feature.get_property('bezier-paths', [])
                 assert(len(beziers) == 1)   ## TEMP, need to check earlier (svg.__get_geometry()) and give error?
                 bezier_path = beziers[0]
                 bezier_start = bezier_path.pointAtTime(0)
                 start_point = shapely.geometry.Point(bezier_start.x, bezier_start.y)
-                end_node_0 = self.__nodes.get(end_points[0])
-                end_node_1 = self.__nodes.get(end_points[-1])
+                end_node_0 = self.__graph.nodes[edge[0]].get('geometry')
+                end_node_1 = self.__graph.nodes[edge[1]].get('geometry')
                 if end_node_0 is not None and end_node_1 is not None:
                     if start_point.distance(end_node_0) > start_point.distance(end_node_1):
                         bezier_path = bezier_path.reverse()
-                    self.__edges[path_id] = bezier_path
+                    self.__graph.edges[edge[0:2]]['geometry'] = bezier_path
 
     def router(self):
     #=================
-        return NetworkRouter(self.__networks, self.__edges, self.__nodes)
+        return NetworkRouter(self.__graph)
 
-    def way_point(self, id):
+    def has_node(self, id):
     #=======================
-        return id in self.__way_points
+        return id in self.__graph
 
 #===============================================================================

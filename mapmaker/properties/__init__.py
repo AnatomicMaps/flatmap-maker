@@ -51,8 +51,8 @@ class ExternalProperties(object):
             self.__pathways.add_connectivity(connectivity)
 
         # Load network definitions
-        self.__network = Network(flatmap, properties_dict.get('networks', []))
-
+        self.__networks = { network.get('id'): Network(flatmap, network)
+                                for network in properties_dict.get('networks', []) }
 
         # Neural connection information will eventually be derived from SciGraph queries...
         self.__connections = { model: FilePath(source).get_json()
@@ -82,9 +82,10 @@ class ExternalProperties(object):
 
     def generate_networks(self, id_map, class_map):
     #==============================================
-        self.__network.create_geometry(id_map)
-        self.__pathways.resolve_pathways(id_map, class_map, self.__model_to_features,
-            self.__network.router(), self.__connections)
+        for network in self.__networks.values():
+            network.create_geometry(id_map)
+            self.__pathways.resolve_pathways(id_map, class_map, self.__model_to_features,
+                network.router(), self.__connections)
 
     def update_properties(self, properties):
     #=======================================
@@ -97,8 +98,10 @@ class ExternalProperties(object):
         if id is not None:
             properties.update(self.__properties_by_id.get(id, {}))
             # Drop network nodes that don't have anatomical meaning
-            if self.__network.way_point(id) and 'models' not in properties:
-                properties['exclude'] = True
+            for network in self.__networks.values():
+                if network.has_node(id) and 'models' not in properties:
+                    properties['exclude'] = True
+                    break
             properties.update(self.__pathways.add_line_or_nerve(id))
         if 'marker' in properties:
             properties['type'] = 'marker'
