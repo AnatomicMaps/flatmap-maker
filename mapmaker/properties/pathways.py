@@ -168,11 +168,15 @@ class ResolvedPathways(object):
     def __resolve_nodes_for_path(self, path_id, nodes):
         node_ids = []
         for id in nodes:
+            node_count = 0
             for feature in self.__feature_map.features(id):
                 if not feature.get_property('exclude'):
                     node_id = feature.feature_id
                     self.__node_paths[node_id].append(path_id)
                     node_ids.append(node_id)
+                    node_count += 1
+            if node_count == 0:
+                log.warn('Cannot find feature for node: {}'.format(id))
         return node_ids
 
     def resolve_pathway(self, path_id, lines, nerves, route):
