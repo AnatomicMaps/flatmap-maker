@@ -1,0 +1,16 @@
+{
+    "id": "rat-bladder",
+    "models": "NCBITaxon:10114",
+    "anatomicalMap": "anatomical_map.xlsx",
+    "properties": "rat_flatmap_properties.json",
+    "connectivity": [
+        "keast_bladder_with_centrelines.json"
+    ],
+    "sources": [
+        {
+            "id": "rat-bladder",
+            "href": "rat-bladder.svg",
+            "kind": "base"
+        }
+    ]
+}

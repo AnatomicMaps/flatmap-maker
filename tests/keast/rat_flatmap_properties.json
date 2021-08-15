@@ -1,0 +1,288 @@
+{
+    "features": [
+        {
+            "class": "body_1",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "body_2",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "body_3",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "body_4",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "body_5",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "body_6",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "brain_35",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "respiratory_6",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "respiratory_7",
+            "properties": {
+                "tooltip": false
+            }
+        },
+        {
+            "class": "respiratory_3",
+            "properties": {
+                "label": "Trachea"
+            }
+        },
+        {
+            "id": "simulation_1",
+            "properties": {
+                "models": "UBERON:0001759",
+                "simulations": []
+            }
+        },
+		{
+            "id": "simulation_2",
+            "properties": {
+                "models": "UBERON:0000948",
+                "simulations": []
+            }
+        },
+		{
+            "id": "simulation_3",
+            "properties": {
+                "label": "cardiac ventricular cells",
+                "simulations": [
+                    "https://sparc.science/datasets/63?type=dataset"
+                ]
+            }
+        },
+        {
+            "id": "scaffold_1",
+            "properties": {
+                "models": "UBERON:0000948",
+                "scaffolds": [
+                    "heart"
+                ]
+            }
+        },
+        {
+            "id": "scaffold_2",
+            "properties": {
+                "models": "UBERON:0001155",
+                "scaffolds": [
+                    "colon"
+                ]
+            }
+        },
+        {
+            "id": "scaffold_3",
+            "properties": {
+                "models": "UBERON:0001255",
+                "scaffolds": [
+                    "bladder"
+                ]
+            }
+        },
+        {
+            "id": "scaffold_4",
+            "properties": {
+                "models": "UBERON:0000945",
+                "scaffolds": [
+                    "stomach"
+                ]
+            }
+        },
+        {
+            "id": "data_1",
+            "properties": {
+                "label": "Intrinsic cardiac neurons",
+                "datasets": [
+                    "https://sparc.science/datasets/29?type=dataset"
+                ]
+            }
+        },
+        {
+            "id": "data_2",
+            "properties": {
+                "models": "UBERON:0001884",
+                "datasets": [
+				    "https://sparc.science/datasets/52?type=dataset",
+				    "https://sparc.science/datasets/52?type=dataset"
+				]
+            }
+        },
+        {
+            "id": "data_3",
+            "properties": {
+                "models": "UBERON:0001649",
+                "datasets": [
+                    "https://sparc.science/datasets/48?type=dataset"
+                ]
+            }
+        },
+        {
+            "id": "data_4",
+            "properties": {
+                "label": "Cardiac cells",
+                "datasets": [
+                    "https://sparc.science/datasets/23?type=dataset"
+                ]
+            }
+        },
+        {
+            "id": "lung_data",
+            "properties": {
+                "models": "UBERON:0002048",
+                "scaffolds": [
+                    "lung"
+                ]
+            }
+        },
+        {
+            "class": "brain_14",
+            "properties": {
+                "label": "VLPAG"
+            }
+        },
+        {
+            "class": "brain_13",
+            "properties": {
+                "label": "BRGTN"
+            }
+        },
+        {
+            "class": "keast_1",
+            "properties": {
+                "label": "bladder nerves"
+            }
+        },
+        {
+            "class": "bolser_2",
+            "properties": {
+                "label": "external carotid nerve plexus"
+            }
+        },
+        {
+            "class": "ardell_1",
+            "properties": {
+                "label": "atrial intracardiac ganglion"
+            }
+        },
+        {
+            "class": "ardell_2",
+            "properties": {
+                "label": "ventricular intracardiac ganglion"
+            }
+        },
+        {
+            "class": "ardell_3",
+            "properties": {
+                "label": "mediastinal ganglion"
+            }
+        }
+    ],
+    "networks": [
+    {
+        "id": "neural",
+        "centrelines": [
+        {
+            "id": "L1_dorsal_root",
+            "connects": ["L1-spinal", "S45_L1", "L1_dorsal_root_end"]
+        },
+        {
+            "id": "L1_ventral_root",
+            "connects": ["L1-spinal", "L1_ventral_root_end"]
+        },
+        {
+            "id": "L1_ventral_root_ramus",
+            "connects": ["L1-spinal", "L1_ventral_root_ramus_end"]
+        },
+        {
+            "id": "L1_spinal_n",
+            "connects": ["L1-spinal", "L1_L2_spinal_n-lumbar_splanchnic_n"]
+        },
+        {
+            "id": "L2_dorsal_root",
+            "connects": ["L2-spinal", "S45_L2", "L2_dorsal_root_end"]
+        },
+        {
+            "id": "L1_ventral_root",
+            "connects": ["L1-spinal", "L1_ventral_root_end"]
+        },
+        {
+            "id": "L2_ventral_root_ramus",
+            "connects": ["L2-spinal", "L2_ventral_root_ramus_end"]
+        },
+        {
+            "id": "L2_spinal_n",
+            "connects": ["L2-spinal", "L1_L2_spinal_n-lumbar_splanchnic_n"]
+        },
+        {
+            "id": "L6_dorsal_root",
+            "connects": ["L6-spinal", "S45_L6", "L6_dorsal_root_end"]
+        },
+        {
+            "id": "L6_ventral_root",
+            "connects": ["L6-spinal", "L6_ventral_root_end"]
+        },
+        {
+            "id": "L6_spinal_n",
+            "connects": ["L6-spinal", "L6_S1_spinal_n-pelvic_splanchnic_n"]
+        },
+        {
+            "id": "S1_dorsal_root",
+            "connects": ["S1-spinal", "S45_S1", "S1_dorsal_root_end"]
+        },
+        {
+            "id": "S1_ventral_root",
+            "connects": ["S1-spinal", "S1_ventral_root_end"]
+        },
+        {
+            "id": "S1_spinal_n",
+            "connects": ["S1-spinal", "L6_S1_spinal_n-pelvic_splanchnic_n"]
+        },
+        {
+            "id": "lumbar_splanchnic_n",
+            "connects": ["L1_L2_spinal_n-lumbar_splanchnic_n", "keast_6"]
+        },
+        {
+            "id": "pelvic_splanchnic_n",
+            "connects": ["L6_S1_spinal_n-pelvic_splanchnic_n", "keast_3"]
+        },
+        {
+            "id": "hypogastric_n",
+            "connects": ["keast_6", "keast_3"]
+        },
+        {
+            "id": "bladder_n",
+            "connects": ["keast_3", "bladder_n-bladder"]
+        }]
+    }]
+}
