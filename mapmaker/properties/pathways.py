@@ -44,6 +44,7 @@ ROUTE_NODES = delimitedList(ROUTE_NODE_GROUP)
 #===============================================================================
 
 def parse_path_lines(line_ids):
+#==============================
     try:
         if isinstance(line_ids, str):
             path_lines = PATH_LINES.parseString(line_ids, parseAll=True)
@@ -54,6 +55,7 @@ def parse_path_lines(line_ids):
     return path_lines
 
 def parse_route_nodes(node_ids):
+#===============================
     try:
         if isinstance(node_ids, str):
             route_nodes = ROUTE_NODES.parseString(node_ids, parseAll=True)
@@ -74,6 +76,7 @@ def parse_route_nodes(node_ids):
     return list(route_nodes)
 
 def parse_nerves(node_ids):
+#==========================
     try:
         nerves = NERVES.parseString(node_ids, parseAll=True)
     except ParseException:
