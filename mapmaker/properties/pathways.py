@@ -343,7 +343,7 @@ class Pathways(object):
                     raise ValueError("Path '{}' doesn't have a route".format(path_id))
                 self.__routes_by_path_id[path_id] = Route(path_id, path['route'])
             elif 'connects' in path:
-                connectivity_model.add_connection((path['connects'], path.get('network-ends')))
+                connectivity_model.add_connection(path['connects'])
             if 'nerves' in path:
                 nerves_by_path_id[path_id] = list(parse_nerves(path['nerves']))
             if 'type' in path:
@@ -373,12 +373,11 @@ class Pathways(object):
             return None
 
         log('Routing paths...')
-        network_router = network.router()
         for connectivity_model in self.__connectivity_models:
             if connectivity_model.network == network.id:
                 layer = FeatureLayer('{}_routes'.format(connectivity_model.id), self.__flatmap, exported=True)
                 self.__flatmap.add_layer(layer)
-                for id, segments in network_router.layout(connectivity_model.connections).items():
+                for id, segments in network.layout(connectivity_model.connections).items():
                     for segment in segments:
                         properties = { 'tile-layer': 'autopaths' }
                         properties.update(segment.properties())
