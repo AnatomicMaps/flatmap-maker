@@ -51,7 +51,7 @@ class ExternalProperties(object):
             self.__pathways.add_connectivity(connectivity)
 
         # Load network definitions
-        self.__networks = { network.get('id'): Network(flatmap, network)
+        self.__networks = { network.get('id'): Network(network)
                                 for network in properties_dict.get('networks', []) }
 
     @property

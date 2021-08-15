@@ -31,8 +31,7 @@ from .network import NetworkRouter
 #===============================================================================
 
 class Network(object):
-    def __init__(self, flatmap, network):
-        self.__flatmap = flatmap
+    def __init__(self, network):
         self.__id = network.get('id')
         self.__graph = nx.Graph()
         for centreline in network.get('centrelines', []):
