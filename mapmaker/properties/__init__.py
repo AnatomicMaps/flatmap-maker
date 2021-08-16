@@ -98,6 +98,8 @@ class ExternalProperties(object):
                 properties.update(self.__pathways.add_line_or_nerve(cls))
         id = properties.get('id')
         if id is not None:
+            # id overrides class
+            properties.update(self.__anatomical_map.properties(id))
             properties.update(self.__properties_by_id.get(id, {}))
             if self.__pathways is not None:
                 properties.update(self.__pathways.add_line_or_nerve(id))
