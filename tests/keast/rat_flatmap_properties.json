@@ -233,10 +233,6 @@
             "connects": ["L2-spinal", "S45_L2", "L2_dorsal_root_end"]
         },
         {
-            "id": "L1_ventral_root",
-            "connects": ["L1-spinal", "L1_ventral_root_end"]
-        },
-        {
             "id": "L2_ventral_root_ramus",
             "connects": ["L2-spinal", "L2_ventral_root_ramus_end"]
         },
