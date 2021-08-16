@@ -22,7 +22,7 @@ from collections import defaultdict
 
 #===============================================================================
 
-from pyparsing import delimitedList, Group, ParseResults, Suppress
+from pyparsing import delimitedList, Group, ParseException, ParseResults, Suppress
 
 #===============================================================================
 
