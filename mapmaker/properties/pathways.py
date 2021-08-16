@@ -408,13 +408,14 @@ class Pathways(object):
         errors = False
         for path_id in self.__layer_paths:
             try:
-                self.__resolved_pathways.resolve_pathway(path_id,
-                                                         self.__lines_by_path_id.get(path_id, []),
-                                                         self.__nerves_by_path_id.get(path_id, []),
-                                                         self.__routes_by_path_id.get(path_id)
-                                                        )
-                self.__resolved_pathways.add_path_type(path_id, self.__types_by_path_id.get(path_id))
-                self.__resolved_pathways.set_model_id(path_id, self.__path_models.get(path_id))
+                if path_id in self.__routes_by_path_id:
+                    self.__resolved_pathways.resolve_pathway(path_id,
+                                                             self.__lines_by_path_id.get(path_id, []),
+                                                             self.__nerves_by_path_id.get(path_id, []),
+                                                             self.__routes_by_path_id[path_id]
+                                                            )
+                    self.__resolved_pathways.add_path_type(path_id, self.__types_by_path_id.get(path_id))
+                    self.__resolved_pathways.set_model_id(path_id, self.__path_models.get(path_id))
             except ValueError as err:
                 log.error('Path {}: {}'.format(path_id, str(err)))
                 errors = True
