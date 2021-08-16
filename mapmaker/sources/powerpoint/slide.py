@@ -42,7 +42,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import ellipse_point
 from mapmaker.geometry import bezier_sample
-from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
+from mapmaker.geometry.arc_to_bezier import bezier_path_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
 from mapmaker.utils import ProgressBar, log
 
@@ -156,12 +156,12 @@ class PowerpointSlide(MapLayer):
                     pt = (current_point[0] - p1[0] + p2[0],
                           current_point[1] - p1[1] + p2[1])
                     large_arc_flag = 1 if swAng >= math.pi else 0
-                    paths = bezier_segments_from_arc_endpoints(tuple2(wR, hR),
+                    path = bezier_path_from_arc_endpoints(tuple2(wR, hR),
                                         0, large_arc_flag, 1,
                                         tuple2(*current_point), tuple2(*pt),
                                         T)
-                    bezier_segments.extend(paths.asSegments())
-                    coordinates.extend(bezier_sample(paths))
+                    bezier_segments.extend(path.asSegments())
+                    coordinates.extend(bezier_sample(path))
                     current_point = pt
 
                 elif c.tag == DML('close'):

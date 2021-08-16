@@ -47,7 +47,7 @@ from .utils import adobe_decode_markup, length_as_pixels, parse_svg_path, SVG_NS
 
 from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import bezier_sample, radians, Transform, reflect_point
-from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
+from mapmaker.geometry.arc_to_bezier import bezier_path_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
 from mapmaker.utils import FilePath, ProgressBar, log
 
@@ -344,10 +344,10 @@ class SVGLayer(MapLayer):
                     pt[0] += current_point[0]
                     pt[1] += current_point[1]
                 phi = radians(params[2])
-                paths = bezier_segments_from_arc_endpoints(tuple2(*params[0:2]), phi, *params[3:5],
+                path = bezier_path_from_arc_endpoints(tuple2(*params[0:2]), phi, *params[3:5],
                                                         tuple2(*current_point), tuple2(*pt), T)
-                bezier_segments.extend(paths.asSegments())
-                coordinates.extend(bezier_sample(paths))
+                bezier_segments.extend(path.asSegments())
+                coordinates.extend(bezier_sample(path))
                 current_point = pt
 
             elif cmd in ['c', 'C', 's', 'S']:
