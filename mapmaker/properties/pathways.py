@@ -160,6 +160,7 @@ class ResolvedPathways(object):
             for feature in self.__feature_map.features(id):
                 if not feature.get_property('exclude'):
                     node_id = feature.feature_id
+                    feature.set_property('nodeId', node_id)
                     self.__node_paths[node_id].append(path_id)
                     node_ids.append(node_id)
                     node_count += 1
