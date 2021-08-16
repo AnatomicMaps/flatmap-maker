@@ -37,7 +37,7 @@ from mapmaker.utils import log
 
 class RoutedPath(object):
     def __init__(self, path_id, route_graph):
-        print('Route path:', path_id, route_graph.edges)
+        ##print('Route path:', path_id, route_graph.edges)
         self.__path_id = path_id
         self.__graph = route_graph
         self.__node_set = { node
