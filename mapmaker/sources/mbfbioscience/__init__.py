@@ -166,7 +166,6 @@ class MBFSource(MapSource):
                 boundary_geometry = feature.geometry
                 self.__layer.boundary_feature = feature
 
-        if settings.get('backgroundTiles', False):
-            self.__set_raster_source(boundary_geometry)
+        self.__set_raster_source(boundary_geometry)
 
 #===============================================================================

@@ -40,7 +40,7 @@ from .slide import PowerpointSlide
 #===============================================================================
 
 class PowerpointSource(MapSource):
-    def __init__(self, flatmap, id, source_href, get_background=False):
+    def __init__(self, flatmap, id, source_href):
         super().__init__(flatmap, id, source_href, 'slides')
         self.__pptx = Presentation(FilePath(source_href).get_BytesIO())
         self.__slides = self.__pptx.slides
@@ -55,10 +55,8 @@ class PowerpointSource(MapSource):
         bottom_right = self.__transform.transform_point((width, height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-
-        if get_background:
-            pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_href)[0]))
-            self.set_raster_source(RasterSource('pdf', pdf_source.get_data()))
+        pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_href)[0]))
+        self.set_raster_source(RasterSource('pdf', pdf_source.get_data()))
 
     @property
     def transform(self):
@@ -81,6 +79,3 @@ class PowerpointSource(MapSource):
             self.add_layer(slide_layer)
 
 #===============================================================================
-
-
-
