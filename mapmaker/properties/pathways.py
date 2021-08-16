@@ -293,6 +293,30 @@ class Pathways(object):
             'type-paths': self.__resolved_pathways.type_paths,
         }
 
+    def __line_properties(self, path_id):
+    #====================================
+        properties = {}
+        if path_id in self.__types_by_path_id:
+            kind = self.__types_by_path_id[path_id]
+            properties.update({
+                'kind': kind,
+                 ## Can we just put this into `kind` and have viewer work out if dashed??
+                'type': 'line-dash' if kind.endswith('-post') else 'line'
+                # this is were we could set flags to specify the line-end style.
+                # --->   <---    |---   ---|    o---   ---o    etc...
+                # See https://github.com/alantgeo/dataset-to-tileset/blob/master/index.js
+                # and https://github.com/mapbox/mapbox-gl-js/issues/4096#issuecomment-303367657
+            })
+        else:
+            properties['type'] = 'line'
+        if path_id in self.__path_models:
+            properties['models'] = self.__path_models[path_id]
+        if path_id in self.__connectivity_by_path:
+            source = self.__connectivity_by_path[path_id].source
+            if source is not None:
+                properties['source'] = source
+        return properties
+
     def add_line_or_nerve(self, id_or_class):
     #========================================
         path_id = None
@@ -300,18 +324,7 @@ class Pathways(object):
         # Is the id_or_class that of a line?
         if id_or_class in self.__paths_by_line_id:
             path_id = self.__paths_by_line_id[id_or_class][0]
-            if path_id in self.__types_by_path_id:
-                properties['kind'] = self.__types_by_path_id[path_id]  ## Can we just put this into `kind`
-                                                                       ## and have viewer work out if dashed??
-                properties['type'] = 'line-dash' if properties['kind'].endswith('-post') else 'line'
-            else:
-                properties['type'] = 'line'
-            if path_id in self.__path_models:
-                properties['models'] = self.__path_models[path_id]
-            if path_id in self.__connectivity_by_path:
-                source = self.__connectivity_by_path[path_id].source
-                if source is not None:
-                    properties['source'] = source
+            properties.update(self.__line_properties(path_id))
         # Is the id_or_class that of a nerve cuff?
         elif id_or_class in self.__paths_by_nerve_id:
             path_id = self.__paths_by_nerve_id[id_or_class][0]

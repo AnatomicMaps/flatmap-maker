@@ -70,18 +70,4 @@ class RouteSegment(object):
         path = beziers.path.BezierPath.fromSegments(self.__edge_geometry)
         return shapely.geometry.LineString(bezier_sample(path))
 
-    def properties(self) -> dict:
-        """
-        Returns:
-            Properties of the line string object connecting the segment's nodes.
-        """
-        return {
-            'kind': self.__path_type,
-            'type': 'line-dash' if self.__path_type.endswith('-post') else 'line',
-            # this is were we could set flags to specify the line-end style.
-            # --->   <---    |---   ---|    o---   ---o    etc...
-            # See https://github.com/alantgeo/dataset-to-tileset/blob/master/index.js
-            # and https://github.com/mapbox/mapbox-gl-js/issues/4096#issuecomment-303367657
-        }
-
 #===============================================================================
