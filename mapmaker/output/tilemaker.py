@@ -433,16 +433,15 @@ class RasterTileMaker(object):
     """
     def __init__(self, raster_layer, output_dir, max_zoom=MAX_ZOOM):
         self.__raster_layer = raster_layer
-        self.__output_dir = output_dir
         self.__max_zoom = max_zoom
         self.__id = raster_layer.id
+        self.__database_path = os.path.join(output_dir, '{}.mbtiles'.format(raster_layer.id))
         self.__min_zoom = raster_layer.min_zoom
         self.__tile_set = TileSet(raster_layer.extent, max_zoom)
 
     def __make_zoomed_tiles(self, tile_extractor):
     #=============================================
-        raster_database_name = '{}.mbtiles'.format(self.__id)
-        mbtiles = MBTiles(os.path.join(self.__output_dir, raster_database_name), True, True)
+        mbtiles = MBTiles(self.__database_path, True, True)
         mbtiles.add_metadata(id=self.__id)
         zoom = self.__max_zoom
         log('Tiling zoom level {} for {}'.format(zoom, self.__id))
@@ -459,7 +458,6 @@ class RasterTileMaker(object):
         self.__make_overview_tiles(mbtiles, zoom, self.__tile_set.start_coords,
                                                   self.__tile_set.end_coords)
         mbtiles.close(compress=True)
-        return raster_database_name
 
     def __make_overview_tiles(self, mbtiles, zoom, start_coords, end_coords):
     #========================================================================
@@ -490,6 +488,10 @@ class RasterTileMaker(object):
             progress_bar.close()
             self.__make_overview_tiles(mbtiles, zoom, half_start, half_end)
 
+    def have_tiles(self):
+    #====================
+        return os.path.exists(self.__database_path)
+
     def make_tiles(self):
     #====================
         log('Tiling {}...'.format(self.__id))
@@ -505,7 +507,7 @@ class RasterTileMaker(object):
                 tile_extractor = SVGImageTiler(self.__raster_layer, self.__tile_set)
         else:
             raise TypeError('Unsupported kind of background tile source: {}'.format(source_kind))
-        return self.__make_zoomed_tiles(tile_extractor)
+        self.__make_zoomed_tiles(tile_extractor)
 
 #===============================================================================
 

@@ -178,6 +178,9 @@ class MapMaker(object):
         self.__geojson_files = []
         self.__tippe_inputs = []
 
+        # Raster tile layers
+        self.__raster_layers = []
+
         # Our source of knowledge, updated with information
         # about maps we've made
         self.__knowledgebase = KnowledgeStore(map_base)
@@ -211,9 +214,8 @@ class MapMaker(object):
             self.__output_geojson()
             # Generate vector tiles from GeoJSON
             self.__make_vector_tiles()
-            # Generate image tiles
-            if settings.get('backgroundTiles', False):
-                self.__make_raster_tiles()
+            # Generate image tiles as needed
+            self.__check_raster_tiles()
             # Save the flatmap's metadata
             self.__save_metadata()
 
@@ -242,7 +244,6 @@ class MapMaker(object):
 
     def __process_sources(self):
     #===========================
-        tile_background = settings.get('backgroundTiles', False)
         # Make sure ``base`` and ``slides`` source kinds are processed first
         def kind_order(source):
             kind = source.get('kind', '')
@@ -252,8 +253,7 @@ class MapMaker(object):
             kind = source.get('kind')
             href = source['href']
             if kind == 'slides':
-                source_layer = PowerpointSource(self.__flatmap, id, href,
-                                                get_background=tile_background)
+                source_layer = PowerpointSource(self.__flatmap, id, href)
             elif kind == 'image':
                 if layer_number > 0 and 'boundary' not in source:
                     raise ValueError('An image source must specify a boundary')
@@ -274,13 +274,16 @@ class MapMaker(object):
         if len(self.__flatmap) == 0:
             raise ValueError('No map layers in sources...')
 
-    def __make_raster_tiles(self):
+    def __check_raster_tiles(self):
     #============================
-        log('Generating background tiles (may take a while...)')
+        log('Checking and making background tiles (may take a while...)')
         for layer in self.__flatmap.layers:
             for raster_layer in layer.raster_layers:
                 tilemaker = RasterTileMaker(raster_layer, self.__map_dir, self.__zoom[1])
-                raster_tile_file = tilemaker.make_tiles()
+                if settings.get('backgroundTiles', False):
+                    tilemaker.make_tiles()
+                if tilemaker.have_tiles():
+                    self.__raster_layers.append(raster_layer)
 
     def __make_vector_tiles(self, compressed=True):
     #==============================================
@@ -364,11 +367,6 @@ class MapMaker(object):
 #*        ## TODO: set ``layer.properties`` for annotations...
 #*        ##update_RDF(options['map_base'], options['map_id'], source, annotations)
 
-        # Get list of all image sources from all layers
-        raster_layers = []
-        for layer in self.__flatmap.layers:
-            raster_layers.extend(layer.raster_layers)
-
         map_index = {
             'id': self.__id,
             'source': self.__manifest.url,
@@ -376,7 +374,7 @@ class MapMaker(object):
             'max-zoom': self.__zoom[1],
             'bounds': self.__flatmap.extent,
             'version': FLATMAP_VERSION,
-            'image_layer': len(raster_layers) > 0  ## For compatibility
+            'image_layer': len(self.__raster_layers) > 0
         }
         if self.__flatmap.models is not None:
             map_index['describes'] = self.__flatmap.models
@@ -387,7 +385,7 @@ class MapMaker(object):
 
         # Create style file
         metadata = tile_db.metadata()
-        style_dict = MapStyle.style(raster_layers, metadata, self.__zoom)
+        style_dict = MapStyle.style(self.__raster_layers, metadata, self.__zoom)
         with open(os.path.join(self.__map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
