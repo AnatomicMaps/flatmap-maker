@@ -5,22 +5,22 @@
     "network": "neural",
     "paths": [
     {
-        "id": "path_6",
+        "id": "path_2",
         "type": "sensory",
-        "models": "ilxtr:neuron-type-keast-11",
-        "nerves": "keast_7, keast_5, keast_1",
+        "models": "ilxtr:neuron-type-keast-10",
+        "nerves": "keast_4, keast_1",
         "connects": [
             {
                 "node": "bladder_n-bladder",
                 "terminals": ["urinary_6", "urinary_7", "urinary_8", "urinary_9", "urinary_10", "urinary_11"]
             },
             {
-                "node": "L1_dorsal_root_end",
-                "terminals": ["S33_L1", "S34_L1", "S37_L1", "S39_L1", "S42_L1"]
+                "node": "L6_dorsal_root_end",
+                "terminals": ["S33_L6", "S34_L6", "S37_L6", "S39_L6", "S42_L6"]
             },
             {
-                "node": "L2_dorsal_root_end",
-                "terminals": ["S33_L2", "S34_L2", "S37_L2", "S39_L2", "S42_L2"]
+                "node": "S1_dorsal_root_end",
+                "terminals": ["S33_S1", "S34_S1", "S37_S1", "S39_S1", "S42_S1"]
             }
         ]
     },
@@ -51,6 +51,26 @@
             {
                 "node": "bladder_n-bladder",
                 "terminals": ["urinary_7", "urinary_8", "urinary_9", "urinary_10"]
+            }
+        ]
+    },
+    {
+        "id": "path_6",
+        "type": "sensory",
+        "models": "ilxtr:neuron-type-keast-11",
+        "nerves": "keast_7, keast_5, keast_1",
+        "connects": [
+            {
+                "node": "bladder_n-bladder",
+                "terminals": ["urinary_6", "urinary_7", "urinary_8", "urinary_9", "urinary_10", "urinary_11"]
+            },
+            {
+                "node": "L1_dorsal_root_end",
+                "terminals": ["S33_L1", "S34_L1", "S37_L1", "S39_L1", "S42_L1"]
+            },
+            {
+                "node": "L2_dorsal_root_end",
+                "terminals": ["S33_L2", "S34_L2", "S37_L2", "S39_L2", "S42_L2"]
             }
         ]
     },
