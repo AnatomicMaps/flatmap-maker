@@ -164,6 +164,7 @@ class ResolvedPathways(object):
             node_count = 0
             for feature in self.__feature_map.features(id):
                 node_id = feature.feature_id
+                feature.set_property('nodeId', node_id)
                 self.__node_paths[node_id].append(path_id)
                 node_ids.append(node_id)
                 node_count += 1
