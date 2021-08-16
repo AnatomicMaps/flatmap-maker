@@ -88,6 +88,11 @@ class ExternalProperties(object):
         if self.__pathways is not None:
             self.__pathways.resolve_pathways(id_map, class_map, self.__model_to_features)
 
+    def save_knowledge(self):
+    #========================
+        if self.__pathways is not None:
+            self.__pathways.save_knowledge(self.__knowledgebase)
+
     def update_properties(self, properties):
     #=======================================
         cls = properties.get('class')
