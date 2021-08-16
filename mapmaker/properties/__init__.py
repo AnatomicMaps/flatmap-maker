@@ -92,6 +92,8 @@ class ExternalProperties(object):
             properties.update(self.__pathways.add_line_or_nerve(cls))
         id = properties.get('id')
         if id is not None:
+            # id overrides class
+            properties.update(self.__anatomical_map.properties(id))
             properties.update(self.__properties_by_id.get(id, {}))
             # Drop network nodes that don't have anatomical meaning
             for network in self.__networks.values():
