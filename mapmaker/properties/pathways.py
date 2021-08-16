@@ -224,7 +224,7 @@ class ConnectivityModel(object):
             self.__publications = description.get('publications', [])
             self.__source = description.get('source')
         self.__path_ids = []
-        self.__connections = []
+        self.__connections = {}
 
     @property
     def connections(self):
@@ -249,8 +249,8 @@ class ConnectivityModel(object):
     def path_ids(self):
         return self.__path_ids
 
-    def add_connection(self, connection):
-        self.__connections.append(connection)
+    def add_connection(self, path_id, connection):
+        self.__connections[path_id] = connection
 
     def add_path_id(self, path_id):
         self.__path_ids.append(path_id)
@@ -356,7 +356,7 @@ class Pathways(object):
                     raise ValueError("Path '{}' doesn't have a route".format(path_id))
                 self.__routes_by_path_id[path_id] = Route(path_id, path['route'])
             elif 'connects' in path:
-                connectivity_model.add_connection(path['connects'])
+                connectivity_model.add_connection(path_id, path['connects'])
             if 'nerves' in path:
                 nerves_by_path_id[path_id] = list(parse_nerves(path['nerves']))
             if 'type' in path:
@@ -390,15 +390,15 @@ class Pathways(object):
             if connectivity_model.network == network.id:
                 layer = FeatureLayer('{}_routes'.format(connectivity_model.id), self.__flatmap, exported=True)
                 self.__flatmap.add_layer(layer)
-                for id, segments in network.layout(connectivity_model.connections).items():
-                    for segment in segments:
-                        properties = { 'tile-layer': 'autopaths' }
-                        properties.update(segment.properties())
-                        feature = self.__flatmap.new_feature(segment.geometry(), properties)
-                        layer.add_feature(feature)
-                        self.__resolved_pathways.add_line_feature(segment.id, feature)
-                        self.__resolved_pathways.add_nodes(segment.id, segment.node_set)
-                        self.__resolved_pathways.add_path_type(segment.id, properties.get('type'))
+                for path_id, routed_path in network.layout(connectivity_model.connections).items():
+                    properties = { 'tile-layer': 'autopaths' }
+                    properties.update(self.__line_properties(path_id))
+                    feature = self.__flatmap.new_feature(routed_path.geometry(), properties)
+                    layer.add_feature(feature)
+                    self.__resolved_pathways.add_line_feature(path_id, feature)
+                    self.__resolved_pathways.add_nodes(path_id, routed_path.node_set)
+                    self.__resolved_pathways.add_path_type(path_id, properties.get('type'))
+                    self.__resolved_pathways.set_model_id(path_id, self.__path_models.get(path_id))
 
     def resolve_pathways(self, network, feature_map, model_to_features):
     #===================================================================

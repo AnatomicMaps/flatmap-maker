@@ -31,23 +31,17 @@ import shapely.geometry
 
 from mapmaker.geometry import bezier_sample
 from mapmaker.settings import settings
-from mapmaker.utils import log
 
 #===============================================================================
 
-class RouteSegment(object):
-    def __init__(self, path_id, node_set, nodes_geometry, edge_geometry, path_type):
-        print('Route segment {}: nodes: {}\n    geometry: {}\n    edges: {}'
-            .format(path_id, node_set, nodes_geometry, edge_geometry))
-        self.__id = path_id
-        self.__node_set = node_set
-        self.__nodes_geometry = nodes_geometry
-        self.__edge_geometry = edge_geometry
-        self.__path_type = path_type
-
-    @property
-    def id(self):
-        return self.__id
+class RoutedPath(object):
+    def __init__(self, path_id, route_graph):
+        print('Route path:', path_id, route_graph.edges)
+        self.__path_id = path_id
+        self.__graph = route_graph
+        self.__node_set = { node
+            for node, data in route_graph.nodes(data=True)
+                if not data.get('exclude', False) }
 
     @property
     def node_set(self):
@@ -59,10 +53,14 @@ class RouteSegment(object):
             A ``LineString`` or ``MultiLineString`` object connecting the segment's nodes.
         """
         path_layout = settings.get('pathLayout', 'automatic')
-        if path_layout == 'linear':
-            return shapely.geometry.MultiLineString(
-                [ shapely.geometry.LineString([ node.centroid for node in nodes ])
-                    for nodes in self.__nodes_geometry ])
+        if True or path_layout == 'linear':
+            return shapely.geometry.MultiLineString([
+                        shapely.geometry.LineString([
+                            self.__graph.nodes[edge[0]]['geometry'].centroid,
+                            self.__graph.nodes[edge[1]]['geometry'].centroid
+                        ])
+                        for edge in self.__graph.edges
+                    ])
         elif path_layout == 'automatic':
             # Automatic routing magic goes in here...
             pass

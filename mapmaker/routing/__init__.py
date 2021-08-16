@@ -35,7 +35,7 @@ import shapely.geometry
 
 from mapmaker.utils import log
 
-from .network import RouteSegment
+from .network import RoutedPath
 
 #===============================================================================
 
@@ -88,7 +88,7 @@ class Network(object):
                 if len(nodes) < 2:
                     log.warn('Edge {} in network {} has too few nodes'.format(edge_id, self.__id))
                 else:
-                    self.__graph.add_edge(nodes[0], nodes[-1], id=edge_id, way_points=nodes[1:-1])
+                    self.__graph.add_edge(nodes[0], nodes[-1], id=edge_id, intermediates=nodes[1:-1])
         self.__edges_by_id = { id: edge
                                 for edge, id in nx.get_edge_attributes(self.__graph, 'id').items() }
         # The set of network nodes that have only one edge
@@ -124,10 +124,9 @@ class Network(object):
     def create_geometry(self, feature_map):
     #======================================
         self.__feature_map = feature_map
-        for edge in self.__graph.edges.data('id'):  # Returns triples: (node, node, id)
+        for edge in self.__graph.edges(data='id'):  # Returns triples: (node, node, id)
             for node_id in edge[0:2]:
                 self.__set_node_properties(node_id, self.__graph)
-
             feature = self.__find_feature(edge[2])
             if feature is not None:
                 bezier_path = feature.get_property('bezier-path')
@@ -143,10 +142,10 @@ class Network(object):
                             bezier_path = bezier_path.reverse()
                         self.__graph.edges[edge[0:2]]['geometry'] = bezier_path
 
-    def layout(self, connections: list) -> dict:
+    def layout(self, connections: dict) -> dict:
     #===========================================
-        route_segments = {}
-        for connects in connections:
+        routed_paths = {}
+        for path_id, connects in connections.items():
             end_nodes = []
             terminals = {}
             for node in connects:
@@ -157,31 +156,25 @@ class Network(object):
                     terminals[end_node] = node['terminals']
                 else:
                     end_nodes.append(node)
+            # Find our route as a subgraph of the centreline network
             route_graph = nx.Graph(get_connected_subgraph(self.__graph, end_nodes))
+            # Add edges to terminal nodes that aren't part of the centreline network
             for end_node, terminal_nodes in terminals.items():
                 for terminal in terminal_nodes:
                     route_graph.add_edge(end_node, terminal)
                     self.__set_node_properties(terminal, route_graph)
-
-            '''  WIP...
-            nodes_list = [network.get(edge) for edge in pathway['paths']]
-            node_set = set(nodes_list[0])
-            for nodes in nodes_list[1:]:
-                node_set.update(nodes)
-            if pathway['start'] != nodes_list[0][0]:
-                log.error("Start node doesn't match path start for '{}'".format(pathway['id']))
-            if pathway['end'] != nodes_list[-1][-1]:
-                log.error("End node doesn't match path end for '{}'".format(pathway['id']))
-            route_segments[pathway['id']] = RouteSegment(pathway['id'], node_set,
-                                                         [[self.__nodes.get(node) for node in nodes]
-                                                            for nodes in nodes_list],
-                                                         [e for e in [self.__edges.get(edge)
-                                                            for edge in pathway['paths']] if e is not None],
-                                                         pathway['type'])
-            '''
-        return { } #connection['id']: [ route_segments.get(pathway)
-                   #                     for pathway in connection['pathways']]
-            #for connection in connections}
+            # Save the geometry of any intermediate points on an edge
+            for edge in route_graph.edges(data='intermediates'):
+                if edge[2] is not None:
+                    way_point_geometry = []
+                    for way_point in edge[2]:
+                        feature = self.__find_feature(way_point)
+                        if feature is not None:
+                            way_point_geometry.append(feature.geometry)
+                    del(route_graph.edges[edge[0:2]]['intermediates'])
+                    route_graph.edges[edge[0:2]]['way-points'] = way_point_geometry
+            routed_paths[path_id] = RoutedPath(path_id, route_graph)
+        return routed_paths
 
     def has_node(self, id):
     #=======================
