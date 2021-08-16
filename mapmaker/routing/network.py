@@ -31,6 +31,7 @@ import shapely.geometry
 
 from mapmaker.geometry import bezier_sample
 from mapmaker.settings import settings
+from mapmaker.utils import log
 
 #===============================================================================
 
@@ -54,13 +55,16 @@ class RoutedPath(object):
         """
         path_layout = settings.get('pathLayout', 'automatic')
         if True or path_layout == 'linear':
-            return shapely.geometry.MultiLineString([
-                        shapely.geometry.LineString([
-                            self.__graph.nodes[edge[0]]['geometry'].centroid,
-                            self.__graph.nodes[edge[1]]['geometry'].centroid
-                        ])
-                        for edge in self.__graph.edges
-                    ])
+            lines = []
+            for edge in self.__graph.edges:
+                node_0 = self.__graph.nodes[edge[0]]
+                node_1 = self.__graph.nodes[edge[1]]
+                if 'geometry' not in node_0 or 'geometry' not in node_1:
+                    log.warn('Edge {} nodes have no geometry'.format(edge))
+                else:
+                    lines.append(shapely.geometry.LineString([
+                        node_0['geometry'].centroid, node_1['geometry'].centroid]))
+            return shapely.geometry.MultiLineString(lines)
         elif path_layout == 'automatic':
             # Automatic routing magic goes in here...
             pass
