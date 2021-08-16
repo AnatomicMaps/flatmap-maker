@@ -142,6 +142,10 @@ class ResolvedPathways(object):
         resolved_path = self.__paths[path_id]
         resolved_path.extend_lines([feature.feature_id])
 
+    def add_nerves(self, path_id, nerves):
+        resolved_path = self.__paths[path_id]
+        resolved_path.extend_nerves(self.__feature_map.feature_ids(nerves))
+
     def add_nodes(self, path_id, nodes):
         resolved_path = self.__paths[path_id]
         resolved_path.extend_nodes(self.__resolve_nodes_for_path(path_id, nodes))
@@ -396,6 +400,7 @@ class Pathways(object):
                     feature = self.__flatmap.new_feature(routed_path.geometry(), properties)
                     layer.add_feature(feature)
                     self.__resolved_pathways.add_line_feature(path_id, feature)
+                    self.__resolved_pathways.add_nerves(path_id, self.__nerves_by_path_id.get(path_id, []))
                     self.__resolved_pathways.add_nodes(path_id, routed_path.node_set)
                     self.__resolved_pathways.add_path_type(path_id, properties.get('type'))
                     self.__resolved_pathways.set_model_id(path_id, self.__path_models.get(path_id))
