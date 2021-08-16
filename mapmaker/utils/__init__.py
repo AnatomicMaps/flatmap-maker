@@ -73,7 +73,7 @@ class FilePath(object):
     def get_json(self):
         try:
             return json.loads(self.get_data())
-        except json.decoder.JSONDecodeError as err:
+        except json.JSONDecodeError as err:
             raise ValueError('{}: {}'.format(self.__url, err)) from None
 
     def get_BytesIO(self):
