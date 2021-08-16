@@ -48,28 +48,33 @@ class RoutedPath(object):
     def node_set(self):
         return self.__node_set
 
+    def __line_from_edge(self, edge):
+        node_0 = self.__graph.nodes[edge[0]]
+        node_1 = self.__graph.nodes[edge[1]]
+        if 'geometry' not in node_0 or 'geometry' not in node_1:
+            log.warn('Edge {} nodes have no geometry'.format(edge))
+        else:
+            return shapely.geometry.LineString([
+                node_0['geometry'].centroid, node_1['geometry'].centroid])
+
     def geometry(self) -> shapely.geometry:
         """
         Returns:
-            A ``LineString`` or ``MultiLineString`` object connecting the segment's nodes.
+            A ``LineString`` or ``MultiLineString`` object connecting the paths's nodes.
         """
         path_layout = settings.get('pathLayout', 'automatic')
-        if True or path_layout == 'linear':
-            lines = []
-            for edge in self.__graph.edges:
-                node_0 = self.__graph.nodes[edge[0]]
-                node_1 = self.__graph.nodes[edge[1]]
-                if 'geometry' not in node_0 or 'geometry' not in node_1:
-                    log.warn('Edge {} nodes have no geometry'.format(edge))
-                else:
-                    lines.append(shapely.geometry.LineString([
-                        node_0['geometry'].centroid, node_1['geometry'].centroid]))
-            return shapely.geometry.MultiLineString(lines)
-        elif path_layout == 'automatic':
+        if path_layout == 'automatic':
             # Automatic routing magic goes in here...
             pass
         # Fallback is centreline layout
-        path = beziers.path.BezierPath.fromSegments(self.__edge_geometry)
-        return shapely.geometry.LineString(bezier_sample(path))
+        lines = []
+        for edge in self.__graph.edges(data='geometry'):
+            if path_layout != 'linear' and edge[2] is not None:
+                lines.append(shapely.geometry.LineString(bezier_sample(edge[2])))
+            else:
+                line = self.__line_from_edge(edge)
+                if line is not None:
+                    lines.append(line)
+        return shapely.geometry.MultiLineString(lines)
 
 #===============================================================================
