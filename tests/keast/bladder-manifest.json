@@ -4,7 +4,7 @@
     "anatomicalMap": "anatomical_map.xlsx",
     "properties": "rat_flatmap_properties.json",
     "connectivity": [
-        "keast_bladder_with_centrelines.json"
+        "keast_bladder_with_centrelines_test.json"
     ],
     "sources": [
         {

@@ -1,4 +1,4 @@
-#===============================================================================
+# ===============================================================================
 #
 #  Flatmap viewer and annotation tools
 #
@@ -16,37 +16,57 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-#===============================================================================
+# ===============================================================================
 
 """
 File doc...
 """
 
-#===============================================================================
+# ===============================================================================
 
 import beziers.path
 import shapely.geometry
 
-#===============================================================================
+# ===============================================================================
 
 from mapmaker.geometry import bezier_sample
 from mapmaker.settings import settings
 from mapmaker.utils import log
+from mapmaker.routing.routes import Sheath
+from mapmaker.routing.neurons import Connectivity
 
-#===============================================================================
+
+# ===============================================================================
 
 class RoutedPath(object):
     def __init__(self, path_id, route_graph):
-        ##print('Route path:', path_id, route_graph.edges)
         self.__path_id = path_id
         self.__graph = route_graph
-        self.__node_set = { node
-            for node, data in route_graph.nodes(data=True)
-                if not data.get('exclude', False) }
+
+        self.__sheaths = Sheath(route_graph, path_id)
+        self.__sheaths.build()
+
+        self.__source_nodes = {node
+                               for node, data in route_graph.nodes(data=True)
+                               if 'type' in data and data['type'] == 'source'}
+        self.__target_nodes = {node
+                               for node, data in route_graph.nodes(data=True)
+                               if 'type' in data and data['type'] == 'target'}
+        self.__node_set = {node
+                           for node, data in route_graph.nodes(data=True)
+                           if not data.get('exclude', False)}
 
     @property
     def node_set(self):
         return self.__node_set
+
+    @property
+    def source_set(self):
+        return self.__source_nodes
+
+    @property
+    def target_set(self):
+        return self.__target_nodes
 
     def __line_from_edge(self, edge):
         node_0 = self.__graph.nodes[edge[0]]
@@ -64,8 +84,18 @@ class RoutedPath(object):
         """
         path_layout = settings.get('pathLayout', 'automatic')
         if path_layout == 'automatic':
-            # Automatic routing magic goes in here...
-            pass
+            log("Automated pathway layout. Path ID: ", self.__path_id)
+            lines = []
+            evaluate_settings = self.__sheaths.get_sheath(self.__source_nodes, self.__target_nodes)
+            for sheath, index, derivative in zip(evaluate_settings['sheath_paths'],
+                                                 evaluate_settings['sheath_ids'],
+                                                 evaluate_settings['derivatives']):
+                sheath.generate()
+                connectivity = Connectivity(index, sheath, derivative)
+                auto_beziers = connectivity.get_neuron_line_beziers()
+                path = beziers.path.BezierPath.fromSegments(auto_beziers)
+                lines.append(shapely.geometry.LineString(bezier_sample(path)))
+            return shapely.geometry.MultiLineString(lines)
         # Fallback is centreline layout
         lines = []
         for edge in self.__graph.edges(data='geometry'):
@@ -77,4 +107,8 @@ class RoutedPath(object):
                     lines.append(line)
         return shapely.geometry.MultiLineString(lines)
 
-#===============================================================================
+    # def properties(self):
+    #     return {
+    #         'kind': self.__path_type,
+    #         'type': 'line-dash' if self.__path_type.endswith('-post') else 'line'
+    #     }

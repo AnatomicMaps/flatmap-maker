@@ -121,6 +121,12 @@ class Network(object):
                     node[key] = value
                 node['geometry'] = feature.geometry
 
+    def __set_node_type(self, node_id, node_type, graph):
+    #===============================================
+        node = graph.nodes[node_id]
+        if 'type' not in node:
+            node['type'] = node_type[node_id]
+
     def create_geometry(self, feature_map):
     #======================================
         self.__feature_map = feature_map
@@ -148,12 +154,16 @@ class Network(object):
         for path_id, connects in connections.items():
             end_nodes = []
             terminals = {}
+            node_type = {}
             for node in connects:
                 if isinstance(node, dict):
                     # Check that dict has 'node' and 'terminals'...
                     end_node = node['node']
                     end_nodes.append(end_node)
                     terminals[end_node] = node['terminals']
+                    if 'type' in node:
+                        for terminal in terminals[end_node]:
+                            node_type[terminal] = node['type']
                 else:
                     end_nodes.append(node)
             # Find our route as a subgraph of the centreline network
@@ -163,6 +173,8 @@ class Network(object):
                 for terminal in terminal_nodes:
                     route_graph.add_edge(end_node, terminal)
                     self.__set_node_properties(terminal, route_graph)
+                    if any(node_type):
+                        self.__set_node_type(terminal, node_type, route_graph)
             # Save the geometry of any intermediate points on an edge
             for edge in route_graph.edges(data='intermediates'):
                 if edge[2] is not None:

@@ -12,15 +12,18 @@
         "connects": [
             {
                 "node": "bladder_n-bladder",
-                "terminals": ["urinary_6", "urinary_7", "urinary_8", "urinary_9", "urinary_10", "urinary_11"]
+                "terminals": ["urinary_6", "urinary_7", "urinary_8", "urinary_9", "urinary_10", "urinary_11"],
+                "type": "source"
             },
             {
                 "node": "L6_dorsal_root_end",
-                "terminals": ["S33_L6", "S34_L6", "S37_L6", "S39_L6", "S42_L6"]
+                "terminals": ["S33_L6", "S34_L6", "S37_L6", "S39_L6", "S42_L6"],
+                "type": "target"
             },
             {
                 "node": "S1_dorsal_root_end",
-                "terminals": ["S33_S1", "S34_S1", "S37_S1", "S39_S1", "S42_S1"]
+                "terminals": ["S33_S1", "S34_S1", "S37_S1", "S39_S1", "S42_S1"],
+                "type": "target"
             }
         ]
     },
@@ -33,11 +36,13 @@
             "keast_3",
             {
                 "node": "L6_ventral_root_end",
-                "terminals": ["S39_L6"]
+                "terminals": ["S39_L6"],
+                "type": "source"
             },
             {
                 "node": "S1_ventral_root_end",
-                "terminals": ["S39_S1"]
+                "terminals": ["S39_S1"],
+                "type": "target"
             }
         ]
     },
@@ -62,15 +67,18 @@
         "connects": [
             {
                 "node": "bladder_n-bladder",
-                "terminals": ["urinary_6", "urinary_7", "urinary_8", "urinary_9", "urinary_10", "urinary_11"]
+                "terminals": ["urinary_6", "urinary_7", "urinary_8", "urinary_9", "urinary_10", "urinary_11"],
+                "type": "source"
             },
             {
                 "node": "L1_dorsal_root_end",
-                "terminals": ["S33_L1", "S34_L1", "S37_L1", "S39_L1", "S42_L1"]
+                "terminals": ["S33_L1", "S34_L1", "S37_L1", "S39_L1", "S42_L1"],
+                "type": "target"
             },
             {
                 "node": "L2_dorsal_root_end",
-                "terminals": ["S33_L2", "S34_L2", "S37_L2", "S39_L2", "S42_L2"]
+                "terminals": ["S33_L2", "S34_L2", "S37_L2", "S39_L2", "S42_L2"],
+                "type": "target"
             }
         ]
     },
@@ -83,11 +91,13 @@
             "keast_3",
             {
                 "node": "L1_ventral_root_ramus_end",
-                "terminals": ["S39_L1"]
+                "terminals": ["S39_L1"],
+                "type": "source"
             },
             {
                 "node": "L2_ventral_root_ramus_end",
-                "terminals": ["S39_L2"]
+                "terminals": ["S39_L2"],
+                "type": "target"
             }
         ]
     },
@@ -113,11 +123,13 @@
             "keast_6",
             {
                 "node": "L1_ventral_root_ramus_end",
-                "terminals": ["S39_L1"]
+                "terminals": ["S39_L1"],
+                "type": "source"
             },
             {
                 "node": "L2_ventral_root_ramus_end",
-                "terminals": ["S39_L2"]
+                "terminals": ["S39_L2"],
+                "type": "target"
             }
         ]
     },
