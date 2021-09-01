@@ -18,6 +18,10 @@
 #
 # ===============================================================================
 
+"""
+File doc...
+"""
+
 # ===============================================================================
 
 import beziers.path
@@ -34,114 +38,77 @@ from mapmaker.routing.neurons import Connectivity
 
 # ===============================================================================
 
-class RouteSegment(object):
-    def __init__(self, path_id, node_set, nodes_geometry, edge_geometry, path_type, roads, nerve):
-        self.__id = path_id
-        self.__node_set = node_set
-        self.__nodes_geometry = nodes_geometry
-        self.__edge_geometry = edge_geometry
-        self.__path_type = path_type
-        self.__sheaths = roads
-        self.__nerve = nerve
+class RoutedPath(object):
+    def __init__(self, path_id, route_graph):
+        self.__path_id = path_id
+        self.__graph = route_graph
 
-    @property
-    def id(self):
-        return self.__id
+        self.__sheaths = Sheath(route_graph, path_id)
+        self.__sheaths.build()
+
+        self.__source_nodes = {node
+                               for node, data in route_graph.nodes(data=True)
+                               if 'type' in data and data['type'] == 'source'}
+        self.__target_nodes = {node
+                               for node, data in route_graph.nodes(data=True)
+                               if 'type' in data and data['type'] == 'target'}
+        self.__node_set = {node
+                           for node, data in route_graph.nodes(data=True)
+                           if not data.get('exclude', False)}
 
     @property
     def node_set(self):
         return self.__node_set
 
-    def geometry(self):
+    @property
+    def source_set(self):
+        return self.__source_nodes
+
+    @property
+    def target_set(self):
+        return self.__target_nodes
+
+    def __line_from_edge(self, edge):
+        node_0 = self.__graph.nodes[edge[0]]
+        node_1 = self.__graph.nodes[edge[1]]
+        if 'geometry' not in node_0 or 'geometry' not in node_1:
+            log.warn('Edge {} nodes have no geometry'.format(edge))
+        else:
+            return shapely.geometry.LineString([
+                node_0['geometry'].centroid, node_1['geometry'].centroid])
+
+    def geometry(self) -> shapely.geometry:
+        """
+        Returns:
+            A ``LineString`` or ``MultiLineString`` object connecting the paths's nodes.
+        """
         path_layout = settings.get('pathLayout', 'automatic')
-        if path_layout == 'linear':
-            return shapely.geometry.MultiLineString(
-                [shapely.geometry.LineString([node.centroid for node in nodes])
-                 for nodes in self.__nodes_geometry])
-        elif path_layout == 'automatic':
-            log("Automated pathway layout...")
-            sheath_scaffold, evaluate_settings = self.__sheaths.get_sheath(self.__nerve, self.__node_set)
-            sheath_scaffold.generate()
-            connectivity = Connectivity(self.__id, sheath_scaffold, evaluate_settings)
-            auto_beziers = connectivity.get_neuron_line_beziers()
-            path = beziers.path.BezierPath.fromSegments(auto_beziers)
-            return shapely.geometry.LineString(bezier_sample(path))
+        if path_layout == 'automatic':
+            log("Automated pathway layout. Path ID: ", self.__path_id)
+            lines = []
+            evaluate_settings = self.__sheaths.get_sheath(self.__source_nodes, self.__target_nodes)
+            for sheath, index, derivative in zip(evaluate_settings['sheath_paths'],
+                                                 evaluate_settings['sheath_ids'],
+                                                 evaluate_settings['derivatives']):
+                sheath.generate()
+                connectivity = Connectivity(index, sheath, derivative)
+                auto_beziers = connectivity.get_neuron_line_beziers()
+                path = beziers.path.BezierPath.fromSegments(auto_beziers)
+                lines.append(shapely.geometry.LineString(bezier_sample(path)))
+            return shapely.geometry.MultiLineString(lines)
         # Fallback is centreline layout
-        path = beziers.path.BezierPath.fromSegments(self.__edge_geometry)
-        return shapely.geometry.LineString(bezier_sample(path))
-
-    def properties(self):
-        return {
-            'kind': self.__path_type,
-            'type': 'line-dash' if self.__path_type.endswith('-post') else 'line'
-        }
-
-# ===============================================================================
-
-
-class NetworkRouter(object):
-    def __init__(self, networks, edges, nodes):
-        self.__networks = networks
-        self.__edges = edges
-        self.__nodes = nodes
-        self.__sheath_scaffolds = []
-
-        self.__sheaths = Sheath(networks, edges, nodes)
-        self.__sheaths.build()
-
-    def layout(self, model, path_connections):
-        network = self.__networks.get(model, {})
-        route_segments = {}
-        for pathway in path_connections['pathways']:
-            '''
-            {
-                "id": "neuron_1",
-                "start": "brain_40",        # index into self.__nodes
-                "end": "ganglion_1",        # index into self.__nodes
-                "paths": [ "n_1", "n_5" ],  # index into self.__networks and self.__edges
-                "type": "para-pre"
-            }
-            '''
-            nodes_list = [network.get(edge) for edge in pathway['paths']]
-            if len(nodes_list[0]) > 2:
-                nodes_list[0] = [nodes_list[0][0], nodes_list[0][1]]
-            node_set = set(nodes_list[0])
-            for nodes in nodes_list[1:]:
-                if len(nodes) > 2:
-                    nodes = nodes[nodes[0], nodes[1]]
-                node_set.update(nodes)
-            if pathway['start'] != nodes_list[0][0]:
-                log.error("Start node doesn't match path start for '{}'".format(pathway['id']))
-            if pathway['end'] != nodes_list[-1][-1]:
-                log.error("End node doesn't match path end for '{}'".format(pathway['id']))
-            path_layout = settings.get('pathLayout', 'automatic')
-            if path_layout == 'automatic':
-                route_segments[pathway['id']] = RouteSegment(pathway['id'], node_set,
-                                                             [[self.__nodes.get(node) for node in nodes]
-                                                              for nodes in nodes_list],
-                                                             [self.__edges.get(edge)
-                                                              for edge in pathway['paths']],
-                                                             pathway['type'], self.__sheaths, model)
-
+        lines = []
+        for edge in self.__graph.edges(data='geometry'):
+            if path_layout != 'linear' and edge[2] is not None:
+                lines.append(shapely.geometry.LineString(bezier_sample(edge[2])))
             else:
-                route_segments[pathway['id']] = RouteSegment(pathway['id'], node_set,
-                                                             [[self.__nodes.get(node) for node in nodes]
-                                                              for nodes in nodes_list],
-                                                             [self.__edges.get(edge)
-                                                              for edge in pathway['paths']],
-                                                             pathway['type'], self.__sheaths, model)
+                line = self.__line_from_edge(edge)
+                if line is not None:
+                    lines.append(line)
+        return shapely.geometry.MultiLineString(lines)
 
-
-
-
-        return {connection['id']: [route_segments.get(pathway)
-                                   for pathway in connection['pathways']]
-                for connection in path_connections['connections']}
-        '''
-        {
-            "id": "connection_1",
-            "pathways": [ "neuron_1", "neuron_6"]  # index into pathways
-        }
-        '''
-
-# ===============================================================================
+    # def properties(self):
+    #     return {
+    #         'kind': self.__path_type,
+    #         'type': 'line-dash' if self.__path_type.endswith('-post') else 'line'
+    #     }

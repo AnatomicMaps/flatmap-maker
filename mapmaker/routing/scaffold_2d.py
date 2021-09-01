@@ -114,6 +114,7 @@ class Scaffold2dPath(object):
                     bni = previous + 2
                 previous = bni
                 node_identifiers = [bni, bni + 1, bni + 2, bni + 3]
+                # print(node_identifiers)
                 result = element.setNodesByIdentifier(eft, node_identifiers)
                 element_identifier = element_identifier + 1
 

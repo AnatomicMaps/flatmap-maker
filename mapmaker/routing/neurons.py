@@ -54,10 +54,10 @@ def get_world_coordinates(lng=None, lat=None):
 
 class Connectivity(object):
 
-    def __init__(self, id: str, scaffold, settings: dict):
+    def __init__(self, id: str, scaffold, derivatives):
         self.__id = id
         self.__scaffold = scaffold
-        self.__settings = settings
+        self.__derivatives = derivatives
         self.__current_offset = None
         self.__region = self.__scaffold.get_region()
         self.__evaluated_coordinates = []
@@ -67,9 +67,6 @@ class Connectivity(object):
         self.__evaluate()
 
     def __evaluate(self):
-        start_elem = self.__settings['start element']
-        end_elem = self.__settings['end element']
-        total_elem = self.__settings['total elements']
         field_module = self.__region.getFieldmodule()
 
         with ChangeManager(field_module):
@@ -77,27 +74,30 @@ class Connectivity(object):
             cache = field_module.createFieldcache()
             mesh = field_module.findMeshByDimension(2)
             xi = 0.5
-            for elem_id in range(start_elem, end_elem + 1):
-                elem = mesh.findElementByIdentifier(elem_id)
-                if elem.isValid():
-                    cache.setMeshLocation(elem, [xi, 0.])
+            element_iter = mesh.createElementiterator()
+            element = element_iter.next()
+            size = element.getMesh().getSize()
+            while element.isValid():
+                cache.setMeshLocation(element, [xi, 0.])
+                result, evaluated_coordinates = field.evaluateReal(cache, 2)
+                assert result == ZINC_OK, 'mapmaker.routing: Could not evaluate neuron {0} location'.format(self.__id)
+                self.__evaluated_coordinates.append(evaluated_coordinates)
+                # if elem_id == end_elem:
+                if element.getIdentifier() == size:
+                    cache.setMeshLocation(element, [xi, 1.])
                     result, evaluated_coordinates = field.evaluateReal(cache, 2)
-                    assert result == ZINC_OK, 'mapmaker.routing: Could not evaluate neuron {0} location'.format(self.__id)
+                    assert result == ZINC_OK, 'mapmaker.routing: Could not evaluate neuron {0} location'.format(
+                        self.__id)
                     self.__evaluated_coordinates.append(evaluated_coordinates)
-                    if elem_id == end_elem:
-                        cache.setMeshLocation(elem, [xi, 1.])
-                        result, evaluated_coordinates = field.evaluateReal(cache, 2)
-                        assert result == ZINC_OK, 'mapmaker.routing: Could not evaluate neuron {0} location'.format(
-                            self.__id)
-                        self.__evaluated_coordinates.append(evaluated_coordinates)
+                element = element_iter.next()
 
-        self.__generate_neuron_path()
+        self.__generate_neuron_path(size)
 
-    def __generate_neuron_path(self):
+    def __generate_neuron_path(self, size):
         self.__neuron_description = {'id': self.__id,
                                      'node coordinates': self.__evaluated_coordinates,
-                                     'node derivatives': self.__settings['derivatives'],
-                                     'number of elements': self.__settings['total elements']}
+                                     'node derivatives': self.__derivatives,
+                                     'number of elements': size}
 
         neuron = NeuronPath(self.__neuron_description)
 
@@ -111,7 +111,7 @@ class Connectivity(object):
 
     def __hermite_to_beziers(self):
         beziers = []
-        for (p1, p2), (d1, d2) in zip(pairwise(self.__evaluated_coordinates), pairwise(self.__settings['derivatives'])):
+        for (p1, p2), (d1, d2) in zip(pairwise(self.__evaluated_coordinates), pairwise(self.__derivatives)):
             b0 = mult(mult(p1, 3), 1/3)
             b1 = mult(add(mult(p1, 3), d1), 1/3)
             b2 = mult(sub(mult(p2, 3), d2), 1/3)
