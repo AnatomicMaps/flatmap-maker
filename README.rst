@@ -1,44 +1,79 @@
-========
+.. highlight:: sh
+
 Overview
-========
+--------
 
 Mapmaker is a Python application for generating `Mapbox <https://www.mapbox.com/>`_ compatible tilesets from a range of sources, currently Powerpoint slides, SVG diagrams, and segmented image files from MBF Biosciences.
+
+Documentation
+-------------
+
+* https://flatmap-maker.readthedocs.io/en/latest/.
 
 Requirements
 ------------
 
-* Python 3.8 with `pipenv <https://pipenv.pypa.io/en/latest/#install-pipenv-today>`_.
+* Python 3.8.
 * `Tippecanoe <https://github.com/mapbox/tippecanoe#installation>`_.
+
 
 Installation
 ------------
 
-* Create a directory in which to install ``mapmaker`` and change into it.
+It is recommended to install and run ``mapmaker`` in its own Python virtual environment. Instructions for using `pipenv <https://pipenv.pypa.io/en/latest/#install-pipenv-today>`_ are given below, although any other virtual environment and package manager may be used instead.
 
-* Either download the latest released Python wheel from https://github.com/dbrnz/flatmap-maker/releases/latest, currently ``mapmaker-1.2.0b3-py3-none-any.whl``, and install with::
+* Create and activate a Python virtual environment in which to install ``mapmaker``.
 
-    $ pipenv install --python 3.8 mapmaker-1.2.0b3-py3-none-any.whl
+* Within this environment, install the latest ``mapmaker`` wheel from https://github.com/dbrnz/flatmap-maker/releases/latest (currently ``mapmaker-1.3.0b5-py3-none-any.whl``).
 
-* Or install the package directly from Github with::
+Using pipenv
+~~~~~~~~~~~~
 
-    $ pipenv install --python 3.8 https://github.com/dbrnz/flatmap-maker/releases/download/v1.2.0b3/mapmaker-1.2.0b3-py3-none-any.whl
+* Create a directory in which to run ``mapmaker`` and change into it.
+
+* Install ``mapmaker`` directly from GitHub with::
+
+    $ pipenv install --python 3.8 https://github.com/dbrnz/flatmap-maker/releases/download/v1.3.0b5/mapmaker-1.3.0b5-py3-none-any.whl
+
+
+Development
+-----------
+
+``mapmaker`` uses `poetry <https://python-poetry.org/docs/#installation>`_ for dependency management and packaging. To create a development environment:
+
+* Clone this repository.
+* Run ``$ poetry install`` in the top-level directory of the cloned repository.
+
+Building documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+In development mode, and within the Python virtual environment::
+
+    $ cd docs
+    $ make html
 
 Running
 -------
 
-Command line help::
+* ``mapmaker`` must be run within its Python virtual environment. For instance, first run ``$ pipenv shell`` when using ``pipenv``.
+* `SciCrunch <https://scicrunch.org/>`_ is used to lookup attributes (e.g. labels) of anatomical entities. In order to use these services a valid SciCrunch API key must be provided as the ``SCICRUNCH_API_KEY`` environment variable. (Keys are obtained by registering as a SciCrunch user).
 
-    $ pipenv run python -m mapmaker --help
+Command line help
+~~~~~~~~~~~~~~~~~
 
 ::
+
+    $ mapmaker --help
+
+.. code-block:: text
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
                     [--clean] [--background-tiles]
-                    [--check-errors] [--save-drawml] [--save-geojson] [--tippecanoe]
+                    [--check-errors] [--debug] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initialZoom N] [--max-zoom N] [--min-zoom N]
-                    [--path-layout {automatic,centreline,linear}]
-                    [--refresh-labels] [--single-svg] [--upload USER@SERVER]
+                    [--id ID]  [--path-layout {automatic,centreline,linear}]
+                    [--single-svg]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -47,46 +82,48 @@ Command line help::
       -h, --help            show this help message and exit
       -v, --version         show program's version number and exit
 
-    logging:
+    Logging:
       --log LOG_FILE        append messages to a log file
       --show-deprecated     issue a warning for deprecated markup properties
       --silent              suppress all messages to screen
       --verbose             show progress bars
 
-    image tiling:
+    Image tiling:
       --clean               Remove all files from generated map's directory before generating new map
       --background-tiles    generate image tiles of map's layers (may take a while...)
 
-    diagnostics:
+    Diagnostics:
       --check-errors        check for errors without generating a map
+      --debug               show a traceback for error exceptions
       --save-drawml         save a slide's DrawML for debugging
       --save-geojson        Save GeoJSON files for each layer
       --tippecanoe          Show command used to run Tippecanoe
 
-    zoom level:
+    Zoom level:
       --initialZoom N       initial zoom level (defaults to 4)
       --max-zoom N          maximum zoom level (defaults to 10)
       --min-zoom N          minimum zoom level (defaults to 2)
 
     miscellaneous:
+      --id ID               Set explicit ID for flatmap, overriding manifest
       --path-layout {automatic,centreline,linear}
                             How to layout connecting paths (default 'automatic')
-      --refresh-labels      Clear the label text cache before map making
       --single-svg          Source is a single SVG file, not a flatmap manifest
-      --upload USER@SERVER  Upload generated map to server
 
-    required arguments:
+    Required arguments:
       --output OUTPUT       base directory for generated flatmaps
       --source SOURCE       URL or path of a flatmap manifest
 
-For instance::
+An example run
+~~~~~~~~~~~~~~
 
-    $ pipenv run python -m mapmaker --output ./flatmaps   \
-                                    --source ../PMR/rat   \
-                                    --verbose
 ::
 
-    Mapmaker 0.11.0.b4
+    $ mapmaker --output ./flatmaps --source ../PMR/rat --verbose
+
+.. code-block:: text
+
+    Mapmaker 1.3.0b5
     100%|█████████████████████████▉| 678/679
      98%|███████████████████████████▌| 65/66
     Adding details...
@@ -101,6 +138,7 @@ For instance::
     Creating index and style files...
     Generated map for NCBITaxon:10114
 
+
 Manifest files
 --------------
 
@@ -113,7 +151,7 @@ The manifest is a JSON dictionary that MUST specify:
 
 It MAY optionally specify:
 
-* a taxon identifier specifying what the flatmap ``models`.
+* a taxon identifier specifying what the flatmap ``models``.
 * the name of a ``properties`` JSON file specifying properties of features.
 * the name of an ``anatomicalMap`` file assigning anatomical identifiers to features.
 * The map's ``connectivity`` as a list of JSON files, each specifying a connectivity model.
@@ -135,13 +173,19 @@ An image source MUST also specify:
 
 * ``boundary`` -- the id of an image feature that defines the image's boundary.
 
-For example::
+For example:
+
+.. code-block:: json
 
     {
         "id": "whole-rat",
         "models": "NCBITaxon:10114",
         "anatomicalMap": "anatomical_map.xlsx",
         "properties": "rat_flatmap_properties.json",
+        "connectivity": [
+            "keast_bladder.json",
+            "rat_connectivity.json"
+        ],
         "sources": [
             {
                 "id": "whole-rat",
@@ -178,15 +222,14 @@ Connectivity files
 
 TODO...
 
-Example::
+Example:
+
+.. code-block:: json
 
     {
         "id": "keast-bladder",
         "source": "https://apinatomy.org/uris/models/keast-bladder",
         "paths": [
-            .
-            .
-            .
             {
                 "id": "path_3",
                 "type": "somatic",
@@ -194,10 +237,7 @@ Example::
                 "route": "(S41_2_L5, S41_2_L6), C5, C6, S43_L5, S43_L6, S50_L5_T, S50_L6_T, S50_L5_B, S50_L6_B, urinary_5",
                 "nerves": "keast_2",
                 "models": "ilxtr:neuron-type-keast-9"
-            },
-            .
-            .
-            .
+            }
         ]
     }
 

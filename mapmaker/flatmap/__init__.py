@@ -19,6 +19,7 @@
 #===============================================================================
 
 from collections import defaultdict, OrderedDict
+import datetime
 
 #===============================================================================
 
@@ -27,9 +28,10 @@ import numpy as np
 
 #===============================================================================
 
+from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import bounds_to_extent, extent_to_bounds, normalised_coords
-from mapmaker.properties import ManifestProperties
+from mapmaker.properties import ExternalProperties
 from mapmaker.properties.pathways import Route
 from mapmaker.settings import settings
 from mapmaker.utils import log
@@ -39,14 +41,55 @@ from .layers import MapLayer
 
 #===============================================================================
 
+class FeatureMap(object):
+    def __init__(self):
+        self.__class_to_feature = defaultdict(list)
+        self.__id_to_feature = {}
+
+    def add_feature(self, feature):
+        if feature.has_property('id'):
+            self.__id_to_feature[feature.get_property('id')] = feature
+        if feature.has_property('class'):
+            self.__class_to_feature[feature.get_property('class')].append(feature)
+
+    def duplicate_id(self, id):
+        return self.__id_to_feature.get(id, None) is not None
+
+    def features(self, id):
+        feature = self.__id_to_feature.get(id)
+        if feature is None:
+            return self.__class_to_feature.get(id, [])
+        return [feature]
+
+    def feature_ids(self, ids):
+        feature_ids = []
+        for id in ids:
+            feature_ids.extend([f.feature_id for f in self.features(id)])
+        return feature_ids
+
+#===============================================================================
+
 class FlatMap(object):
-    def __init__(self, maker):
-        self.__maker = maker
-        self.__id = maker.manifest.id
-        self.__models = maker.manifest.models
+    def __init__(self, manifest, maker):
+        self.__id = maker.id
+        self.__local_id = manifest.id
+        self.__created = None   # Set when map closed
+        self.__metadata = {
+            'id': self.__id,
+            'name': self.__local_id,
+            # Who made the map
+            'creator': 'mapmaker {}'.format(__version__),
+            # The URL of the map's manifest
+            'source': manifest.url,
+            'version': FLATMAP_VERSION
+        }
+        self.__entities = set()
+        self.__models = manifest.models
+        if self.__models is not None:
+            self.__metadata['describes'] = self.__models
 
         # Properties about map features
-        self.__map_properties = ManifestProperties(self, maker.manifest)
+        self.__map_properties = ExternalProperties(self, manifest, maker.knowledgebase)
 
         self.__layer_dict = OrderedDict()
         self.__visible_layer_count = 0
@@ -55,11 +98,11 @@ class FlatMap(object):
         self.__map_area = None
         self.__extent = None
         self.__centre = None
+        self.__min_zoom = maker.zoom[0]
 
-        self.__last_feature_id = 0
-        self.__class_to_feature = defaultdict(list)
-        self.__id_to_feature = {}
+        self.__feature_map = FeatureMap()
         self.__features = OrderedDict()
+        self.__last_feature_id = 0
 
         # Used to find annotated features containing a region
         self.__feature_search = None
@@ -80,8 +123,16 @@ class FlatMap(object):
         return self.__centre
 
     @property
+    def created(self):
+        return self.__created
+
+    @property
     def extent(self):
         return self.__extent
+
+    @property
+    def entities(self):
+        return self.__entities
 
     @property
     def id(self):
@@ -96,8 +147,8 @@ class FlatMap(object):
         return self.__layer_dict.values()
 
     @property
-    def maker_id(self):
-        return self.__maker.id
+    def local_id(self):
+        return self.__local_id
 
     @property
     def map_directory(self):
@@ -106,6 +157,10 @@ class FlatMap(object):
     @property
     def map_properties(self):
         return self.__map_properties
+
+    @property
+    def metadata(self):
+        return self.__metadata
 
     @property
     def models(self):
@@ -121,17 +176,17 @@ class FlatMap(object):
         self.__setup_feature_search()
         # Generate metadata with connection information
         self.__resolve_paths()
+        # Set creation time
+        self.__created = datetime.datetime.utcnow()
+        self.__metadata['created'] = self.__created.isoformat()
 
     def is_duplicate_feature_id(self, id):
     #=====================================
-        return self.__id_to_feature.get(id, None) is not None
+        return self.__feature_map.duplicate_id(id)
 
     def save_feature_id(self, feature):
     #==================================
-        if feature.has_property('id'):
-            self.__id_to_feature[feature.get_property('id')] = feature
-        if feature.has_property('class'):
-            self.__class_to_feature[feature.get_property('class')].append(feature)
+        self.__feature_map.add_feature(feature)
 
     def get_feature(self, feature_id):
     #=================================
@@ -157,7 +212,7 @@ class FlatMap(object):
         for layer in map_source.layers:
             self.add_layer(layer)
             if layer.exported:
-                layer.add_raster_layer(layer.id, map_source.extent, map_source, self.__maker.zoom[0])
+                layer.add_raster_layer(layer.id, map_source.extent, map_source, self.__min_zoom)
         # The first layer is used as the base map
         if layer_number == 0:
             if map_source.kind == 'details':
@@ -184,6 +239,9 @@ class FlatMap(object):
 
     def update_annotations(self, annotations):
     #=========================================
+        for properties in annotations.values():
+            if 'models' in properties:
+                self.__entities.add(properties['models'])
         self.__annotations.update(annotations)
 
     def __set_feature_properties(self):
@@ -287,10 +345,7 @@ class FlatMap(object):
     def __resolve_paths(self):
     #=========================
         # Route paths and set feature ids of path components
-        self.__map_properties.generate_networks(
-            self.__id_to_feature,
-            self.__class_to_feature,
-            self.__map_properties.anatomical_map)
+        self.__map_properties.generate_networks(self.__feature_map)
 
     def __setup_feature_search(self):
     #================================

@@ -22,17 +22,19 @@ from collections import defaultdict
 
 #===============================================================================
 
-from mapmaker.knowledgebase import AnatomicalMap
 from mapmaker.routing import Network
 from mapmaker.utils import FilePath
 
+from .anatomicalmap import AnatomicalMap
 from .pathways import Pathways
 
 #===============================================================================
 
-class ManifestProperties(object):
-    def __init__(self, flatmap, manifest):
+class ExternalProperties(object):
+    def __init__(self, flatmap, manifest, knowledgebase):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
+        self.__knowledgebase = knowledgebase
+
         self.__properties_by_class = {}
         self.__properties_by_id = {}
         if manifest.properties is None:
@@ -40,7 +42,7 @@ class ManifestProperties(object):
         else:
             properties_dict = FilePath(manifest.properties).get_json()
         self.__set_properties(properties_dict.get('features', []))
-        self.__features_by_model = defaultdict(set)
+        self.__model_to_features = defaultdict(set)
 
         # Load path definitions
         self.__pathways = Pathways(flatmap, properties_dict.get('paths', []))
@@ -49,23 +51,8 @@ class ManifestProperties(object):
             self.__pathways.add_connectivity(connectivity)
 
         # Load network definitions
-        self.__network = Network(flatmap, properties_dict.get('networks', []))
-
-
-        # Neural connection information will eventually be derived from SciGraph queries...
-        self.__connections = { model: FilePath(source).get_json()
-                                for model, source in manifest.connections.items() }
-
-    @property
-    def anatomical_ids(self):
-        anatomical_ids = set()
-        for ids in self.__features_by_model.values():
-            anatomical_ids.update(ids)
-        return list(anatomical_ids)
-
-    @property
-    def anatomical_map(self):
-        return self.__features_by_model
+        self.__networks = { network.get('id'): Network(network)
+                                for network in properties_dict.get('networks', []) }
 
     @property
     def resolved_pathways(self):
@@ -89,10 +76,12 @@ class ManifestProperties(object):
                 else:
                     self.__properties_by_id[id] = properties
 
-    def generate_networks(self, id_map, class_map, anatomical_map):
-    #==============================================================
-        self.__network.create_geometry(id_map)
-        self.__pathways.resolve_pathways(id_map, class_map, anatomical_map, self.__network.router(), self.__connections)
+    def generate_networks(self, feature_map):
+    #========================================
+        for network in self.__networks.values():
+            if network.id is not None:
+                network.create_geometry(feature_map)
+                self.__pathways.resolve_pathways(network, feature_map, self.__model_to_features)
 
     def update_properties(self, properties):
     #=======================================
@@ -103,10 +92,14 @@ class ManifestProperties(object):
             properties.update(self.__pathways.add_line_or_nerve(cls))
         id = properties.get('id')
         if id is not None:
+            # id overrides class
+            properties.update(self.__anatomical_map.properties(id))
             properties.update(self.__properties_by_id.get(id, {}))
             # Drop network nodes that don't have anatomical meaning
-            if self.__network.way_point(id) and 'models' not in properties:
-                properties['exclude'] = True
+            for network in self.__networks.values():
+                if network.has_node(id) and 'models' not in properties:
+                    properties['exclude'] = True
+                    break
             properties.update(self.__pathways.add_line_or_nerve(id))
         if 'marker' in properties:
             properties['type'] = 'marker'
@@ -116,14 +109,17 @@ class ManifestProperties(object):
                 properties['kind'] = 'scaffold'
             elif 'simulations' in properties:
                 properties['kind'] = 'simulation'
-        if 'models' in properties and 'label' not in properties:
-            properties['label'] = self.__anatomical_map.label(properties['models'])
+        if 'models' in properties:
+            # Make sure our knowledgebase knows about the anatomical object
+            knowledge = self.__knowledgebase.entity_knowledge(properties['models'])
+            if 'label' not in properties:
+                properties['label'] = knowledge.get('label')
         return properties
 
     def update_feature_properties(self, feature):
     #============================================
         self.update_properties(feature.properties)
         if feature.models is not None:
-            self.__features_by_model[feature.models].add(feature)
+            self.__model_to_features[feature.models].add(feature)
 
 #===============================================================================

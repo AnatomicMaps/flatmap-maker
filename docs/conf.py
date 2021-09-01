@@ -33,8 +33,9 @@ release = '1.0.0'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx_rtd_theme',
+    'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
+    'sphinx_rtd_theme',
     'sphinxarg.ext',
 ]
 autodoc_member_order = 'bysource'
@@ -60,6 +61,12 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# These paths are either relative to html_static_path or fully qualified
+# paths (eg. https://...)
+html_css_files = [
+    'css/custom.css',
+]
+
 
 # -- Options for Latex output ------------------------------------------------
 
@@ -71,5 +78,30 @@ latex_docclass = {
    'howto': 'article',
    'manual': 'report',
 }
+
+# -- Ensure apidoc is run ----------------------------------------------------
+
+
+def run_apidoc(app, config):
+    """
+    Hook to generate API documentation via sphinx-apidoc
+
+    Args:
+        app : the Sphinx application
+        config : the Sphinx configuration
+    """
+    import sphinx.ext.apidoc
+
+    args = [
+        "--force",
+        "--separate",
+        "--output-dir", "_source",
+        "../mapmaker"
+    ]
+    sphinx.ext.apidoc.main(args)
+
+
+def setup(app):
+    app.connect("config-inited", run_apidoc)
 
 # -- End of File -------------------------------------------------------------

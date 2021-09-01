@@ -86,6 +86,7 @@ FEATURE_FLAGS = Group(Keyword('centreline')
                     | Keyword('group')
                     | Keyword('invisible')
                     | Keyword('marker')
+                    | Keyword('node')
                     | Keyword('region')
                     | Keyword('siblings')
                     | Keyword('styling')       # Element (and sub-elements) are just for stylistic effects
@@ -100,7 +101,6 @@ SHAPE_MARKUP = '.' + ZeroOrMore(DETAILS
 #===============================================================================
 
 DEPRECATED_MARKUP = [
-    'centreline',
     'marker',
     'siblings',
     'style'

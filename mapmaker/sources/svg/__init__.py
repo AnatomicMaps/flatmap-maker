@@ -26,6 +26,7 @@ import re
 
 # https://simoncozens.github.io/beziers.py/index.html
 from beziers.cubicbezier import CubicBezier
+from beziers.path import BezierPath
 from beziers.point import Point as BezierPoint
 from beziers.quadraticbezier import QuadraticBezier
 
@@ -46,7 +47,7 @@ from .utils import adobe_decode_markup, length_as_pixels, parse_svg_path, SVG_NS
 
 from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import bezier_sample, radians, Transform, reflect_point
-from mapmaker.geometry.arc_to_bezier import bezier_paths_from_arc_endpoints, tuple2
+from mapmaker.geometry.arc_to_bezier import bezier_path_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
 from mapmaker.utils import FilePath, ProgressBar, log
 
@@ -107,8 +108,8 @@ class SVGSource(MapSource):
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties)
             cleaner.clean()
             with open(os.path.join(settings.get('output'),
-                      self.flatmap.maker_id,
-                      '{}.svg'.format(self.flatmap.maker_id)), 'wb') as fp:
+                      self.flatmap.id,
+                      '{}.svg'.format(self.flatmap.id)), 'wb') as fp:
                 cleaner.save(fp)
         if settings.get('backgroundTiles', False):
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
@@ -220,7 +221,7 @@ class SVGLayer(MapLayer):
     ## Returns path element as a `shapely` object.
     ##
         coordinates = []
-        bezier_paths = []
+        bezier_segments = []
         moved = False
         first_point = None
         current_point = None
@@ -343,10 +344,10 @@ class SVGLayer(MapLayer):
                     pt[0] += current_point[0]
                     pt[1] += current_point[1]
                 phi = radians(params[2])
-                paths = bezier_paths_from_arc_endpoints(tuple2(*params[0:2]), phi, *params[3:5],
+                path = bezier_path_from_arc_endpoints(tuple2(*params[0:2]), phi, *params[3:5],
                                                         tuple2(*current_point), tuple2(*pt), T)
-                bezier_paths.extend(paths.asSegments())
-                coordinates.extend(bezier_sample(paths))
+                bezier_segments.extend(path.asSegments())
+                coordinates.extend(bezier_sample(path))
                 current_point = pt
 
             elif cmd in ['c', 'C', 's', 'S']:
@@ -371,7 +372,7 @@ class SVGLayer(MapLayer):
                         second_cubic_control = pt
                     coords.append(BezierPoint(*T.transform_point(pt)))
                 bz = CubicBezier(*coords)
-                bezier_paths.append(bz)
+                bezier_segments.append(bz)
                 coordinates.extend(bezier_sample(bz))
                 current_point = pt
 
@@ -436,7 +437,7 @@ class SVGLayer(MapLayer):
                         second_quad_control = pt
                     coords.append(BezierPoint(*T.transform_point(pt)))
                 bz = QuadraticBezier(*coords)
-                bezier_paths.append(bz)
+                bezier_segments.append(bz)
                 coordinates.extend(bezier_sample(bz))
                 current_point = pt
 
@@ -449,8 +450,8 @@ class SVGLayer(MapLayer):
             else:
                 log.warn('Unknown path command: {}'.format(cmd))
 
-        if len(bezier_paths) > 0:
-            properties['bezier-paths'] = bezier_paths
+        if len(bezier_segments) > 0:
+            properties['bezier-path'] = BezierPath.fromSegments(bezier_segments)
 
         if closed and len(coordinates) >= 3:
             geometry = shapely.geometry.Polygon(coordinates)

@@ -1,0 +1,149 @@
+{
+    "id": "keast-bladder",
+    "source": "https://apinatomy.org/uris/models/keast-bladder",
+    "publications": ["https://doi.org/10.5281/zenodo.4592539"],
+    "network": "neural",
+    "paths": [
+    {
+        "id": "path_2",
+        "type": "sensory",
+        "models": "ilxtr:neuron-type-keast-10",
+        "nerves": "keast_4, keast_1",
+        "connects": [
+            {
+                "node": "bladder_n-bladder",
+                "terminals": ["urinary_6", "urinary_7", "urinary_8", "urinary_9", "urinary_10", "urinary_11"],
+                "type": "source"
+            },
+            {
+                "node": "L6_dorsal_root_end",
+                "terminals": ["S33_L6", "S34_L6", "S37_L6", "S39_L6", "S42_L6"],
+                "type": "target"
+            },
+            {
+                "node": "S1_dorsal_root_end",
+                "terminals": ["S33_S1", "S34_S1", "S37_S1", "S39_S1", "S42_S1"],
+                "type": "target"
+            }
+        ]
+    },
+    {
+        "id": "path_4",
+        "type": "para-pre",
+        "models": "ilxtr:neuron-type-keast-5",
+        "nerves": "keast_4",
+        "connects": [
+            "keast_3",
+            {
+                "node": "L6_ventral_root_end",
+                "terminals": ["S39_L6"],
+                "type": "source"
+            },
+            {
+                "node": "S1_ventral_root_end",
+                "terminals": ["S39_S1"],
+                "type": "target"
+            }
+        ]
+    },
+    {
+        "id": "path_5",
+        "type": "para-post",
+        "models": "ilxtr:neuron-type-keast-1",
+        "nerves": "keast_1",
+        "connects": [
+            "keast_3",
+            {
+                "node": "bladder_n-bladder",
+                "terminals": ["urinary_7", "urinary_8", "urinary_9", "urinary_10"]
+            }
+        ]
+    },
+    {
+        "id": "path_6",
+        "type": "sensory",
+        "models": "ilxtr:neuron-type-keast-11",
+        "nerves": "keast_7, keast_5, keast_1",
+        "connects": [
+            {
+                "node": "bladder_n-bladder",
+                "terminals": ["urinary_6", "urinary_7", "urinary_8", "urinary_9", "urinary_10", "urinary_11"],
+                "type": "source"
+            },
+            {
+                "node": "L1_dorsal_root_end",
+                "terminals": ["S33_L1", "S34_L1", "S37_L1", "S39_L1", "S42_L1"],
+                "type": "target"
+            },
+            {
+                "node": "L2_dorsal_root_end",
+                "terminals": ["S33_L2", "S34_L2", "S37_L2", "S39_L2", "S42_L2"],
+                "type": "target"
+            }
+        ]
+    },
+    {
+        "id": "path_7",
+        "type": "symp-pre",
+        "models": "ilxtr:neuron-type-keast-6",
+        "nerves": "keast_7, keast_5",
+        "connects": [
+            "keast_3",
+            {
+                "node": "L1_ventral_root_ramus_end",
+                "terminals": ["S39_L1"],
+                "type": "source"
+            },
+            {
+                "node": "L2_ventral_root_ramus_end",
+                "terminals": ["S39_L2"],
+                "type": "target"
+            }
+        ]
+    },
+    {
+        "id": "path_8",
+        "type": "symp-post",
+        "models": "ilxtr:neuron-type-keast-2",
+        "nerves": "keast_1",
+        "connects": [
+            "keast_3",
+            {
+                "node": "bladder_n-bladder",
+                "terminals": ["urinary_8", "urinary_10"]
+            }
+        ]
+    },
+    {
+        "id": "path_9",
+        "type": "symp-pre",
+        "models": "ilxtr:neuron-type-keast-7",
+        "nerves": "keast_7",
+        "connects": [
+            "keast_6",
+            {
+                "node": "L1_ventral_root_ramus_end",
+                "terminals": ["S39_L1"],
+                "type": "source"
+            },
+            {
+                "node": "L2_ventral_root_ramus_end",
+                "terminals": ["S39_L2"],
+                "type": "target"
+            }
+        ]
+    },
+    {
+        "id": "path_10",
+        "type": "symp-post",
+        "models": "ilxtr:neuron-type-keast-3",
+        "nerves": "keast_5, keast_1",
+        "connects": [
+            "keast_6",
+            {
+                "node": "bladder_n-bladder",
+                "terminals": ["urinary_8", "urinary_10"]
+            }
+        ]
+    }]
+}

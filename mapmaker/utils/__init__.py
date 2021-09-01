@@ -29,9 +29,20 @@ from urllib.parse import urljoin
 
 #===============================================================================
 
+import requests
+
+LOOKUP_TIMEOUT = 5    # seconds; for `requests.get()`
+
+#===============================================================================
+
 # Export from module
 
 from .logging import ProgressBar, configure_logging, log
+
+#===============================================================================
+
+class FilePathError(IOError):
+    pass
 
 #===============================================================================
 
@@ -42,7 +53,7 @@ class FilePath(object):
          or path.startswith('https:')):
             self.__url = path
         else:
-            self.__url = pathlib.Path(path).absolute().as_uri()
+            self.__url = pathlib.Path(path).absolute().resolve().as_uri()
 
     @property
     def url(self):
@@ -56,14 +67,16 @@ class FilePath(object):
             return fp.read()
 
     def get_fp(self):
-        return urllib.request.urlopen(self.__url)
+        try:
+            return urllib.request.urlopen(self.__url)
+        except urllib.error.URLError:
+            raise FilePathError('Cannot open path: {}'.format(self.__url)) from None
 
     def get_json(self):
         try:
             return json.loads(self.get_data())
-        except JSONDecodeError as err:
-            log.exception('JSON decoder error: {}, {}'.format(self.__url, err))
-            sys.exit(1)
+        except json.decoder.JSONDecodeError as err:
+            raise ValueError('{}: {}'.format(self.__url, err)) from None
 
     def get_BytesIO(self):
         bytesio = io.BytesIO(self.get_data())
@@ -72,5 +85,22 @@ class FilePath(object):
 
     def join_path(self, path):
         return FilePath(urljoin(self.__url, path))
+
+#===============================================================================
+
+def request_json(endpoint):
+    try:
+        response = requests.get(endpoint, timeout=LOOKUP_TIMEOUT)
+        if response.status_code == requests.codes.ok:
+            try:
+                return response.json()
+            except json.JSONDecodeError:
+                error = 'invalid JSON returned'
+        else:
+            error = 'status: {}'.format(response.status_code)
+    except requests.exceptions.RequestException as exception:
+        error = 'exception: {}'.format(exception)
+    log.warn("Couldn't access {}: {}".format(endpoint, error))
+    return None
 
 #===============================================================================
