@@ -28,6 +28,7 @@ from mapmaker.routing.utils.pair_iteration import pairwise
 from mapmaker.routing.utils.maths import mult
 from mapmaker.routing.utils.maths import add
 from mapmaker.routing.utils.maths import sub
+from mapmaker.routing.utils.interpolation import smooth_cubic_hermite_derivatives_line as smooth_derivative
 
 # ===============================================================================
 
@@ -82,7 +83,6 @@ class Connectivity(object):
                 result, evaluated_coordinates = field.evaluateReal(cache, 2)
                 assert result == ZINC_OK, 'mapmaker.routing: Could not evaluate neuron {0} location'.format(self.__id)
                 self.__evaluated_coordinates.append(evaluated_coordinates)
-                # if elem_id == end_elem:
                 if element.getIdentifier() == size:
                     cache.setMeshLocation(element, [xi, 1.])
                     result, evaluated_coordinates = field.evaluateReal(cache, 2)
@@ -94,6 +94,7 @@ class Connectivity(object):
         self.__generate_neuron_path(size)
 
     def __generate_neuron_path(self, size):
+
         self.__neuron_description = {'id': self.__id,
                                      'node coordinates': self.__evaluated_coordinates,
                                      'node derivatives': self.__derivatives,
@@ -112,15 +113,10 @@ class Connectivity(object):
     def __hermite_to_beziers(self):
         beziers = []
         for (p1, p2), (d1, d2) in zip(pairwise(self.__evaluated_coordinates), pairwise(self.__derivatives)):
-            b0 = mult(mult(p1, 3), 1/3)
-            b1 = mult(add(mult(p1, 3), d1), 1/3)
-            b2 = mult(sub(mult(p2, 3), d2), 1/3)
-            b3 = mult(mult(p2, 3), 1/3)
-
-            b0 = get_world_coordinates(b0[0], b0[1])
-            b1 = get_world_coordinates(b1[0], b1[1])
-            b2 = get_world_coordinates(b2[0], b2[1])
-            b3 = get_world_coordinates(b3[0], b3[1])
+            b0 = p1
+            b1 = mult(add(mult(p1, 3), d1), 1 / 3)
+            b2 = mult(sub(mult(p2, 3), d2), 1 / 3)
+            b3 = p2
 
             beziers.append(CubicBezier(Point(b0[0], b0[1]),
                                        Point(b1[0], b1[1]),
