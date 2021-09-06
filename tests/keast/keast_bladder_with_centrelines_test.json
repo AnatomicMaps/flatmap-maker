@@ -4,7 +4,30 @@
     "publications": ["https://doi.org/10.5281/zenodo.4592539"],
     "network": "neural",
     "paths": [
-    {
+        {
+        "id": "path_2",
+        "type": "sensory",
+        "models": "ilxtr:neuron-type-keast-10",
+        "nerves": "keast_4, keast_1",
+        "connects": [
+            {
+                "node": "bladder_n-bladder",
+                "terminals": ["urinary_6", "urinary_7", "urinary_8", "urinary_9", "urinary_10", "urinary_11"],
+                "type": "source"
+            },
+            {
+                "node": "L6_dorsal_root_end",
+                "terminals": ["S33_L6", "S34_L6", "S37_L6", "S39_L6", "S42_L6"],
+                "type": "target"
+            },
+            {
+                "node": "S1_dorsal_root_end",
+                "terminals": ["S33_S1", "S34_S1", "S37_S1", "S39_S1", "S42_S1"],
+                "type": "target"
+            }
+        ]
+    },
+{
         "id": "path_6",
         "type": "sensory",
         "models": "ilxtr:neuron-type-keast-11",
