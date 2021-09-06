@@ -35,16 +35,12 @@ from mapmaker.utils import log
 from mapmaker.routing.routes import Sheath
 from mapmaker.routing.neurons import Connectivity
 
-
 # ===============================================================================
 
 class RoutedPath(object):
     def __init__(self, path_id, route_graph):
         self.__path_id = path_id
         self.__graph = route_graph
-
-        self.__sheaths = Sheath(route_graph, path_id)
-        self.__sheaths.build()
 
         self.__source_nodes = {node
                                for node, data in route_graph.nodes(data=True)
@@ -55,6 +51,9 @@ class RoutedPath(object):
         self.__node_set = {node
                            for node, data in route_graph.nodes(data=True)
                            if not data.get('exclude', False)}
+
+        self.__sheaths = Sheath(route_graph, path_id)
+        self.__sheaths.build(self.__source_nodes, self.__target_nodes)
 
     @property
     def node_set(self):
