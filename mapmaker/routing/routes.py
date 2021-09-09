@@ -253,7 +253,7 @@ class Sheath(object):
 
             self.__node_coordinates[network], self.__node_derivatives[network], _, _, _ = sample(node_coordinates,
                                                                                                  node_derivatives,
-                                                                                                 number_of_nodes*3)
+                                                                                                 number_of_nodes*7)
 
             self.__node_derivatives[network] = smooth_derivative(self.__node_coordinates[network],
                                                                  self.__node_derivatives[network],
@@ -267,13 +267,13 @@ class Sheath(object):
                 x, y = self.__node_coordinates[network][node_index]
                 dx, dy = self.__node_derivatives[network][node_index]
                 if dx == 0 or dy == 0:
-                    normal_left = [1000, 1000]
-                    normal_right = [1000, 1000]
+                    normal_left = [10, 100]
+                    normal_right = [10, 10]
                 else:
                     normal_left = mult(normalize([dy, -dx]),
-                                       1000)
+                                       10)
                     normal_right = mult(normalize([-dy, dx]),
-                                        1000)
+                                        10)
                 # TODO: find a way to properly adjust the normals so that the 2D nodes are created appropriately.
                 # normal_left = mult(normalize([dy, -dx]),
                 #                    self.__estimate_width(nerve, network, node_index) * 0.5)
