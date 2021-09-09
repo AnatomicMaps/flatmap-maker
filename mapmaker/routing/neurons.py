@@ -55,7 +55,7 @@ def get_world_coordinates(lng=None, lat=None):
 
 class Connectivity(object):
 
-    def __init__(self, id: str, scaffold, derivatives):
+    def __init__(self, id: str, scaffold, derivatives, location):
         self.__id = id
         self.__scaffold = scaffold
         self.__derivatives = derivatives
@@ -65,16 +65,16 @@ class Connectivity(object):
         self.__neuron_description = None
         self.__neuron_line_scaffold = None
         self.__neuron_line_beziers = None
-        self.__evaluate()
+        self.__evaluate(location)
 
-    def __evaluate(self):
+    def __evaluate(self, location):
         field_module = self.__region.getFieldmodule()
 
         with ChangeManager(field_module):
             field = field_module.findFieldByName("coordinates")
             cache = field_module.createFieldcache()
             mesh = field_module.findMeshByDimension(2)
-            xi = 0.5
+            xi = location
             element_iter = mesh.createElementiterator()
             element = element_iter.next()
             size = element.getMesh().getSize()

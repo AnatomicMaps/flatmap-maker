@@ -86,14 +86,20 @@ class RoutedPath(object):
             log("Automated pathway layout. Path ID: ", self.__path_id)
             lines = []
             evaluate_settings = self.__sheaths.get_sheath(self.__source_nodes, self.__target_nodes)
+            # TODO: use evenly-distributed offsets for the final product.
+            number_of_neurons = len(evaluate_settings['derivatives'])
+            # locations = [0.01 + x*(0.99-0.01)/number_of_neurons for x in range(number_of_neurons)]
+            location = 0.5
+            # i = 0
             for sheath, index, derivative in zip(evaluate_settings['sheath_paths'],
                                                  evaluate_settings['sheath_ids'],
                                                  evaluate_settings['derivatives']):
                 sheath.generate()
-                connectivity = Connectivity(index, sheath, derivative)
+                connectivity = Connectivity(index, sheath, derivative, location)
                 auto_beziers = connectivity.get_neuron_line_beziers()
                 path = beziers.path.BezierPath.fromSegments(auto_beziers)
                 lines.append(shapely.geometry.LineString(bezier_sample(path)))
+                # i += 1
             return shapely.geometry.MultiLineString(lines)
         # Fallback is centreline layout
         lines = []
