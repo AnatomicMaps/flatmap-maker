@@ -76,10 +76,12 @@ class RoutedPath(object):
             return shapely.geometry.LineString([
                 node_0['geometry'].centroid, node_1['geometry'].centroid])
 
-    def geometry(self) -> shapely.geometry:
+    def geometry(self) -> [shapely.geometry]:
         """
         Returns:
-            A ``LineString`` or ``MultiLineString`` object connecting the paths's nodes.
+            A list of geometric objects. This are LineStrings describing paths
+            between nodes and possibly additional features (e.g. way markers)
+            of the paths.
         """
         path_layout = settings.get('pathLayout', 'automatic')
         if path_layout == 'automatic':
@@ -100,7 +102,7 @@ class RoutedPath(object):
                 path = beziers.path.BezierPath.fromSegments(auto_beziers)
                 lines.append(shapely.geometry.LineString(bezier_sample(path)))
                 # i += 1
-            return shapely.geometry.MultiLineString(lines)
+            return lines
         # Fallback is centreline layout
         lines = []
         for edge in self.__graph.edges(data='geometry'):
@@ -110,7 +112,7 @@ class RoutedPath(object):
                 line = self.__line_from_edge(edge)
                 if line is not None:
                     lines.append(line)
-        return shapely.geometry.MultiLineString(lines)
+        return lines
 
     # def properties(self):
     #     return {

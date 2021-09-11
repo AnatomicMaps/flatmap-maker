@@ -398,13 +398,15 @@ class Pathways(object):
                 for path_id, routed_path in network.layout(connectivity_model.connections).items():
                     properties = { 'tile-layer': 'autopaths' }
                     properties.update(self.__line_properties(path_id))
-                    feature = self.__flatmap.new_feature(routed_path.geometry(), properties)
-                    layer.add_feature(feature)
-                    self.__resolved_pathways.add_line_feature(path_id, feature)
-                    self.__resolved_pathways.add_nerves(path_id, self.__nerves_by_path_id.get(path_id, []))
-                    self.__resolved_pathways.add_nodes(path_id, routed_path.node_set)
-                    self.__resolved_pathways.add_path_type(path_id, properties.get('type'))
-                    self.__resolved_pathways.set_model_id(path_id, self.__path_models.get(path_id))
+                    for n, geometry in enumerate(routed_path.geometry()):
+                        feature = self.__flatmap.new_feature(geometry, properties)
+                        layer.add_feature(feature)
+                        id = f'{path_id}__F_{n}'
+                        self.__resolved_pathways.add_line_feature(path_id, feature)
+                        self.__resolved_pathways.add_nerves(path_id, self.__nerves_by_path_id.get(path_id, []))
+                        self.__resolved_pathways.add_nodes(path_id, routed_path.node_set)
+                        self.__resolved_pathways.add_path_type(id, properties.get('type'))
+                        self.__resolved_pathways.set_model_id(id, self.__path_models.get(path_id))
 
     def resolve_pathways(self, network, feature_map, model_to_features):
     #===================================================================
