@@ -42,6 +42,7 @@ class RoutedPath(object):
         self.__path_id = path_id
         self.__graph = route_graph
 
+        self.__path_layout = settings.get('pathLayout', 'automatic')
         self.__source_nodes = {node
                                for node, data in route_graph.nodes(data=True)
                                if 'type' in data and data['type'] == 'source'}
@@ -51,9 +52,11 @@ class RoutedPath(object):
         self.__node_set = {node
                            for node, data in route_graph.nodes(data=True)
                            if not data.get('exclude', False)}
-
-        self.__sheaths = Sheath(route_graph, path_id)
-        self.__sheaths.build(self.__source_nodes, self.__target_nodes)
+        if self.__path_layout == 'automatic':
+            self.__sheath = Sheath(route_graph, path_id)
+            self.__sheath.build(self.__source_nodes, self.__target_nodes)
+        else:
+            self.__sheath = None
 
     @property
     def node_set(self):
@@ -83,8 +86,7 @@ class RoutedPath(object):
             between nodes and possibly additional features (e.g. way markers)
             of the paths.
         """
-        path_layout = settings.get('pathLayout', 'automatic')
-        if path_layout == 'automatic':
+        if self.__path_layout == 'automatic':
             log("Automated pathway layout. Path ID: ", self.__path_id)
             lines = []
             evaluate_settings = self.__sheaths.get_sheath(self.__source_nodes, self.__target_nodes)
@@ -106,7 +108,7 @@ class RoutedPath(object):
         # Fallback is centreline layout
         lines = []
         for edge in self.__graph.edges(data='geometry'):
-            if path_layout != 'linear' and edge[2] is not None:
+            if self.__path_layout != 'linear' and edge[2] is not None:
                 lines.append(shapely.geometry.LineString(bezier_sample(edge[2])))
             else:
                 line = self.__line_from_edge(edge)
