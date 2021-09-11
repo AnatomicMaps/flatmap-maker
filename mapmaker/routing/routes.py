@@ -131,9 +131,8 @@ class Sheath(object):
 
     @staticmethod
     def __get_bezier_coefficients(segment):
-        b0, b1, b2, b3 = segment.points[0], segment.points[1], segment.points[2], segment.points[3]
-        b0, b1, b2, b3 = [b0.x, b0.y], [b1.x, b1.y], [b1.x, b1.y], [b1.x, b1.y]
-        return b0, b1, b2, b3
+    #======================================
+        return ((p.x, p.y) for p in segment.points[0:4])
 
     def __extract_components(self) -> None:
         """
