@@ -45,10 +45,10 @@ class RoutedPath(object):
         self.__path_layout = settings.get('pathLayout', 'automatic')
         self.__source_nodes = {node
                                for node, data in route_graph.nodes(data=True)
-                               if 'type' in data and data['type'] == 'source'}
+                               if data.get('type') == 'source'}
         self.__target_nodes = {node
                                for node, data in route_graph.nodes(data=True)
-                               if 'type' in data and data['type'] == 'target'}
+                               if data.get('type') == 'target'}
         self.__node_set = {node
                            for node, data in route_graph.nodes(data=True)
                            if not data.get('exclude', False)}
