@@ -111,11 +111,10 @@ class Network(object):
             log.warn('Multiple network features for: {}'.format(id))
         return None
 
-    def __set_node_properties(self, node_id, graph):
-    #===============================================
-        feature = self.__find_feature(node_id)
+    def __set_node_properties(self, node, id):
+    #=========================================
+        feature = self.__find_feature(id)
         if feature is not None:
-            node = graph.nodes[node_id]
             if 'geometry' not in node:
                 for key, value in feature.properties.items():
                     node[key] = value
@@ -126,7 +125,7 @@ class Network(object):
         self.__feature_map = feature_map
         for edge in self.__graph.edges(data='id'):  # Returns triples: (node, node, id)
             for node_id in edge[0:2]:
-                self.__set_node_properties(node_id, self.__graph)
+                self.__set_node_properties(self.__graph.nodes[node_id], node_id)
             feature = self.__find_feature(edge[2])
             if feature is not None:
                 bezier_path = feature.get_property('bezier-path')
@@ -166,9 +165,10 @@ class Network(object):
 
             # Add edges to terminal nodes that aren't part of the centreline network
             for end_node, terminal_nodes in terminals.items():
-                for terminal in terminal_nodes:
-                    route_graph.add_edge(end_node, terminal)
-                    self.__set_node_properties(terminal, route_graph)
+                for terminal_id in terminal_nodes:
+                    route_graph.add_edge(end_node, terminal_id)
+                    node = route_graph.nodes[terminal_id]
+                    self.__set_node_properties(node, terminal_id)
             # Save the geometry of any intermediate points on an edge
             for edge in route_graph.edges(data='intermediates'):
                 if edge[2] is not None:
