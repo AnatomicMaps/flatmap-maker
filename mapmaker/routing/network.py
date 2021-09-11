@@ -43,15 +43,12 @@ class RoutedPath(object):
         self.__graph = route_graph
         self.__centreline_scaffold = centreline_scaffold
         self.__path_layout = settings.get('pathLayout', 'automatic')
-        self.__source_nodes = {node
-                               for node, data in route_graph.nodes(data=True)
-                               if data.get('type') == 'source'}
-        self.__target_nodes = {node
-                               for node, data in route_graph.nodes(data=True)
-                               if data.get('type') == 'target'}
-        self.__node_set = {node
-                           for node, data in route_graph.nodes(data=True)
-                           if not data.get('exclude', False)}
+        self.__node_set = {node for node, data in route_graph.nodes(data=True)
+                                if not data.get('exclude', False)}
+        self.__source_nodes = {node for node, data in route_graph.nodes(data=True)
+                                if data.get('type') == 'source'}
+        self.__target_nodes = {node for node, data in route_graph.nodes(data=True)
+                                if data.get('type') == 'target'}
         if self.__path_layout == 'automatic':
             self.__sheath = Sheath(route_graph, path_id)
             self.__sheath.build(self.__source_nodes, self.__target_nodes)
@@ -88,18 +85,18 @@ class RoutedPath(object):
         """
         if self.__path_layout == 'automatic':
             log("Automated pathway layout. Path ID: ", self.__path_id)
-            lines = []
-            evaluate_settings = self.__sheaths.get_sheath(self.__source_nodes, self.__target_nodes)
+            evaluate_settings = self.__sheath.settings()
             # TODO: use evenly-distributed offsets for the final product.
             number_of_neurons = len(evaluate_settings['derivatives'])
             # locations = [0.01 + x*(0.99-0.01)/number_of_neurons for x in range(number_of_neurons)]
             location = 0.5
             # i = 0
-            for sheath, index, derivative in zip(evaluate_settings['sheath_paths'],
-                                                 evaluate_settings['sheath_ids'],
-                                                 evaluate_settings['derivatives']):
-                sheath.generate()
-                connectivity = Connectivity(index, sheath, derivative, location)
+            lines = []
+            for scaffold, path_id, derivative in zip(evaluate_settings['scaffolds'],
+                                                     evaluate_settings['path_ids'],
+                                                     evaluate_settings['derivatives']):
+                scaffold.generate()
+                connectivity = Connectivity(path_id, scaffold, derivative, location)
                 auto_beziers = connectivity.get_neuron_line_beziers()
                 path = beziers.path.BezierPath.fromSegments(auto_beziers)
                 lines.append(shapely.geometry.LineString(bezier_sample(path)))

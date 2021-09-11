@@ -69,19 +69,14 @@ class Sheath(object):
 
         self._scaffold_test = {}
 
-    def get_sheath(self, sources, targets) -> (dict, dict):
-        path_index = []
-        for source in sources:
-            for target in targets:
-                path = (nx.shortest_path(self.__path_network, source=source, target=target))
-                for k, v in self.__continuous_paths.items():
-                    if path == v:
-                        path_index.append(k)
-        sheaths = [self.__continuous_region_scaffolds[i] for i in path_index]
-        derivatives = [self.__node_derivatives[i] for i in path_index]
-        coordinates = [self.__node_coordinates[i] for i in path_index]
-        settings = {'sheath_paths': sheaths,
-                    'sheath_ids': path_index,
+    def settings(self) -> dict:
+    #==========================
+        path_ids = list(self.__continuous_paths)
+        scaffolds = [self.__continuous_region_scaffolds[i] for i in path_ids]
+        derivatives = [self.__node_derivatives[i] for i in path_ids]
+        coordinates = [self.__node_coordinates[i] for i in path_ids]
+        settings = {'scaffolds': scaffolds,
+                    'path_ids': path_ids,
                     'derivatives': derivatives,
                     'coordinates': coordinates}
         return settings
@@ -126,18 +121,13 @@ class Sheath(object):
         Assumptions is that sources and targets have only 1 input/output (i.e, nodes with degree of 1). Any node with
         more than 1 degree are ignored and treated as branching/connecting node.
         """
-
-        segment_counter = 1
+        path_id = 1
         for source in sources:
             for target in targets:
-                path = (nx.shortest_path(self.__path_network, source=source, target=target))
-                if path in self.__continuous_paths.values():
-                    continue
-                if len(path) < 2:
-                    pass
-                else:
-                    self.__continuous_paths['p_{}'.format(segment_counter)] = path
-                segment_counter += 1
+                nodes = nx.shortest_path(self.__path_network, source=source, target=target)
+                if len(nodes) >= 2 and nodes not in self.__continuous_paths.values():
+                    self.__continuous_paths[f'p_{path_id}'] = nodes
+                    path_id += 1
 
     @staticmethod
     def __get_bezier_coefficients(segment):
