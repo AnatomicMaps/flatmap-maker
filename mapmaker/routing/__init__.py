@@ -137,9 +137,11 @@ class Network(object):
                     end_node_0 = self.__graph.nodes[edge[0]].get('geometry')
                     end_node_1 = self.__graph.nodes[edge[1]].get('geometry')
                     if end_node_0 is not None and end_node_1 is not None:
-                        if start_point.distance(end_node_0) > start_point.distance(end_node_1):
-                            bezier_path = bezier_path.reverse()
                         self.__graph.edges[edge[0:2]]['geometry'] = bezier_path
+                        if start_point.distance(end_node_0) < start_point.distance(end_node_1):
+                            self.__graph.edges[edge[0:2]]['start-node'] = edge[0]
+                        else:
+                            self.__graph.edges[edge[0:2]]['start-node'] = edge[1]
 
     def layout(self, connections: dict) -> dict:
     #===========================================
