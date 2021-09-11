@@ -20,6 +20,7 @@
 
 from beziers.path import BezierPath
 import mercantile
+from collections import defaultdict
 
 # ===============================================================================
 
@@ -60,8 +61,8 @@ class Sheath(object):
         self.__id = path_id
         self.__edges = None
         self.__node_geometry = None
-        self.__node_coordinates = {}
-        self.__node_derivatives = {}
+        self.__node_coordinates = defaultdict(list)
+        self.__node_derivatives = defaultdict(list)
         self.__graphs = {}
         self.__continuous_paths = {}
         self.__scaffold_settings = {}
@@ -141,8 +142,6 @@ class Sheath(object):
 
         """
         for network, path in self.__continuous_paths.items():
-            self.__node_coordinates[network] = []
-            self.__node_derivatives[network] = []
             if not isinstance(path, list):
                 path = [path]
             for p1, p2 in pairwise(path):
