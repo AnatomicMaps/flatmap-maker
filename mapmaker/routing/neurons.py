@@ -37,20 +37,12 @@ from beziers.point import Point
 
 # ===============================================================================
 
-import mercantile
-
-# ===============================================================================
-
 hermite2bezier = [[3, 0, 0, 0],
                   [3, 0, 1, 0],
                   [0, 3, 0, -1],
                   [0, 3, 0, 0]]
 
 
-def get_world_coordinates(lng=None, lat=None):
-    lng = 0.0 if None else lng
-    lat = 0.0 if None else lat
-    return mercantile.xy(lng=lng, lat=lat)
 
 
 class Connectivity(object):
@@ -101,13 +93,7 @@ class Connectivity(object):
                                      'number of elements': size}
 
         neuron = NeuronPath(self.__neuron_description)
-
-        if self.__neuron_line_scaffold is not None:
-            self.__neuron_line_scaffold = None
         self.__neuron_line_scaffold = neuron.get_scaffold()
-
-        if self.__neuron_line_beziers is not None:
-            self.__neuron_line_beziers = None
         self.__neuron_line_beziers = self.__hermite_to_beziers()
 
     def __hermite_to_beziers(self):

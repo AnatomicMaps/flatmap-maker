@@ -59,14 +59,6 @@ class RoutedPath(object):
     def node_set(self):
         return self.__node_set
 
-    @property
-    def source_set(self):
-        return self.__source_nodes
-
-    @property
-    def target_set(self):
-        return self.__target_nodes
-
     def __line_from_edge(self, edge):
         node_0 = self.__graph.nodes[edge[0]]
         node_1 = self.__graph.nodes[edge[1]]
@@ -90,7 +82,6 @@ class RoutedPath(object):
             number_of_neurons = len(evaluate_settings['derivatives'])
             # locations = [0.01 + x*(0.99-0.01)/number_of_neurons for x in range(number_of_neurons)]
             location = 0.5
-            # i = 0
             lines = []
             for scaffold, path_id, derivative in zip(evaluate_settings['scaffolds'],
                                                      evaluate_settings['path_ids'],
@@ -100,7 +91,6 @@ class RoutedPath(object):
                 auto_beziers = connectivity.get_neuron_line_beziers()
                 path = beziers.path.BezierPath.fromSegments(auto_beziers)
                 lines.append(shapely.geometry.LineString(bezier_sample(path)))
-                # i += 1
             return lines
         # Fallback is centreline layout
         lines = []

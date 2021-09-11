@@ -19,7 +19,6 @@
 # ===============================================================================
 
 from beziers.path import BezierPath
-import mercantile
 from collections import defaultdict
 
 # ===============================================================================
@@ -40,23 +39,10 @@ from mapmaker.routing.utils.interpolation import smooth_cubic_hermite_derivative
 from mapmaker.routing.utils.interpolation import sample_cubic_hermite_curves as sample
 from mapmaker.routing.scaffold_2d import Scaffold2dPath
 
-
-# ===============================================================================
-
-# import matplotlib.pyplot as plt
-
-# ===============================================================================
-
-
-def get_geo_coordinates(x=None, y=None):
-    x = 0.0 if x is None else x
-    y = 0.0 if y is None else y
-    return mercantile.lnglat(x, y)
-
+#===============================================================================
 
 class Sheath(object):
-
-    def __init__(self, path_network: nx.Graph, path_id):
+    def __init__(self, path_network: nx.Graph, path_id: str):
         self.__path_network = path_network
         self.__id = path_id
         self.__edges = None
@@ -67,8 +53,6 @@ class Sheath(object):
         self.__continuous_paths = {}
         self.__scaffold_settings = {}
         self.__continuous_region_scaffolds = {}
-
-        self._scaffold_test = {}
 
     def settings(self) -> dict:
     #==========================
@@ -88,33 +72,7 @@ class Sheath(object):
         # self.__build_graphs()  # build a graph network for nerve sets
         self.__find_continuous_paths(sources, targets)  # find all possible paths from sources to targets
         self.__extract_components()  # get all the coordinates and derivatives
-        # print(self.__node_derivatives)
         self.__generate_2d_descriptions()
-
-        # def __check_for_middle_nodes(self):
-        #     for nerve in self.__networks.keys():
-        #         for network in self.__networks[nerve]:
-        #             if len(self.__networks[nerve][network]) > 2:
-        #                 self.__networks[nerve][network] = [self.__networks[nerve][network][0],
-        #                                                    self.__networks[nerve][network][-1]]
-        #
-        # def __build_graphs(self) -> None:
-        #     """
-        #     Builds a dictionary of un-directed graph networks from a given map for every nerve set.
-        #     """
-        #     for nerve in self.__networks.keys():
-        #         self.__graphs[nerve] = nx.Graph()  # creating individual graphs for each nerve
-        #         for network in self.__networks.get(nerve):
-        #             self.__graphs[nerve].add_edge(self.__networks[nerve][network][0],
-        #                                           self.__networks[nerve][network][-1],
-        #                                           weight=1)
-
-        """ to see the graph, uncomment the section below
-        """
-        # pos = nx.spring_layout(self.__graphs.get('vagus'))
-        # nx.draw(self.__graphs.get('vagus'), pos, node_color='lawngreen', with_labels=True)
-        # plt.axis('equal')
-        # plt.show()
 
     def __find_continuous_paths(self, sources, targets) -> None:
         """
@@ -226,7 +184,6 @@ class Sheath(object):
 
     def __generate_2d_descriptions(self) -> None:
         for network, path in self.__continuous_paths.items():
-            # print(path)
             number_of_nodes = len(self.__node_coordinates[network])
             nodes = []
             d1 = []
@@ -286,10 +243,12 @@ class Sheath(object):
             scaffold = Scaffold2dPath(scaffold_settings)
             self.__continuous_region_scaffolds[network] = scaffold
 
-    def __estimate_width(self, nerve: str, network: str, node_id: int) -> float:
-        shape = self.__continuous_paths[nerve][network][node_id]
-        shape_object = self.__node_geometry[shape]
-        scale_x = get_geo_coordinates(shape_object.centroid.x, None)[0] / shape_object.centroid.x
-        scale_y = get_geo_coordinates(None, shape_object.centroid.y)[1] / shape_object.centroid.y
-        shape_rough_width = shape_object.length * ((scale_x + scale_y) / 2)
-        return shape_rough_width
+    # See TODO above...
+    # def __estimate_width(self, nerve: str, path_id: str, node_id: int) -> float:
+    #    shape = self.__continuous_paths[nerve][path_id][node_id]
+    #    shape_object = self.__node_geometry[shape]
+    #    scale_x = get_geo_coordinates(shape_object.centroid.x, None)[0] / shape_object.centroid.x
+    #    scale_y = get_geo_coordinates(None, shape_object.centroid.y)[1] / shape_object.centroid.y
+    #    shape_rough_width = shape_object.length * ((scale_x + scale_y) / 2)
+    #    return shape_rough_width
+
