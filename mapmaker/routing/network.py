@@ -38,10 +38,10 @@ from mapmaker.routing.neurons import Connectivity
 # ===============================================================================
 
 class RoutedPath(object):
-    def __init__(self, path_id, route_graph):
+    def __init__(self, path_id, route_graph, centreline_scaffold=None):
         self.__path_id = path_id
         self.__graph = route_graph
-
+        self.__centreline_scaffold = centreline_scaffold
         self.__path_layout = settings.get('pathLayout', 'automatic')
         self.__source_nodes = {node
                                for node, data in route_graph.nodes(data=True)

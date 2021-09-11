@@ -95,6 +95,7 @@ class Network(object):
         self.__terminal_nodes = { n for n, d in self.__graph.degree() if d == 1 }
         # Used to lookup features but only known when `maker` has processed sources
         self.__feature_map = None
+        self.__centreline_scaffold = None
 
     @property
     def id(self):
@@ -182,7 +183,10 @@ class Network(object):
                             way_point_geometry.append(feature.geometry)
                     del(route_graph.edges[edge[0:2]]['intermediates'])
                     route_graph.edges[edge[0:2]]['way-points'] = way_point_geometry
-            routed_paths[path_id] = RoutedPath(path_id, route_graph)
+
+            # Route the connection's path through the centreline scaffold
+            routed_paths[path_id] = RoutedPath(path_id, route_graph, self.__centreline_scaffold)
+
         return routed_paths
 
     def has_node(self, id):
