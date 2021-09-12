@@ -95,92 +95,49 @@ class Sheath(object):
 
     def __extract_components(self) -> None:
         """
-        Extracts and stores network components (i.e., coordinates & derivatives) in a dictionary for every nerve set.
-        Each nerve set is a dict with keys corresponding to the keys in self.__continuous_paths.
-
+        Extracts and stores centreline components (i.e, coordinates & derivatives)
+        in a dictionary for every nerve set. Each nerve set is a dict with keys
+        corresponding to the keys in self.__continuous_paths.
         """
-        for network, path in self.__continuous_paths.items():
-            if not isinstance(path, list):
-                path = [path]
-            for p1, p2 in pairwise(path):
-                bezier, flipped = self.__has_centreline(p1, p2)
-                if bezier is None:
-                    x1 = self.__path_network.nodes(data='geometry')[p1].centroid.x
-                    y1 = self.__path_network.nodes(data='geometry')[p1].centroid.y
-                    self.__node_coordinates[network].append((x1, y1))  # assign node 1
-                    x2 = self.__path_network.nodes(data='geometry')[p2].centroid.x
-                    y2 = self.__path_network.nodes(data='geometry')[p2].centroid.y
-                    # du = sub([x2, y2], [x1, y1])
+        node_geometry = self.__path_network.nodes(data='geometry')
+        for path_id, path_nodes in self.__continuous_paths.items():
+            for n1, n2 in pairwise(path_nodes):
+                centreline = self.__get_centreline(n1, n2)
+                self.__node_coordinates[path_id].append(node_geometry[n1].centroid.coords[0])  # assign node 1
+                if centreline is None:
+                    x2 = node_geometry[n2].centroid.x
+                    y2 = node_geometry[n2].centroid.y
                     du = [0., 0.]
-                    if len(self.__node_derivatives[network]) < 1:  # use the mean derivatives
-                        self.__node_derivatives[network].append((du[0] * 0.001, du[1] * 0.001))  # assign derivative 1
-                    self.__node_derivatives[network].append((du[0] * 0.001, du[1] * 0.001))  # assign derivative 2
-                    if path.index(p2) == len(path) - 1:  # if last node in the path:
-                        self.__node_coordinates[network].append((x2, y2))  # assign last coordinate
-
+                    if len(self.__node_derivatives[path_id]) < 1:  # use the mean derivatives
+                        self.__node_derivatives[path_id].append((du[0] * 0.001, du[1] * 0.001))  # assign derivative 1
+                    self.__node_derivatives[path_id].append((du[0] * 0.001, du[1] * 0.001))  # assign derivative 2
                 else:
-                    segments = bezier.asSegments()
-                    x1 = self.__path_network.nodes(data='geometry')[p1].centroid.x
-                    y1 = self.__path_network.nodes(data='geometry')[p1].centroid.y
-                    self.__node_coordinates[network].append((x1, y1))  # assign node 1
-
-                    if len(segments) == 1:
-                        segment = segments[-1]
+                    for n, segment in enumerate(centreline.asSegments()):
                         b0, b1, b2, b3 = self.__get_bezier_coefficients(segment)
+                        if n > 0:
+                            self.__node_coordinates[path_id].append(b0)
                         du = mult(sub(b1, b0), 3)
-                        # if flipped:
-                        #     du = mult(du, -1.)
-                        if len(self.__node_derivatives[network]) > 1:  # use the mean derivatives
-                            previous = self.__node_derivatives[network].pop()
+                        if len(self.__node_derivatives[path_id]) > 1:  # use the mean derivatives
+                            previous = self.__node_derivatives[path_id].pop()
                             du = mult(add(previous, du), 0.5)
-                        self.__node_derivatives[network].append((du[0], du[1]))  # assign derivative 1
+                        self.__node_derivatives[path_id].append(du)  # assign derivative 1
                         du2 = mult(sub(b3, b2), 3)
-                        # if flipped:
-                        #     du2 = mult(du2, -1.)
-                        self.__node_derivatives[network].append((du2[0], du2[1]))  # assign derivative 2
-                        if path.index(p2) == len(path) - 1:  # if last node in the path:
-                            x2 = self.__path_network.nodes(data='geometry')[p2].centroid.x
-                            y2 = self.__path_network.nodes(data='geometry')[p2].centroid.y
-                            self.__node_coordinates[network].append((x2, y2))  # assign last coordinate
-                    else:
-                        counter = 0
-                        for segment in segments:
-                            b0, b1, b2, b3 = self.__get_bezier_coefficients(segment)
-                            if counter > 0:
-                                self.__node_coordinates[network].append(b0)
-                            du = mult(sub(b1, b0), 3)
-                            # if flipped:
-                            #     du = mult(du, -1.)
-                            if len(self.__node_derivatives[network]) > 1:  # use the mean derivatives
-                                previous = self.__node_derivatives[network].pop()
-                                du = mult(add(previous, du), 0.5)
-                            self.__node_derivatives[network].append((du[0], du[1]))  # assign derivative 1
-                            du2 = mult(sub(b3, b2), 3)
-                            dx13, dy13 = segment.derivative()[2].x, segment.derivative()[2].y
-                            self.__node_derivatives[network].append((dx13, dy13))  # assign derivative 2
-                            counter += 1
-                        if path.index(p2) == len(path) - 1:  # if last node in the path:
-                            x2 = self.__path_network.nodes(data='geometry')[p2].centroid.x
-                            y2 = self.__path_network.nodes(data='geometry')[p2].centroid.y
-                            self.__node_coordinates[network].append((x2, y2))  # assign last coordinate
+                        self.__node_derivatives[path_id].append(du2)  # assign derivative 2
+            self.__node_coordinates[path_id].append(node_geometry[path_nodes[-1]].centroid.coords[0])  # assign last coordinate
 
-    def __has_centreline(self, p1: str, p2: str):
-        for edge in self.__path_network.edges(data='geometry'):
-            # print("edge0: ", edge[0], "; edge1: ", edge[1])
-            if edge[2] is not None:
-                if p1 in edge[0] and p2 in edge[1]:
-                    return edge[2], False
-                elif p2 in edge[0] and p1 in edge[1]:
-                    return edge[2], True
-            else:
-                continue
-        return None, None
-
-    def __get_segment_bezier(self, p1: str, p2: str) -> BezierPath:
-        # print(p1, '->', p2)
-        for edge in self.__path_network.edges(data='geometry'):
-            if p1 in edge and p2 in edge:
-                return edge[2]
+    def __get_centreline(self, n1: str, n2: str) -> BezierPath:
+    #=========================================================
+        if (n1, n2) in self.__path_network.edges:
+            edge = self.__path_network.edges[n1, n2]
+            bezier_path = edge.get('geometry')
+            if bezier_path is not None:
+                if n1 == edge.get('start-node'):
+                    return bezier_path
+                else:
+                    segments = [bz.reversed() for bz in bezier_path.asSegments()]
+                    segments.reverse()
+                    return BezierPath.fromSegments(segments)
+        return None
 
     def __generate_2d_descriptions(self) -> None:
         for network, path in self.__continuous_paths.items():
