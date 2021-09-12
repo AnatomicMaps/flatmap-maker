@@ -35,8 +35,8 @@ from mapmaker.routing.utils.maths import normalize
 from mapmaker.routing.utils.maths import set_magnitude
 from mapmaker.routing.utils.maths import sub
 from mapmaker.routing.utils.maths import add
-from mapmaker.routing.utils.interpolation import smooth_cubic_hermite_derivatives_line as smooth_derivative
-from mapmaker.routing.utils.interpolation import sample_cubic_hermite_curves as sample
+from mapmaker.routing.utils.interpolation import smooth_cubic_hermite_derivatives_line
+from mapmaker.routing.utils.interpolation import sample_cubic_hermite_curves
 from mapmaker.routing.scaffold_2d import Scaffold2dPath
 
 #===============================================================================
@@ -145,28 +145,25 @@ class Sheath(object):
 
     def __generate_2d_descriptions(self) -> None:
     #============================================
-        for path_id, path_nodes in self.__continuous_paths.items():
-            number_of_nodes = len(path_nodes)
-            node_coordinates = self.__node_coordinates[path_id]
-            node_derivatives = self.__node_derivatives[path_id]
-
-            assert len(node_coordinates) == len(node_derivatives), \
+        for path_id in self.__continuous_paths.keys():
+            number_of_nodes = len(self.__node_coordinates[path_id])
+            assert number_of_nodes == len(self.__node_derivatives[path_id]), \
                 "routing.routes: Number of nodes & derivatives do not match."
 
             '''  Why?? Curves look nicer without this...
-            self.__node_coordinates[path_id], self.__node_derivatives[path_id], _, _, _ = sample(node_coordinates,
-                                                                                                 node_derivatives,
-                                                                                                 number_of_nodes*7)
-            ## Why 7 ??????????
-            self.__node_derivatives[path_id] = smooth_derivative(self.__node_coordinates[path_id],
-                                                                 self.__node_derivatives[path_id],
-                                                                 fix_all_directions=False,
-                                                                 fix_start_derivative=False,
-                                                                 fix_end_derivative=False,
-                                                                 fix_start_direction=False,
-                                                                 fix_end_direction=False)
+            self.__node_coordinates[path_id], node_derivatives, _, _, _ = sample_cubic_hermite_curves(self.__node_coordinates[path_id],
+                                                                                                      self.__node_derivatives[path_id],
+                                                                                                      number_of_nodes*7)  ## Why 7 ??????????
+            self.__node_derivatives[path_id] = smooth_cubic_hermite_derivatives_line(self.__node_coordinates[path_id],
+                                                                                     node_derivatives,
+                                                                                     fix_all_directions=False,
+                                                                                     fix_start_derivative=False,
+                                                                                     fix_end_derivative=False,
+                                                                                     fix_start_direction=False,
+                                                                                     fix_end_direction=False)
             number_of_nodes = len(self.__node_coordinates[path_id])
             '''
+
             d1 = []
             d2 = []
             node_coords = []
