@@ -50,6 +50,8 @@ class RoutedPath(object):
         self.__target_nodes = {node for node, data in route_graph.nodes(data=True)
                                 if data.get('type') == 'target'}
         if self.__path_layout == 'automatic':
+            ## The sheath scaffold is a network property and should be set
+            ## from the `centreline_scaffold` parameter
             self.__sheath = Sheath(route_graph, path_id)
             self.__sheath.build(self.__source_nodes, self.__target_nodes)
         else:

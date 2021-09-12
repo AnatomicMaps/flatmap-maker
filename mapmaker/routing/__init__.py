@@ -33,6 +33,7 @@ import shapely.geometry
 
 #===============================================================================
 
+from mapmaker.settings import settings
 from mapmaker.utils import log
 
 from .network import RoutedPath
@@ -143,6 +144,10 @@ class Network(object):
                             self.__graph.edges[edge[0:2]]['start-node'] = edge[0]
                         else:
                             self.__graph.edges[edge[0:2]]['start-node'] = edge[1]
+        if settings.get('pathLayout', 'automatic'):
+            # Construct the centreline scaffold for the network
+            ##self.__centreline_scaffold = Sheath(self.__id, self.__graph)
+            pass
 
     def layout(self, connections: dict) -> dict:
     #===========================================
