@@ -1,4 +1,4 @@
-# ===============================================================================
+#===============================================================================
 #
 #  Flatmap viewer and annotation tools
 #
@@ -16,18 +16,18 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-# ===============================================================================
+#===============================================================================
 
 """
 File doc...
 """
 
-# ===============================================================================
+#===============================================================================
 
 import beziers.path
 import shapely.geometry
 
-# ===============================================================================
+#===============================================================================
 
 from mapmaker.geometry import bezier_sample
 from mapmaker.settings import settings
@@ -35,7 +35,7 @@ from mapmaker.utils import log
 from mapmaker.routing.routes import Sheath
 from mapmaker.routing.neurons import Connectivity
 
-# ===============================================================================
+#===============================================================================
 
 class RoutedPath(object):
     def __init__(self, path_id, route_graph, centreline_scaffold=None):
@@ -108,3 +108,5 @@ class RoutedPath(object):
     #         'kind': self.__path_type,
     #         'type': 'line-dash' if self.__path_type.endswith('-post') else 'line'
     #     }
+
+#===============================================================================

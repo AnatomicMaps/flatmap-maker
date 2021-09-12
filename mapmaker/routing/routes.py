@@ -1,4 +1,4 @@
-# ===============================================================================
+#===============================================================================
 #
 #  Flatmap viewer and annotation tools
 #
@@ -16,16 +16,16 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-# ===============================================================================
+#===============================================================================
 
-from beziers.path import BezierPath
 from collections import defaultdict
 
-# ===============================================================================
+#===============================================================================
 
+from beziers.path import BezierPath
 import networkx as nx
 
-# ===============================================================================
+#===============================================================================
 
 from mapmaker.utils import log
 from mapmaker.routing.utils.pair_iteration import pairwise
@@ -67,6 +67,7 @@ class Sheath(object):
         return settings
 
     def build(self, sources, targets) -> None:
+    #=========================================
         log('Generating pathway scaffold layout...')
         # self.__check_for_middle_nodes()
         # self.__build_graphs()  # build a graph network for nerve sets
@@ -75,6 +76,7 @@ class Sheath(object):
         self.__generate_2d_descriptions()
 
     def __find_continuous_paths(self, sources, targets) -> None:
+    #===========================================================
         """
         Builds a dictionary of every possible paths from a source to target for every nerve set.
         Assumptions is that sources and targets have only 1 input/output (i.e, nodes with degree of 1). Any node with
@@ -94,6 +96,7 @@ class Sheath(object):
         return ((p.x, p.y) for p in segment.points[0:4])
 
     def __extract_components(self) -> None:
+    #======================================
         """
         Extracts and stores centreline components (i.e, coordinates & derivatives)
         in a dictionary for every nerve set. Each nerve set is a dict with keys
@@ -209,3 +212,4 @@ class Sheath(object):
     #    shape_rough_width = shape_object.length * ((scale_x + scale_y) / 2)
     #    return shape_rough_width
 
+#===============================================================================

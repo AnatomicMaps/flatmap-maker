@@ -1,4 +1,4 @@
-# ===============================================================================
+#===============================================================================
 #
 #  Flatmap viewer and annotation tools
 #
@@ -16,11 +16,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-# ===============================================================================
+#===============================================================================
 
 from opencmiss.zinc.status import OK as ZINC_OK
 
-# ===============================================================================
+#===============================================================================
 
 from mapmaker.routing.scaffold_1d import Scaffold1dPath
 from mapmaker.routing.manager import ChangeManager
@@ -30,12 +30,12 @@ from mapmaker.routing.utils.maths import add
 from mapmaker.routing.utils.maths import sub
 from mapmaker.routing.utils.interpolation import smooth_cubic_hermite_derivatives_line as smooth_derivative
 
-# ===============================================================================
+#===============================================================================
 
 from beziers.cubicbezier import CubicBezier
 from beziers.point import Point
 
-# ===============================================================================
+#===============================================================================
 
 hermite2bezier = [[3, 0, 0, 0],
                   [3, 0, 1, 0],
@@ -44,9 +44,9 @@ hermite2bezier = [[3, 0, 0, 0],
 
 
 
+#===============================================================================
 
 class Connectivity(object):
-
     def __init__(self, id: str, scaffold, derivatives, location):
         self.__id = id
         self.__scaffold = scaffold
@@ -60,6 +60,7 @@ class Connectivity(object):
         self.__evaluate(location)
 
     def __evaluate(self, location):
+    #==============================
         field_module = self.__region.getFieldmodule()
 
         with ChangeManager(field_module):
@@ -86,17 +87,17 @@ class Connectivity(object):
         self.__generate_neuron_path(size)
 
     def __generate_neuron_path(self, size):
-
+    #======================================
         self.__neuron_description = {'id': self.__id,
                                      'node coordinates': self.__evaluated_coordinates,
                                      'node derivatives': self.__derivatives,
                                      'number of elements': size}
-
         neuron = NeuronPath(self.__neuron_description)
         self.__neuron_line_scaffold = neuron.get_scaffold()
         self.__neuron_line_beziers = self.__hermite_to_beziers()
 
     def __hermite_to_beziers(self):
+    #==============================
         beziers = []
         for (p1, p2), (d1, d2) in zip(pairwise(self.__evaluated_coordinates), pairwise(self.__derivatives)):
             b0 = p1
@@ -111,21 +112,27 @@ class Connectivity(object):
         return beziers
 
     def get_neuron_description(self):
+    #================================
         return self.__neuron_description
 
     def get_neuron_line_beziers(self):
+    #=================================
         return self.__neuron_line_beziers
 
     def get_neuron_line_scaffold(self):
+    #==================================
         return self.__neuron_line_scaffold
 
+#===============================================================================
 
 class NeuronPath(object):
-
     def __init__(self, description):
         self.__scaffold1d = Scaffold1dPath(description)
         self.__settings = description
         self.__scaffold1d.generate()
 
     def get_scaffold(self):
+    #======================
         return self.__scaffold1d
+
+#===============================================================================

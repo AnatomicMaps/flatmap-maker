@@ -1,4 +1,4 @@
-# ===============================================================================
+#===============================================================================
 #
 #  Flatmap viewer and annotation tools
 #
@@ -16,7 +16,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-# ===============================================================================
+#===============================================================================
 
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element, Elementbasis
@@ -24,15 +24,13 @@ from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.context import Context
 
-# ===============================================================================
+#===============================================================================
 
 from mapmaker.routing.manager import ChangeManager
 
-# ===============================================================================
-
+#===============================================================================
 
 class Scaffold2dPath(object):
-
     def __init__(self, options: dict):
         self.__context = Context(options['id'])
         self.__region = self.__context.getDefaultRegion()
