@@ -168,7 +168,7 @@ class Sheath(object):
                 x, y = self.__node_coordinates[path_id][node_index]
                 dx, dy = self.__node_derivatives[path_id][node_index]
                 if dx == 0 or dy == 0:
-                    normal_left = [10, 100]
+                    normal_left = [10, 10]
                     normal_right = [10, 10]
                 else:
                     normal_left = mult(normalize([dy, -dx]), 10)
