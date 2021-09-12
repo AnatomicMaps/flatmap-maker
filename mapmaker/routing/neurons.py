@@ -62,7 +62,6 @@ class Connectivity(object):
     def __evaluate(self, location):
     #==============================
         field_module = self.__region.getFieldmodule()
-
         with ChangeManager(field_module):
             field = field_module.findFieldByName("coordinates")
             cache = field_module.createFieldcache()
@@ -83,7 +82,6 @@ class Connectivity(object):
                         self.__id)
                     self.__evaluated_coordinates.append(evaluated_coordinates)
                 element = element_iter.next()
-
         self.__generate_neuron_path(size)
 
     def __generate_neuron_path(self, size):
