@@ -107,6 +107,7 @@ class Sheath(object):
                 if centreline is None:
                     x2 = node_geometry[n2].centroid.x
                     y2 = node_geometry[n2].centroid.y
+                    # du = sub([x2, y2], [x1, y1])    ## ???????????????
                     du = [0., 0.]
                     if len(self.__node_derivatives[path_id]) < 1:  # use the mean derivatives
                         self.__node_derivatives[path_id].append((du[0] * 0.001, du[1] * 0.001))  # assign derivative 1
@@ -149,10 +150,11 @@ class Sheath(object):
             assert len(node_coordinates) == len(node_derivatives), \
                 "routing.routes: Number of nodes & derivatives do not match."
 
+            '''  Why?? Curves look nicer without this...
             self.__node_coordinates[path_id], self.__node_derivatives[path_id], _, _, _ = sample(node_coordinates,
                                                                                                  node_derivatives,
                                                                                                  number_of_nodes*7)
-
+            ## Why 7 ??????????
             self.__node_derivatives[path_id] = smooth_derivative(self.__node_coordinates[path_id],
                                                                  self.__node_derivatives[path_id],
                                                                  fix_all_directions=False,
@@ -161,6 +163,7 @@ class Sheath(object):
                                                                  fix_start_direction=False,
                                                                  fix_end_direction=False)
             number_of_nodes = len(self.__node_coordinates[path_id])
+            '''
             d1 = []
             d2 = []
             node_coords = []
