@@ -172,7 +172,7 @@ class Network(object):
                     route_graph.add_edge(end_node, terminal_id)
                     node = route_graph.nodes[terminal_id]
                     self.__set_node_properties(node, terminal_id)
-                    node['type'] = 'terminal'
+                    route_graph.edges[end_node, terminal_id]['type'] = 'terminal'
             # Save the geometry of any intermediate points on an edge
             for edge in route_graph.edges(data='intermediates'):
                 if edge[2] is not None:

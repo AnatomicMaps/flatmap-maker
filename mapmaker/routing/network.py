@@ -91,7 +91,16 @@ class RoutedPath(object):
                 auto_beziers = connectivity.get_neuron_line_beziers()
                 path = beziers.path.BezierPath.fromSegments(auto_beziers)
                 lines.append(shapely.geometry.LineString(bezier_sample(path)))
+            end_nodes = set(self.__source_nodes)
+            end_nodes.update(self.__target_nodes)
+            for node in end_nodes:
+                for edge in self.__graph.edges(node, data=True):
+                    if edge[2].get('type') == 'terminal':
+                        line = self.__line_from_edge(edge)
+                        if line is not None:
+                            lines.append(line)
             return lines
+
         # Fallback is centreline layout
         lines = []
         for edge in self.__graph.edges(data='geometry'):
