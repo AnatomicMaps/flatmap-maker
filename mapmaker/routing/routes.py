@@ -140,65 +140,62 @@ class Sheath(object):
         return None
 
     def __generate_2d_descriptions(self) -> None:
-        for network, path in self.__continuous_paths.items():
-            number_of_nodes = len(self.__node_coordinates[network])
-            nodes = []
-            d1 = []
-            d2 = []
-            node_coordinates = self.__node_coordinates[network]
-            node_derivatives = self.__node_derivatives[network]
-
-            # print("nodes: ", len(node_coordinates), "ders: ", len(node_derivatives))
+    #============================================
+        for path_id, path_nodes in self.__continuous_paths.items():
+            number_of_nodes = len(path_nodes)
+            node_coordinates = self.__node_coordinates[path_id]
+            node_derivatives = self.__node_derivatives[path_id]
 
             assert len(node_coordinates) == len(node_derivatives), \
                 "routing.routes: Number of nodes & derivatives do not match."
 
-            self.__node_coordinates[network], self.__node_derivatives[network], _, _, _ = sample(node_coordinates,
+            self.__node_coordinates[path_id], self.__node_derivatives[path_id], _, _, _ = sample(node_coordinates,
                                                                                                  node_derivatives,
                                                                                                  number_of_nodes*7)
 
-            self.__node_derivatives[network] = smooth_derivative(self.__node_coordinates[network],
-                                                                 self.__node_derivatives[network],
+            self.__node_derivatives[path_id] = smooth_derivative(self.__node_coordinates[path_id],
+                                                                 self.__node_derivatives[path_id],
                                                                  fix_all_directions=False,
                                                                  fix_start_derivative=False,
                                                                  fix_end_derivative=False,
                                                                  fix_start_direction=False,
                                                                  fix_end_direction=False)
-            number_of_nodes = len(self.__node_coordinates[network])
+            number_of_nodes = len(self.__node_coordinates[path_id])
+            d1 = []
+            d2 = []
+            node_coords = []
             for node_index in range(number_of_nodes):
-                x, y = self.__node_coordinates[network][node_index]
-                dx, dy = self.__node_derivatives[network][node_index]
+                x, y = self.__node_coordinates[path_id][node_index]
+                dx, dy = self.__node_derivatives[path_id][node_index]
                 if dx == 0 or dy == 0:
                     normal_left = [10, 100]
                     normal_right = [10, 10]
                 else:
-                    normal_left = mult(normalize([dy, -dx]),
-                                       10)
-                    normal_right = mult(normalize([-dy, dx]),
-                                        10)
+                    normal_left = mult(normalize([dy, -dx]), 10)
+                    normal_right = mult(normalize([-dy, dx]), 10)
                 # TODO: find a way to properly adjust the normals so that the 2D nodes are created appropriately.
                 # normal_left = mult(normalize([dy, -dx]),
-                #                    self.__estimate_width(nerve, network, node_index) * 0.5)
+                #                    self.__estimate_width(nerve, path_id, node_index) * 0.5)
                 # normal_right = mult(normalize([-dy, dx]),
-                #                     self.__estimate_width(nerve, network, node_index) * 0.5)
+                #                     self.__estimate_width(nerve, path_id, node_index) * 0.5)
                 new_node1 = [x + normal_left[0], y + normal_left[1]]
-                nodes.append(new_node1)
+                node_coords.append(new_node1)
                 new_node2 = [x + normal_right[0], y + normal_right[1]]
-                nodes.append(new_node2)
+                node_coords.append(new_node2)
                 d1.append(set_magnitude(normal_left, magnitude(normal_left) * 1.))
                 d1.append(set_magnitude(normal_right, magnitude(normal_right) * 1.))
                 d2.append([dx, dy])
                 d2.append([dx, dy])
 
             scaffold_settings = {
-                'id': network,
-                'node coordinates': nodes,
+                'id': path_id,
+                'node coordinates': node_coords,
                 'node derivatives 1': d1,
                 'node derivatives 2': d2,
                 'number of elements': number_of_nodes - 1
             }
             scaffold = Scaffold2dPath(scaffold_settings)
-            self.__continuous_region_scaffolds[network] = scaffold
+            self.__continuous_region_scaffolds[path_id] = scaffold
 
     # See TODO above...
     # def __estimate_width(self, nerve: str, path_id: str, node_id: int) -> float:
