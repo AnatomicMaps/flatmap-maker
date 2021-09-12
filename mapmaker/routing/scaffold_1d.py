@@ -77,11 +77,8 @@ class Scaffold1dPath(object):
                 node = nodes.createNode(node_identifier, node_template)
                 cache.setNode(node)
                 x = node_coordinates[n]
-                if not isinstance(x, list):
-                    x = [i for i in x]
                 d = node_derivatives[n]
-                if not isinstance(d, list):
-                    d = [i for i in d]
+
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d)
                 node_identifier = node_identifier + 1
