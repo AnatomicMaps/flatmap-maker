@@ -104,11 +104,7 @@ class Connectivity(object):
             b1 = mult(add(mult(p1, 3), d1), 1 / 3)
             b2 = mult(sub(mult(p2, 3), d2), 1 / 3)
             b3 = p2
-
-            beziers.append(CubicBezier(Point(b0[0], b0[1]),
-                                       Point(b1[0], b1[1]),
-                                       Point(b2[0], b2[1]),
-                                       Point(b3[0], b3[1])))
+            beziers.append(CubicBezier(Point(*b0), Point(*b1), Point(*b2), Point(*b3)))
         return beziers
 
     def get_neuron_description(self):
