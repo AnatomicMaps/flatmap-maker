@@ -113,6 +113,12 @@ class PathSegment(object):
     def control_points(self):
         return self.__control_points
 
+    def join(self, next_segment):
+        # Adjust position and slope where next_segment joins
+        last_control = self.__control_points[-1]
+        last_control.set_position(next_segment.start_point)
+        last_control.smooth_slope(next_segment.control_points[0].derivative)
+
 #===============================================================================
 
 class Sheath(object):
@@ -173,23 +179,16 @@ class Sheath(object):
         node_geometry = self.__path_network.nodes(data='geometry')
         for path_id, path_nodes in self.__continuous_paths.items():
             path_segments = []
-            last_segment = None
             for node_1, node_2 in pairwise(path_nodes):
                 centreline = self.__get_centreline(node_1, node_2)
                 segment = PathSegment(node_geometry[node_1], centreline, node_geometry[node_2])
+                if len(path_segments) > 0:
+                    path_segments[-1].join(segment)
                 path_segments.append(segment)
-                if last_segment is not None:
-                    pass
-                last_segment = segment
             for segment in path_segments:
                 control_points = segment.control_points
                 if len(self.__control_points[path_id]) == 0:
                     self.__control_points[path_id].append(control_points[0])
-                else:    # Adjust position and slope where segments join
-                    last_control = self.__control_points[path_id][-1]
-                    last_control.set_position(segment.start_point)
-                    last_control.smooth_slope(control_points[0].derivative)
-
                 self.__control_points[path_id].extend(control_points[1:])
             self.__control_points[path_id][0].set_position(path_segments[0].start_point)
             self.__control_points[path_id][-1].set_position(path_segments[-1].end_point)
