@@ -24,6 +24,7 @@ from collections import defaultdict
 
 from beziers.path import BezierPath
 import networkx as nx
+import numpy as np
 
 #===============================================================================
 
@@ -41,14 +42,86 @@ from mapmaker.routing.scaffold_2d import Scaffold2dPath
 
 #===============================================================================
 
+# See https://pomax.github.io/bezierinfo/#catmullconv
+
+Bezier_to_Hermite = np.array([[ 1,  0,  0,  0],
+                              [-3,  3,  0,  0],
+                              [ 0,  0, -3,  3],
+                              [ 0,  0,  0,  1]])
+
+#===============================================================================
+
+class ControlPoint(object):
+    def __init__(self, position: np.array, derivative: np.array):
+        self.__position = position
+        self.__derivative = derivative
+
+    def __str__(self):
+        return(f'CP: ({self.__position}, {self.__derivative})')
+
+    @property
+    def position(self):
+        return self.__position
+
+    @property
+    def derivative(self):
+        return self.__derivative
+
+    def set_position(self, position):
+        self.__position = np.array(position)
+
+    def smooth_slope(self, derivative: np.array) -> None:
+        self.__derivative = 0.5*(self.__derivative + derivative)
+
+#===============================================================================
+
+class ControlPointList(list):
+
+    def append(self, bezier):
+        hermite = Bezier_to_Hermite@[[p.x, p.y] for p in bezier.points]
+        if len(self) == 0:
+            super().append(ControlPoint(hermite[0], hermite[1]))
+        else:
+            self[-1].smooth_slope(hermite[1])
+        super().append(ControlPoint(hermite[3], hermite[2]))
+
+#===============================================================================
+
+class PathSegment(object):
+    def __init__(self, start_region, connecting_path, end_region):
+        self.__start_region = start_region
+        self.__start_point = start_region.centroid.coords[0]
+        self.__end_region = end_region
+        self.__end_point = end_region.centroid.coords[0]
+        self.__control_points = ControlPointList()
+        if connecting_path is None:
+            pass
+        else:
+            bezier_segments = connecting_path.asSegments()
+            for bezier in bezier_segments:
+                self.__control_points.append(bezier)
+
+    @property
+    def start_point(self):
+        return self.__start_point
+
+    @property
+    def end_point(self):
+        return self.__end_point
+
+    @property
+    def control_points(self):
+        return self.__control_points
+
+#===============================================================================
+
 class Sheath(object):
     def __init__(self, path_network: nx.Graph, path_id: str):
         self.__path_network = path_network
         self.__id = path_id
         self.__edges = None
         self.__node_geometry = None
-        self.__node_coordinates = defaultdict(list)
-        self.__node_derivatives = defaultdict(list)
+        self.__control_points = defaultdict(list)
         self.__graphs = {}
         self.__continuous_paths = {}
         self.__scaffold_settings = {}
@@ -58,8 +131,8 @@ class Sheath(object):
     #==========================
         path_ids = list(self.__continuous_paths)
         scaffolds = [self.__continuous_region_scaffolds[i] for i in path_ids]
-        derivatives = [self.__node_derivatives[i] for i in path_ids]
-        coordinates = [self.__node_coordinates[i] for i in path_ids]
+        coordinates = [[c.position.tolist() for c in self.__control_points[i]] for i in path_ids]
+        derivatives = [[c.derivative.tolist() for c in self.__control_points[i]] for i in path_ids]
         settings = {'scaffolds': scaffolds,
                     'path_ids': path_ids,
                     'derivatives': derivatives,
@@ -90,11 +163,6 @@ class Sheath(object):
                     self.__continuous_paths[f'p_{path_id}'] = nodes
                     path_id += 1
 
-    @staticmethod
-    def __get_bezier_coefficients(segment):
-    #======================================
-        return ((p.x, p.y) for p in segment.points[0:4])
-
     def __extract_components(self) -> None:
     #======================================
         """
@@ -104,30 +172,27 @@ class Sheath(object):
         """
         node_geometry = self.__path_network.nodes(data='geometry')
         for path_id, path_nodes in self.__continuous_paths.items():
-            for n1, n2 in pairwise(path_nodes):
-                centreline = self.__get_centreline(n1, n2)
-                self.__node_coordinates[path_id].append(node_geometry[n1].centroid.coords[0])  # assign node 1
-                if centreline is None:
-                    x2 = node_geometry[n2].centroid.x
-                    y2 = node_geometry[n2].centroid.y
-                    # du = sub([x2, y2], [x1, y1])    ## ???????????????
-                    du = [0., 0.]
-                    if len(self.__node_derivatives[path_id]) < 1:  # use the mean derivatives
-                        self.__node_derivatives[path_id].append((du[0] * 0.001, du[1] * 0.001))  # assign derivative 1
-                    self.__node_derivatives[path_id].append((du[0] * 0.001, du[1] * 0.001))  # assign derivative 2
-                else:
-                    for n, segment in enumerate(centreline.asSegments()):
-                        b0, b1, b2, b3 = self.__get_bezier_coefficients(segment)
-                        if n > 0:
-                            self.__node_coordinates[path_id].append(b0)
-                        du = mult(sub(b1, b0), 3)
-                        if len(self.__node_derivatives[path_id]) > 1:  # use the mean derivatives
-                            previous = self.__node_derivatives[path_id].pop()
-                            du = mult(add(previous, du), 0.5)
-                        self.__node_derivatives[path_id].append(du)  # assign derivative 1
-                        du2 = mult(sub(b3, b2), 3)
-                        self.__node_derivatives[path_id].append(du2)  # assign derivative 2
-            self.__node_coordinates[path_id].append(node_geometry[path_nodes[-1]].centroid.coords[0])  # assign last coordinate
+            path_segments = []
+            last_segment = None
+            for node_1, node_2 in pairwise(path_nodes):
+                centreline = self.__get_centreline(node_1, node_2)
+                segment = PathSegment(node_geometry[node_1], centreline, node_geometry[node_2])
+                path_segments.append(segment)
+                if last_segment is not None:
+                    pass
+                last_segment = segment
+            for segment in path_segments:
+                control_points = segment.control_points
+                if len(self.__control_points[path_id]) == 0:
+                    self.__control_points[path_id].append(control_points[0])
+                else:    # Adjust position and slope where segments join
+                    last_control = self.__control_points[path_id][-1]
+                    last_control.set_position(segment.start_point)
+                    last_control.smooth_slope(control_points[0].derivative)
+
+                self.__control_points[path_id].extend(control_points[1:])
+            self.__control_points[path_id][0].set_position(path_segments[0].start_point)
+            self.__control_points[path_id][-1].set_position(path_segments[-1].end_point)
 
     def __get_centreline(self, n1: str, n2: str) -> BezierPath:
     #=========================================================
@@ -146,9 +211,6 @@ class Sheath(object):
     def __generate_2d_descriptions(self) -> None:
     #============================================
         for path_id in self.__continuous_paths.keys():
-            number_of_nodes = len(self.__node_coordinates[path_id])
-            assert number_of_nodes == len(self.__node_derivatives[path_id]), \
-                "routing.routes: Number of nodes & derivatives do not match."
 
             '''  Why?? Curves look nicer without this...
             self.__node_coordinates[path_id], node_derivatives, _, _, _ = sample_cubic_hermite_curves(self.__node_coordinates[path_id],
@@ -167,9 +229,9 @@ class Sheath(object):
             d1 = []
             d2 = []
             node_coords = []
-            for node_index in range(number_of_nodes):
-                x, y = self.__node_coordinates[path_id][node_index]
-                dx, dy = self.__node_derivatives[path_id][node_index]
+            for control_point in self.__control_points[path_id]:
+                x, y = control_point.position.tolist()
+                dx, dy = control_point.derivative.tolist()
                 if dx == 0 or dy == 0:
                     normal_left = [10, 10]
                     normal_right = [10, 10]
@@ -195,7 +257,7 @@ class Sheath(object):
                 'node coordinates': node_coords,
                 'node derivatives 1': d1,
                 'node derivatives 2': d2,
-                'number of elements': number_of_nodes - 1
+                'number of elements': len(self.__control_points[path_id]) - 1
             }
             scaffold = Scaffold2dPath(scaffold_settings)
             self.__continuous_region_scaffolds[path_id] = scaffold
