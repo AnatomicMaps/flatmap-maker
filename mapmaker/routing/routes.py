@@ -51,7 +51,7 @@ NUMBER_OF_BEZIER_PARTS = 10  # We divide each Bezier segment of a centreline
 
 #===============================================================================
 
-SHEATH_WIDTH = 10000     ## needs to be some fraction of map size...
+SHEATH_WIDTH = 5000     ## needs to be some fraction of map size...
 
 #===============================================================================
 
