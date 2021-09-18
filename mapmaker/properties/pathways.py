@@ -398,8 +398,9 @@ class Pathways(object):
                 for path_id, routed_path in network.layout(connectivity_model.connections).items():
                     properties = { 'tile-layer': 'autopaths' }
                     properties.update(self.__line_properties(path_id))
-                    for n, geometry in enumerate(routed_path.geometry()):
-                        feature = self.__flatmap.new_feature(geometry, properties)
+                    for n, geometric_shape in enumerate(routed_path.geometry()):
+                        properties.update(geometric_shape.properties)
+                        feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
                         layer.add_feature(feature)
                         id = f'{path_id}__F_{n}'
                         self.__resolved_pathways.add_line_feature(path_id, feature)

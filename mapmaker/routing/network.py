@@ -24,7 +24,7 @@ File doc...
 
 #===============================================================================
 
-import beziers.path
+from beziers.path import BezierPath
 import shapely.geometry
 
 #===============================================================================
@@ -34,6 +34,29 @@ from mapmaker.settings import settings
 from mapmaker.utils import log
 from mapmaker.routing.routes import Sheath
 from mapmaker.routing.neurons import Connectivity
+
+#===============================================================================
+
+class GeometricShape(object):
+    def __init__(self, geometry: shapely.geometry, properties: dict = None):
+        self.__geometry = geometry
+        self.__properties = properties if properties is not None else {}
+
+    @property
+    def geometry(self) -> shapely.geometry:
+        return self.__geometry
+
+    @property
+    def properties(self) -> dict:
+        return self.__properties
+
+    @staticmethod
+    def circle(centre, radius=2000) -> shapely.geometry.Polygon:
+        return shapely.geometry.Point(centre).buffer(radius)
+
+    @staticmethod
+    def line(start, end) -> shapely.geometry.LineString:
+        return shapely.geometry.LineString([start, end])
 
 #===============================================================================
 
@@ -70,7 +93,7 @@ class RoutedPath(object):
             return shapely.geometry.LineString([
                 node_0['geometry'].centroid, node_1['geometry'].centroid])
 
-    def geometry(self) -> [shapely.geometry]:
+    def geometry(self) -> [GeometricShape]:
         """
         Returns:
             A list of geometric objects. This are LineStrings describing paths
@@ -84,15 +107,15 @@ class RoutedPath(object):
             number_of_neurons = len(evaluate_settings['derivatives'])
             # locations = [0.01 + x*(0.99-0.01)/number_of_neurons for x in range(number_of_neurons)]
             location = 0.5
-            lines = []
+            geometry = []
             for scaffold, path_id, derivative in zip(evaluate_settings['scaffolds'],
                                                      evaluate_settings['path_ids'],
                                                      evaluate_settings['derivatives']):
                 scaffold.generate()
                 connectivity = Connectivity(path_id, scaffold, derivative, location)
                 auto_beziers = connectivity.get_neuron_line_beziers()
-                path = beziers.path.BezierPath.fromSegments(auto_beziers)
-                lines.append(shapely.geometry.LineString(bezier_sample(path)))
+                path = BezierPath.fromSegments(auto_beziers)
+                geometry.append(GeometricShape(shapely.geometry.LineString(bezier_sample(path))))
             end_nodes = set(self.__source_nodes)
             end_nodes.update(self.__target_nodes)
             for node in end_nodes:
@@ -100,19 +123,19 @@ class RoutedPath(object):
                     if edge[2].get('type') == 'terminal':
                         line = self.__line_from_edge(edge)
                         if line is not None:
-                            lines.append(line)
-            return lines
+                            geometry.append(GeometricShape(line))
+            return geometry
 
         # Fallback is centreline layout
-        lines = []
+        geometry = []
         for edge in self.__graph.edges(data='geometry'):
             if self.__path_layout != 'linear' and edge[2] is not None:
-                lines.append(shapely.geometry.LineString(bezier_sample(edge[2])))
+                geometry.append(GeometricShape(shapely.geometry.LineString(bezier_sample(edge[2]))))
             else:
                 line = self.__line_from_edge(edge)
                 if line is not None:
-                    lines.append(line)
-        return lines
+                    geometry.append(GeometricShape(line))
+        return geometry
 
     # def properties(self):
     #     return {
