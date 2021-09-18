@@ -100,6 +100,7 @@ class RoutedPath(object):
             between nodes and possibly additional features (e.g. way markers)
             of the paths.
         """
+        display_bezier_points = True #False     ### To come from settings...
         if self.__path_layout == 'automatic':
             log("Automated pathway layout. Path ID: ", self.__path_id)
             evaluate_settings = self.__sheath.settings()
@@ -124,6 +125,19 @@ class RoutedPath(object):
                         line = self.__line_from_edge(edge)
                         if line is not None:
                             geometry.append(GeometricShape(line))
+            if display_bezier_points:
+                for beziers in self.__sheath.path_beziers.values():
+                    for bezier in beziers:
+                        bz_pts = tuple([p.x, p.y] for p in bezier.points)
+                        for pt in [bz_pts[0], bz_pts[3]]:
+                            geometry.append(GeometricShape(GeometricShape.circle(pt),
+                                {'type': 'bezier', 'kind': 'bezier-end'}))
+                        for pt in bz_pts[1:3]:
+                            geometry.append(GeometricShape(GeometricShape.circle(pt),
+                                {'type': 'bezier', 'kind': 'bezier-control'}))
+                        geometry.append(GeometricShape(GeometricShape.line(*bz_pts[0:2]), {'type': 'bezier'}))
+                        geometry.append(GeometricShape(GeometricShape.line(*bz_pts[2:4]), {'type': 'bezier'}))
+
             return geometry
 
         # Fallback is centreline layout

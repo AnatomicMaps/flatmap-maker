@@ -252,6 +252,11 @@ class Sheath(object):
         self.__continuous_paths = {}
         self.__scaffold_settings = {}
         self.__continuous_region_scaffolds = {}
+        self.__path_beziers = defaultdict(list)
+
+    @property
+    def path_beziers(self):
+        return self.__path_beziers
 
     def settings(self) -> dict:
     #==========================
