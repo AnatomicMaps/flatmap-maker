@@ -76,8 +76,8 @@ class ControlPoint(object):
     def derivative(self):
         return self.__derivative
 
-    def set_position(self, position):
-        self.__position = np.array(position)
+    def set_position(self, position: np.array) -> None:
+        self.__position = position
 
     def smooth_slope(self, derivative: np.array) -> None:
         self.__derivative = 0.5*(self.__derivative + derivative)
@@ -111,9 +111,9 @@ class ControlPointList(list):
 class PathSegment(object):
     def __init__(self, start_region, connecting_path, end_region):
         self.__start_region = start_region
-        self.__start_point = start_region.centroid.coords[0]
+        self.__start_point = np.array(start_region.centroid.coords[0])
         self.__end_region = end_region
-        self.__end_point = end_region.centroid.coords[0]
+        self.__end_point = np.array(end_region.centroid.coords[0])
         self.__control_points = ControlPointList()
         if connecting_path is None:
             pass
