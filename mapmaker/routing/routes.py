@@ -42,6 +42,10 @@ from mapmaker.routing.scaffold_2d import Scaffold2dPath
 
 #===============================================================================
 
+NUMBER_OF_BEZIER_PARTS = 10  # We divide each Bezier segment of a centreline
+                             # into 10 sub-segments
+
+#===============================================================================
 
 SHEATH_WIDTH = 10000     ## needs to be some fraction of map size...
 
@@ -82,13 +86,25 @@ class ControlPoint(object):
 
 class ControlPointList(list):
 
-    def append(self, bezier):
-        hermite = Bezier_to_Hermite@[[p.x, p.y] for p in bezier.points]
-        if len(self) == 0:
-            super().append(ControlPoint(hermite[0], hermite[1]))
+    @staticmethod
+    def split_bezier(bezier, divisions):
+        if divisions == 1:
+            return [bezier]
+        elif divisions % 2 == 1:
+            parts = bezier.splitAtTime(1.0/divisions)
+            return [parts[0]] + ControlPointList.split_bezier(parts[1], divisions - 1)
         else:
-            self[-1].smooth_slope(hermite[1])
-        super().append(ControlPoint(hermite[3], hermite[2]))
+            parts = bezier.splitAtTime(0.5)
+            return ControlPointList.split_bezier(parts[0], divisions//2) + ControlPointList.split_bezier(parts[1], divisions//2)
+
+    def append(self, bezier):
+        for bezier in self.split_bezier(bezier, NUMBER_OF_BEZIER_PARTS):
+            hermite = Bezier_to_Hermite@[[p.x, p.y] for p in bezier.points]
+            if len(self) == 0:
+                super().append(ControlPoint(hermite[0], hermite[1]))
+            else:
+                self[-1].smooth_slope(hermite[1])
+            super().append(ControlPoint(hermite[3], hermite[2]))
 
 #===============================================================================
 
