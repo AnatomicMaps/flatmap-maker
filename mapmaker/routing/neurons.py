@@ -73,13 +73,12 @@ class Connectivity(object):
             while element.isValid():
                 cache.setMeshLocation(element, [xi, 0.])
                 result, evaluated_coordinates = field.evaluateReal(cache, 2)
-                assert result == ZINC_OK, 'mapmaker.routing: Could not evaluate neuron {0} location'.format(self.__id)
+                assert result == ZINC_OK, f'mapmaker.routing: Could not evaluate neuron {self.__id} location'
                 self.__evaluated_coordinates.append(evaluated_coordinates)
                 if element.getIdentifier() == size:
                     cache.setMeshLocation(element, [xi, 1.])
                     result, evaluated_coordinates = field.evaluateReal(cache, 2)
-                    assert result == ZINC_OK, 'mapmaker.routing: Could not evaluate neuron {0} location'.format(
-                        self.__id)
+                    assert result == ZINC_OK, f'mapmaker.routing: Could not evaluate neuron {self.__id} location'
                     self.__evaluated_coordinates.append(evaluated_coordinates)
                 element = element_iter.next()
         self.__generate_neuron_path(size)
