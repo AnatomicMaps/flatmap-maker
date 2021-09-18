@@ -42,6 +42,11 @@ from mapmaker.routing.scaffold_2d import Scaffold2dPath
 
 #===============================================================================
 
+
+SHEATH_WIDTH = 10000     ## needs to be some fraction of map size...
+
+#===============================================================================
+
 # See https://pomax.github.io/bezierinfo/#catmullconv
 
 Bezier_to_Hermite = np.array([[ 1,  0,  0,  0],
@@ -235,23 +240,21 @@ class Sheath(object):
                 x, y = control_point.position.tolist()
                 dx, dy = control_point.derivative.tolist()
                 if dx == 0 or dy == 0:
-                    normal_left = [10, 10]
-                    normal_right = [10, 10]
+                    normal_width = [SHEATH_WIDTH, SHEATH_WIDTH]
                 else:
-                    normal_left = mult(normalize([dy, -dx]), 10)
-                    normal_right = mult(normalize([-dy, dx]), 10)
                 # TODO: find a way to properly adjust the normals so that the 2D nodes are created appropriately.
                 # normal_left = mult(normalize([dy, -dx]),
                 #                    self.__estimate_width(nerve, path_id, node_index) * 0.5)
                 # normal_right = mult(normalize([-dy, dx]),
                 #                     self.__estimate_width(nerve, path_id, node_index) * 0.5)
-                new_node1 = [x + normal_left[0], y + normal_left[1]]
+                    normal_width = mult(normalize([dy, -dx]), SHEATH_WIDTH)
+                new_node1 = [x + normal_width[0], y + normal_width[1]]
                 node_coords.append(new_node1)
-                new_node2 = [x + normal_right[0], y + normal_right[1]]
-                node_coords.append(new_node2)
-                d1.append(set_magnitude(normal_left, magnitude(normal_left) * 1.))
-                d1.append(set_magnitude(normal_right, magnitude(normal_right) * 1.))
+                d1.append(set_magnitude(normal_width, magnitude(normal_width) * 1.))
                 d2.append([dx, dy])
+                new_node2 = [x - normal_width[0], y - normal_width[1]]
+                node_coords.append(new_node2)
+                d1.append(set_magnitude([-normal_width[0], -normal_width[1]], magnitude(normal_width) * 1.))
                 d2.append([dx, dy])
 
             scaffold_settings = {
