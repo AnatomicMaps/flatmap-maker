@@ -185,14 +185,15 @@ class ControlPoint(object):
 #===============================================================================
 
 class ControlPointList(list):
-    def __init__(self, beziers=None):
+    def __init__(self, beziers=None, subdivision_parts=NUMBER_OF_BEZIER_PARTS):
         super().__init__()
+        self.__subdivision_parts = subdivision_parts
         if beziers is not None:
             for bezier in beziers:
                 self.append(bezier)
 
     def append(self, bezier):
-        for bezier in split_bezier(bezier, NUMBER_OF_BEZIER_PARTS):
+        for bezier in split_bezier(bezier, self.__subdivision_parts):
             hermite = Bezier_to_Hermite@[[p.x, p.y] for p in bezier.points]
             if len(self) == 0:
                 super().append(ControlPoint(hermite[0], hermite[1]))
@@ -203,7 +204,7 @@ class ControlPointList(list):
 #===============================================================================
 
 class PathSegment(object):
-    def __init__(self, start_region, connecting_path, end_region):
+    def __init__(self, start_region, connecting_path, end_region, subdivision_parts=NUMBER_OF_BEZIER_PARTS):
         self.__start_region = start_region
         self.__end_region = end_region
         if connecting_path is not None:
@@ -212,7 +213,7 @@ class PathSegment(object):
             ## NEED to handle line between start/end
             bezier_segments = []
 
-        self.__control_points = ControlPointList(bezier_segments)
+        self.__control_points = ControlPointList(bezier_segments, subdivision_parts)
         if start_region is not None:
             self.__start_point = np.array(start_region.centroid.coords[0])
         elif connecting_path is not None:
@@ -330,20 +331,23 @@ class Sheath(object):
 
                 centrelines.append(centreline)
                 node_regions.append((node_geometry[node_1], node_geometry[node_2]))
+
+            # Get the path segment for each centreline
             path_segments = []
             for n, centreline in enumerate(centrelines):
                 regions = node_regions[n]
-                segment = PathSegment(regions[0], centreline, regions[1])
-                path_segments.append(segment)
+                path_segment = PathSegment(regions[0], centreline, regions[1],
+                    subdivision_parts=(1 if regions[0] is None else NUMBER_OF_BEZIER_PARTS))
+                path_segments.append(path_segment)
 
-            # And use them to set the control points for the path's centreline region
-            for segment in path_segments:
-                if segment is not None:
-                    control_points = segment.control_points
-                    if len(self.__control_points[path_id]) == 0:
-                        self.__control_points[path_id].append(control_points[0])
-                    self.__control_points[path_id].extend(control_points[1:])
-            # The region starts and ends at the respective node centroids
+            # And use them to set the control points for the path's centreline sheath
+            for path_segment in path_segments:
+                control_points = path_segment.control_points
+                if len(self.__control_points[path_id]) == 0:
+                    self.__control_points[path_id].append(control_points[0])
+                self.__control_points[path_id].extend(control_points[1:])
+
+            # The sheath starts and ends at the respective node centroids
             self.__control_points[path_id][0].set_position(path_segments[0].start_point)
             self.__control_points[path_id][-1].set_position(path_segments[-1].end_point)
 
