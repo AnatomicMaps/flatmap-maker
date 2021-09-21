@@ -160,6 +160,7 @@ class ResolvedPathways(object):
             for feature in self.__feature_map.features(id):
                 if not feature.get_property('exclude'):
                     node_id = feature.feature_id
+                    feature.set_property('nodeId', node_id)
                     self.__node_paths[node_id].append(path_id)
                     node_ids.append(node_id)
                     node_count += 1
@@ -397,13 +398,16 @@ class Pathways(object):
                 for path_id, routed_path in network.layout(connectivity_model.connections).items():
                     properties = { 'tile-layer': 'autopaths' }
                     properties.update(self.__line_properties(path_id))
-                    feature = self.__flatmap.new_feature(routed_path.geometry(), properties)
-                    layer.add_feature(feature)
-                    self.__resolved_pathways.add_line_feature(path_id, feature)
-                    self.__resolved_pathways.add_nerves(path_id, self.__nerves_by_path_id.get(path_id, []))
-                    self.__resolved_pathways.add_nodes(path_id, routed_path.node_set)
-                    self.__resolved_pathways.add_path_type(path_id, properties.get('type'))
-                    self.__resolved_pathways.set_model_id(path_id, self.__path_models.get(path_id))
+                    for n, geometric_shape in enumerate(routed_path.geometry()):
+                        properties.update(geometric_shape.properties)
+                        feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
+                        layer.add_feature(feature)
+                        id = f'{path_id}__F_{n}'
+                        self.__resolved_pathways.add_line_feature(path_id, feature)
+                        self.__resolved_pathways.add_nerves(path_id, self.__nerves_by_path_id.get(path_id, []))
+                        self.__resolved_pathways.add_nodes(path_id, routed_path.node_set)
+                        self.__resolved_pathways.add_path_type(id, properties.get('type'))
+                        self.__resolved_pathways.set_model_id(id, self.__path_models.get(path_id))
 
     def resolve_pathways(self, network, feature_map, model_to_features):
     #===================================================================
@@ -427,5 +431,11 @@ class Pathways(object):
         self.__route_paths(network, model_to_features)
         if errors:
             raise ValueError('Errors in mapping paths and routes')
+
+    def save_knowledge(self, knowledgebase):
+    #=======================================
+        for model in self.__connectivity_models:
+            if model.source is not None:
+                knowledgebase.update_publications(model.source, model.publications)
 
 #===============================================================================

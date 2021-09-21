@@ -1,4 +1,4 @@
-# ===============================================================================
+#===============================================================================
 #
 #  Flatmap viewer and annotation tools
 #
@@ -16,18 +16,18 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-# ===============================================================================
+#===============================================================================
 
 """
 File doc...
 """
 
-# ===============================================================================
+#===============================================================================
 
-import beziers.path
+from beziers.path import BezierPath
 import shapely.geometry
 
-# ===============================================================================
+#===============================================================================
 
 from mapmaker.geometry import bezier_sample
 from mapmaker.settings import settings
@@ -35,37 +35,54 @@ from mapmaker.utils import log
 from mapmaker.routing.routes import Sheath
 from mapmaker.routing.neurons import Connectivity
 
-# ===============================================================================
+#===============================================================================
+
+class GeometricShape(object):
+    def __init__(self, geometry: shapely.geometry, properties: dict = None):
+        self.__geometry = geometry
+        self.__properties = properties if properties is not None else {}
+
+    @property
+    def geometry(self) -> shapely.geometry:
+        return self.__geometry
+
+    @property
+    def properties(self) -> dict:
+        return self.__properties
+
+    @staticmethod
+    def circle(centre, radius=2000) -> shapely.geometry.Polygon:
+        return shapely.geometry.Point(centre).buffer(radius)
+
+    @staticmethod
+    def line(start, end) -> shapely.geometry.LineString:
+        return shapely.geometry.LineString([start, end])
+
+#===============================================================================
 
 class RoutedPath(object):
-    def __init__(self, path_id, route_graph):
+    def __init__(self, path_id, route_graph, centreline_scaffold=None):
         self.__path_id = path_id
         self.__graph = route_graph
-
-        self.__source_nodes = {node
-                               for node, data in route_graph.nodes(data=True)
-                               if 'type' in data and data['type'] == 'source'}
-        self.__target_nodes = {node
-                               for node, data in route_graph.nodes(data=True)
-                               if 'type' in data and data['type'] == 'target'}
-        self.__node_set = {node
-                           for node, data in route_graph.nodes(data=True)
-                           if not data.get('exclude', False)}
-
-        self.__sheaths = Sheath(route_graph, path_id)
-        self.__sheaths.build(self.__source_nodes, self.__target_nodes)
+        self.__centreline_scaffold = centreline_scaffold
+        self.__path_layout = settings.get('pathLayout', 'automatic')
+        self.__node_set = {node for node, data in route_graph.nodes(data=True)
+                                if not data.get('exclude', False)}
+        self.__source_nodes = {node for node, data in route_graph.nodes(data=True)
+                                if data.get('type') == 'source'}
+        self.__target_nodes = {node for node, data in route_graph.nodes(data=True)
+                                if data.get('type') == 'target'}
+        if self.__path_layout == 'automatic':
+            ## The sheath scaffold is a network property and should be set
+            ## from the `centreline_scaffold` parameter
+            self.__sheath = Sheath(route_graph, path_id)
+            self.__sheath.build(self.__source_nodes, self.__target_nodes)
+        else:
+            self.__sheath = None
 
     @property
     def node_set(self):
         return self.__node_set
-
-    @property
-    def source_set(self):
-        return self.__source_nodes
-
-    @property
-    def target_set(self):
-        return self.__target_nodes
 
     def __line_from_edge(self, edge):
         node_0 = self.__graph.nodes[edge[0]]
@@ -76,44 +93,68 @@ class RoutedPath(object):
             return shapely.geometry.LineString([
                 node_0['geometry'].centroid, node_1['geometry'].centroid])
 
-    def geometry(self) -> shapely.geometry:
+    def geometry(self) -> [GeometricShape]:
         """
         Returns:
-            A ``LineString`` or ``MultiLineString`` object connecting the paths's nodes.
+            A list of geometric objects. This are LineStrings describing paths
+            between nodes and possibly additional features (e.g. way markers)
+            of the paths.
         """
-        path_layout = settings.get('pathLayout', 'automatic')
-        if path_layout == 'automatic':
+        display_bezier_points = True #False     ### To come from settings...
+        if self.__path_layout == 'automatic':
             log("Automated pathway layout. Path ID: ", self.__path_id)
-            lines = []
-            evaluate_settings = self.__sheaths.get_sheath(self.__source_nodes, self.__target_nodes)
+            evaluate_settings = self.__sheath.settings()
             # TODO: use evenly-distributed offsets for the final product.
             number_of_neurons = len(evaluate_settings['derivatives'])
             # locations = [0.01 + x*(0.99-0.01)/number_of_neurons for x in range(number_of_neurons)]
             location = 0.5
-            # i = 0
-            for sheath, index, derivative in zip(evaluate_settings['sheath_paths'],
-                                                 evaluate_settings['sheath_ids'],
-                                                 evaluate_settings['derivatives']):
-                sheath.generate()
-                connectivity = Connectivity(index, sheath, derivative, location)
+            geometry = []
+            for scaffold, path_id, derivative in zip(evaluate_settings['scaffolds'],
+                                                     evaluate_settings['path_ids'],
+                                                     evaluate_settings['derivatives']):
+                scaffold.generate()
+                connectivity = Connectivity(path_id, scaffold, derivative, location)
                 auto_beziers = connectivity.get_neuron_line_beziers()
-                path = beziers.path.BezierPath.fromSegments(auto_beziers)
-                lines.append(shapely.geometry.LineString(bezier_sample(path)))
-                # i += 1
-            return shapely.geometry.MultiLineString(lines)
+                path = BezierPath.fromSegments(auto_beziers)
+                geometry.append(GeometricShape(shapely.geometry.LineString(bezier_sample(path))))
+            end_nodes = set(self.__source_nodes)
+            end_nodes.update(self.__target_nodes)
+            for node in end_nodes:
+                for edge in self.__graph.edges(node, data=True):
+                    if edge[2].get('type') == 'terminal':
+                        line = self.__line_from_edge(edge)
+                        if line is not None:
+                            geometry.append(GeometricShape(line))
+            if display_bezier_points:
+                for beziers in self.__sheath.path_beziers.values():
+                    for bezier in beziers:
+                        bz_pts = tuple([p.x, p.y] for p in bezier.points)
+                        for pt in [bz_pts[0], bz_pts[3]]:
+                            geometry.append(GeometricShape(GeometricShape.circle(pt),
+                                {'type': 'bezier', 'kind': 'bezier-end'}))
+                        for pt in bz_pts[1:3]:
+                            geometry.append(GeometricShape(GeometricShape.circle(pt),
+                                {'type': 'bezier', 'kind': 'bezier-control'}))
+                        geometry.append(GeometricShape(GeometricShape.line(*bz_pts[0:2]), {'type': 'bezier'}))
+                        geometry.append(GeometricShape(GeometricShape.line(*bz_pts[2:4]), {'type': 'bezier'}))
+
+            return geometry
+
         # Fallback is centreline layout
-        lines = []
+        geometry = []
         for edge in self.__graph.edges(data='geometry'):
-            if path_layout != 'linear' and edge[2] is not None:
-                lines.append(shapely.geometry.LineString(bezier_sample(edge[2])))
+            if self.__path_layout != 'linear' and edge[2] is not None:
+                geometry.append(GeometricShape(shapely.geometry.LineString(bezier_sample(edge[2]))))
             else:
                 line = self.__line_from_edge(edge)
                 if line is not None:
-                    lines.append(line)
-        return shapely.geometry.MultiLineString(lines)
+                    geometry.append(GeometricShape(line))
+        return geometry
 
     # def properties(self):
     #     return {
     #         'kind': self.__path_type,
     #         'type': 'line-dash' if self.__path_type.endswith('-post') else 'line'
     #     }
+
+#===============================================================================

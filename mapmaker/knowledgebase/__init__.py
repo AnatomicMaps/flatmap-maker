@@ -120,19 +120,21 @@ class KnowledgeStore(KnowledgeBase):
             knowledge = self.__scicrunch.get_knowledge(entity)
             if 'label' in knowledge:
                 self.db.execute('replace into labels values (?, ?)', (entity, knowledge['label']))
-            # We don't return the list of publications to thenmap maker but just save them
-            # in the knowledge base
-            publications = knowledge.pop('publications', [])
-            with self.db:
-                self.db.execute('delete from publications where entity = ?', (entity, ))
-                self.db.executemany('insert into publications(entity, publication) values (?, ?)',
-                    ((entity, publication) for publication in publications))
+            # Save the list of publications in the knowledge base
+            self.update_publications(entity, knowledge.pop('publications', []))
         # Use the entity's value as its label if none is defined
         if 'label' not in knowledge:
             knowledge['label'] = entity
         # Cache local knowledge
         self.__entity_knowledge[entity] = knowledge
-
         return knowledge
+
+    #---------------------------------------------------------------------------
+
+    def update_publications(self, entity, publications):
+        with self.db:
+            self.db.execute('delete from publications where entity = ?', (entity, ))
+            self.db.executemany('insert into publications(entity, publication) values (?, ?)',
+                ((entity, publication) for publication in publications))
 
 #===============================================================================

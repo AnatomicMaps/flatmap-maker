@@ -117,7 +117,9 @@ class SVGSource(MapSource):
             cleaned_svg = io.BytesIO()
             cleaner.save(cleaned_svg)
             cleaned_svg.seek(0)
-            self.set_raster_source(RasterSource('svg', cleaned_svg, source=self.__source_file))
+        else:
+            cleaned_svg = None
+        self.set_raster_source(RasterSource('svg', cleaned_svg, source=self.__source_file))
 
 #===============================================================================
 
