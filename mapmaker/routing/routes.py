@@ -51,7 +51,11 @@ NUMBER_OF_BEZIER_PARTS = 10  # We divide each Bezier segment of a centreline
 
 #===============================================================================
 
-SHEATH_WIDTH = 5000     ## needs to be some fraction of map size...
+# Radius of generated sheath
+SHEATH_RADIUS = 5000     ## needs to be some fraction of map size...
+
+# Radius of circular region used to join centrelines
+JOIN_RADIUS   = SHEATH_RADIUS
 
 #===============================================================================
 
@@ -312,7 +316,7 @@ class Sheath(object):
                 if len(centrelines) > 0:
                     ##join_region = node_geometry[node_1]
                     # Join previous and current centreline in circle centred at region's centroid
-                    join_region = node_geometry[node_1].centroid.buffer(2*SHEATH_WIDTH)
+                    join_region = node_geometry[node_1].centroid.buffer(JOIN_RADIUS)
                     joined_beziers = join_beziers_in_region(centrelines[-1], join_region, centreline)
 
                     # Adjust previous centreline
@@ -390,14 +394,14 @@ class Sheath(object):
                 x, y = control_point.position.tolist()
                 dx, dy = control_point.derivative.tolist()
                 if dx == 0 or dy == 0:
-                    normal_width = [SHEATH_WIDTH, SHEATH_WIDTH]
+                    normal_width = [SHEATH_RADIUS, SHEATH_RADIUS]
                 else:
                 # TODO: find a way to properly adjust the normals so that the 2D nodes are created appropriately.
                 # normal_left = mult(normalize([dy, -dx]),
                 #                    self.__estimate_width(nerve, path_id, node_index) * 0.5)
                 # normal_right = mult(normalize([-dy, dx]),
                 #                     self.__estimate_width(nerve, path_id, node_index) * 0.5)
-                    normal_width = mult(normalize([dy, -dx]), SHEATH_WIDTH)
+                    normal_width = mult(normalize([dy, -dx]), SHEATH_RADIUS)
                 new_node1 = [x + normal_width[0], y + normal_width[1]]
                 node_coords.append(new_node1)
                 d1.append(set_magnitude(normal_width, magnitude(normal_width) * 1.))
