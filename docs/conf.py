@@ -14,17 +14,12 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-# Themes
-#
-import sphinx_rtd_theme
-
 # -- Project information -----------------------------------------------------
 
 project = 'Flatmap Maker'
 copyright = '2020, David Brooks'
 author = 'David Brooks'
-release = '1.0.0'
-
+release = '1.3.0'
 
 # -- General configuration ---------------------------------------------------
 
@@ -48,7 +43,6 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -67,7 +61,6 @@ html_css_files = [
     'css/custom.css',
 ]
 
-
 # -- Options for Latex output ------------------------------------------------
 
 latex_elements = {
@@ -80,7 +73,6 @@ latex_docclass = {
 }
 
 # -- Ensure apidoc is run ----------------------------------------------------
-
 
 def run_apidoc(app, config):
     """
@@ -99,7 +91,6 @@ def run_apidoc(app, config):
         "../mapmaker"
     ]
     sphinx.ext.apidoc.main(args)
-
 
 def setup(app):
     app.connect("config-inited", run_apidoc)
