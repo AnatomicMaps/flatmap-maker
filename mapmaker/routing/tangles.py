@@ -55,6 +55,26 @@ def permutations(N):
 
 #===============================================================================
 
+def branch(cable_connections):
+    port_pins = [a + cable_connections[n+1] for n, a in enumerate(cable_connections[:-1])]
+    port_pins.append(cable_connections[-1] + cable_connections[0])
+    for perm in permutations(sum(port_pins)):
+        inside_port = False
+        start_pin1 = 1
+        for pin_count in port_pins:
+            next_pin1 = start_pin1 + pin_count
+            for pin in range(start_pin1, next_pin1):
+                if start_pin1 <= perm(pin) < next_pin1:
+                    inside_port = True
+                    break
+            if inside_port:
+                break
+            start_pin1 = next_pin1
+        if not inside_port:
+            yield perm
+
+#===============================================================================
+
 test_permutations = [
     [1, 2, 3, 4, 5, 6, 7],
     [6, 3, 2, 5, 4, 1, 7],
@@ -78,9 +98,11 @@ def test(N):
         print(t, perm.to_image())
 
 if __name__ == '__main__':
-    N = 6
-    for n in range(1, N+1):
-        test(n)
-        print()
+    for p in branch((2, 1, 0)):
+    #for p in branch((1, 1, 1)):
+        print(tangles(p), p.to_image())
+    #for n in range(1, N+1):
+    #    test(n)
+    #    print()
 
 #===============================================================================
