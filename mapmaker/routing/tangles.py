@@ -31,11 +31,9 @@ def tangles(permutation):
     for n, m in enumerate(p):
         if n > m:   #  assert p[m] == n, i.e. p[p[n]] == n
             p[n] = n
-    while len(p) > 1 and p[0] == p[-1]:
-        p = p[1:-1]
-    max_m = len(p) - 1
     tangles = 0
-    i = 0
+    max_m = len(p) - 1
+    i = 0 if p[0] < max_m else 1
     while i < max_m:
         m = p[i]
         j = i + 1
