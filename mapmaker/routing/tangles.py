@@ -23,6 +23,7 @@ import itertools
 #===============================================================================
 
 from permutation import Permutation
+import pyscipopt as scip
 
 #===============================================================================
 
@@ -92,15 +93,79 @@ test_permutations = [
 
 #===============================================================================
 
+class BranchConfiguration(object):
+    def __init__(self, permutation):
+        self.__permutation = permutation
+        self.__tangling = tangles(permutation)
+
+    @property
+    def permutation(self):
+        return self.__permutation
+
+    @property
+    def tangling(self):
+        return self.__tangling
+
+#===============================================================================
+
+class Branch(object):
+    def __init__(self, cable_connections):
+        self.__configurations = []
+        self.__port_pins = [a + cable_connections[n+1] for n, a in enumerate(cable_connections[:-1])]
+        self.__port_pins.append(cable_connections[-1] + cable_connections[0])
+        for perm in permutations(sum(self.__port_pins)):
+            inside_port = False
+            start_pin1 = 1
+            for pin_count in self.__port_pins:
+                next_pin1 = start_pin1 + pin_count
+                for pin in range(start_pin1, next_pin1):
+                    if start_pin1 <= perm(pin) < next_pin1:
+                        inside_port = True
+                        break
+                if inside_port:
+                    break
+                start_pin1 = next_pin1
+            if not inside_port:
+                self.__configurations.append(BranchConfiguration(perm))
+
+    @property
+    def configurations(self):
+        return self.__configurations
+
+#===============================================================================
+
+def solve(branches):
+    model = scip.Model()
+    x = {}
+    for m, branch in enumerate(branches):
+        configurations = branch.configurations
+        for n in range(len(configurations)):
+            x[m, n] = model.addVar(f'x[{m}, {n}]', vtype='B')
+        # Only one configuration from each branch
+        model.addCons(scip.quicksum(x[m, n] for n in range(len(configurations))) == 1)
+    model.setObjective(scip.quicksum(x[m, n]*branch.configurations[n].tangling
+                        for m, branch in enumerate(branches)
+                            for n in range(len(branch.configurations))), 'minimize')
+    #model.hideOutput()
+    model.optimize()
+
+    for m, branch in enumerate(branches):
+        configurations = branch.configurations
+        for n in range(len(configurations)):
+            print(branch.configurations[n].tangling, model.getVal(x[m, n]))
+
+#===============================================================================
+
 def test(N):
     for perm in permutations(N):
         t = tangles(perm)
         print(t, perm.to_image())
 
 if __name__ == '__main__':
-    for p in branch((2, 1, 0)):
+    solve([Branch([1, 1, 0])])
+
     #for p in branch((1, 1, 1)):
-        print(tangles(p), p.to_image())
+    #    print(tangles(p), p.to_image())
     #for n in range(1, N+1):
     #    test(n)
     #    print()
