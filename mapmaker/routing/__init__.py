@@ -36,7 +36,7 @@ import shapely.geometry
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
-from .network import RoutedPath
+from .routedpath import RoutedPath
 
 #===============================================================================
 
