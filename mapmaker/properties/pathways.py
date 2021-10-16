@@ -86,6 +86,9 @@ def parse_nerves(node_ids):
 #===============================================================================
 
 class ResolvedPath(object):
+    """
+    A path described in terms of numeric feature ids.
+    """
     def __init__(self):
         self.__lines = set()
         self.__nerves = set()
@@ -93,7 +96,10 @@ class ResolvedPath(object):
         self.__models = None
 
     @property
-    def as_dict(self):
+    def as_dict(self) -> dict:
+    """
+    The numeric feature ids that make up a path.
+    """
         path_dict = {
             'lines': list(self.__lines),
             'nerves': list(self.__nerves),
@@ -103,26 +109,66 @@ class ResolvedPath(object):
             path_dict['models'] = self.__models
         return path_dict
 
-    def extend_lines(self, lines):
+    def extend_lines(self, lines: list[int]):
+        """
+        Associate line segments with the path.
+
+        Arguments:
+        ----------
+        lines
+            Line segment numeric feature ids
+        """
         self.__lines.update(lines)
 
-    def extend_nerves(self, nerves):
+    def extend_nerves(self, nerves: list[int]):
+        """
+        Associate nerve cuffs with the path.
+
+        Arguments:
+        ----------
+        nerves
+            Nerve cuff numeric feature ids
+        """
         self.__nerves.update(nerves)
 
-    def extend_nodes(self, nodes):
+    def extend_nodes(self, nodes: list[int]):
+        """
+        Associate nodes with the path.
+
+        Arguments:
+        ----------
+        nodes
+            Node numeric feature ids
+        """
         self.__nodes.update(nodes)
 
-    def set_model_id(self, model_id):
+    def set_model_id(self, model_id: str):
+        """
+        Set an external indentifier for the path.
+
+        Arguments:
+        ----------
+        model_id
+            The path's external identifier (what it models)
+        """
         self.__models = model_id
 
 #===============================================================================
 
 class ResolvedPathways(object):
-    def __init__(self, feature_map):
+    """
+    A set of :class:`ResolvedPath`\ s.
+
+        Arguments:
+        ----------
+        feature_map
+            A mapping from a feature's id and class attributes to its numeric identifier.
+    """
+    def __init__(self, feature_map: mapmaker.flatmap.FeatureMap):
         self.__feature_map = feature_map
-        self.__paths = defaultdict(ResolvedPath)  # path_id: ResolvedPath
-        self.__node_paths = defaultdict(list)     # node_id: [ path_ids ]
-        self.__type_paths = defaultdict(list)     # type: [ path _ids ]
+        self.__paths = defaultdict(ResolvedPath)  #! Paths by :class:`ResolvedPath`\ s
+        self.__node_paths = defaultdict(list)     #! Paths by node
+        self.__type_paths = defaultdict(list)     #! Paths by path type
 
     @property
     def node_paths(self):
