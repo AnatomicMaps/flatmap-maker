@@ -22,6 +22,8 @@ import os
 
 #===============================================================================
 
+import mapmaker.knowledgebase.connectivity as connectivity
+
 from mapmaker.settings import settings
 from mapmaker.utils import log, request_json
 
@@ -29,34 +31,16 @@ from mapmaker.utils import log, request_json
 
 INTERLEX_ONTOLOGIES = ['ILX', 'NLX']
 
-NEUROLATOR_ONTOLOGIES = [ 'ilxtr' ]
+CONNECTIVITY_ONTOLOGIES = [ 'ilxtr' ]
 
-SCIGRAPH_ONTOLOGIES = ['FMA', 'UBERON']
+SCIGRAPH_ONTOLOGIES = ['FMA', 'NCBITaxon', 'UBERON']
 
 #===============================================================================
+
+SCICRUNCH_CONNECTIVITY = 'http://sparc-data.scicrunch.io:9000/scigraph/dynamic/demos/apinat/neru-1/{}.json'
 
 SCICRUNCH_INTERLEX_VOCAB = 'https://scicrunch.org/api/1/ilx/search/curie/{}'
-SCICRUNCH_NEUROLATOR = 'http://sparc-data.scicrunch.io:9000/scigraph/dynamic/demos/apinat/neru-1/{}.json'
 SCICRUNCH_SCIGRAPH_VOCAB = 'https://scicrunch.org/api/1/sparc-scigraph/vocabulary/id/{}.json'
-
-#===============================================================================
-
-MODEL_NAMES = {
-    'keast': 'Keast bladder'
-}
-
-# To refresh neuron group labels:
-#
-#   delete from labels where entity like 'ilxtr:%';
-#
-def neurolator_label(entity):
-    #ilxtr:neuron-type-keast-11
-    ontology, name = entity.split(':', 1)
-    if ontology in NEUROLATOR_ONTOLOGIES:
-        parts = name.rsplit('-', 2)
-        if len(parts) == 3 and parts[0] == 'neuron-type':
-            return('{} neuron type {}'.format(MODEL_NAMES.get(parts[1], '?'), parts[2]))
-    return entity
 
 #===============================================================================
 
@@ -78,22 +62,12 @@ class SciCrunch(object):
                 if data is not None:
                     knowledge['label'] = data.get('data', {}).get('label', entity)
 
-            elif ontology in NEUROLATOR_ONTOLOGIES:
+            elif ontology in CONNECTIVITY_ONTOLOGIES:
                 data = request_json('{}?api_key={}'.format(
-                        SCICRUNCH_NEUROLATOR.format(entity),
+                        SCICRUNCH_CONNECTIVITY.format(entity),
                         self.__scigraph_key))
-                apinatomy_neuron = None
-                for edge in data['edges']:
-                    if edge['sub'] == entity and edge['pred'] == 'apinatomy:annotates':
-                        apinatomy_neuron = edge['obj']
-                        break
-                if apinatomy_neuron is not None:
-                    publications = []
-                    for edge in data['edges']:
-                        if edge['sub'] == apinatomy_neuron and edge['pred'] == 'apinatomy:publications':
-                            publications.append(edge['obj'])
-                    knowledge['publications'] = publications
-                knowledge['label'] = neurolator_label(entity)
+                if data is not None:
+                    knowledge = connectivity.knowledge(entity, data)
 
             elif ontology in SCIGRAPH_ONTOLOGIES:
                 data = request_json('{}?api_key={}'.format(
