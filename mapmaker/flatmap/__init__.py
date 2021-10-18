@@ -151,7 +151,7 @@ class FlatMap(object):
         # Initialise geographical search for annotated features
         self.__setup_feature_search()
         # Generate metadata with connection information
-        self.__resolve_paths()
+        self.__resolve_connectivity()
         # Save all we know about the map
         self.__map_properties.save_knowledge()
         # Set creation time
@@ -316,14 +316,14 @@ class FlatMap(object):
         if extra_details:
             self.__add_detail_features(layer, detail_layer, extra_details)
 
-    def pathways(self):
-    #==================
-        return self.__map_properties.resolved_pathways
+    def connectivity(self):
+    #======================
+        return self.__map_properties.connectivity
 
-    def __resolve_paths(self):
-    #=========================
+    def __resolve_connectivity(self):
+    #==============================
         # Route paths and set feature ids of path components
-        self.__map_properties.generate_networks(self.__feature_map)
+        self.__map_properties.generate_connectivity(self.__feature_map)
 
     def __setup_feature_search(self):
     #================================

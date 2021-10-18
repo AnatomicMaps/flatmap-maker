@@ -55,8 +55,8 @@ class ExternalProperties(object):
                                 for network in properties_dict.get('networks', []) }
 
     @property
-    def resolved_pathways(self):
-        return self.__pathways.resolved_pathways
+    def connectivity(self):
+        return self.__pathways.connectivity
 
     def __set_properties(self, features_list):
     #=========================================
@@ -76,12 +76,12 @@ class ExternalProperties(object):
                 else:
                     self.__properties_by_id[id] = properties
 
-    def generate_networks(self, feature_map):
-    #========================================
+    def generate_connectivity(self, feature_map):
+    #============================================
         for network in self.__networks.values():
             if network.id is not None:
                 network.create_geometry(feature_map)
-                self.__pathways.resolve_pathways(network, feature_map, self.__model_to_features)
+                self.__pathways.generate_connectivity(network, feature_map, self.__model_to_features)
 
     def save_knowledge(self):
     #========================

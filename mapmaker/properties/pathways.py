@@ -331,7 +331,7 @@ class Pathways(object):
            else [ lst ])
 
     @property
-    def resolved_pathways(self):
+    def connectivity(self):
         return {
             'models': [
                 { 'id': model.source,
@@ -455,8 +455,8 @@ class Pathways(object):
                         self.__resolved_pathways.add_path_type(id, properties.get('type'))
                         self.__resolved_pathways.set_model_id(id, self.__path_models.get(path_id))
 
-    def resolve_pathways(self, network, feature_map, model_to_features):
-    #===================================================================
+    def generate_connectivity(self, network, feature_map, model_to_features):
+    #========================================================================
         if self.__resolved_pathways is not None:
             return
         self.__resolved_pathways = ResolvedPathways(feature_map)

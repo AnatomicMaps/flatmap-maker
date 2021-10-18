@@ -354,7 +354,7 @@ class MapMaker(object):
         # Save layer details in metadata
         tile_db.add_metadata(layers=json.dumps(self.__flatmap.layer_metadata()))
         # Save pathway details in metadata
-        tile_db.add_metadata(pathways=json.dumps(self.__flatmap.pathways()))
+        tile_db.add_metadata(pathways=json.dumps(self.__flatmap.connectivity()))
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(self.__flatmap.annotations))
 
