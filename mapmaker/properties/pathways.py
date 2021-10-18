@@ -369,8 +369,8 @@ class Pathways(object):
         self.__resolved_pathways = None
         self.__routes_by_path_id = {}
         self.__type_by_path_id = {}
-        self.__path_models = {}
-        self.__connectivity_by_path = {}
+        self.__anatomical_id_by_path_id = {}
+        self.__connectivity_by_path_id = {}
         self.__connectivity_models = []
         self.add_connectivity({'paths': paths_list})
 
@@ -410,10 +410,10 @@ class Pathways(object):
             })
         else:
             properties['type'] = 'line'
-        if path_id in self.__path_models:
-            properties['models'] = self.__path_models[path_id]
-        if path_id in self.__connectivity_by_path:
-            source = self.__connectivity_by_path[path_id].source
+        if path_id in self.__anatomical_id_by_path_id:
+            properties['models'] = self.__anatomical_id_by_path_id[path_id]
+        if path_id in self.__connectivity_by_path_id:
+            source = self.__connectivity_by_path_id[path_id].source
             if source is not None:
                 properties['source'] = source
         return properties
@@ -444,13 +444,15 @@ class Pathways(object):
         nerves_by_path_id = {}
         for path_model in connectivity_model.path_models:
             path_id = path_model.id
-            self.__connectivity_by_path[path_id] = connectivity_model
+            self.__connectivity_by_path_id[path_id] = connectivity_model
             lines_by_path_id[path_id] = path_model.lines
             nerves_by_path_id[path_id] = path_model.nerves
-            if path_model.route is not None:
-                self.__routes_by_path_id[path_id] = path_model.route
+            if path_model.models is not None:
+                self.__anatomical_id_by_path_id[path_id] = path_model.models
             if path_model.path_type is not None:
                 self.__type_by_path_id[path_id] = path_model.path_type
+            if path_model.route is not None:
+                self.__routes_by_path_id[path_id] = path_model.route
 
         # Update reverse maps
         self.__lines_by_path_id.update(lines_by_path_id)
@@ -483,10 +485,12 @@ class Pathways(object):
                 for path_id, routed_path in network.layout(connectivity_model.connections).items():
                     properties = { 'tile-layer': 'pathways' }
                     properties.update(self.__line_properties(path_id))
-                    anatomical_id = self.__path_models.get(path_id)
+
+                    anatomical_id = self.__anatomical_id_by_path_id.get(path_id)
                     if anatomical_id is not None:
                         # Now knowledge is in path_model...
                         properties['label'] = settings['KNOWLEDGE_BASE'].entity_knowledge(anatomical_id)['label']
+
                     for n, geometric_shape in enumerate(routed_path.geometry()):
                         properties.update(geometric_shape.properties)
                         nerve = properties.pop('nerve', None)
@@ -515,7 +519,7 @@ class Pathways(object):
             try:
                 if path_id in self.__routes_by_path_id:
                     self.__resolved_pathways.add_pathway(path_id,
-                                                         self.__path_models.get(path_id),
+                                                         self.__anatomical_id_by_path_id.get(path_id),
                                                          self.__type_by_path_id.get(path_id),
                                                          self.__routes_by_path_id[path_id],
                                                          self.__lines_by_path_id.get(path_id, []),
