@@ -480,10 +480,12 @@ class Pathways(object):
         if errors:
             raise ValueError('Errors in mapping paths and routes')
 
-    def save_knowledge(self, knowledgebase):
-    #=======================================
+    def knowledge(self):
+    #===================
+        knowledge = defaultdict(list)
         for model in self.__connectivity_models:
             if model.source is not None:
-                knowledgebase.update_publications(model.source, model.publications)
+                knowledge['publications'].append((model.source, model.publications))
+        return knowledge
 
 #===============================================================================

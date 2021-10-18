@@ -83,10 +83,16 @@ class ExternalProperties(object):
                 network.create_geometry(feature_map)
                 self.__pathways.generate_connectivity(network, feature_map, self.__model_to_features)
 
+    def knowledge(self, entity):
+    #===============================
+        return self.__knowledgebase.entity_knowledge(entity)
+
     def save_knowledge(self):
     #========================
         if self.__pathways is not None:
-            self.__pathways.save_knowledge(self.__knowledgebase)
+            knowledge = self.__pathways.knowledge()
+            for source, publication in knowledge.get('publications'):
+                self.__knowledgebase.update_publications(source, publication)
 
     def update_properties(self, properties):
     #=======================================
@@ -114,11 +120,9 @@ class ExternalProperties(object):
                 properties['kind'] = 'scaffold'
             elif 'simulations' in properties:
                 properties['kind'] = 'simulation'
-        if 'models' in properties:
-            # Make sure our knowledgebase knows about the anatomical object
-            knowledge = self.__knowledgebase.entity_knowledge(properties['models'])
-            if 'label' not in properties:
-                properties['label'] = knowledge.get('label')
+        if 'models' in properties and 'label' not in properties:
+            properties['label'] = self.knowledge(properties['models'])['label']
+
         return properties
 
     def update_feature_properties(self, feature):
