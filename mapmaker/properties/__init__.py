@@ -100,7 +100,6 @@ class ExternalProperties(object):
         if cls is not None:
             properties.update(self.__anatomical_map.properties(cls))
             properties.update(self.__properties_by_class.get(cls, {}))
-            properties.update(self.__pathways.add_line_or_nerve(cls))
         id = properties.get('id')
         if id is not None:
             # id overrides class
@@ -111,7 +110,8 @@ class ExternalProperties(object):
                 if network.has_node(id) and 'models' not in properties:
                     properties['exclude'] = True
                     break
-            properties.update(self.__pathways.add_line_or_nerve(id))
+        self.__pathways.update_line_or_nerve_properties(properties)
+
         if 'marker' in properties:
             properties['type'] = 'marker'
             if 'datasets' in properties:

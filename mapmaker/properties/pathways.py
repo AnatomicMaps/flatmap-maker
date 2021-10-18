@@ -370,23 +370,23 @@ class Pathways(object):
                 properties['source'] = source
         return properties
 
-    def add_line_or_nerve(self, id_or_class):
-    #========================================
-        path_id = None
-        properties = {}
-        # Is the id_or_class that of a line?
-        if id_or_class in self.__paths_by_line_id:
-            path_id = self.__paths_by_line_id[id_or_class][0]
-            properties.update(self.__line_properties(path_id))
-        # Is the id_or_class that of a nerve cuff?
-        elif id_or_class in self.__paths_by_nerve_id:
-            path_id = self.__paths_by_nerve_id[id_or_class][0]
-            properties['type'] = 'nerve'
-        # Have we found a path?
-        if path_id is not None:
-            properties['tile-layer'] = 'pathways'
-            self.__layer_paths.add(path_id)
-        return properties
+    def update_line_or_nerve_properties(self, properties):
+    #=====================================================
+
+        for id_or_class in [properties.get('class'), properties.get('id')]:
+            path_id = None
+            # Is the id_or_class that of a line?
+            if id_or_class in self.__paths_by_line_id:
+                path_id = self.__paths_by_line_id[id_or_class][0]
+                properties.update(self.__line_properties(path_id))
+            # Is the id_or_class that of a nerve cuff?
+            elif id_or_class in self.__paths_by_nerve_id:
+                path_id = self.__paths_by_nerve_id[id_or_class][0]
+                properties['type'] = 'nerve'
+            # Have we found a path?
+            if path_id is not None:
+                properties['tile-layer'] = 'pathways'
+                self.__layer_paths.add(path_id)
 
     def add_connectivity(self, connectivity):
     #========================================
