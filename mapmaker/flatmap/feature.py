@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+from collections import defaultdict
 from typing import Any
 
 from shapely.geometry.base import BaseGeometry
@@ -90,5 +91,48 @@ class Feature(object):
             self.del_property(property)
         else:
             self.__properties[property] = value
+
+#===============================================================================
+
+class FeatureMap(object):
+    def __init__(self):
+        self.__class_to_features = defaultdict(list)
+        self.__id_to_feature = {}
+        self.__model_to_features = defaultdict(list)
+
+    def add_feature(self, feature):
+        if feature.has_property('id'):
+            self.__id_to_feature[feature.get_property('id')] = feature
+        if feature.has_property('class'):
+            self.__class_to_features[feature.get_property('class')].append(feature)
+        if feature.has_property('models'):
+            self.__model_to_features[feature.get_property('models')].append(feature)
+
+    def duplicate_id(self, id):
+        return self.__id_to_feature.get(id, None) is not None
+
+    def features(self, id):
+        feature = self.__id_to_feature.get(id)
+        if feature is None:
+            return self.__class_to_features.get(id, [])
+        return [feature]
+
+    def feature_ids(self, ids):
+        feature_ids = []
+        for id in ids:
+            feature_ids.extend([f.feature_id for f in self.features(id)])
+        return feature_ids
+
+    def find_features_by_anatomical_id(self, anatomical_id, anatomical_layer=None):
+        features = self.__model_to_features.get(anatomical_id, [])
+        if anatomical_layer is None:
+            return features
+        layer_features = self.__model_to_features.get(anatomical_layer, [])
+        included_features = []
+        for layer_feature in layer_features:
+            for feature in features:
+                if layer_feature.geometry.contains(feature.geomtry):
+                    included_features.append(feature)
+        return included_features
 
 #===============================================================================

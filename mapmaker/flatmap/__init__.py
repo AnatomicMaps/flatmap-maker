@@ -36,36 +36,8 @@ from mapmaker.properties.pathways import Route
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
-from .feature import Feature
+from .feature import Feature, FeatureMap
 from .layers import MapLayer
-
-#===============================================================================
-
-class FeatureMap(object):
-    def __init__(self):
-        self.__class_to_feature = defaultdict(list)
-        self.__id_to_feature = {}
-
-    def add_feature(self, feature):
-        if feature.has_property('id'):
-            self.__id_to_feature[feature.get_property('id')] = feature
-        if feature.has_property('class'):
-            self.__class_to_feature[feature.get_property('class')].append(feature)
-
-    def duplicate_id(self, id):
-        return self.__id_to_feature.get(id, None) is not None
-
-    def features(self, id):
-        feature = self.__id_to_feature.get(id)
-        if feature is None:
-            return self.__class_to_feature.get(id, [])
-        return [feature]
-
-    def feature_ids(self, ids):
-        feature_ids = []
-        for id in ids:
-            feature_ids.extend([f.feature_id for f in self.features(id)])
-        return feature_ids
 
 #===============================================================================
 
