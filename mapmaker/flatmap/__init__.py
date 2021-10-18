@@ -58,7 +58,10 @@ class FlatMap(object):
         self.__entities = set()
         self.__models = manifest.models
         if self.__models is not None:
-            self.__metadata['describes'] = self.__models
+            self.__metadata['taxon'] = self.__models
+            knowledge = maker.knowledgebase.entity_knowledge(self.__models)
+            if 'label' in knowledge:
+                self.__metadata['describes'] = knowledge['label']
 
         # Properties about map features
         self.__map_properties = ExternalProperties(self, manifest, maker.knowledgebase)
