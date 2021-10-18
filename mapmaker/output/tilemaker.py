@@ -35,7 +35,7 @@ from svglib.svglib import svg2rlg
 #===============================================================================
 
 from mapmaker import MAX_ZOOM
-import mapmaker.geometry
+from mapmaker.geometry import extent_to_bounds, Transform as GeometryTransform
 from mapmaker.output.mbtiles import MBTiles, ExtractionError
 from mapmaker.sources import add_alpha, blank_image, mask_image, not_empty
 from mapmaker.sources.svg.rasteriser import SVGTiler
@@ -112,7 +112,7 @@ class Rect(object):
 
 #===============================================================================
 
-class Transform(mapmaker.geometry.Transform):
+class Transform(GeometryTransform):
     def __init__(self, scale=None, translateA=None, translateB=None):
         if scale is None: scale = (1, 1)
         if translateA is None: translateA = (0, 0)
@@ -370,7 +370,7 @@ class ImageTiler(RasterImageTiler):
         image = raster_layer.source_data
         if image.shape[2] == 3:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
-        tile_bounds = mapmaker.geometry.extent_to_bounds(tile_set.extent)
+        tile_bounds = extent_to_bounds(tile_set.extent)
         super().__init__(raster_layer, tile_set, image, raster_layer.map_source.image_to_world)
 
 #===============================================================================
