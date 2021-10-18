@@ -153,6 +153,7 @@ class MapLayer(FeatureLayer):
         nerve_polygons = []
         for feature in self.features:
             if feature.get_property('type') == 'nerve':
+                feature.set_property('tile-layer', 'pathways')
                 if not feature.has_property('nerveId'):
                     feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
                 if feature.geom_type == 'LineString':
@@ -161,6 +162,7 @@ class MapLayer(FeatureLayer):
                     nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
+                    self.flatmap.save_feature_id(nerve_polygon_feature)
             elif (feature.get_property('type') == 'nerve-track'
               and feature.geom_type == 'LineString'):
                 self.__nerve_tracks.append(feature)
