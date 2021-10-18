@@ -94,9 +94,9 @@ def connectivity(data):
 
 def knowledge(entity, data):
     knowledge = {}
-    for node in data['node']:
+    for node in data['nodes']:
         if node.get('id') == entity:
-            knowledge['label'] = node['meta'].get('synonyn', [entity])[0]
+            knowledge['label'] = node['meta'].get('synonym', [entity])[0]
             break
     apinatomy_neuron = None
     for edge in data['edges']:
