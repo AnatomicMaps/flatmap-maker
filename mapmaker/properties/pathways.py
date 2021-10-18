@@ -166,7 +166,7 @@ class ResolvedPathways(object):
         feature_map
             A mapping from a feature's id and class attributes to its numeric identifier.
     """
-    def __init__(self, feature_map: mapmaker.flatmap.FeatureMap):
+    def __init__(self, feature_map: FeatureMap):
         self.__feature_map = feature_map
         self.__paths = defaultdict(ResolvedPath)  #! Paths by :class:`ResolvedPath`\ s
         self.__node_paths = defaultdict(list)     #! Paths by node
