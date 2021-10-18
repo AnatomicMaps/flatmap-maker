@@ -77,12 +77,14 @@ def parse_route_nodes(node_ids):
         raise ValueError('Syntax error in route node list: {}'.format(node_ids)) from None
     return list(route_nodes)
 
-def parse_nerves(node_ids):
-#==========================
+def parse_nerves(node_id_string):
+#================================
+    if node_id_string is None:
+        return []
     try:
-        nerves = NERVES.parseString(node_ids, parseAll=True)
+        nerves = NERVES.parseString(node_id_string, parseAll=True)
     except ParseException:
-        raise ValueError('Syntax error in nerve list: {}'.format(node_ids)) from None
+        raise ValueError('Syntax error in nerve list: {}'.format(node_id_string)) from None
     return nerves
 
 #===============================================================================
