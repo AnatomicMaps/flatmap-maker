@@ -169,12 +169,12 @@ class ResolvedPathways(object):
     def __init__(self, feature_map: FeatureMap):
         self.__feature_map = feature_map
         self.__paths = defaultdict(ResolvedPath)  #! Paths by :class:`ResolvedPath`\ s
-        self.__node_paths = defaultdict(list)     #! Paths by node
-        self.__type_paths = defaultdict(list)     #! Paths by path type
+        self.__node_paths = defaultdict(set)     #! Paths by node
+        self.__type_paths = defaultdict(set)     #! Paths by path type
 
     @property
     def node_paths(self):
-        return self.__node_paths
+        return { node: list(paths) for node, paths in self.__node_paths.items() }
 
     @property
     def paths_dict(self):
@@ -184,7 +184,6 @@ class ResolvedPathways(object):
 
     @property
     def type_paths(self):
-        return self.__type_paths
 
     def add_line_feature(self, path_id, feature):
         resolved_path = self.__paths[path_id]
@@ -198,8 +197,7 @@ class ResolvedPathways(object):
         resolved_path = self.__paths[path_id]
         resolved_path.extend_nodes(self.__resolve_nodes_for_path(path_id, nodes))
 
-    def add_path_type(self, path_id, path_type):
-        self.__type_paths[path_type].append(path_id)
+        return { typ: list(paths) for typ, paths in self.__type_paths.items() }
 
     def __resolve_nodes_for_path(self, path_id, nodes):
         node_ids = []
@@ -209,7 +207,7 @@ class ResolvedPathways(object):
                 if not feature.get_property('exclude'):
                     node_id = feature.feature_id
                     feature.set_property('nodeId', node_id)
-                    self.__node_paths[node_id].append(path_id)
+                    self.__node_paths[node_id].add(path_id)
                     node_ids.append(node_id)
                     node_count += 1
             if node_count == 0:
@@ -220,6 +218,8 @@ class ResolvedPathways(object):
         resolved_path = self.__paths[path_id]
         resolved_path.extend_lines(self.__feature_map.feature_ids(lines))
         resolved_path.extend_nerves(self.__feature_map.feature_ids(nerves))
+        if path_type is not None:
+            self.__type_paths[path_type].add(path_id)
         resolved_path.extend_nodes(
             self.__resolve_nodes_for_path(path_id, route.start_nodes)
           + self.__resolve_nodes_for_path(path_id, route.through_nodes)
