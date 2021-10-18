@@ -92,33 +92,12 @@ class PathNetwork(object):
     def layout_paths(self):
         m = scip.Model()
 
-# create a binary variable for every field and value
-x = {}
-for i in range(9):
-    for j in range(9):
-        for k in range(9):
-            name = str(i)+','+str(j)+','+str(k)
-            x[i,j,k] = m.addVar(name, vtype='B')
 
-# fill in initial values
-for i in range(9):
-    for j in range(9):
-        if init[j + 9*i] != 0:
-            m.addCons(x[i,j,init[j + 9*i]-1] == 1)
 
-# only one digit in every field
-for i in range(9):
-    for j in range(9):
-        m.addCons(quicksum(x[i,j,k] for k in range(9)) == 1)
+    for m, branch in enumerate(branches):
+        for n, configuration in enumerate(branch)
+            x[m, n] = model.addVar(f'x[{m}, {n}', vtype='B')
+        # Only one configuration from each branch
+        model.addCons(quicksum(x[m, n] for n in range(len(branch))) == 1)
+    model.setObjective(quicksum(x[m, n] for m in range(len(branches)) for n in range(len(branch))), 'minimize')
 
-# set up row and column constraints
-for ind in range(9):
-    for k in range(9):
-        m.addCons(quicksum(x[ind,j,k] for j in range(9)) == 1)
-        m.addCons(quicksum(x[i,ind,k] for i in range(9)) == 1)
-
-# set up square constraints
-for row in range(3):
-    for col in range(3):
-        for k in range(9):
-            m.addCons(quicksum(x[i+3*row, j+3*col, k] for i in range(3) for j in range(3)) == 1)
