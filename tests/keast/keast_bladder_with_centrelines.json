@@ -8,7 +8,6 @@
         "id": "path_2",
         "type": "sensory",
         "models": "ilxtr:neuron-type-keast-10",
-        "nerves": "keast_4, keast_1",
         "connects": [
             {
                 "node": "bladder_n-bladder",
@@ -31,7 +30,6 @@
         "id": "path_4",
         "type": "para-pre",
         "models": "ilxtr:neuron-type-keast-5",
-        "nerves": "keast_4",
         "connects": [
             "keast_3",
             {
@@ -50,7 +48,6 @@
         "id": "path_5",
         "type": "para-post",
         "models": "ilxtr:neuron-type-keast-1",
-        "nerves": "keast_1",
         "connects": [
             "keast_3",
             {
@@ -63,7 +60,6 @@
         "id": "path_6",
         "type": "sensory",
         "models": "ilxtr:neuron-type-keast-11",
-        "nerves": "keast_7, keast_5, keast_1",
         "connects": [
             {
                 "node": "bladder_n-bladder",
@@ -86,7 +82,6 @@
         "id": "path_7",
         "type": "symp-pre",
         "models": "ilxtr:neuron-type-keast-6",
-        "nerves": "keast_7, keast_5",
         "connects": [
             "keast_3",
             {
@@ -105,7 +100,6 @@
         "id": "path_8",
         "type": "symp-post",
         "models": "ilxtr:neuron-type-keast-2",
-        "nerves": "keast_1",
         "connects": [
             "keast_3",
             {
@@ -118,7 +112,6 @@
         "id": "path_9",
         "type": "symp-pre",
         "models": "ilxtr:neuron-type-keast-7",
-        "nerves": "keast_7",
         "connects": [
             "keast_6",
             {
@@ -137,7 +130,6 @@
         "id": "path_10",
         "type": "symp-post",
         "models": "ilxtr:neuron-type-keast-3",
-        "nerves": "keast_5, keast_1",
         "connects": [
             "keast_6",
             {

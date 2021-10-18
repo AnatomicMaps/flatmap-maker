@@ -206,6 +206,36 @@
             "properties": {
                 "label": "mediastinal ganglion"
             }
+        },
+        {
+            "class": "keast_1",
+            "properties": {
+                "type": "nerve"
+            }
+        },
+        {
+            "class": "keast_2",
+            "properties": {
+                "type": "nerve"
+            }
+        },
+        {
+            "class": "keast_4",
+            "properties": {
+                "type": "nerve"
+            }
+        },
+        {
+            "class": "keast_5",
+            "properties": {
+                "type": "nerve"
+            }
+        },
+        {
+            "class": "keast_7",
+            "properties": {
+                "type": "nerve"
+            }
         }
     ],
     "networks": [
@@ -266,19 +296,27 @@
         },
         {
             "id": "lumbar_splanchnic_n",
-            "connects": ["L1_L2_spinal_n-lumbar_splanchnic_n", "keast_6"]
+            "connects": ["L1_L2_spinal_n-lumbar_splanchnic_n", "keast_6"],
+            "nerve": "keast_7"
         },
         {
             "id": "pelvic_splanchnic_n",
-            "connects": ["L6_S1_spinal_n-pelvic_splanchnic_n", "keast_3"]
+            "connects": ["L6_S1_spinal_n-pelvic_splanchnic_n", "keast_3"],
+            "nerve": "keast_4"
         },
         {
             "id": "hypogastric_n",
-            "connects": ["keast_6", "keast_3"]
+            "connects": ["keast_6", "keast_3"],
+            "nerve": "keast_5"
+        },
+        {
+            "id": "join",
+            "joins": ["hypogastric_n", "bladder_n"]
         },
         {
             "id": "bladder_n",
-            "connects": ["keast_3", "bladder_n-bladder"]
+            "connects": ["keast_3", "bladder_n-bladder"],
+            "nerve": "keast_1"
         }]
     }]
 }
