@@ -19,6 +19,7 @@
 #===============================================================================
 
 from collections import defaultdict
+from typing import Dict, List
 
 #===============================================================================
 
@@ -26,6 +27,7 @@ from pyparsing import delimitedList, Group, ParseException, ParseResults, Suppre
 
 #===============================================================================
 
+from mapmaker.flatmap.feature import Feature, FeatureMap
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.sources.markup import ID_TEXT
 from mapmaker.utils import log, FilePath
@@ -96,10 +98,10 @@ class ResolvedPath(object):
         self.__models = None
 
     @property
-    def as_dict(self) -> dict:
-    """
-    The numeric feature ids that make up a path.
-    """
+    def as_dict(self) -> Dict[str, List[int]] :
+        """
+        The numeric feature ids that make up a path.
+        """
         path_dict = {
             'lines': list(self.__lines),
             'nerves': list(self.__nerves),
@@ -109,38 +111,38 @@ class ResolvedPath(object):
             path_dict['models'] = self.__models
         return path_dict
 
-    def extend_lines(self, lines: list[int]):
+    def extend_lines(self, feature_ids: List[int]):
         """
         Associate line segments with the path.
 
         Arguments:
         ----------
-        lines
+        feature_ids
             Line segment numeric feature ids
         """
-        self.__lines.update(lines)
+        self.__lines.update(feature_ids)
 
-    def extend_nerves(self, nerves: list[int]):
+    def extend_nerves(self, feature_ids: List[int]):
         """
         Associate nerve cuffs with the path.
 
         Arguments:
         ----------
-        nerves
+        feature_ids
             Nerve cuff numeric feature ids
         """
-        self.__nerves.update(nerves)
+        self.__nerves.update(feature_ids)
 
-    def extend_nodes(self, nodes: list[int]):
+    def extend_nodes(self, feature_ids: List[int]):
         """
         Associate nodes with the path.
 
         Arguments:
         ----------
-        nodes
+        feature_ids
             Node numeric feature ids
         """
-        self.__nodes.update(nodes)
+        self.__nodes.update(feature_ids)
 
     def set_model_id(self, model_id: str):
         """
