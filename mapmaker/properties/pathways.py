@@ -29,6 +29,7 @@ from pyparsing import delimitedList, Group, ParseException, ParseResults, Suppre
 
 from mapmaker.flatmap.feature import Feature, FeatureMap
 from mapmaker.flatmap.layers import FeatureLayer
+from mapmaker.settings import settings
 from mapmaker.sources.markup import ID_TEXT
 from mapmaker.utils import log, FilePath
 
@@ -264,20 +265,29 @@ class ResolvedPathways(object):
 
 #===============================================================================
 
-class ConnectivityModel(object):
-    def __init__(self, description):
-        if description is None:
-            self.__id = None
-            self.__network = None
-            self.__source = None
-            self.__publications = []
-        else:
-            self.__id = description['id']
-            self.__network = description.get('network')
-            self.__publications = description.get('publications', [])
-            self.__source = description.get('source')
-        self.__path_ids = []
-        self.__connections = {}
+class PathModel(object):
+    def __init__(self, path):
+        self.__id = path['id']
+        self.__connections = path.get('connects')
+        self.__knowledge = None
+        self.__lines = []
+        self.__models = path.get('models')
+        self.__nerves = list(parse_nerves(path.get('nerves')))
+        self.__route = None
+        self.__type = path.get('type')
+        if 'path' in path:  # Manual path specification
+            for line_group in parse_path_lines(path['path']):
+                self.__lines.extend(Pathways.make_list(line_group))
+            if 'route' not in path:
+                raise ValueError("Path '{}' doesn't have a route".format(self.__id))
+            self.__route = Route(self.__id, path['route'])
+            if 'connects' in path:
+                log.error(f'Path {self.__id} is specified multiple ways...')
+        elif self.__connections is None:
+            if self.__models is not None:
+                self.__knowledge = settings['KNOWLEDGE_BASE'].entity_knowledge(self.__models)
+            else:
+                log.error(f'Path {self.__id} has no route or known connections...')
 
     @property
     def connections(self):
@@ -288,8 +298,56 @@ class ConnectivityModel(object):
         return self.__id
 
     @property
+    def lines(self):
+        return self.__lines
+
+    @property
+    def models(self):
+        return self.__models
+
+    @property
+    def nerves(self):
+        return self.__nerves
+
+    @property
+    def path_type(self):
+        return self.__type
+
+    @property
+    def route(self):
+        return self.__route
+
+#===============================================================================
+
+class ConnectivityModel(object):
+    def __init__(self, description):
+        self.__id = description.get('id')
+        self.__network = description.get('network')
+        self.__publications = description.get('publications', [])
+        self.__source = description.get('source')
+        self.__path_models = { path['id']: PathModel(path)
+                                for path in description.get('paths', []) }
+
+    @property
+    def connections(self):
+        return { pm.id: pm.connections for pm in self.__path_models.values() }
+
+    @property
+    def id(self):
+        return self.__id
+
+    @property
     def network(self):
         return self.__network
+
+    @property
+    def path_ids(self):
+        return list(self.__path_models.keys())
+
+    @property
+    def path_models(self):
+        return self.__path_models.values()
+
     @property
     def publications(self):
         return self.__publications
@@ -297,16 +355,6 @@ class ConnectivityModel(object):
     @property
     def source(self):
         return self.__source
-
-    @property
-    def path_ids(self):
-        return self.__path_ids
-
-    def add_connection(self, path_id, connection):
-        self.__connections[path_id] = connection
-
-    def add_path_id(self, path_id):
-        self.__path_ids.append(path_id)
 
 #===============================================================================
 
@@ -320,11 +368,11 @@ class Pathways(object):
         self.__paths_by_nerve_id = defaultdict(list)
         self.__resolved_pathways = None
         self.__routes_by_path_id = {}
-        self.__types_by_path_id = {}
-        self.__connectivity_by_path = {}
-        self.__connectivity_models = [ ConnectivityModel(None) ]
+        self.__type_by_path_id = {}
         self.__path_models = {}
-        self.__extend_pathways(self.__connectivity_models[0], paths_list)
+        self.__connectivity_by_path = {}
+        self.__connectivity_models = []
+        self.add_connectivity({'paths': paths_list})
 
     @staticmethod
     def make_list(lst):
@@ -349,8 +397,8 @@ class Pathways(object):
     def __line_properties(self, path_id):
     #====================================
         properties = {}
-        if path_id in self.__types_by_path_id:
-            kind = self.__types_by_path_id[path_id]
+        if path_id in self.__type_by_path_id:
+            kind = self.__type_by_path_id[path_id]
             properties.update({
                 'kind': kind,
                  ## Can we just put this into `kind` and have viewer work out if dashed??
@@ -372,7 +420,6 @@ class Pathways(object):
 
     def update_line_or_nerve_properties(self, properties):
     #=====================================================
-
         for id_or_class in [properties.get('class'), properties.get('id')]:
             path_id = None
             # Is the id_or_class that of a line?
@@ -392,34 +439,20 @@ class Pathways(object):
     #========================================
         connectivity_model = ConnectivityModel(connectivity)
         self.__connectivity_models.append(connectivity_model)
-        self.__extend_pathways(connectivity_model, connectivity.get('paths', []))
 
-    def __extend_pathways(self, connectivity_model, paths_list):
-    #===========================================================
-        lines_by_path_id = defaultdict(list)
+        lines_by_path_id = {}
         nerves_by_path_id = {}
-        for path in paths_list:
-            path_id = path['id']
-            connectivity_model.add_path_id(path_id)
+        for path_model in connectivity_model.path_models:
+            path_id = path_model.id
             self.__connectivity_by_path[path_id] = connectivity_model
-            if 'connects' in path:
-                # Automated path layout
-                connectivity_model.add_connection(path_id, path['connects'])
-            elif 'path' in path:
-                # Manual path specification
-                for line_group in parse_path_lines(path['path']):
-                    lines_by_path_id[path_id] += Pathways.make_list(line_group)
-                if 'route' not in path:
-                    raise ValueError("Path '{}' doesn't have a route".format(path_id))
-                self.__routes_by_path_id[path_id] = Route(path_id, path['route'])
-                if 'nerves' in path:
-                    nerves_by_path_id[path_id] = list(parse_nerves(path['nerves']))
-            else:
-                log.error(f'Path {path_id} has no route or connections...')
-            if 'type' in path:
-                self.__types_by_path_id[path_id] = path['type']
-            if 'models' in path:
-                self.__path_models[path_id] = path['models']
+            lines_by_path_id[path_id] = path_model.lines
+            nerves_by_path_id[path_id] = path_model.nerves
+            if path_model.route is not None:
+                self.__routes_by_path_id[path_id] = path_model.route
+            if path_model.path_type is not None:
+                self.__type_by_path_id[path_id] = path_model.path_type
+
+        # Update reverse maps
         self.__lines_by_path_id.update(lines_by_path_id)
         for path_id, lines in lines_by_path_id.items():
             for line_id in lines:
@@ -452,7 +485,8 @@ class Pathways(object):
                     properties.update(self.__line_properties(path_id))
                     anatomical_id = self.__path_models.get(path_id)
                     if anatomical_id is not None:
-                        properties['label'] = self.__flatmap.map_properties.knowledge(anatomical_id)['label']
+                        # Now knowledge is in path_model...
+                        properties['label'] = settings['KNOWLEDGE_BASE'].entity_knowledge(anatomical_id)['label']
                     for n, geometric_shape in enumerate(routed_path.geometry()):
                         properties.update(geometric_shape.properties)
                         nerve = properties.pop('nerve', None)
@@ -466,7 +500,7 @@ class Pathways(object):
                         layer.add_feature(feature)
                         self.__resolved_pathways.add_connectivity(path_id,
                                                                   anatomical_id,
-                                                                  self.__types_by_path_id.get(path_id),
+                                                                  self.__type_by_path_id.get(path_id),
                                                                   routed_path.node_set,
                                                                   feature.feature_id,
                                                                   nerve_features)
@@ -482,7 +516,7 @@ class Pathways(object):
                 if path_id in self.__routes_by_path_id:
                     self.__resolved_pathways.add_pathway(path_id,
                                                          self.__path_models.get(path_id),
-                                                         self.__types_by_path_id.get(path_id),
+                                                         self.__type_by_path_id.get(path_id),
                                                          self.__routes_by_path_id[path_id],
                                                          self.__lines_by_path_id.get(path_id, []),
                                                          self.__nerves_by_path_id.get(path_id, []))
