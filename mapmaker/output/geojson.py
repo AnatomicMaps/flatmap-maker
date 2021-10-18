@@ -49,20 +49,20 @@ class GeoJSONOutput(object):
     #============================================
         self.__save_features(features)
         saved_filenames = {}
-        for geojson_id in self.__geojson_layers:
+        for (geojson_id, features) in self.__geojson_layers.items():
             filename = os.path.join(self.__output_dir, '{}_{}.json'.format(self.__layer.id, geojson_id))
             saved_filenames[geojson_id] = filename
             with open(filename, 'w') as output_file:
                 if pretty_print:
                     feature_collection = {
                         'type': 'FeatureCollection',
-                        'features': self.__geojson_layers.get(geojson_id, [])
+                        'features': features
                     }
                     output_file.write(json.dumps(feature_collection, indent=4))
                 else:
                     # Tippecanoe doesn't need a FeatureCollection
                     # Delimit features with RS...LF   (RS = 0x1E)
-                    for feature in self.__geojson_layers.get(geojson_id, []):
+                    for feature in features:
                         output_file.write('\x1E{}\x0A'.format(json.dumps(feature)))
         return saved_filenames
 
