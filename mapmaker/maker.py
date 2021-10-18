@@ -182,8 +182,9 @@ class MapMaker(object):
         self.__raster_layers = []
 
         # Our source of knowledge, updated with information
-        # about maps we've made
-        self.__knowledgebase = KnowledgeStore(map_base)
+        # about maps we've made, held in a global place
+
+        settings['KNOWLEDGE_BASE'] = KnowledgeStore(map_base)
 
         # The map we are making
         self.__flatmap = FlatMap(self.__manifest, self)
@@ -191,10 +192,6 @@ class MapMaker(object):
     @property
     def id(self):
         return self.__id
-
-    @property
-    def knowledgebase(self):
-        return self.__knowledgebase
 
     @property
     def zoom(self):
@@ -229,7 +226,9 @@ class MapMaker(object):
 
     def __finish_make(self):
     #=======================
-        self.__knowledgebase.close()
+        # We are finished with the knowledge base
+        settings['KNOWLEDGE_BASE'].close()
+
         # Show what the map is about
         if self.__flatmap.models is not None:
             log('Generated map: {} for {}'.format(self.id, self.__flatmap.models))
@@ -362,7 +361,7 @@ class MapMaker(object):
         tile_db.execute("COMMIT")
 
         # Update our knowledge base
-        self.__knowledgebase.add_flatmap(self.__flatmap)
+        settings['KNOWLEDGE_BASE'].add_flatmap(self.__flatmap)
 
 #*        ## TODO: set ``layer.properties`` for annotations...
 #*        ##update_RDF(options['map_base'], options['map_id'], source, annotations)

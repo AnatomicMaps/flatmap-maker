@@ -58,14 +58,14 @@ class FlatMap(object):
         self.__models = manifest.models
         if self.__models is not None:
             self.__metadata['taxon'] = self.__models
-            knowledge = maker.knowledgebase.entity_knowledge(self.__models)
+            knowledge = settings['KNOWLEDGE_BASE'].entity_knowledge(self.__models)
             if 'label' in knowledge:
                 self.__metadata['describes'] = knowledge['label']
 
         self.__entities = set()
 
         # Properties about map features
-        self.__map_properties = ExternalProperties(self, manifest, maker.knowledgebase)
+        self.__map_properties = ExternalProperties(self, manifest)
 
         self.__layer_dict = OrderedDict()
         self.__visible_layer_count = 0

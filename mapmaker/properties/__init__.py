@@ -24,6 +24,7 @@ from collections import defaultdict
 
 from mapmaker.routing import Network
 from mapmaker.utils import FilePath
+from mapmaker.settings import settings
 
 from .anatomicalmap import AnatomicalMap
 from .pathways import Pathways
@@ -31,9 +32,8 @@ from .pathways import Pathways
 #===============================================================================
 
 class ExternalProperties(object):
-    def __init__(self, flatmap, manifest, knowledgebase):
+    def __init__(self, flatmap, manifest):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
-        self.__knowledgebase = knowledgebase
 
         self.__properties_by_class = {}
         self.__properties_by_id = {}
@@ -83,16 +83,16 @@ class ExternalProperties(object):
                 network.create_geometry(feature_map)
                 self.__pathways.generate_connectivity(network, feature_map, self.__model_to_features)
 
-    def knowledge(self, entity):
+    def get_knowledge(self, entity):
     #===============================
-        return self.__knowledgebase.entity_knowledge(entity)
+        return settings['KNOWLEDGE_BASE'].entity_knowledge(entity)
 
     def save_knowledge(self):
     #========================
         if self.__pathways is not None:
             knowledge = self.__pathways.knowledge()
             for source, publication in knowledge.get('publications'):
-                self.__knowledgebase.update_publications(source, publication)
+                settings['KNOWLEDGE_BASE'].update_publications(source, publication)
 
     def update_properties(self, properties):
     #=======================================
@@ -121,7 +121,7 @@ class ExternalProperties(object):
             elif 'simulations' in properties:
                 properties['kind'] = 'simulation'
         if 'models' in properties and 'label' not in properties:
-            properties['label'] = self.knowledge(properties['models'])['label']
+            properties['label'] = self.get_knowledge(properties['models'])['label']
 
         return properties
 
