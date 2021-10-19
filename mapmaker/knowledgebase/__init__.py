@@ -20,6 +20,7 @@
 
 import sqlite3
 import datetime
+import json
 
 from pathlib import Path
 
@@ -47,6 +48,9 @@ KNOWLEDGE_SCHEMA = """
     create table flatmap_entities (flatmap text, entity text);
     create index flatmap_entities_flatmap_index on flatmap_entities(flatmap);
     create index flatmap_entities_entity_index on flatmap_entities(entity);
+
+    create table knowledge (entity text primary key, knowledge text);
+    create unique index knowledge_index on knowledge(entity);
 
     create table labels (entity text primary key, label text);
     create unique index labels_index on labels(entity);
@@ -113,20 +117,27 @@ class KnowledgeStore(KnowledgeBase):
         knowledge = self.__entity_knowledge.get(entity, {})
         if len(knowledge):
             return knowledge
-        row = self.db.execute('select label from labels where entity=?', (entity,)).fetchone()
+        # Then check our database
+        row = self.db.execute('select knowledge from knowledge where entity=?', (entity,)).fetchone()
         if row is not None:
-            knowledge['label'] = row[0]
-        else:  # Consult SciCrunch if we don't know the entity's label
+            knowledge = json.loads(row[0])
+        else:
+            # Consult SciCrunch if we don't know about the entity
             knowledge = self.__scicrunch.get_knowledge(entity)
-            if 'label' in knowledge:
-                self.db.execute('replace into labels values (?, ?)', (entity, knowledge['label']))
-            # Save the list of publications in the knowledge base
-            self.update_publications(entity, knowledge.pop('publications', []))
+            if len(knowledge) > 0:
+                # Save knowledge in our database
+                self.db.execute('replace into knowledge values (?, ?)', (entity, json.dumps(knowledge)))
+                # Save label and publications in their own tables
+                if 'label' in knowledge:
+                    self.db.execute('replace into labels values (?, ?)', (entity, knowledge['label']))
+                if 'publications' in knowledge:
+                    self.update_publications(entity, knowledge.pop('publications', []))
         # Use the entity's value as its label if none is defined
         if 'label' not in knowledge:
             knowledge['label'] = entity
         # Cache local knowledge
         self.__entity_knowledge[entity] = knowledge
+
         return knowledge
 
     #---------------------------------------------------------------------------

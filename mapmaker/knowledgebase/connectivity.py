@@ -18,10 +18,6 @@
 #
 #===============================================================================
 
-import networkx as nx
-
-#===============================================================================
-
 import nifstd_tools.simplify as nif
 
 #===============================================================================
@@ -83,12 +79,8 @@ def connectivity(data):
     nexts = [(nif.sub(t), nif.obj(t)) for start in starts for t in
               nif.ematch(blob, (lambda e, m: nif.pred(e, ApiNATOMY_next)
                                           or nif.pred(e, ApiNATOMY_nexts)), None)]
-    connected_pairs = sorted(set([tuple([layer_regions(e, blob) for e in p]) for p in nexts]))
-    G = nx.DiGraph()
-    for pair in connected_pairs:
-        if pair[0][1:] != pair[1][1:]:
-            G.add_edge(pair[0][1:], pair[1][1:], directed=True)
-    return G
+    nodes = sorted(set([tuple([layer_regions(e, blob) for e in p]) for p in nexts]))
+    return list(set((n0[1:], n1[1:]) for n0, n1 in nodes if n0[1:] != n1[1:]))
 
 #===============================================================================
 
