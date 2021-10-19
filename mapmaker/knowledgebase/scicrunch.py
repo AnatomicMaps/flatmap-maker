@@ -37,7 +37,7 @@ SCIGRAPH_ONTOLOGIES = ['FMA', 'NCBITaxon', 'UBERON']
 
 #===============================================================================
 
-SCICRUNCH_CONNECTIVITY = 'http://sparc-data.scicrunch.io:9000/scigraph/dynamic/demos/apinat/neru-1/{}.json'
+SCICRUNCH_CONNECTIVITY = 'http://sparc-data.scicrunch.io:9000/scigraph/dynamic/demos/apinat/neru-4/{}.json'
 
 SCICRUNCH_INTERLEX_VOCAB = 'https://scicrunch.org/api/1/ilx/search/curie/{}'
 SCICRUNCH_SCIGRAPH_VOCAB = 'https://scicrunch.org/api/1/sparc-scigraph/vocabulary/id/{}.json'
