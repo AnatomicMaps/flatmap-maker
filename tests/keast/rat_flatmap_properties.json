@@ -306,10 +306,6 @@
             "nerve": "keast_5"
         },
         {
-            "id": "join",
-            "joins": ["hypogastric_n", "bladder_n"]
-        },
-        {
             "id": "bladder_n",
             "connects": ["keast_3", "bladder_n-bladder"],
             "nerve": "keast_1"
