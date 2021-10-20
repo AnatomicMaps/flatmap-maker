@@ -25,6 +25,10 @@ from shapely.geometry.base import BaseGeometry
 
 #===============================================================================
 
+from mapmaker.utils import log
+
+#===============================================================================
+
 class Feature(object):
     def __init__(self, feature_id: int,
                        geometry: BaseGeometry,
@@ -123,16 +127,21 @@ class FeatureMap(object):
             feature_ids.extend([f.feature_id for f in self.features(id)])
         return feature_ids
 
-    def find_features_by_anatomical_id(self, anatomical_id, anatomical_layer=None):
-        features = self.__model_to_features.get(anatomical_id, [])
-        if anatomical_layer is None:
-            return features
-        layer_features = self.__model_to_features.get(anatomical_layer, [])
-        included_features = []
-        for layer_feature in layer_features:
-            for feature in features:
-                if layer_feature.geometry.contains(feature.geomtry):
-                    included_features.append(feature)
-        return included_features
+    def find_features_by_anatomical_id(self, anatomical_id1, anatomical_id2):
+        anatomical_features = self.__model_to_features.get(anatomical_id1, [])
+        if anatomical_id2 is not None:
+            anatomical_features2 = self.__model_to_features.get(anatomical_id2, [])
+            included_features = []
+            for feature2 in anatomical_features2:
+                for feature in anatomical_features:
+                    if feature.geometry.contains(feature2.geometry):
+                        included_features.append(feature2)
+            anatomical_features = included_features
+        if False and len(anatomical_features) == 0:
+            if anatomical_id2 is not None:
+                log.error(f'Cannot flatmap feature of type {anatomical_id2} in layer {anatomical_id1}')
+            else:
+                log.error(f'Cannot flatmap feature of type {anatomical_id1}')
+        return anatomical_features
 
 #===============================================================================
