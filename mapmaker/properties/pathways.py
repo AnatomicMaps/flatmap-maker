@@ -23,7 +23,6 @@ from typing import Dict, List
 
 #===============================================================================
 
-import networkx as nx
 from pyparsing import delimitedList, Group, ParseException, ParseResults, Suppress
 
 #===============================================================================
@@ -283,25 +282,23 @@ class PathModel(object):
             if 'route' not in path:
                 raise ValueError("Path '{}' doesn't have a route".format(self.__id))
             self.__route = Route(self.__id, path['route'])
-            if 'connects' in path:
+            if self.__connections is not None:
                 log.error(f'Path {self.__id} is specified multiple ways...')
         if self.__models is not None:
             knowledge = settings['KNOWLEDGE_BASE'].entity_knowledge(self.__models)
             self.__label = knowledge.get('label')
-            connectivity = knowledge.get('connectivity')
-            if connectivity is not None:
-                self.__connectivity = nx.DiGraph()
-                for edge in connectivity:
-                    self.__connectivity.add_edge(tuple(edge[0]), tuple(edge[1]), directed=True)
-            else:
-                self.__connectivity = None
-
+            if self.__connections is None:
+                self.__connectivity = knowledge.get('connectivity')
         if self.__route is None and self.__connections is None and self.__connectivity is None:
             log.error(f'Path {self.__id} has no route or known connectivity...')
 
     @property
     def connections(self):
         return self.__connections
+
+    @property
+    def connectivity(self):
+        return self.__connectivity
 
     @property
     def id(self):
@@ -365,9 +362,6 @@ class ConnectivityModel(object):
     @property
     def source(self):
         return self.__source
-
-    def path_connections(self):
-        return { model.id: model.connections for model in self.__path_models.values() }
 
 #===============================================================================
 
@@ -484,7 +478,15 @@ class Pathways(object):
             if connectivity_model.network == network.id:
                 layer = FeatureLayer('{}_routes'.format(connectivity_model.id), self.__flatmap, exported=True)
                 self.__flatmap.add_layer(layer)
-                routed_paths = network.layout(connectivity_model.path_connections())
+                route_graphs = {}
+                for path_model in connectivity_model.path_models:
+                    if path_model.connections is not None:
+                        route_graphs[path_model.id] = network.route_graph_from_connections(path_model.connections)
+                    else:
+                        route_graphs[path_model.id] = network.route_graph_from_connectivity(path_model.connectivity, feature_map)
+
+                routed_paths = network.layout(route_graphs)
+
                 for path_model in connectivity_model.path_models:
                     path_id = path_model.id
                     routed_path = routed_paths[path_id]
