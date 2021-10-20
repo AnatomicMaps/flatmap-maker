@@ -42,7 +42,6 @@ class ExternalProperties(object):
         else:
             properties_dict = FilePath(manifest.properties).get_json()
         self.__set_properties(properties_dict.get('features', []))
-        self.__model_to_features = defaultdict(set)
 
         # Load path definitions
         self.__pathways = Pathways(flatmap, properties_dict.get('paths', []))
@@ -81,7 +80,7 @@ class ExternalProperties(object):
         for network in self.__networks.values():
             if network.id is not None:
                 network.create_geometry(feature_map)
-                self.__pathways.generate_connectivity(network, feature_map, self.__model_to_features)
+                self.__pathways.generate_connectivity(network, feature_map)
 
     def get_knowledge(self, entity):
     #===============================
@@ -128,7 +127,5 @@ class ExternalProperties(object):
     def update_feature_properties(self, feature):
     #============================================
         self.update_properties(feature.properties)
-        if feature.models is not None:
-            self.__model_to_features[feature.models].add(feature)
 
 #===============================================================================

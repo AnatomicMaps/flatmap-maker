@@ -477,19 +477,8 @@ class Pathways(object):
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
-    def __network_connectivity(self, network, model_to_features, feature_map):
-    #=========================================================================
-        def get_point_for_anatomy(anatomical_id, error_list):
-            if anatomical_id in model_to_features:
-                features_set = model_to_features[anatomical_id]
-                if len(features_set) == 1:
-                    return list(features_set)[0].geometry.centroid.coords[0]
-                else:
-                    error_list.append("Multiple features for {}".format(anatomical_id))
-            else:
-                error_list.append("Cannot find feature for {}".format(anatomical_id))
-            return None
-
+    def __network_connectivity(self, network, feature_map):
+    #======================================================
         log('Routing paths...')
         for connectivity_model in self.__connectivity_models:
             if connectivity_model.network == network.id:
@@ -523,8 +512,8 @@ class Pathways(object):
                                                                   feature.feature_id,
                                                                   nerve_features)
 
-    def generate_connectivity(self, network, feature_map, model_to_features):
-    #========================================================================
+    def generate_connectivity(self, network, feature_map):
+    #=====================================================
         if self.__resolved_pathways is not None:
             return
         self.__resolved_pathways = ResolvedPathways(feature_map)
@@ -541,7 +530,7 @@ class Pathways(object):
             except ValueError as err:
                 log.error('Path {}: {}'.format(path_id, str(err)))
                 errors = True
-        self.__network_connectivity(network, model_to_features, feature_map)
+        self.__network_connectivity(network, feature_map)
         if errors:
             raise ValueError('Errors in mapping paths and routes')
 
