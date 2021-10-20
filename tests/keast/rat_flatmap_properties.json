@@ -240,15 +240,18 @@
         "centrelines": [
         {
             "id": "L1_dorsal_root",
-            "connects": ["L1-spinal", "S45_L1", "L1_dorsal_root_end"]
+            "connects": ["L1-spinal", "S45_L1", "L1_dorsal_root_end"],
+            "contained-in": ["S44_L1", "S45_L1", "S50_L1_T",  "S50_L1_B"]
         },
         {
             "id": "L1_ventral_root",
-            "connects": ["L1-spinal", "L1_ventral_root_end"]
+            "connects": ["L1-spinal", "L1_ventral_root_end"],
+            "contained-in": ["S43_L1", "S50_L1_T",  "S50_L1_B"]
         },
         {
             "id": "L1_ventral_root_ramus",
-            "connects": ["L1-spinal", "L1_ventral_root_ramus_end"]
+            "connects": ["L1-spinal", "L1_ventral_root_ramus_end"],
+            "contained-in": ["S43_L1", "S48_L1", "S49_L1", "S50_L1_T",  "S50_L1_B"]
         },
         {
             "id": "L1_spinal_n",
@@ -293,22 +296,22 @@
         {
             "id": "lumbar_splanchnic_n",
             "connects": ["L1_L2_spinal_n-lumbar_splanchnic_n", "keast_6"],
-            "nerve": "keast_7"
+            "contained-in": ["keast_7"]
         },
         {
             "id": "pelvic_splanchnic_n",
             "connects": ["L6_S1_spinal_n-pelvic_splanchnic_n", "keast_3"],
-            "nerve": "keast_4"
+            "contained-in": ["keast_4"]
         },
         {
             "id": "hypogastric_n",
             "connects": ["keast_6", "keast_3"],
-            "nerve": "keast_5"
+            "contained-in": ["keast_5"]
         },
         {
             "id": "bladder_n",
             "connects": ["keast_3", "bladder_n-bladder"],
-            "nerve": "keast_1"
+            "contained-in": ["keast_1"]
         }]
     }]
 }
