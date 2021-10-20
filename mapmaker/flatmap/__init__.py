@@ -162,8 +162,8 @@ class FlatMap(object):
     #=====================================
         return self.__feature_map.duplicate_id(id)
 
-    def save_feature_id(self, feature):
-    #==================================
+    def save_feature_for_lookup(self, feature):
+    #==========================================
         self.__feature_map.add_feature(feature)
 
     def get_feature(self, feature_id):

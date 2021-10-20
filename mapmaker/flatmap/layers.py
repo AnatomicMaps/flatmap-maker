@@ -73,9 +73,6 @@ class FeatureLayer(object):
     def add_feature(self, feature):
     #==============================
         self.__features.append(feature)
-        if self.__exported:
-            # Save relationship between id/class and internal feature id
-            self.__flatmap.save_feature_id(feature)
 
     def annotate(self, feature, properties):
     #=======================================
@@ -86,6 +83,9 @@ class FeatureLayer(object):
         # Update feature properties from JSON properties file
         for feature in self.__features:
             map_properties.update_feature_properties(feature)
+            if self.__exported:
+                # Save relationship between id/class and internal feature id
+                self.__flatmap.save_feature_for_lookup(feature)
 
 #===============================================================================
 
@@ -162,7 +162,7 @@ class MapLayer(FeatureLayer):
                     nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
-                    self.flatmap.save_feature_id(nerve_polygon_feature)
+                    self.flatmap.save_feature_for_lookup(nerve_polygon_feature)
             elif (feature.get_property('type') == 'nerve-track'
               and feature.geom_type == 'LineString'):
                 self.__nerve_tracks.append(feature)
