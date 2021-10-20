@@ -71,7 +71,7 @@ def get_connected_subgraph(graph, v_prime):
     for source, target in itertools.combinations(v_prime, 2):
         paths = nx.all_shortest_paths(graph, source, target)
         for path in paths:
-            vpp = vpp.union(path)
+            vpp.update(path)
     return graph.subgraph(vpp)
 
 #===============================================================================
