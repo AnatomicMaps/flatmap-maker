@@ -137,7 +137,7 @@ class FeatureMap(object):
                     if feature.geometry.contains(feature2.geometry):
                         included_features.append(feature2)
             anatomical_features = included_features
-        if False and len(anatomical_features) == 0:
+        if len(anatomical_features) == 0:
             if anatomical_id2 is not None:
                 log.error(f'Cannot flatmap feature of type {anatomical_id2} in layer {anatomical_id1}')
             else:
