@@ -232,6 +232,66 @@
             "properties": {
                 "type": "nerve"
             }
+        },
+        {
+            "id": "S43_L1",
+            "properties": {
+                "models": "EMAPA:25269"
+            }
+        },
+        {
+            "id": "S45_L1",
+            "properties": {
+                "models": "UBERON:0002857"
+            }
+        },
+        {
+            "id": "S46_L1",
+            "properties": {
+                "models": "FMA:6540"
+            }
+        },
+        {
+            "id": "S48_L1",
+            "properties": {
+                "models": "FMA:12697"
+            }
+        },
+        {
+            "id": "S49_L1",
+            "properties": {
+                "models": "FMA:65910"
+            }
+        },
+        {
+            "id": "S43_L2",
+            "properties": {
+                "models": "EMAPA:25271"
+            }
+        },
+        {
+            "id": "S45_L2",
+            "properties": {
+                "models": "UBERON:0002856"
+            }
+        },
+        {
+            "id": "S46_L2",
+            "properties": {
+                "models": "FMA:6541"
+            }
+        },
+        {
+            "id": "S48_L2",
+            "properties": {
+                "models": "FMA:12698"
+            }
+        },
+        {
+            "id": "S49_L2",
+            "properties": {
+                "models": "FMA:65911"
+            }
         }
     ],
     "networks": [
