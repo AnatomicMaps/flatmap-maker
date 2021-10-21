@@ -191,7 +191,7 @@ class Network(object):
         return { path_id: RoutedPath(path_id, route_graph, self.__centreline_scaffold)
                             for path_id, route_graph in route_graphs.items() }
 
-    def has_node(self, id):
+    def contains(self, id):
     #=======================
         return id in self.__graph
 

@@ -106,7 +106,7 @@ class ExternalProperties(object):
             properties.update(self.__properties_by_id.get(id, {}))
             # Drop network nodes that don't have anatomical meaning
             for network in self.__networks.values():
-                if network.has_node(id) and 'models' not in properties:
+                if network.contains(id) and 'models' not in properties:
                     properties['exclude'] = True
                     break
         self.__pathways.update_line_or_nerve_properties(properties)
