@@ -50,7 +50,7 @@ class ExternalProperties(object):
             self.__pathways.add_connectivity(connectivity)
 
         # Load network definitions
-        self.__networks = { network.get('id'): Network(network)
+        self.__networks = { network.get('id'): Network(network, self)
                                 for network in properties_dict.get('networks', []) }
 
     @property
@@ -85,6 +85,13 @@ class ExternalProperties(object):
     def get_knowledge(self, entity):
     #===============================
         return settings['KNOWLEDGE_BASE'].entity_knowledge(entity)
+
+    def get_property(self, id_or_class, key):
+    #========================================
+        property = self.__properties_by_id.get(id_or_class, {}).get(key)
+        if property is None:
+            property = self.__properties_by_class.get(id_or_class, {}).get(key)
+        return property
 
     def save_knowledge(self):
     #========================

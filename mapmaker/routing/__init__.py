@@ -26,7 +26,10 @@ wires are routed.
 
 #===============================================================================
 
+from collections import defaultdict
 import itertools
+
+#===============================================================================
 
 import networkx as nx
 import shapely.geometry
@@ -77,26 +80,32 @@ def get_connected_subgraph(graph, v_prime):
 #===============================================================================
 
 class Network(object):
-    def __init__(self, network):
+    def __init__(self, network, external_properties):
         self.__id = network.get('id')
-        self.__graph = nx.Graph()
+        self.__centreline_graph = nx.Graph()
+        self.__contained_centrelines = defaultdict(list)  # Centreline ids of a container
+        self.__containers = {}                            # Containers of a centreline
+        self.__feature_map = None                         # Assigned after `maker` has processed sources
         for centreline in network.get('centrelines', []):
-            edge_id = centreline.get('id')
-            if edge_id is None:
-                log.warn('Network {} has edge without an ID'.format(self.__id))
+            id = centreline.get('id')
+            if id is None:
+                log.error(f'Centreline in network {self.__id} does not have an id')
+            elif id in self.__containers:
+                log.error(f'Centreline {id} in network {self.__id} has a duplicated id')
             else:
                 nodes = centreline.get('connects', [])
                 if len(nodes) < 2:
-                    log.warn('Edge {} in network {} has too few nodes'.format(edge_id, self.__id))
+                    log.warn(f'Centreline {id} in network {self.__id} has too few nodes')
                 else:
-                    self.__graph.add_edge(nodes[0], nodes[-1], id=edge_id, intermediates=nodes[1:-1])
-        self.__edges_by_id = { id: edge
-                                for edge, id in nx.get_edge_attributes(self.__graph, 'id').items() }
-        # The set of network nodes that have only one edge
-        self.__terminal_nodes = { n for n, d in self.__graph.degree() if d == 1 }
-        # Used to lookup features but only known when `maker` has processed sources
-        self.__feature_map = None
-        self.__centreline_scaffold = None
+                    edge_properties = {'id': id}
+                    if len(nodes) > 2:
+                        edge_properties['intermediates'] = nodes[1:-1]
+                    self.__containers[id] = set(centreline.get('contained-in', []))
+                    for container_id in self.__containers[id]:
+                        self.__contained_centrelines[container_id].append(id)
+                        if external_properties.get_property(container_id, 'type') == 'nerve':
+                            edge_properties['nerve'] = container_id
+                    self.__centreline_graph.add_edge(nodes[0], nodes[-1], **edge_properties)
 
     @property
     def id(self):
@@ -125,9 +134,9 @@ class Network(object):
     def create_geometry(self, feature_map):
     #======================================
         self.__feature_map = feature_map
-        for edge in self.__graph.edges(data='id'):  # Returns triples: (node, node, id)
+        for edge in self.__centreline_graph.edges(data='id'):  # Returns triples: (node, node, id)
             for node_id in edge[0:2]:
-                self.__set_node_properties(self.__graph.nodes[node_id], node_id)
+                self.__set_node_properties(self.__centreline_graph.nodes[node_id], node_id)
             feature = self.__find_feature(edge[2])
             if feature is not None:
                 bezier_path = feature.get_property('bezier-path')
@@ -136,14 +145,14 @@ class Network(object):
                 else:
                     bezier_start = bezier_path.pointAtTime(0)
                     start_point = shapely.geometry.Point(bezier_start.x, bezier_start.y)
-                    end_node_0 = self.__graph.nodes[edge[0]].get('geometry')
-                    end_node_1 = self.__graph.nodes[edge[1]].get('geometry')
+                    end_node_0 = self.__centreline_graph.nodes[edge[0]].get('geometry')
+                    end_node_1 = self.__centreline_graph.nodes[edge[1]].get('geometry')
                     if end_node_0 is not None and end_node_1 is not None:
-                        self.__graph.edges[edge[0:2]]['geometry'] = bezier_path
+                        self.__centreline_graph.edges[edge[0:2]]['geometry'] = bezier_path
                         if start_point.distance(end_node_0) < start_point.distance(end_node_1):
-                            self.__graph.edges[edge[0:2]]['start-node'] = edge[0]
+                            self.__centreline_graph.edges[edge[0:2]]['start-node'] = edge[0]
                         else:
-                            self.__graph.edges[edge[0:2]]['start-node'] = edge[1]
+                            self.__centreline_graph.edges[edge[0:2]]['start-node'] = edge[1]
         if settings.get('pathLayout', 'automatic') == 'automatic':
             # Construct the centreline scaffold for the network
             ##self.__centreline_scaffold = Sheath(self.__id, self.__graph)
@@ -162,7 +171,7 @@ class Network(object):
             else:
                 end_nodes.append(node)
         # Our route as a subgraph of the centreline network
-        route_graph = nx.Graph(get_connected_subgraph(self.__graph, end_nodes))
+        route_graph = nx.Graph(get_connected_subgraph(self.__centreline_graph, end_nodes))
 
         # Add edges to terminal nodes that aren't part of the centreline network
         for end_node, terminal_nodes in terminals.items():
@@ -172,71 +181,128 @@ class Network(object):
                 self.__set_node_properties(node, terminal_id)
                 route_graph.edges[end_node, terminal_id]['type'] = 'terminal'
 
-        # Save the geometry of any intermediate points on an edge
-        for edge in route_graph.edges(data='intermediates'):
-            if edge[2] is not None:
-                way_point_geometry = []
-                for way_point in edge[2]:
-                    feature = self.__find_feature(way_point)
-                    if feature is not None:
-                        way_point_geometry.append(feature.geometry)
-                del(route_graph.edges[edge[0:2]]['intermediates'])
-                route_graph.edges[edge[0:2]]['way-points'] = way_point_geometry
-
         return route_graph
 
     def layout(self, route_graphs: nx.Graph) -> dict:
     #================================================
-        # Route the connection's path through the centreline scaffold
-        return { path_id: RoutedPath(path_id, route_graph, self.__centreline_scaffold)
-                            for path_id, route_graph in route_graphs.items() }
+        laid_out_paths = {}
+        for path_id, route_graph in route_graphs.items():
+            # Save the geometry of any intermediate points on an edge
+            for edge in route_graph.edges(data='intermediates'):
+                if edge[2] is not None:
+                    way_point_geometry = []
+                    for way_point in edge[2]:
+                        feature = self.__find_feature(way_point)
+                        if feature is not None:
+                            way_point_geometry.append(feature.geometry)
+                    del(route_graph.edges[edge[0:2]]['intermediates'])
+                    route_graph.edges[edge[0:2]]['way-points'] = way_point_geometry
+
+            ### Need to have all paths in each centreline to solve for offsets...
+            # Route the connection's path through the centreline scaffold
+            laid_out_paths[path_id] = RoutedPath(path_id, route_graph)
+        return laid_out_paths
 
     def contains(self, id):
     #=======================
-        return id in self.__graph
+        return id in self.__centreline_graph
 
     @staticmethod
-    def __find_node_ids(feature_map, anatomical_id, anatomical_layer=None):
-        return set([(f.id if f.id is not None else f.get_property('class'), f.get_property('type'))
+    def __find_map_ids(feature_map, anatomical_id, anatomical_layer=None):
+        return set([f.id if f.id is not None else f.get_property('class')
                     for f in feature_map.find_features_by_anatomical_id(anatomical_id, anatomical_layer)])
+
+    def __centreline_end_nodes(self, id):
+    #====================================
+        print("Looking for", id)
+        for edge in self.__centreline_graph.edges(data='id'):
+            if id == edge[2]:
+                return edge[:2]
 
     def route_graph_from_connectivity(self, connectivity, feature_map) -> nx.Graph:
     #==============================================================================
-        nodes = set()
-        nerves = set()
+        route_nodes = []
+        node_terminals = {}
+
+        # Construct a graph of SciCrunch's connected pairs
         G = nx.DiGraph()
         for connection in connectivity:
-            # connection == graph edge
-            print(connection)
             G.add_edge(tuple(connection[0]), tuple(connection[1]), directed=True)
-            for anatomical_details in connection:
-                for (node_id, node_type) in self.__find_node_ids(feature_map, *anatomical_details):
-                    if node_id is not None:
-                        if node_type is None:
-                            if node_id in self.__graph:
-                                nodes.add(node_id)
-                            else:
-                                ## Terminal, WIP
-                                pass
-                        elif node_type == 'nerve':   ## type == 'nerve' ##################
-                            nerves.add(node_id)
-        '''
-        in_degrees = G.in_degree()
-        heads = [n[0] for n in node_degrees if n[1] == 0]
-        for head in heads:
-            node = head
-            while in_degrees[node] < 2:   ## out_degree??
-                node = list(G.neighbors(node)[0]  ### in_ or out_ neighbours ??
-        '''
-        print('nerves', nerves)
-        route_graph = nx.Graph(get_connected_subgraph(self.__graph, nodes))
-        nerve_graph = nx.subgraph_view(self.__graph,
-            filter_edge=lambda n1, n2: self.__graph[n1][n2].get('container')[0] in nerves)  ## WIP
-        nerve_nodes = set()
-        for edge in nerve_graph.edges:
-            nerve_nodes.update(edge)
-        route_graph.update(self.__graph.subgraph(nerve_nodes))
-        print(route_graph.nodes)
+
+        # Walk edges from each start node, finding network nodes and centrelines
+        for head_node in [ n for n in G if G.in_degree(n) == 0]:
+            matched = None
+            terminals = set()
+            for edge in nx.edge_dfs(G, head_node):
+                map_nodes = self.__find_map_ids(feature_map, *edge[0])
+
+                ## Need a last pass through for edge[1]
+                ## and a final adding of any terminals...
+
+                if len(map_nodes) > 1:
+                    log.error(f'Node {edge[0]} has too many features, {map_nodes}')
+                elif len(map_nodes) == 1:
+                    map_node = list(map_nodes)[0]
+                    if map_node in route_nodes:
+                        break         # Already seen remaining edges
+                    elif map_node in self.__centreline_graph:
+                        matched = None
+                        if len(terminals):
+                            node_terminals[map_node] = terminals
+                            terminals = set()
+                        route_nodes.append(map_node)
+                    elif matched is None and map_node in self.__contained_centrelines:
+                        matched = { id: list(self.__containers[id])
+                                            for id in self.__contained_centrelines[map_node] }
+                    elif edge[0] == head_node:
+                        terminals.add(map_node)
+
+                    end_nodes = None
+                    if matched is not None:
+                        for id, containers in matched.items():
+                            if map_node in containers:
+                                if len(matched) == 1:
+                                    end_nodes = self.__centreline_end_nodes(id)
+                                    matched = None
+                                    break
+                                else:
+                                    containers.remove(map_node)
+                                    if len(containers) == 0:
+                                        end_nodes = self.__centreline_end_nodes(id)
+                                        matched = None
+                                        break
+                    if end_nodes is not None:
+                        route_nodes.extend(end_nodes)
+                        if len(terminals):
+                            # want end of centreline e[0] -> e[1] that is closest to terminals...
+                            node_terminals[end_nodes[1]] = terminals
+                            terminals = set()
+
+                ## Is this the final edge of the chain?
+                if G.out_degree(edge[1]) == 0:
+                    map_nodes = self.__find_map_ids(feature_map, *edge[1])
+                    if len(map_nodes) > 1:
+                        log.error(f'Node {edge[0]} has too many features, {map_nodes}')
+                    elif len(map_nodes) == 1:
+                        map_node = list(map_nodes)[0]
+                        if map_node in self.__centreline_graph:
+                            route_nodes.append(map_node)
+                        else:
+                            terminals.add(map_node)
+
+            if len(terminals):   ### WIP
+                node_terminals[route_nodes[-1]] = terminals
+
+        route_graph = nx.Graph(get_connected_subgraph(self.__centreline_graph, route_nodes))
+
+        # Add edges to terminal nodes that aren't part of the centreline network
+        for end_node, terminal_nodes in node_terminals.items():
+            for terminal_id in terminal_nodes:
+                route_graph.add_edge(end_node, terminal_id)
+                node = route_graph.nodes[terminal_id]
+                self.__set_node_properties(node, terminal_id)
+                route_graph.edges[end_node, terminal_id]['type'] = 'terminal'
+
         return route_graph
 
 #===============================================================================
