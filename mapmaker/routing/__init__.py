@@ -207,18 +207,6 @@ class Network(object):
     #=======================
         return id in self.__centreline_graph
 
-    @staticmethod
-    def __find_map_ids(feature_map, anatomical_id, anatomical_layer=None):
-        return set([f.id if f.id is not None else f.get_property('class')
-                    for f in feature_map.find_features_by_anatomical_id(anatomical_id, anatomical_layer)])
-
-    def __centreline_end_nodes(self, id):
-    #====================================
-        print("Looking for", id)
-        for edge in self.__centreline_graph.edges(data='id'):
-            if id == edge[2]:
-                return edge[:2]
-
     def route_graph_from_connectivity(self, connectivity, feature_map) -> nx.Graph:
     #==============================================================================
         route_nodes = []
@@ -231,67 +219,16 @@ class Network(object):
 
         # Walk edges from each start node, finding network nodes and centrelines
         for head_node in [ n for n in G if G.in_degree(n) == 0]:
-            matched = None
-            terminals = set()
+            node_finder = NodeFinder(G, self.__centreline_graph, self.__containers,
+                                        self.__contained_centrelines, feature_map)
             for edge in nx.edge_dfs(G, head_node):
-                map_nodes = self.__find_map_ids(feature_map, *edge[0])
-
-                ## Need a last pass through for edge[1]
-                ## and a final adding of any terminals...
-
-                if len(map_nodes) > 1:
-                    log.error(f'Node {edge[0]} has too many features, {map_nodes}')
-                elif len(map_nodes) == 1:
-                    map_node = list(map_nodes)[0]
-                    if map_node in route_nodes:
-                        break         # Already seen remaining edges
-                    elif map_node in self.__centreline_graph:
-                        matched = None
-                        if len(terminals):
-                            node_terminals[map_node] = terminals
-                            terminals = set()
-                        route_nodes.append(map_node)
-                    elif matched is None and map_node in self.__contained_centrelines:
-                        matched = { id: list(self.__containers[id])
-                                            for id in self.__contained_centrelines[map_node] }
-                    elif edge[0] == head_node:
-                        terminals.add(map_node)
-
-                    end_nodes = None
-                    if matched is not None:
-                        for id, containers in matched.items():
-                            if map_node in containers:
-                                if len(matched) == 1:
-                                    end_nodes = self.__centreline_end_nodes(id)
-                                    matched = None
-                                    break
-                                else:
-                                    containers.remove(map_node)
-                                    if len(containers) == 0:
-                                        end_nodes = self.__centreline_end_nodes(id)
-                                        matched = None
-                                        break
-                    if end_nodes is not None:
-                        route_nodes.extend(end_nodes)
-                        if len(terminals):
-                            # want end of centreline e[0] -> e[1] that is closest to terminals...
-                            node_terminals[end_nodes[1]] = terminals
-                            terminals = set()
-
-                ## Is this the final edge of the chain?
+                node_finder.lookup(edge[0])
+                # Process the last node of the traversal
                 if G.out_degree(edge[1]) == 0:
-                    map_nodes = self.__find_map_ids(feature_map, *edge[1])
-                    if len(map_nodes) > 1:
-                        log.error(f'Node {edge[0]} has too many features, {map_nodes}')
-                    elif len(map_nodes) == 1:
-                        map_node = list(map_nodes)[0]
-                        if map_node in self.__centreline_graph:
-                            route_nodes.append(map_node)
-                        else:
-                            terminals.add(map_node)
+                    node_finder.lookup(edge[1])
 
-            if len(terminals):   ### WIP
-                node_terminals[route_nodes[-1]] = terminals
+            route_nodes.extend(node_finder.nodes)
+            node_terminals.update(node_finder.terminals)
 
         route_graph = nx.Graph(get_connected_subgraph(self.__centreline_graph, route_nodes))
 
@@ -304,5 +241,85 @@ class Network(object):
                 route_graph.edges[end_node, terminal_id]['type'] = 'terminal'
 
         return route_graph
+
+#===============================================================================
+
+class NodeFinder(object):
+    def __init__(self, anatomical_graph, centreline_graph, containers,
+                                         contained_centrelines, feature_map):
+        self.__anatomical_graph = anatomical_graph
+        self.__centreline_graph = centreline_graph
+        self.__containers = containers
+        self.__contained_centrelines = contained_centrelines
+        self.__feature_map = feature_map
+        self.__nodes = []
+        self.__node_terminals = {}
+        self.__matched = None
+        self.__terminal_nodes = set()
+
+    @property
+    def nodes(self):
+        return self.__nodes
+
+    @property
+    def terminals(self):
+        if len(self.__terminal_nodes):   ### WIP
+            self.__node_terminals[self.__nodes[-1]] = self.__terminal_nodes
+        return self.__node_terminals
+
+    def __find_map_ids(self, anatomical_id, anatomical_layer=None):
+    #========================================================
+        return set([f.id if f.id is not None else f.get_property('class')
+                    for f in self.__feature_map.find_features_by_anatomical_id(anatomical_id, anatomical_layer)])
+
+    def __centreline_end_nodes(self, id):
+    #====================================
+        for edge in self.__centreline_graph.edges(data='id'):
+            if id == edge[2]:
+                return edge[:2]
+
+    def lookup(self, anatomical_node):
+    #=================================
+        nodes = self.__find_map_ids(*anatomical_node)
+        if len(nodes) > 1:
+            log.error(f'Node {anatomical_node} has too many features, {nodes}')
+        elif len(nodes) == 1:
+            node = list(nodes)[0]
+            if node in self.__nodes:
+                return         # Already seen remaining edges
+            elif node in self.__centreline_graph:
+                matched = None
+                if len(self.__terminal_nodes):
+                    self.__node_terminals[node] = self.__terminal_nodes
+                    self.__terminal_nodes = set()
+                self.__nodes.append(node)
+            elif self.__matched is None and node in self.__contained_centrelines:
+                self.__matched = { id: list(self.__containers[id])
+                                        for id in self.__contained_centrelines[node] }
+            elif self.__anatomical_graph.in_degree(anatomical_node) == 0:
+                self.__terminal_nodes.add(node)     # Start of chain
+            elif self.__anatomical_graph.out_degree(anatomical_node) == 0:
+                self.__terminal_nodes.add(node)     # End of chain
+
+            end_nodes = None
+            if self.__matched is not None:
+                for id, containers in self.__matched.items():
+                    if node in containers:
+                        if len(self.__matched) == 1:
+                            end_nodes = self.__centreline_end_nodes(id)
+                            self.__matched = None
+                            break
+                        else:
+                            containers.remove(node)
+                            if len(containers) == 0:
+                                end_nodes = self.__centreline_end_nodes(id)
+                                self.__matched = None
+                                break
+            if end_nodes is not None:
+                self.__nodes.extend(end_nodes)
+                if len(self.__terminal_nodes):
+                    # want end of centreline e[0] -> e[1] that is closest to terminals...
+                    self.__node_terminals[end_nodes[1]] = self.__terminal_nodes
+                    self.__terminal_nodes = set()
 
 #===============================================================================
