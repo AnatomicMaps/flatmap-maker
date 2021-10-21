@@ -301,7 +301,7 @@
         {
             "id": "L1_dorsal_root",
             "connects": ["L1-spinal", "S45_L1", "L1_dorsal_root_end"],
-            "contained-in": ["S44_L1", "S45_L1", "S50_L1_T",  "S50_L1_B"]
+            "contained-in": ["S44_L1", "S45_L1"]
         },
         {
             "id": "L1_ventral_root",
@@ -311,7 +311,7 @@
         {
             "id": "L1_ventral_root_ramus",
             "connects": ["L1-spinal", "L1_ventral_root_ramus_end"],
-            "contained-in": ["S43_L1", "S48_L1", "S49_L1", "S50_L1_T",  "S50_L1_B"]
+            "contained-in": ["S43_L1", "S48_L1", "S46_L1", "S49_L1"]
         },
         {
             "id": "L1_spinal_n",
@@ -319,11 +319,13 @@
         },
         {
             "id": "L2_dorsal_root",
-            "connects": ["L2-spinal", "S45_L2", "L2_dorsal_root_end"]
+            "connects": ["L2-spinal", "S45_L2", "L2_dorsal_root_end"],
+            "contained-in": ["S44_L2", "S45_L2"]
         },
         {
             "id": "L2_ventral_root_ramus",
-            "connects": ["L2-spinal", "L2_ventral_root_ramus_end"]
+            "connects": ["L2-spinal", "L2_ventral_root_ramus_end"],
+            "contained-in": ["S43_L2", "S48_L2", "S46_L2", "S49_L2"]
         },
         {
             "id": "L2_spinal_n",
