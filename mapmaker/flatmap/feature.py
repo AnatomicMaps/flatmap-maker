@@ -103,6 +103,7 @@ class FeatureMap(object):
         self.__class_to_features = defaultdict(list)
         self.__id_to_feature = {}
         self.__model_to_features = defaultdict(list)
+        self.__unknown_anatomy = []
 
     def add_feature(self, feature):
         if feature.id is not None:
@@ -138,10 +139,12 @@ class FeatureMap(object):
                         included_features.append(feature2)
             anatomical_features = included_features
         if len(anatomical_features) == 0:
-            if anatomical_id2 is not None:
-                log.error(f'Cannot flatmap feature of type {anatomical_id2} in layer {anatomical_id1}')
-            else:
-                log.error(f'Cannot flatmap feature of type {anatomical_id1}')
+            if (anatomical_id1, anatomical_id2) not in self.__unknown_anatomy:
+                if anatomical_id2 is not None:
+                    log.error(f'Cannot find flatmap feature of type {anatomical_id2} in layer {anatomical_id1}')
+                else:
+                    log.error(f'Cannot find flatmap feature of type {anatomical_id1}')
+                self.__unknown_anatomy.append((anatomical_id1, anatomical_id2))
         return anatomical_features
 
 #===============================================================================
