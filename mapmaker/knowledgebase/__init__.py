@@ -99,9 +99,8 @@ class KnowledgeStore(KnowledgeBase):
         self.__entity_knowledge = {}     # Cache lookups
         self.__scicrunch = SciCrunch()
 
-    #---------------------------------------------------------------------------
-
     def add_flatmap(self, flatmap):
+    #==============================
         self.db.execute('begin')
         self.db.execute('replace into flatmaps(id, models, created) values (?, ?, ?)',
             (flatmap.id, flatmap.models, flatmap.created))
@@ -110,9 +109,8 @@ class KnowledgeStore(KnowledgeBase):
             ((flatmap.id, entity) for entity in flatmap.entities))
         self.db.execute('commit')
 
-    #---------------------------------------------------------------------------
-
     def entity_knowledge(self, entity):
+    #==================================
         # First check local cache
         knowledge = self.__entity_knowledge.get(entity, {})
         if len(knowledge):
@@ -140,9 +138,8 @@ class KnowledgeStore(KnowledgeBase):
 
         return knowledge
 
-    #---------------------------------------------------------------------------
-
     def update_publications(self, entity, publications):
+    #===================================================
         with self.db:
             self.db.execute('delete from publications where entity = ?', (entity, ))
             self.db.executemany('insert into publications(entity, publication) values (?, ?)',
