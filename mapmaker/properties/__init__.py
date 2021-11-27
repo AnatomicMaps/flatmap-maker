@@ -48,6 +48,8 @@ class ExternalProperties(object):
         for connectivity_source in manifest.connectivity:
             connectivity = FilePath(connectivity_source).get_json()
             self.__pathways.add_connectivity(connectivity)
+        for connectivity_model in manifest.neuron_connectivity:
+            self.__pathways.add_connectivity_model(connectivity_model)
 
         # Load network definitions
         self.__networks = { network.get('id'): Network(network, self)

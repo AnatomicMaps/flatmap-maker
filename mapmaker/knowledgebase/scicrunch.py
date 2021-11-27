@@ -35,17 +35,30 @@ CONNECTIVITY_ONTOLOGIES = [ 'ilxtr' ]
 
 SPARC_ONTOLOGIES = ['FMA', 'NCBITaxon', 'UBERON']
 
+APINATOMY_MODEL_PREFIX = 'https://apinatomy.org/uris/models/'
+
+#===============================================================================
 
 SCICRUNCH_API = 'https://scicrunch.org/api/1'
 
 SCICRUNCH_SPARC_API = f'{SCICRUNCH_API}/sparc-scigraph'
 
+SCICRUNCH_SPARC_CONNECTIVITY = 'http://sparc-data.scicrunch.io:9000/scigraph'
+SCICRUNCH_SPARC_CYPHER = f'{SCICRUNCH_SPARC_CONNECTIVITY}/cypher/execute'
+
 #===============================================================================
 
-SCICRUNCH_CONNECTIVITY = 'http://sparc-data.scicrunch.io:9000/scigraph/dynamic/demos/apinat/neru-4/{}.json'
 SCICRUNCH_INTERLEX_VOCAB = f'{SCICRUNCH_API}/ilx/search/curie/{{TERM}}'
 
 SCICRUNCH_SPARC_VOCAB = f'{SCICRUNCH_SPARC_API}/vocabulary/id/{{TERM}}.json'
+
+#===============================================================================
+
+SCICRUNCH_SPARC_APINATOMY = f'{SCICRUNCH_SPARC_CONNECTIVITY}/dynamic/demos/apinat'
+
+SCICRUNCH_CONNECTIVITY_MODELS = f'{SCICRUNCH_SPARC_APINATOMY}/modelList.json'
+
+SCICRUNCH_CONNECTIVITY_NEURONS = f'{SCICRUNCH_SPARC_APINATOMY}/neru-5/{{NEURON_ID}}.json'
 
 #===============================================================================
 
@@ -55,6 +68,7 @@ class SciCrunch(object):
         self.__scigraph_key = os.environ.get('SCICRUNCH_API_KEY')
         if self.__scigraph_key is None:
             log.warn('Undefined SCICRUNCH_API_KEY: SciCrunch knowledge will not be looked up')
+        self.__connectivity_parser = connectivity.ConnectivityParser()
 
     def get_knowledge(self, entity):
         knowledge = {}
@@ -67,16 +81,25 @@ class SciCrunch(object):
                     knowledge['label'] = data.get('data', {}).get('label', entity)
 
             elif ontology in CONNECTIVITY_ONTOLOGIES:
-                data = request_json(SCICRUNCH_CONNECTIVITY.format(NEURON_ID=entity),
+                data = request_json(SCICRUNCH_CONNECTIVITY_NEURONS.format(NEURON_ID=entity),
                                     params={'api_key': self.__scigraph_key})
                 if data is not None:
-                    knowledge = connectivity.knowledge(entity, data)
+                    knowledge = self.__connectivity_parser.neuron_knowledge(entity, data)
 
             elif ontology in SPARC_ONTOLOGIES:
                 data = request_json(SCICRUNCH_SPARC_VOCAB.format(TERM=entity),
                                     params={'api_key': self.__scigraph_key})
                 if data is not None:
                     knowledge['label'] = data.get('labels', [entity])[0]
+
+            elif entity.startswith(APINATOMY_MODEL_PREFIX):
+                data = request_json(SCICRUNCH_SPARC_CYPHER,
+                                    params={
+                                        'cypherQuery': connectivity.neurons_for_model_cypher(entity),
+                                        'api_key': self.__scigraph_key,
+                                    })
+                if data is not None:
+                    knowledge = self.__connectivity_parser.model_knowledge(entity, data)
 
         if len(knowledge) == 0 and entity not in self.__unknown_entities:
             log.warn('Unknown anatomical entity: {}'.format(entity))

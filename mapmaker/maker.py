@@ -55,6 +55,7 @@ class Manifest(object):
         self.__url = path.url
         self.__connections = {}
         self.__connectivity = []
+        self.__neuron_connectivity = []
         if single_svg:
             id = self.__url.rsplit('/', 1)[-1].rsplit('.', 1)[0].replace('_', '-').replace(' ', '_')
             self.__manifest = {
@@ -79,6 +80,8 @@ class Manifest(object):
                 self.__manifest['properties'] = urljoin(self.__url, self.__manifest['properties'])
             for path in self.__manifest.get('connectivity', []):
                 self.__connectivity.append(urljoin(self.__url, path))
+            for model in self.__manifest.get('neuron-connectivity', []):
+                self.__neuron_connectivity.append(model)
             for source in self.__manifest['sources']:
                 source['href'] = urljoin(self.__url, source['href'])
 
@@ -101,6 +104,10 @@ class Manifest(object):
     @property
     def connectivity(self):
         return self.__connectivity
+
+    @property
+    def neuron_connectivity(self):
+        return self.__neuron_connectivity
 
     @property
     def properties(self):

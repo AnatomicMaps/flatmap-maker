@@ -442,6 +442,17 @@ class Pathways(object):
                 properties['tile-layer'] = 'pathways'
                 self.__layer_paths.add(path_id)
 
+    def add_connectivity_model(self, model_uri):
+    #===========================================
+        connectivity = {
+            'id': model_uri,
+            'source': model_uri,
+            'network': 'neural',
+            'paths': []
+        }
+        connectivity.update(get_knowledge(model_uri))
+        self.add_connectivity(connectivity)
+
     def add_connectivity(self, connectivity):
     #========================================
         connectivity_model = ConnectivityModel(connectivity)

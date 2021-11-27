@@ -3,14 +3,14 @@
     "models": "NCBITaxon:10114",
     "anatomicalMap": "anatomical_map.xlsx",
     "properties": "rat_flatmap_properties.json",
-    "connectivity": [
-        "keast_bladder_with_centrelines_test.json"
-    ],
     "sources": [
         {
             "id": "rat-bladder",
             "href": "rat-bladder.svg",
             "kind": "base"
         }
+    ],
+    "neuron-connectivity": [
+        "https://apinatomy.org/uris/models/keast-bladder"
     ]
 }
