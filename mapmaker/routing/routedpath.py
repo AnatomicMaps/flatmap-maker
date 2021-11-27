@@ -34,6 +34,7 @@ from mapmaker.settings import settings
 from mapmaker.utils import log
 from mapmaker.routing.routes import Sheath
 from mapmaker.routing.neurons import Connectivity
+import mapmaker.routing.order as ordering
 
 #===============================================================================
 
@@ -159,5 +160,24 @@ class RoutedPath(object):
     #         'kind': self.__path_type,
     #         'type': 'line-dash' if self.__path_type.endswith('-post') else 'line'
     #     }
+
+#===============================================================================
+
+class PathRouter(object):
+    def __init__(self):
+        self.__route_graphs = {}
+        self.__routed_paths = {}
+
+    @property
+    def routed_paths(self):
+        return self.__routed_paths
+
+    def add_path(self, path_id, route_graph):
+        self.__route_graphs[path_id] = route_graph
+
+    def layout(self):
+        ordering.layout(self.__route_graphs)
+        self.__routed_paths = {path_id: RoutedPath(path_id, route_graph)
+            for path_id, route_graph in self.__route_graphs.items()}
 
 #===============================================================================

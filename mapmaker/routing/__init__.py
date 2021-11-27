@@ -39,7 +39,7 @@ import shapely.geometry
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
-from .routedpath import RoutedPath
+from .routedpath import PathRouter
 
 #===============================================================================
 
@@ -185,7 +185,7 @@ class Network(object):
 
     def layout(self, route_graphs: nx.Graph) -> dict:
     #================================================
-        laid_out_paths = {}
+        path_router = PathRouter()
         for path_id, route_graph in route_graphs.items():
             # Save the geometry of any intermediate points on an edge
             for edge in route_graph.edges(data='intermediates'):
@@ -197,11 +197,10 @@ class Network(object):
                             way_point_geometry.append(feature.geometry)
                     del(route_graph.edges[edge[0:2]]['intermediates'])
                     route_graph.edges[edge[0:2]]['way-points'] = way_point_geometry
-
-            ### Need to have all paths in each centreline to solve for offsets...
-            # Route the connection's path through the centreline scaffold
-            laid_out_paths[path_id] = RoutedPath(path_id, route_graph)
-        return laid_out_paths
+            path_router.add_path(path_id, route_graph)
+        # Layout the paths and return the result
+        path_router.layout()
+        return path_router.routed_paths
 
     def contains(self, id):
     #=======================
