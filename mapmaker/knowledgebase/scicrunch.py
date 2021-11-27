@@ -61,23 +61,20 @@ class SciCrunch(object):
         if self.__scigraph_key is not None:
             ontology = entity.split(':')[0]
             if   ontology in INTERLEX_ONTOLOGIES:
-                data = request_json('{}?api_key={}'.format(
-                        SCICRUNCH_INTERLEX_VOCAB.format(entity),
-                        self.__scigraph_key))
+                data = request_json(SCICRUNCH_INTERLEX_VOCAB.format(TERM=entity),
+                                    params={'api_key': self.__scigraph_key})
                 if data is not None:
                     knowledge['label'] = data.get('data', {}).get('label', entity)
 
             elif ontology in CONNECTIVITY_ONTOLOGIES:
-                data = request_json('{}?api_key={}'.format(
-                        SCICRUNCH_CONNECTIVITY.format(entity),
-                        self.__scigraph_key))
+                data = request_json(SCICRUNCH_CONNECTIVITY.format(NEURON_ID=entity),
+                                    params={'api_key': self.__scigraph_key})
                 if data is not None:
                     knowledge = connectivity.knowledge(entity, data)
 
             elif ontology in SPARC_ONTOLOGIES:
-                data = request_json('{}?api_key={}'.format(
-                        SCICRUNCH_SPARC_VOCAB.format(entity),
-                        self.__scigraph_key))
+                data = request_json(SCICRUNCH_SPARC_VOCAB.format(TERM=entity),
+                                    params={'api_key': self.__scigraph_key})
                 if data is not None:
                     knowledge['label'] = data.get('labels', [entity])[0]
 

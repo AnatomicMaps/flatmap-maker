@@ -88,9 +88,12 @@ class FilePath(object):
 
 #===============================================================================
 
-def request_json(endpoint):
+def request_json(endpoint, **kwds):
     try:
-        response = requests.get(endpoint, timeout=LOOKUP_TIMEOUT)
+        response = requests.get(endpoint,
+                                headers={'accept': 'application/json'},
+                                timeout=LOOKUP_TIMEOUT,
+                                **kwds)
         if response.status_code == requests.codes.ok:
             try:
                 return response.json()
