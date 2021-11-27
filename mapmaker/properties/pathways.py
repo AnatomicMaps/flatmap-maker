@@ -29,7 +29,7 @@ from pyparsing import delimitedList, Group, ParseException, ParseResults, Suppre
 
 from mapmaker.flatmap.feature import Feature, FeatureMap
 from mapmaker.flatmap.layers import FeatureLayer
-from mapmaker.settings import settings
+from mapmaker.knowledgebase import get_knowledge
 from mapmaker.sources.markup import ID_TEXT
 from mapmaker.utils import log, FilePath
 
@@ -285,7 +285,7 @@ class PathModel(object):
             if self.__connections is not None:
                 log.error(f'Path {self.__id} is specified multiple ways...')
         if self.__models is not None:
-            knowledge = settings['KNOWLEDGE_BASE'].entity_knowledge(self.__models)
+            knowledge = get_knowledge(self.__models)
             self.__label = knowledge.get('label')
             if self.__connections is None:
                 self.__connectivity = knowledge.get('connectivity')

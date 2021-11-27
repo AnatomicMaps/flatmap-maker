@@ -191,7 +191,7 @@ class MapMaker(object):
         # Our source of knowledge, updated with information
         # about maps we've made, held in a global place
 
-        settings['KNOWLEDGE_BASE'] = KnowledgeStore(map_base)
+        settings['KNOWLEDGE_STORE'] = KnowledgeStore(map_base)
 
         # The map we are making
         self.__flatmap = FlatMap(self.__manifest, self)
@@ -234,7 +234,7 @@ class MapMaker(object):
     def __finish_make(self):
     #=======================
         # We are finished with the knowledge base
-        settings['KNOWLEDGE_BASE'].close()
+        settings['KNOWLEDGE_STORE'].close()
 
         # Show what the map is about
         if self.__flatmap.models is not None:
@@ -368,7 +368,7 @@ class MapMaker(object):
         tile_db.execute("COMMIT")
 
         # Update our knowledge base
-        settings['KNOWLEDGE_BASE'].add_flatmap(self.__flatmap)
+        settings['KNOWLEDGE_STORE'].add_flatmap(self.__flatmap)
 
 #*        ## TODO: set ``layer.properties`` for annotations...
 #*        ##update_RDF(options['map_base'], options['map_id'], source, annotations)

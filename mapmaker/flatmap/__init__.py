@@ -31,9 +31,9 @@ import numpy as np
 from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import bounds_to_extent, extent_to_bounds, normalised_coords
+from mapmaker.knowledgebase import get_knowledge
 from mapmaker.properties import ExternalProperties
 from mapmaker.properties.pathways import Route
-from mapmaker.settings import settings
 from mapmaker.utils import log
 
 from .feature import Feature, FeatureMap
@@ -58,7 +58,7 @@ class FlatMap(object):
         self.__models = manifest.models
         if self.__models is not None:
             self.__metadata['taxon'] = self.__models
-            knowledge = settings['KNOWLEDGE_BASE'].entity_knowledge(self.__models)
+            knowledge = get_knowledge(self.__models)
             if 'label' in knowledge:
                 self.__metadata['describes'] = knowledge['label']
 

@@ -26,6 +26,7 @@ from pathlib import Path
 
 #===============================================================================
 
+from mapmaker.settings import settings
 from mapmaker.utils import log
 
 from .scicrunch import SciCrunch
@@ -146,3 +147,12 @@ class KnowledgeStore(KnowledgeBase):
                 ((entity, publication) for publication in publications))
 
 #===============================================================================
+
+def update_publications(entity, publications):
+    settings['KNOWLEDGE_STORE'].update_publications(entity, publications)
+
+def get_knowledge(entity):
+    return settings['KNOWLEDGE_STORE'].entity_knowledge(entity)
+
+#===============================================================================
+

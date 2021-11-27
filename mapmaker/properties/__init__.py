@@ -22,9 +22,9 @@ from collections import defaultdict
 
 #===============================================================================
 
+from mapmaker.knowledgebase import get_knowledge, update_publications
 from mapmaker.routing import Network
 from mapmaker.utils import FilePath
-from mapmaker.settings import settings
 
 from .anatomicalmap import AnatomicalMap
 from .pathways import Pathways
@@ -84,10 +84,6 @@ class ExternalProperties(object):
                 network.create_geometry(feature_map)
                 self.__pathways.generate_connectivity(network, feature_map)
 
-    def get_knowledge(self, entity):
-    #===============================
-        return settings['KNOWLEDGE_BASE'].entity_knowledge(entity)
-
     def get_property(self, id_or_class, key):
     #========================================
         property = self.__properties_by_id.get(id_or_class, {}).get(key)
@@ -100,7 +96,7 @@ class ExternalProperties(object):
         if self.__pathways is not None:
             knowledge = self.__pathways.knowledge()
             for source, publication in knowledge.get('publications'):
-                settings['KNOWLEDGE_BASE'].update_publications(source, publication)
+                update_publications(source, publication)
 
     def update_properties(self, properties):
     #=======================================
@@ -129,7 +125,7 @@ class ExternalProperties(object):
             elif 'simulations' in properties:
                 properties['kind'] = 'simulation'
         if 'models' in properties and 'label' not in properties:
-            properties['label'] = self.get_knowledge(properties['models'])['label']
+            properties['label'] = get_knowledge(properties['models'])['label']
 
         return properties
 
