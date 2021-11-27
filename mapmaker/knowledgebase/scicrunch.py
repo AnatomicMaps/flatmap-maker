@@ -33,14 +33,19 @@ INTERLEX_ONTOLOGIES = ['ILX', 'NLX']
 
 CONNECTIVITY_ONTOLOGIES = [ 'ilxtr' ]
 
-SCIGRAPH_ONTOLOGIES = ['FMA', 'NCBITaxon', 'UBERON']
+SPARC_ONTOLOGIES = ['FMA', 'NCBITaxon', 'UBERON']
+
+
+SCICRUNCH_API = 'https://scicrunch.org/api/1'
+
+SCICRUNCH_SPARC_API = f'{SCICRUNCH_API}/sparc-scigraph'
 
 #===============================================================================
 
 SCICRUNCH_CONNECTIVITY = 'http://sparc-data.scicrunch.io:9000/scigraph/dynamic/demos/apinat/neru-4/{}.json'
+SCICRUNCH_INTERLEX_VOCAB = f'{SCICRUNCH_API}/ilx/search/curie/{{TERM}}'
 
-SCICRUNCH_INTERLEX_VOCAB = 'https://scicrunch.org/api/1/ilx/search/curie/{}'
-SCICRUNCH_SCIGRAPH_VOCAB = 'https://scicrunch.org/api/1/sparc-scigraph/vocabulary/id/{}.json'
+SCICRUNCH_SPARC_VOCAB = f'{SCICRUNCH_SPARC_API}/vocabulary/id/{{TERM}}.json'
 
 #===============================================================================
 
@@ -69,9 +74,9 @@ class SciCrunch(object):
                 if data is not None:
                     knowledge = connectivity.knowledge(entity, data)
 
-            elif ontology in SCIGRAPH_ONTOLOGIES:
+            elif ontology in SPARC_ONTOLOGIES:
                 data = request_json('{}?api_key={}'.format(
-                        SCICRUNCH_SCIGRAPH_VOCAB.format(entity),
+                        SCICRUNCH_SPARC_VOCAB.format(entity),
                         self.__scigraph_key))
                 if data is not None:
                     knowledge['label'] = data.get('labels', [entity])[0]
