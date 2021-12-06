@@ -150,6 +150,26 @@ def parse_markup(markup):
 
 #===============================================================================
 
+def properties_to_markup(properties):
+    markup_elements = []
+    details = {}
+    for key, value in properties.items():
+        if (FEATURE_FLAGS.matches(key)
+         or SHAPE_FLAGS.matches(key)):
+            if value:
+                markup_elements.append(key)
+        elif key in ['details', 'maxzoom']:
+            details[key] = value
+        elif key not in ['error', 'markup', 'warning']:
+            markup_elements.append(f'{key}({value})')
+    if len(details) == 2:
+        markup_elements.append(f'details({details["details"]}, {details["maxzoom"] + 1})')
+    markup = '.' + ' '.join(markup_elements)
+    properties = {'markup': markup}
+    return markup
+
+#===============================================================================
+
 def ignore_property(name):
     return SHAPE_FLAGS.matches(name) or name in DEPRECATED_MARKUP
 

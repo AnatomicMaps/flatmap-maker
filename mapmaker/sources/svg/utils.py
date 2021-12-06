@@ -96,12 +96,15 @@ def __match_to_char(m):
     else:
         return chr(int(s[2:4], 16))
 
-def adobe_decode_markup(element):
-#================================
-    s = element.attrib.get('id', '')
+def adobe_decode(s):
+#===================
     markup = re.sub('(_x.._)|(_)', __match_to_char, s).strip()
     numeric_suffix = re.search('( [0-9]+)$', markup)
     return markup if numeric_suffix is None else markup[0:-len(numeric_suffix[1])].strip()
+
+def adobe_decode_markup(element):
+#================================
+    return adobe_decode(element.attrib.get('id', ''))
 
 def __match_to_hex(m):
 #=====================
