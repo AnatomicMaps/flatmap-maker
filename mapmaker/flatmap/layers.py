@@ -291,7 +291,7 @@ class MapLayer(FeatureLayer):
                 if feature.geom_type == 'Polygon':
                     interior_polygons.append(feature.geometry)
                 elif feature.geom_type == 'MultiPolygon':
-                    interior_polygons.extend(list(feature.geometry))
+                    interior_polygons.extend(list(feature.geometry.geoms))
             interior_polygon = shapely.ops.unary_union(interior_polygons)
             for feature in layer_features:
                 if (feature.has_property('markup')
@@ -325,7 +325,7 @@ class MapLayer(FeatureLayer):
                 if feature.geom_type == 'Polygon':
                     grouped_polygons.append(feature.geometry)
                 elif feature.geom_type == 'MultiPolygon':
-                    grouped_polygons.extend(list(feature.geometry))
+                    grouped_polygons.extend(list(feature.geometry.geoms))
             if len(grouped_polygons):
                 feature_group = self.flatmap.new_feature(
                         shapely.geometry.MultiPolygon(grouped_polygons).buffer(0),

@@ -382,11 +382,11 @@ use_chardet_on_py3 = ["chardet (>=3.0.2,<5)"]
 
 [[package]]
 name = "shapely"
-version = "1.7.1"
+version = "1.8.0"
 description = "Geometric objects, predicates, and operations"
 category = "main"
 optional = false
-python-versions = "*"
+python-versions = ">=3.6"
 
 [package.extras]
 all = ["numpy", "pytest", "pytest-cov"]
