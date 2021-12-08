@@ -289,7 +289,7 @@ class MapLayer(FeatureLayer):
                 if feature.geom_type == 'Polygon':
                     interior_polygons.append(feature.geometry)
                 elif feature.geom_type == 'MultiPolygon':
-                    interior_polygons.extend(list(feature.geometry))
+                    interior_polygons.extend(list(feature.geometry.geoms))
             interior_polygon = shapely.ops.unary_union(interior_polygons)
             for feature in layer_features:
                 if (feature.has_property('markup')
@@ -327,7 +327,7 @@ class MapLayer(FeatureLayer):
                     grouped_polygons.append(feature.geometry)
                     bezier_paths.append(feature.get_property('bezier-segments', []))
                 elif feature.geom_type == 'MultiPolygon':
-                    grouped_polygons.extend(list(feature.geometry))
+                    grouped_polygons.extend(list(feature.geometry.geoms))
                     bezier_paths.extend(feature.get_property('bezier-paths', []))
             if len(grouped_polygons):
                 feature_group = self.flatmap.new_feature(

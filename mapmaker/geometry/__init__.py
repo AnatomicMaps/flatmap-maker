@@ -239,11 +239,11 @@ class LineMatcher(object):
                 return False
         else:
             # Find which line end is closest to previous's end
-            end = self._previous.boundary[1]
-            if end.distance(line.boundary[0]) <= ALMOST_TOUCHING:
+            end = self._previous.boundary.geoms[1]
+            if end.distance(line.boundary.geoms[0]) <= ALMOST_TOUCHING:
                 self._coords.extend(self._previous.coords)
                 self._previous = line
-            elif end.distance(line.boundary[1]) <= ALMOST_TOUCHING:
+            elif end.distance(line.boundary.geoms[1]) <= ALMOST_TOUCHING:
                 self._coords.extend(self._previous.coords)
                 self._previous = LineString(reversed(line.coords))
             else:
@@ -309,7 +309,7 @@ def connect_dividers(dividers, debug):
                 if divider1.boundary.is_empty:  # and not divider2.boundary.is_empty
                     half = shapely.ops.substring(divider2, 0.0, 0.5, True)
                     if not half.crosses(divider1):
-                        endpoint = divider2.boundary[0]
+                        endpoint = divider2.boundary.geoms[0]
                         nearest = shapely.ops.nearest_points(endpoint, divider1)
                         distance = nearest[0].distance(nearest[1])
                         if distance <= ALMOST_TOUCHING:
@@ -318,7 +318,7 @@ def connect_dividers(dividers, debug):
                             if debug: print(n, m, '1st is ring: extend 2nd start...')
                     half = shapely.ops.substring(divider2, 0.5, 1.0, True)
                     if not half.crosses(divider1):
-                        endpoint = divider2.boundary[1]
+                        endpoint = divider2.boundary.geoms[1]
                         nearest = shapely.ops.nearest_points(endpoint, divider1)
                         distance = nearest[0].distance(nearest[1])
                         if distance <= ALMOST_TOUCHING:
@@ -328,7 +328,7 @@ def connect_dividers(dividers, debug):
                 else:   # not divider1.boundary.is_empty and divider2.boundary.is_empty
                     half = shapely.ops.substring(divider1, 0.0, 0.5, True)
                     if not half.crosses(divider2):
-                        endpoint = divider1.boundary[0]
+                        endpoint = divider1.boundary.geoms[0]
                         nearest = shapely.ops.nearest_points(endpoint, divider2)
                         distance = nearest[0].distance(nearest[1])
                         if distance <= ALMOST_TOUCHING:
@@ -337,7 +337,7 @@ def connect_dividers(dividers, debug):
                             if debug: print(n, m, '2nd is ring: extend 1st start...')
                     half = shapely.ops.substring(divider1, 0.5, 1.0, True)
                     if not half.crosses(divider2):
-                        endpoint = divider1.boundary[1]
+                        endpoint = divider1.boundary.geoms[1]
                         nearest = shapely.ops.nearest_points(endpoint, divider2)
                         distance = nearest[0].distance(nearest[1])
                         if distance <= ALMOST_TOUCHING:
@@ -348,7 +348,7 @@ def connect_dividers(dividers, debug):
                 # Order matters, process divider1 before divider2
                 half = shapely.ops.substring(divider1, 0.0, 0.5, True)
                 if not half.crosses(divider2):
-                    endpoint = divider1.boundary[0]
+                    endpoint = divider1.boundary.geoms[0]
                     nearest = shapely.ops.nearest_points(endpoint, divider2)
                     distance = nearest[0].distance(nearest[1])
                     if distance <= ALMOST_TOUCHING:
@@ -357,7 +357,7 @@ def connect_dividers(dividers, debug):
                         if debug: print(n, m, 'no rings: extend 1st start...')
                 half = shapely.ops.substring(divider1, 0.5, 1.0, True)
                 if not half.crosses(divider2):
-                    endpoint = divider1.boundary[1]
+                    endpoint = divider1.boundary.geoms[1]
                     nearest = shapely.ops.nearest_points(endpoint, divider2)
                     distance = nearest[0].distance(nearest[1])
                     if distance <= ALMOST_TOUCHING:
@@ -366,7 +366,7 @@ def connect_dividers(dividers, debug):
                         if debug: print(n, m, 'no rings: extend 1st end...')
                 half = shapely.ops.substring(divider2, 0.0, 0.5, True)
                 if not half.crosses(divider1):
-                    endpoint = divider2.boundary[0]
+                    endpoint = divider2.boundary.geoms[0]
                     nearest = shapely.ops.nearest_points(endpoint, divider1)
                     distance = nearest[0].distance(nearest[1])
                     if distance <= ALMOST_TOUCHING:
@@ -375,7 +375,7 @@ def connect_dividers(dividers, debug):
                         if debug: print(n, m, 'no rings: extend 2nd start...')
                 half = shapely.ops.substring(divider2, 0.5, 1.0, True)
                 if not half.crosses(divider1):
-                    endpoint = divider2.boundary[1]
+                    endpoint = divider2.boundary.geoms[1]
                     nearest = shapely.ops.nearest_points(endpoint, divider1)
                     distance = nearest[0].distance(nearest[1])
                     if distance <= ALMOST_TOUCHING:
