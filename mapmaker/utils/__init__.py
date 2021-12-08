@@ -41,6 +41,11 @@ from .logging import ProgressBar, configure_logging, log
 
 #===============================================================================
 
+def relative_path(path):
+    return path.split(':', 1)[0] not in ['file', 'http', 'https']
+
+#===============================================================================
+
 class FilePathError(IOError):
     pass
 
@@ -48,12 +53,10 @@ class FilePathError(IOError):
 
 class FilePath(object):
     def __init__(self, path):
-        if (path.startswith('file:')
-         or path.startswith('http:')
-         or path.startswith('https:')):
-            self.__url = path
-        else:
+        if relative_path(path):
             self.__url = pathlib.Path(path).absolute().resolve().as_uri()
+        else:
+            self.__url = path
 
     @property
     def url(self):
@@ -85,6 +88,9 @@ class FilePath(object):
 
     def join_path(self, path):
         return FilePath(urljoin(self.__url, path))
+
+    def join_url(self, path):
+        return urljoin(self.__url, path)
 
 #===============================================================================
 

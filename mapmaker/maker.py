@@ -24,7 +24,6 @@ import pathlib
 import shutil
 import subprocess
 import sys
-from urllib.parse import urljoin
 
 #===============================================================================
 
@@ -51,8 +50,8 @@ from .sources import MBFSource, PowerpointSource, SVGSource
 
 class Manifest(object):
     def __init__(self, manifest_path, single_svg=False):
-        path = FilePath(manifest_path)
-        self.__url = path.url
+        self.__path = FilePath(manifest_path)
+        self.__url = self.__path.url
         self.__connections = {}
         self.__connectivity = []
         self.__neuron_connectivity = []
@@ -69,21 +68,21 @@ class Manifest(object):
                 ]
             }
         else:
-            self.__manifest = path.get_json()
+            self.__manifest = self.__path.get_json()
             if 'id' not in self.__manifest:
                 raise ValueError('No id given for manifest')
             if 'sources' not in self.__manifest:
                 raise ValueError('No sources given for manifest')
             if 'anatomicalMap' in self.__manifest:
-                self.__manifest['anatomicalMap'] = urljoin(self.__url, self.__manifest['anatomicalMap'])
+                self.__manifest['anatomicalMap'] = self.__path.join_url(self.__manifest['anatomicalMap'])
             if 'properties' in self.__manifest:
-                self.__manifest['properties'] = urljoin(self.__url, self.__manifest['properties'])
+                self.__manifest['properties'] = self.__path.join_url(self.__manifest['properties'])
             for path in self.__manifest.get('connectivity', []):
-                self.__connectivity.append(urljoin(self.__url, path))
+                self.__connectivity.append(self.__path.join_url(path))
             for model in self.__manifest.get('neuron-connectivity', []):
                 self.__neuron_connectivity.append(model)
             for source in self.__manifest['sources']:
-                source['href'] = urljoin(self.__url, source['href'])
+                source['href'] = self.__path.join_url(source['href'])
 
     @property
     def anatomical_map(self):
