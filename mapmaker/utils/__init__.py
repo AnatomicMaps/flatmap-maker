@@ -25,7 +25,7 @@ import sys
 import urllib.request
 
 from json.decoder import JSONDecodeError
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 #===============================================================================
 
@@ -57,6 +57,10 @@ class FilePath(object):
             self.__url = pathlib.Path(path).absolute().resolve().as_uri()
         else:
             self.__url = path
+
+    @property
+    def filename(self):
+        return urlparse(self.__url).path.rsplit('/', 1)[-1]
 
     @property
     def url(self):
