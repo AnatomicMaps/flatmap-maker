@@ -37,27 +37,27 @@ def arg_parser():
 
     log_options = parser.add_argument_group('Logging')
     log_options.add_argument('--log', dest='logFile', metavar='LOG_FILE',
-                        help="append messages to a log file")
+                        help="Append messages to a log file")
     log_options.add_argument('--show-deprecated', dest='showDeprecated', action='store_true',
-                        help='issue a warning for deprecated markup properties')
+                        help='Issue a warning for deprecated markup properties')
     log_options.add_argument('--silent', action='store_true',
-                        help='suppress all messages to screen')
+                        help='Suppress all messages to screen')
     log_options.add_argument('--verbose', action='store_true',
-                        help="show progress bars")
+                        help="Show progress bars")
 
     tile_options = parser.add_argument_group('Image tiling')
     tile_options.add_argument('--clean', action='store_true',
                         help="Remove all files from generated map's directory before generating new map")
     tile_options.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
-                        help="generate image tiles of map's layers (may take a while...)")
+                        help="Generate image tiles of map's layers (may take a while...)")
 
     debug_options = parser.add_argument_group('Diagnostics')
     debug_options.add_argument('--check-errors', dest='errorCheck', action='store_true',
-                        help='check for errors without generating a map')
+                        help='Check for errors without generating a map')
     debug_options.add_argument('--debug', action='store_true',
-                        help='show a traceback for error exceptions')
+                        help='Show a traceback for error exceptions')
     debug_options.add_argument('--save-drawml', dest='saveDrawML', action='store_true',
-                        help="save a slide's DrawML for debugging")
+                        help="Save a slide's DrawML for debugging")
     debug_options.add_argument('--save-geojson', dest='saveGeoJSON', action='store_true',
                         help='Save GeoJSON files for each layer')
     debug_options.add_argument('--tippecanoe', dest='showTippe', action='store_true',
@@ -65,11 +65,11 @@ def arg_parser():
 
     zoom_options = parser.add_argument_group('Zoom level')
     zoom_options.add_argument('--initialZoom', metavar='N', type=int, default=4,
-                        help='initial zoom level (defaults to 4)')
+                        help='Initial zoom level (defaults to 4)')
     zoom_options.add_argument('--max-zoom', dest='maxZoom', metavar='N', type=int, default=10,
-                        help='maximum zoom level (defaults to 10)')
+                        help='Maximum zoom level (defaults to 10)')
     zoom_options.add_argument('--min-zoom', dest='minZoom', metavar='N', type=int, default=2,
-                        help='minimum zoom level (defaults to 2)')
+                        help='Minimum zoom level (defaults to 2)')
 
     misc_options = parser.add_argument_group('Miscellaneous')
     misc_options.add_argument('--id', metavar='ID',
@@ -82,7 +82,7 @@ def arg_parser():
 
     required = parser.add_argument_group('Required arguments')
     required.add_argument('--output', required=True,
-                        help='base directory for generated flatmaps')
+                        help='Base directory for generated flatmaps')
     required.add_argument('--source', required=True,
                         help='URL or path of a flatmap manifest')
     return parser
