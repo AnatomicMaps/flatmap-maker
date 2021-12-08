@@ -136,8 +136,15 @@ class KnowledgeStore(KnowledgeBase):
             knowledge['label'] = entity
         # Cache local knowledge
         self.__entity_knowledge[entity] = knowledge
-
         return knowledge
+
+    def label(self, entity):
+    #=======================
+        row = self.db.execute('select label from labels where entity=?', (entity,)).fetchone()
+        if row is not None:
+            return row[0]
+        knowledge = self.entity_knowledge(entity)
+        return knowledge['label']
 
     def update_publications(self, entity, publications):
     #===================================================
