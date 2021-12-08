@@ -137,7 +137,8 @@ class MapMaker(object):
                 log_file = os.path.join(log_path, '{}.log'.format(os.getpid()))
         configure_logging(log_file,
             verbose=options.get('verbose', False),
-            silent=options.get('silent', False))
+            silent=options.get('silent', False),
+            debug=options.get('debug', False))
         log('Mapmaker {}'.format(__version__))
 
         # Default base output directory to ``./flatmaps``.
