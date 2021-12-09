@@ -36,6 +36,8 @@ import transforms3d
 
 #===============================================================================
 
+from mapmaker.utils import log
+
 from .feature_search import FeatureSearch
 
 #===============================================================================
@@ -178,14 +180,17 @@ def reflect_point(point, centre):
 def extend_(p0, p1):
 #===================
     """
-    Extend the line through `p0` and `p1` by `LINE_EXTENSION`
-    and return the new end point
+    Extend the line through ``p0`` and ``p1`` by ``extension``
+    past ``p1`` and return the new end point
     """
     dx = p1[0] - p0[0]
     dy = p1[1] - p0[1]
     l = sqrt(dx*dx + dy*dy)
-    scale = (LINE_EXTENSION + l)/l if l > 0 else 0.0
-    return (p0[0] + scale*dx, p0[1] + scale*dy)
+    scale = LINE_EXTENSION/l if l != 0 else 1.0
+    if l == 0:
+        log.error('ZERO extension of divider...')
+    p = (p1[0] + scale*dx, p1[1] + scale*dy)
+    return p
 
 def extend_line(geometry):
 #=========================
@@ -196,8 +201,8 @@ def extend_line(geometry):
         return shapely.geometry.LineString([extend_(coords[1], coords[0]),
                                             extend_(coords[0], coords[1])])
     else:
-        coords[0] = extend_(coords[1], coords[0])
-        coords[-1] = extend_(coords[-2], coords[-1])
+        coords[0] = extend_(coords[2], coords[0])
+        coords[-1] = extend_(coords[-3], coords[-1])
         return shapely.geometry.LineString(coords)
 
 #===============================================================================
@@ -271,12 +276,14 @@ def make_boundary(lines):
 def extend_divider(divider, end_point, nearest_point):
     bdy = divider.boundary
     coords = list(divider.coords)
-    if end_point.distance(bdy[0]) < 0.001:
-        coords.insert(0, nearest_point.coords[0])
-        coords[0] = extend_(coords[1], coords[0])
-    elif end_point.distance(bdy[1]) < 0.001:
-        coords.append(nearest_point.coords[0])
-        coords[-1] = extend_(coords[-2], coords[-1])
+    if end_point.distance(bdy.geoms[0]) < 0.001:
+        if coords[0] != nearest_point.coords[0]:
+            coords.insert(0, nearest_point.coords[0])
+        coords.insert(0, extend_(coords[1], coords[0]))
+    elif end_point.distance(bdy.geoms[1]) < 0.001:
+        if coords[-1] != nearest_point.coords[0]:
+            coords.append(nearest_point.coords[0])
+        coords.append(extend_(coords[-2], coords[-1]))
     return shapely.geometry.LineString(coords)
 
 def endpoint(point, line):
@@ -299,7 +306,7 @@ def connect_dividers(dividers, debug):
                     connectors.append(extend_line(shapely.geometry.LineString(nearest)))
                     if debug: print(n, m, 'both rings: connect...')
             elif divider1.boundary.is_empty or divider2.boundary.is_empty:
-                if divider1.boundary.is_empty:
+                if divider1.boundary.is_empty:  # and not divider2.boundary.is_empty
                     half = shapely.ops.substring(divider2, 0.0, 0.5, True)
                     if not half.crosses(divider1):
                         endpoint = divider2.boundary[0]
@@ -318,7 +325,7 @@ def connect_dividers(dividers, debug):
                             dividers[m] = extend_divider(divider2, nearest[0], nearest[1])
                             divider2 = dividers[m]
                             if debug: print(n, m, '1st is ring: extend 2nd end...')
-                if divider2.boundary.is_empty:
+                else:   # not divider1.boundary.is_empty and divider2.boundary.is_empty
                     half = shapely.ops.substring(divider1, 0.0, 0.5, True)
                     if not half.crosses(divider2):
                         endpoint = divider1.boundary[0]
@@ -337,7 +344,7 @@ def connect_dividers(dividers, debug):
                             dividers[n] = extend_divider(divider1, nearest[0], nearest[1])
                             divider1 = dividers[n]
                             if debug: print(n, m, '2nd is ring: extend 1st end...')
-            else:
+            else:       # not divider1.boundary.is_empty and not divider2.boundary.is_empty
                 # Order matters, process divider1 before divider2
                 half = shapely.ops.substring(divider1, 0.0, 0.5, True)
                 if not half.crosses(divider2):
