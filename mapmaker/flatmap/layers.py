@@ -258,9 +258,9 @@ class MapLayer(FeatureLayer):
                 #
                 # And then only add these cleaned up lines as features, not the original dividers
 
-                dividers.append(boundary_polygon.boundary)
                 if debug_group:
                     save_geometry(shapely.geometry.MultiLineString(dividers), 'dividers.wkt')
+                dividers.append(boundary_polygon.boundary)
 
                 divider_lines = connect_dividers(dividers, debug_group)
                 if debug_group:
@@ -273,6 +273,8 @@ class MapLayer(FeatureLayer):
                 polygons = list(shapely.ops.polygonize(polygon_boundaries))
 
                 for n, polygon in enumerate(polygons):
+                    if debug_group:
+                        save_geometry(polygon, f'polygon_{n}.wkt')
                     prepared_polygon = shapely.prepared.prep(polygon)
                     region_id = None
                     region_properties = base_properties.copy()
