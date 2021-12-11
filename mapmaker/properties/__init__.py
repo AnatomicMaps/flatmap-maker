@@ -95,8 +95,9 @@ class ExternalProperties(object):
     #========================
         if self.__pathways is not None:
             knowledge = self.__pathways.knowledge()
-            for source, publication in knowledge.get('publications'):
-                update_publications(source, publication)
+            if 'publications' in knowledge:
+                for source, publication in knowledge.get('publications'):
+                    update_publications(source, publication)
 
     def update_properties(self, properties):
     #=======================================
