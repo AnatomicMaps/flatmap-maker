@@ -32,7 +32,6 @@ cssselect2 = "*"
 webcolors = "*"
 # Can we have a nifstd-tools without the extras...??
 pyxattr = {path = "/Users/dave/build/pyxattr/"}
-nifstd-tools = {path = "/Users/dave/build/pyontutils/nifstd/", develop = true}
 pyontutils = {path = "/Users/dave/build/pyontutils/", develop = true}
 xmltodict = "^0.12.0"
 

@@ -22,10 +22,10 @@ import os
 
 #===============================================================================
 
-import mapmaker.knowledgebase.connectivity as connectivity
-
 from mapmaker.settings import settings
 from mapmaker.utils import log, request_json
+
+from .apinatomy import Apinatomy
 
 #===============================================================================
 
@@ -68,7 +68,6 @@ class SciCrunch(object):
         self.__scigraph_key = os.environ.get('SCICRUNCH_API_KEY')
         if self.__scigraph_key is None:
             log.warn('Undefined SCICRUNCH_API_KEY: SciCrunch knowledge will not be looked up')
-        self.__connectivity_parser = connectivity.ConnectivityParser()
 
     def get_knowledge(self, entity):
         knowledge = {}
@@ -84,7 +83,7 @@ class SciCrunch(object):
                 data = request_json(SCICRUNCH_CONNECTIVITY_NEURONS.format(NEURON_ID=entity),
                                     params={'api_key': self.__scigraph_key})
                 if data is not None:
-                    knowledge = self.__connectivity_parser.neuron_knowledge(entity, data)
+                    knowledge = Apinatomy.neuron_knowledge(entity, data)
 
             elif ontology in SPARC_ONTOLOGIES:
                 data = request_json(SCICRUNCH_SPARC_VOCAB.format(TERM=entity),
@@ -95,11 +94,11 @@ class SciCrunch(object):
             elif entity.startswith(APINATOMY_MODEL_PREFIX):
                 data = request_json(SCICRUNCH_SPARC_CYPHER,
                                     params={
-                                        'cypherQuery': connectivity.neurons_for_model_cypher(entity),
+                                        'cypherQuery': Apinatomy.neurons_for_model_cypher(entity),
                                         'api_key': self.__scigraph_key,
                                     })
                 if data is not None:
-                    knowledge = self.__connectivity_parser.model_knowledge(entity, data)
+                    knowledge = Apinatomy.model_knowledge(entity, data)
 
         if len(knowledge) == 0 and entity not in self.__unknown_entities:
             log.warn('Unknown anatomical entity: {}'.format(entity))
