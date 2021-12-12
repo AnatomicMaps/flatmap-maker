@@ -28,11 +28,54 @@
 #===============================================================================
 
 import networkx as nx
+import rdflib
 from rdflib.extras import external_graph_libs as egl
 
 #===============================================================================
 
-from pyontutils.core import OntGraph, Edge
+class PyOntUtilsEdge(tuple):
+    """ Expansion of curies must happen before construction if it is going to
+        happen at all. The expansion rule must be known beforehand. """
+
+    @classmethod
+    def fromNx(cls, edge):
+        s, o, p = [e.toPython() if isinstance(e, rdflib.URIRef) else e
+                   for e in edge]  # FIXME need to curie here or elsewhere?
+        t = (s, p, o)
+        self = cls(t)
+        return self
+
+    @classmethod
+    def fromOboGraph(cls, blob):
+        t = blob['sub'], blob['pred'], blob['obj']
+        self = cls(t)
+        self._blob = blob
+        return self
+
+    @property
+    def s(self): return self[0]
+
+    @property
+    def p(self): return self[1]
+
+    @property
+    def o(self): return self[2]
+
+    subject = s
+    predicate = p
+    object = o
+
+    def asTuple(self):
+        return (*self,)
+
+    def asRdf(self):
+        """ Note that no expansion may be done at this time. """
+        return tuple(e if isinstance(e, rdflib.URIRef) else rdflib.URIRef(e) for e in self)
+
+    def asOboGraph(self):
+        if not hasattr(self, '_blob'):
+            self._blob = {k:e for k, e in zip(('sub', 'pred', 'obj'), self)}
+        return self._blob
 
 #===============================================================================
 
@@ -79,10 +122,10 @@ class nifstd:
     def zap(ordered_nodes, predicates, oe2, blob):
         """ don't actually zap, wait until the end so that all
             deletions happen after all additions """
-        e = Edge((ordered_nodes[0].toPython(),  ##<<<<
+        e = PyOntUtilsEdge((ordered_nodes[0].toPython(),
                 '-'.join(predicates),
                 ordered_nodes[-1].toPython()))
-        new_e = e.asOboGraph()   ## <<<<<<<<<<
+        new_e = e.asOboGraph()
         blob['edges'].append(new_e)
         to_remove = [e.asOboGraph() for e in oe2]
         return to_remove
@@ -99,8 +142,9 @@ class nifstd:
                 if 'meta' in c:
                     c.pop('meta')
             if candidates:
-                edges = [Edge.fromOboGraph(c) for c in candidates]
-                g = OntGraph().populate_from_triples(e.asRdf() for e in edges)
+                edges = [PyOntUtilsEdge.fromOboGraph(c) for c in candidates]
+                g = rdflib.Graph()
+                for e in edges: g.add(e.asRdf())
                 nxg = egl.rdflib_to_networkx_multidigraph(g)
                 connected = list(nx.weakly_connected_components(nxg))  # FIXME may not be minimal
                 ends = [e.asRdf()[-1] for e in edges if e.p == coll[-1]]
@@ -116,7 +160,7 @@ class nifstd:
                              if len(p) == len(coll) + 1]
                     for path in sorted(paths):
                         ordered_edges = nxgt.edges(path, keys=True)
-                        oe2 = [Edge.fromNx(e) for e in ordered_edges if all([n in path for n in e[:2]])]
+                        oe2 = [PyOntUtilsEdge.fromNx(e) for e in ordered_edges if all([n in path for n in e[:2]])]
                         predicates = [e.p for e in oe2]
                         #log.debug('\n' + pformat(oe2))
                         if predicates == coll: #in collapse:

@@ -30,9 +30,6 @@ transforms3d = "*"
 tinycss2 = "*"
 cssselect2 = "*"
 webcolors = "*"
-# Can we have a nifstd-tools without the extras...??
-pyxattr = {path = "/Users/dave/build/pyxattr/"}
-pyontutils = {path = "/Users/dave/build/pyontutils/", develop = true}
 xmltodict = "^0.12.0"
 
 [tool.poetry.dev-dependencies]
