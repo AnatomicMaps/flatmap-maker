@@ -72,6 +72,8 @@ def arg_parser():
                         help='Minimum zoom level (defaults to 2)')
 
     misc_options = parser.add_argument_group('Miscellaneous')
+    misc_options.add_argument('--clean-connectivity', dest='cleanConnectivity', action='store_true',
+                        help='Refresh local connectivity knowledge from SciCrunch')
     misc_options.add_argument('--id', metavar='ID',
                         help='Set explicit ID for flatmap, overriding manifest')
     misc_options.add_argument('--path-layout', dest='pathLayout',

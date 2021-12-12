@@ -29,6 +29,7 @@ from pathlib import Path
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
+from .scicrunch import APINATOMY_MODEL_PREFIX, CONNECTIVITY_ONTOLOGIES
 from .scicrunch import SciCrunch
 
 #===============================================================================
@@ -112,11 +113,17 @@ class KnowledgeStore(KnowledgeBase):
 
     def entity_knowledge(self, entity):
     #==================================
-        # First check local cache
-        knowledge = self.__entity_knowledge.get(entity, {})
-        if len(knowledge):
-            return knowledge
-        # Then check our database
+        # Optionally refresh local connectivity knowledge from SciCrunch
+        if (settings.get('cleanConnectivity', False)
+         and (entity.startswith(APINATOMY_MODEL_PREFIX)
+           or entity.split(':')[0] in CONNECTIVITY_ONTOLOGIES)):
+            self.db.execute('delete from knowledge where entity=?', (entity,))
+        else:
+            # Check local cache
+            knowledge = self.__entity_knowledge.get(entity, {})
+            if len(knowledge): return knowledge
+
+        # Now check our database
         row = self.db.execute('select knowledge from knowledge where entity=?', (entity,)).fetchone()
         if row is not None:
             knowledge = json.loads(row[0])
