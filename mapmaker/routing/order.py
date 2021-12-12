@@ -259,8 +259,8 @@ def layout(path_network):
                 assert(id is not None)
                 cable_paths[id].add(path_id)
                 if id not in cable_ends:
-                    centroids[node0] = np.array(route_graph.nodes[node0]['geometry'].centroid)
-                    centroids[node1] = np.array(route_graph.nodes[node1]['geometry'].centroid)
+                    centroids[node0] = np.array(route_graph.nodes[node0]['geometry'].centroid.coords[0])
+                    centroids[node1] = np.array(route_graph.nodes[node1]['geometry'].centroid.coords[0])
                     cable_ends[id] = set([node0, node1])
                 else:
                     assert(cable_ends[id] == set([node0, node1]))
