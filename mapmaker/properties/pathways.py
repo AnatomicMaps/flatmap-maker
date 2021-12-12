@@ -288,7 +288,10 @@ class PathModel(object):
             knowledge = get_knowledge(self.__models)
             self.__label = knowledge.get('label')
             if self.__connections is None:
-                self.__connectivity = knowledge.get('connectivity')
+                self.__connectivity = tuple(tuple((pair[0], tuple(pair[1]))
+                                                    for pair in node)
+                                                for node in knowledge.get('connectivity')
+                                            )
         if self.__route is None and self.__connections is None and self.__connectivity is None:
             log.error(f'Path {self.__id} has no route or known connectivity...')
 
@@ -445,12 +448,12 @@ class Pathways(object):
     def add_connectivity_model(self, model_uri):
     #===========================================
         connectivity = {
-            'id': model_uri,
             'source': model_uri,
             'network': 'neural',
             'paths': []
         }
         connectivity.update(get_knowledge(model_uri))
+        connectivity['id'] = model_uri.rsplit('/', 1)[-1]
         self.add_connectivity(connectivity)
 
     def add_connectivity(self, connectivity):
