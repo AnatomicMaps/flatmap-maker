@@ -94,6 +94,7 @@ class ExternalProperties(object):
     def save_knowledge(self):
     #========================
         if self.__pathways is not None:
+            # Save publications that have come from JSON connectivity data
             knowledge = self.__pathways.knowledge()
             if 'publications' in knowledge:
                 for source, publication in knowledge.get('publications'):
