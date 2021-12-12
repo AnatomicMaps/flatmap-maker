@@ -252,7 +252,6 @@ def layout(path_network):
     cable_ends = defaultdict(set)
     centroids = {}
     for path_id, route_graph in path_network.items():
-        print(route_graph.edges)  ####
         for node0, node1, properties in route_graph.edges.data():
             if properties.get('type') != 'terminal':
                 id = properties.get('id')
