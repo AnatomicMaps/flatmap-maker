@@ -266,10 +266,10 @@ class NodeFinder(object):
             self.__node_terminals[self.__nodes[-1]] = self.__terminal_nodes
         return self.__node_terminals
 
-    def __find_map_ids(self, anatomical_id, anatomical_layer=None):
-    #========================================================
+    def __find_feature_ids(self, connectivity_node):
+    #===============================================
         return set([f.id if f.id is not None else f.get_property('class')
-                    for f in self.__feature_map.find_features_by_anatomical_id(anatomical_id, anatomical_layer)])
+                    for f in self.__feature_map.find_features_by_anatomical_id(*connectivity_node)])
 
     def __centreline_end_nodes(self, id):
     #====================================

@@ -128,23 +128,28 @@ class FeatureMap(object):
             feature_ids.extend([f.feature_id for f in self.features(id)])
         return feature_ids
 
-    def find_features_by_anatomical_id(self, anatomical_id1, anatomical_id2):
-        anatomical_features = self.__model_to_features.get(anatomical_id1, [])
-        if anatomical_id2 is not None:
-            anatomical_features2 = self.__model_to_features.get(anatomical_id2, [])
-            included_features = []
-            for feature2 in anatomical_features2:
-                for feature in anatomical_features:
-                    if feature.geometry.contains(feature2.geometry):
-                        included_features.append(feature2)
-            anatomical_features = included_features
+    def find_features_by_anatomical_id(self, anatomical_id, anatomical_layers):
+        if len(anatomical_layers) == 0:
+            anatomical_features = self.__model_to_features.get(anatomical_id, [])
+        else:
+            features = self.__model_to_features.get(anatomical_id, [])
+            for anatomical_layer in anatomical_layers:
+                included_features = []
+                layer_features = self.__model_to_features.get(anatomical_layer, [])
+                for layer_feature in layer_features:
+                    for feature in features:
+                        if layer_feature.geometry.contains(feature.geometry.centroid):
+                            included_features.append(feature)
+                anatomical_features = included_features
+                if len(included_features) == 1:
+                    break
         if len(anatomical_features) == 0:
-            if (anatomical_id1, anatomical_id2) not in self.__unknown_anatomy:
-                if anatomical_id2 is not None:
-                    log.error(f'Cannot find flatmap feature of type {anatomical_id2} in layer {anatomical_id1}')
+            if (anatomical_id, anatomical_layers) not in self.__unknown_anatomy:
+                if len(anatomical_layers) == 0:
+                    log.error(f'Cannot find flatmap feature of type {anatomical_id}')
                 else:
-                    log.error(f'Cannot find flatmap feature of type {anatomical_id1}')
-                self.__unknown_anatomy.append((anatomical_id1, anatomical_id2))
+                    log.error(f'Cannot find flatmap feature of type {anatomical_id} in layers: {anatomical_layers}')
+                self.__unknown_anatomy.append((anatomical_id, anatomical_layers))
         return anatomical_features
 
 #===============================================================================
