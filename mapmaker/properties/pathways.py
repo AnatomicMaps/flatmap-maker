@@ -316,7 +316,7 @@ class PathModel(object):
         return self.__lines
 
     @property
-    def anatomical_id(self):
+    def models(self):
         return self.__models
 
     @property
@@ -379,7 +379,7 @@ class Pathways(object):
         self.__resolved_pathways = None
         self.__routes_by_path_id = {}
         self.__type_by_path_id = {}
-        self.__anatomical_id_by_path_id = {}
+        self.__path_models_by_path_id = {}
         self.__connectivity_by_path_id = {}
         self.__connectivity_models = []
         self.add_connectivity({'paths': paths_list})
@@ -420,8 +420,8 @@ class Pathways(object):
             })
         else:
             properties['type'] = 'line'
-        if path_id in self.__anatomical_id_by_path_id:
-            properties['models'] = self.__anatomical_id_by_path_id[path_id]
+        if path_id in self.__path_models_by_path_id:
+            properties['models'] = self.__path_models_by_path_id[path_id]
         if path_id in self.__connectivity_by_path_id:
             source = self.__connectivity_by_path_id[path_id].source
             if source is not None:
@@ -468,8 +468,8 @@ class Pathways(object):
             self.__connectivity_by_path_id[path_id] = connectivity_model
             lines_by_path_id[path_id] = path_model.lines
             nerves_by_path_id[path_id] = path_model.nerves
-            if path_model.anatomical_id is not None:
-                self.__anatomical_id_by_path_id[path_id] = path_model.anatomical_id
+            if path_model.models is not None:
+                self.__path_models_by_path_id[path_id] = path_model.models
             if path_model.path_type is not None:
                 self.__type_by_path_id[path_id] = path_model.path_type
             if path_model.route is not None:
@@ -506,8 +506,8 @@ class Pathways(object):
                     routed_path = routed_paths[path_id]
                     properties = { 'tile-layer': 'pathways' }
                     properties.update(self.__line_properties(path_id))
-                    anatomical_id = path_model.anatomical_id
-                    if anatomical_id is not None:
+                    path_models = path_model.models
+                    if path_models is not None:
                         properties['label'] = path_model.label
 
                     for n, geometric_shape in enumerate(routed_path.geometry()):
@@ -522,7 +522,7 @@ class Pathways(object):
                         feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
                         layer.add_feature(feature)
                         self.__resolved_pathways.add_connectivity(path_id,
-                                                                  anatomical_id,
+                                                                  path_models,
                                                                   self.__type_by_path_id.get(path_id),
                                                                   routed_path.node_set,
                                                                   feature.feature_id,
@@ -538,7 +538,7 @@ class Pathways(object):
             try:
                 if path_id in self.__routes_by_path_id:
                     self.__resolved_pathways.add_pathway(path_id,
-                                                         self.__anatomical_id_by_path_id.get(path_id),
+                                                         self.__path_models_by_path_id.get(path_id),
                                                          self.__type_by_path_id.get(path_id),
                                                          self.__routes_by_path_id[path_id],
                                                          self.__lines_by_path_id.get(path_id, []),
