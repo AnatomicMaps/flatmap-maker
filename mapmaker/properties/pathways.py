@@ -485,7 +485,7 @@ class Pathways(object):
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
-    def __network_connectivity(self, network, feature_map):
+    def __network_connectivity(self, feature_map, network):
     #======================================================
         log('Routing paths...')
         for connectivity_model in self.__connectivity_models:
@@ -528,8 +528,8 @@ class Pathways(object):
                                                                   feature.feature_id,
                                                                   nerve_features)
 
-    def generate_connectivity(self, network, feature_map):
-    #=====================================================
+    def generate_connectivity(self, feature_map, networks):
+    #======================================================
         if self.__resolved_pathways is not None:
             return
         self.__resolved_pathways = ResolvedPathways(feature_map)
@@ -546,7 +546,10 @@ class Pathways(object):
             except ValueError as err:
                 log.error('Path {}: {}'.format(path_id, str(err)))
                 errors = True
-        self.__network_connectivity(network, feature_map)
+        for network in networks:
+            if network.id is not None:
+                network.create_geometry(feature_map)
+                self.__network_connectivity(feature_map, network)
         if errors:
             raise ValueError('Errors in mapping paths and routes')
 

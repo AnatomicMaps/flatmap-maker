@@ -79,10 +79,9 @@ class ExternalProperties(object):
 
     def generate_connectivity(self, feature_map):
     #============================================
-        for network in self.__networks.values():
-            if network.id is not None:
-                network.create_geometry(feature_map)
-                self.__pathways.generate_connectivity(network, feature_map)
+        self.__pathways.generate_connectivity(
+            feature_map,
+            list(self.__networks.values()))
 
     def get_property(self, id_or_class, key):
     #========================================
