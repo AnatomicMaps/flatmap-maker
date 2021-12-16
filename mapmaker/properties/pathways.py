@@ -287,7 +287,7 @@ class PathModel(object):
         if self.__models is not None:
             knowledge = get_knowledge(self.__models)
             self.__label = knowledge.get('label')
-            if self.__connections is None:
+            if self.__connections is None and 'connectivity' in knowledge:
                 self.__connectivity = tuple(tuple((pair[0], tuple(pair[1]))
                                                     for pair in node)
                                                 for node in knowledge.get('connectivity')
