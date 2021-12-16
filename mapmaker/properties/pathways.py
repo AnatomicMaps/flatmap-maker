@@ -392,17 +392,21 @@ class Pathways(object):
 
     @property
     def connectivity(self):
-        return {
+        connectivity = {
             'models': [
                 { 'id': model.source,
                   'paths': model.path_ids
                 } for model in self.__connectivity_models
                     if model.source is not None
-            ],
-            'paths': self.__resolved_pathways.paths_dict,
-            'node-paths': self.__resolved_pathways.node_paths,
-            'type-paths': self.__resolved_pathways.type_paths,
+            ]
         }
+        if self.__resolved_pathways is not None:
+            connectivity.update({
+                'paths': self.__resolved_pathways.paths_dict,
+                'node-paths': self.__resolved_pathways.node_paths,
+                'type-paths': self.__resolved_pathways.type_paths,
+            })
+        return connectivity
 
     def __line_properties(self, path_id):
     #====================================
