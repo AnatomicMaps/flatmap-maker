@@ -234,6 +234,12 @@
             }
         },
         {
+            "id": "S34_L1",
+            "properties": {
+                "models": "UBERON:0002181"
+            }
+        },
+        {
             "id": "S43_L1",
             "properties": {
                 "models": "EMAPA:25269"
@@ -261,6 +267,12 @@
             "id": "S49_L1",
             "properties": {
                 "models": "FMA:65910"
+            }
+        },
+        {
+            "id": "S34_L2",
+            "properties": {
+                "models": "UBERON:0002181"
             }
         },
         {
@@ -301,7 +313,7 @@
         {
             "id": "L1_dorsal_root",
             "connects": ["L1-spinal", "S45_L1", "L1_dorsal_root_end"],
-            "contained-in": ["S44_L1", "S45_L1"]
+            "contained-in": ["S45_L1"]
         },
         {
             "id": "L1_ventral_root",
@@ -320,7 +332,7 @@
         {
             "id": "L2_dorsal_root",
             "connects": ["L2-spinal", "S45_L2", "L2_dorsal_root_end"],
-            "contained-in": ["S44_L2", "S45_L2"]
+            "contained-in": ["S45_L2"]
         },
         {
             "id": "L2_ventral_root_ramus",
