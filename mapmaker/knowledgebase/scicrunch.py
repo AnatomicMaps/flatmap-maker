@@ -72,31 +72,33 @@ class SciCrunch(object):
     def get_knowledge(self, entity):
         knowledge = {}
         if self.__scigraph_key is not None:
+            params = {
+                'api_key': self.__scigraph_key,
+                'limit': 9999,
+            }
             ontology = entity.split(':')[0]
             if   ontology in INTERLEX_ONTOLOGIES:
                 data = request_json(SCICRUNCH_INTERLEX_VOCAB.format(TERM=entity),
-                                    params={'api_key': self.__scigraph_key})
+                                    params=params)
                 if data is not None:
                     knowledge['label'] = data.get('data', {}).get('label', entity)
 
             elif ontology in CONNECTIVITY_ONTOLOGIES:
                 data = request_json(SCICRUNCH_CONNECTIVITY_NEURONS.format(NEURON_ID=entity),
-                                    params={'api_key': self.__scigraph_key})
+                                    params=params)
                 if data is not None:
                     knowledge = Apinatomy.neuron_knowledge(entity, data)
 
             elif ontology in SPARC_ONTOLOGIES:
                 data = request_json(SCICRUNCH_SPARC_VOCAB.format(TERM=entity),
-                                    params={'api_key': self.__scigraph_key})
+                                    params=params)
                 if data is not None:
                     knowledge['label'] = data.get('labels', [entity])[0]
 
             elif entity.startswith(APINATOMY_MODEL_PREFIX):
+                params['cypherQuery'] = Apinatomy.neurons_for_model_cypher(entity)
                 data = request_json(SCICRUNCH_SPARC_CYPHER,
-                                    params={
-                                        'cypherQuery': Apinatomy.neurons_for_model_cypher(entity),
-                                        'api_key': self.__scigraph_key,
-                                    })
+                                    params=params)
                 if data is not None:
                     knowledge = Apinatomy.model_knowledge(entity, data)
 
