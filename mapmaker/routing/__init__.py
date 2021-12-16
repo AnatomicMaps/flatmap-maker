@@ -286,40 +286,39 @@ class NodeFinder(object):
 
     def add_node(self, connectivity_node, last_node):
     #================================================
-        feature_ids = self.__find_feature_ids(connectivity_node)
-        if len(feature_ids) > 1:
-            log.error(f'Node {connectivity_node} has too many features: {feature_ids}')
-        elif len(feature_ids) == 1:
-            feature_id = list(feature_ids)[0]
-            if feature_id in self.__centreline_graph:
+        found_ids = self.__find_feature_ids(connectivity_node)
+        if len(found_ids) > 1:
+            log.error(f'Node {connectivity_node} has too many features: {found_ids}')
+        elif len(found_ids) == 1:
+            found_id = list(found_ids)[0]
+            if found_id in self.__centreline_graph:
                 self.__matched_features = {}
                 if len(self.__start_terminals):
-                    self.__node_terminals[feature_id] = self.__start_terminals
+                    self.__node_terminals[found_id] = self.__start_terminals
                     self.__start_terminals = set()
-                self.__feature_ids.append(feature_id)
-            elif feature_id in self.__contained_centrelines and len(self.__matched_features) == 0:
+                self.__feature_ids.append(found_id)
+            elif found_id in self.__contained_centrelines and len(self.__matched_features) == 0:
                 self.__matched_features = { centreline_id: list(self.__containing_features[centreline_id])
-                                                for centreline_id in self.__contained_centrelines[feature_id] }
+                                                for centreline_id in self.__contained_centrelines[found_id] }
             elif self.__anatomical_graph.in_degree(connectivity_node) == 0:
-                self.__start_terminals.add(feature_id)     # Start of chain
+                self.__start_terminals.add(found_id)     # Start of chain
             elif last_node:
-                self.__node_terminals[self.__feature_ids[-1]].add(feature_id)
+                if len(self.__feature_ids):
+                    self.__node_terminals[self.__feature_ids[-1]].add(found_id)
                 #self.__terminal_nodes.add(node)     # End of chain
 
             end_feature_ids = []
             if len(self.__matched_features):
                 for centreline_id, feature_ids in self.__matched_features.items():
-                    if feature_id in feature_ids:
-                        if len(self.__matched_features) == 1:
+                    if found_id in feature_ids:
+                        feature_ids.remove(found_id)
+                        if len(feature_ids) == 0:
                             end_feature_ids = self.__centreline_end_nodes(centreline_id)
+                            self.__feature_ids.extend(end_feature_ids)
                             self.__matched_features = {}
+                            if len(self.__start_terminals):
+                                self.__node_terminals[self.__feature_ids[-1]].update(self.__start_terminals)
+                                self.__start_terminals = set()
                             break
-                        else:
-                            feature_ids.remove(feature_id)
-                            if len(feature_ids) == 0:
-                                end_feature_ids = self.__centreline_end_nodes(centreline_id)
-                                self.__matched_features = {}
-                                break
-            self.__feature_ids.extend(end_feature_ids)
 
 #===============================================================================
