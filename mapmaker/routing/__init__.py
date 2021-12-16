@@ -83,6 +83,7 @@ class Network(object):
     def __init__(self, network, external_properties):
         self.__id = network.get('id')
         self.__centreline_graph = nx.Graph()
+        self.__centreline_ids = []
         self.__containing_features = defaultdict(set)  #! Centreline id --> set of feature ids that contain centreline
         self.__contained_centrelines = defaultdict(list)  #! Feature id --> centrelines contained in feature
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
@@ -97,6 +98,7 @@ class Network(object):
                 if len(nodes) < 2:
                     log.warn(f'Centreline {id} in network {self.__id} has too few nodes')
                 else:
+                    self.__centreline_ids.append(id)
                     edge_properties = {'id': id}
                     if len(nodes) > 2:
                         edge_properties['intermediates'] = nodes[1:-1]
@@ -204,7 +206,8 @@ class Network(object):
 
     def contains(self, id):
     #=======================
-        return id in self.__centreline_graph
+        return (id in self.__centreline_ids
+             or id in self.__centreline_graph)
 
     def route_graph_from_connectivity(self, connectivity, feature_map) -> nx.Graph:
     #==============================================================================
