@@ -99,36 +99,39 @@ class ExternalProperties(object):
                 for source, publication in knowledge.get('publications'):
                     update_publications(source, publication)
 
-    def update_properties(self, properties):
-    #=======================================
-        cls = properties.get('class')
-        if cls is not None:
-            properties.update(self.__anatomical_map.properties(cls))
-            properties.update(self.__properties_by_class.get(cls, {}))
-        id = properties.get('id')
+    def update_properties(self, feature_properties):
+    #===============================================
+        classes = feature_properties.get('class', '').split()
+        id = feature_properties.get('id')
         if id is not None:
-            # id overrides class
-            properties.update(self.__anatomical_map.properties(id))
-            properties.update(self.__properties_by_id.get(id, {}))
+            classes.extend(self.__properties_by_id.get(id, {}).get('class', '').split())
+        for cls in classes:
+            feature_properties.update(self.__anatomical_map.properties(cls))
+            feature_properties.update(self.__properties_by_class.get(cls, {}))
+        if id is not None:         # id overrides class
+            feature_properties.update(self.__anatomical_map.properties(id))
+            feature_properties.update(self.__properties_by_id.get(id, {}))
             # Drop network nodes that don't have anatomical meaning
             for network in self.__networks.values():
-                if network.contains(id) and 'models' not in properties:
-                    properties['exclude'] = True
+                if network.contains(id) and 'models' not in feature_properties:
+                    feature_properties['exclude'] = True
                     break
-        self.__pathways.update_line_or_nerve_properties(properties)
+        self.__pathways.update_line_or_nerve_properties(feature_properties)
 
-        if 'marker' in properties:
-            properties['type'] = 'marker'
-            if 'datasets' in properties:
-                properties['kind'] = 'dataset'
-            elif 'scaffolds' in properties:
-                properties['kind'] = 'scaffold'
-            elif 'simulations' in properties:
-                properties['kind'] = 'simulation'
-        if 'models' in properties and 'label' not in properties:
-            properties['label'] = get_knowledge(properties['models'])['label']
-
-        return properties
+        if 'marker' in feature_properties:
+            feature_properties['type'] = 'marker'
+            if 'datasets' in feature_properties:
+                feature_properties['kind'] = 'dataset'
+            elif 'scaffolds' in feature_properties:
+                feature_properties['kind'] = 'scaffold'
+            elif 'simulations' in feature_properties:
+                feature_properties['kind'] = 'simulation'
+        if 'models' in feature_properties:
+            # Make sure our knowledgebase knows about the anatomical object
+            knowledge = get_knowledge(feature_properties['models'])
+            if 'label' not in feature_properties:
+                feature_properties['label'] = knowledge.get('label')
+        return feature_properties
 
     def update_feature_properties(self, feature):
     #============================================
