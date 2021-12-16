@@ -504,7 +504,10 @@ class Pathways(object):
                 for path_model in connectivity_model.path_models:
                     path_id = path_model.id
                     routed_path = routed_paths[path_id]
-                    properties = { 'tile-layer': 'pathways' }
+                    properties = {
+                        'layout': 'auto',
+                        'tile-layer': 'pathways',
+                    }
                     properties.update(self.__line_properties(path_id))
                     path_models = path_model.models
                     if path_models is not None:
