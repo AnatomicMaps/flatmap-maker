@@ -34,14 +34,14 @@ from .pathways import Pathways
 class ExternalProperties(object):
     def __init__(self, flatmap, manifest):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
-
-        self.__properties_by_class = {}
-        self.__properties_by_id = {}
+        self.__properties_by_class = defaultdict(dict)
+        self.__properties_by_id = defaultdict(dict)
         if manifest.properties is None:
             properties_dict = {}
         else:
             properties_dict = FilePath(manifest.properties).get_json()
-        self.__set_properties(properties_dict.get('features', []))
+        self.__set_class_properties(properties_dict.get('classes'))
+        self.__set_feature_properties(properties_dict.get('features'))
 
         # Load path definitions
         self.__pathways = Pathways(flatmap, properties_dict.get('paths', []))
@@ -59,23 +59,27 @@ class ExternalProperties(object):
     def connectivity(self):
         return self.__pathways.connectivity
 
-    def __set_properties(self, features_list):
+    def __set_class_properties(self, classes):
     #=========================================
-        for feature in features_list:
-            if 'class' in feature:
-                cls = feature['class']
-                properties = feature.get('properties', {})
-                if cls in self.__properties_by_class:
+        if classes is not None:
+            for cls, properties in classes.items():
+                self.__properties_by_class[cls].update(properties)
+
+    def __set_feature_properties(self, features):
+    #============================================
+        if isinstance(features, dict):
+            for id, properties in features.items():
+                self.__properties_by_id[id].update(properties)
+        elif features is not None:
+            for feature in features:
+                if 'class' in feature:
+                    cls = feature['class']
+                    properties = feature.get('properties', {})
                     self.__properties_by_class[cls].update(properties)
-                else:
-                    self.__properties_by_class[cls] = properties
-            if 'id' in feature:
-                id = feature['id']
-                properties = feature.get('properties', {})
-                if id in self.__properties_by_id:
+                if 'id' in feature:
+                    id = feature['id']
+                    properties = feature.get('properties', {})
                     self.__properties_by_id[id].update(properties)
-                else:
-                    self.__properties_by_id[id] = properties
 
     def generate_connectivity(self, feature_map):
     #============================================
@@ -83,11 +87,18 @@ class ExternalProperties(object):
             feature_map,
             list(self.__networks.values()))
 
-    def get_property(self, id_or_class, key):
-    #========================================
-        property = self.__properties_by_id.get(id_or_class, {}).get(key)
+    def get_property(self, id, key):
+    #===============================
+        properties = self.__properties_by_id.get(id, {})
+        property = properties.get(key)
         if property is None:
-            property = self.__properties_by_class.get(id_or_class, {}).get(key)
+            if 'class' in properties:
+                for cls in properties['class'].split():
+                    property = self.__properties_by_class.get(cls, {}).get(key)
+                    if property is not None:
+                        break
+            else:  # Old way...
+                property = self.__properties_by_class.get(id, {}).get(key)
         return property
 
     def save_knowledge(self):
