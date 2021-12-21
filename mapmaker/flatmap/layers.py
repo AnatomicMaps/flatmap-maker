@@ -226,7 +226,7 @@ class MapLayer(FeatureLayer):
                     dividers.append(feature.geometry.boundary)
                 if feature.visible():
                     layer_features.append(feature)
-            elif feature.has_property('class') or not feature.get_property('interior'):
+            elif not feature.get_property('interior'):
                 layer_features.append(feature)
 
         interior_features = []
