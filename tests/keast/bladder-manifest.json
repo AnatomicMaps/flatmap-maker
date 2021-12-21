@@ -10,7 +10,7 @@
             "kind": "base"
         }
     ],
-    "neuron-connectivity": [
+    "neuronConnectivity": [
         "https://apinatomy.org/uris/models/keast-bladder"
     ]
 }

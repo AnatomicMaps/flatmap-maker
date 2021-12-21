@@ -258,7 +258,7 @@ class Declassifier:
         for network in self.__networks:
             for centreline in network.get('centrelines', []):
                 centreline['connects'] = [ self.__id_mapper.map_id(id) for id in centreline.get('connects', []) ]
-                centreline['contained-in'] = [ self.__id_mapper.map_id(id) for id in centreline.get('contained-in', []) ]
+                centreline['contained-in'] = [ self.__id_mapper.map_id(id) for id in centreline.get('containedIn', []) ]
 
     def remap_ids(self):
     #===================
@@ -289,8 +289,8 @@ class Declassifier:
     def save(self):
     #==============
         self.__manifest.pop('anatomicalMap')
-        self.__manifest['anatomical-map'] = 'anatomical_map.json'
-        self.__write_json(self.__manifest['anatomical-map'], self.__anatomical_map.mapping_dict)
+        self.__manifest['anatomicalMap'] = 'anatomical_map.json'
+        self.__write_json(self.__manifest['anatomicalMap'], self.__anatomical_map.mapping_dict)
 
         for connectivity_file, connectivity in self.__connectivity.items():
             self.__save_connectivity(connectivity_file, connectivity)

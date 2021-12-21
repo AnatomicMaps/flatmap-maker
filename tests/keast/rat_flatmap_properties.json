@@ -313,17 +313,17 @@
         {
             "id": "L1_dorsal_root",
             "connects": ["L1-spinal", "S45_L1", "L1_dorsal_root_end"],
-            "contained-in": ["S45_L1"]
+            "containedIn": ["S45_L1"]
         },
         {
             "id": "L1_ventral_root",
             "connects": ["L1-spinal", "L1_ventral_root_end"],
-            "contained-in": ["S43_L1", "S50_L1_T",  "S50_L1_B"]
+            "containedIn": ["S43_L1", "S50_L1_T",  "S50_L1_B"]
         },
         {
             "id": "L1_ventral_root_ramus",
             "connects": ["L1-spinal", "L1_ventral_root_ramus_end"],
-            "contained-in": ["S43_L1", "S48_L1", "S46_L1", "S49_L1"]
+            "containedIn": ["S43_L1", "S48_L1", "S46_L1", "S49_L1"]
         },
         {
             "id": "L1_spinal_n",
@@ -332,12 +332,12 @@
         {
             "id": "L2_dorsal_root",
             "connects": ["L2-spinal", "S45_L2", "L2_dorsal_root_end"],
-            "contained-in": ["S45_L2"]
+            "containedIn": ["S45_L2"]
         },
         {
             "id": "L2_ventral_root_ramus",
             "connects": ["L2-spinal", "L2_ventral_root_ramus_end"],
-            "contained-in": ["S43_L2", "S48_L2", "S46_L2", "S49_L2"]
+            "containedIn": ["S43_L2", "S48_L2", "S46_L2", "S49_L2"]
         },
         {
             "id": "L2_spinal_n",
@@ -370,22 +370,22 @@
         {
             "id": "lumbar_splanchnic_n",
             "connects": ["L1_L2_spinal_n-lumbar_splanchnic_n", "keast_6"],
-            "contained-in": ["keast_7"]
+            "containedIn": ["keast_7"]
         },
         {
             "id": "pelvic_splanchnic_n",
             "connects": ["L6_S1_spinal_n-pelvic_splanchnic_n", "keast_3"],
-            "contained-in": ["keast_4"]
+            "containedIn": ["keast_4"]
         },
         {
             "id": "hypogastric_n",
             "connects": ["keast_6", "keast_3"],
-            "contained-in": ["keast_5"]
+            "containedIn": ["keast_5"]
         },
         {
             "id": "bladder_n",
             "connects": ["keast_3", "bladder_n-bladder"],
-            "contained-in": ["keast_1"]
+            "containedIn": ["keast_1"]
         }]
     }]
 }

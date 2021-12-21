@@ -102,7 +102,7 @@ class Network(object):
                     edge_properties = {'id': id}
                     if len(nodes) > 2:
                         edge_properties['intermediates'] = nodes[1:-1]
-                    self.__containing_features[id] = set(centreline.get('contained-in', []))
+                    self.__containing_features[id] = set(centreline.get('containedIn', []))
                     for container_id in self.__containing_features[id]:
                         self.__contained_centrelines[container_id].append(id)
                         if external_properties.get_property(container_id, 'type') == 'nerve':

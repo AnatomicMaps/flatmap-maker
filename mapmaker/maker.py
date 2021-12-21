@@ -79,7 +79,7 @@ class Manifest(object):
                 self.__manifest['properties'] = self.__path.join_url(self.__manifest['properties'])
             for path in self.__manifest.get('connectivity', []):
                 self.__connectivity.append(self.__path.join_url(path))
-            for model in self.__manifest.get('neuron-connectivity', []):
+            for model in self.__manifest.get('neuronConnectivity', []):
                 self.__neuron_connectivity.append(model)
             for source in self.__manifest['sources']:
                 source['href'] = self.__path.join_url(source['href'])
