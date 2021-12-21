@@ -254,7 +254,7 @@ class Declassifier:
             if id in self.__feature_properties:
                 properties = self.__feature_properties[id]
                 # Class list is space separated
-                properties['class'] = ' '.join([properties.get('class', ''), cls])
+                properties['class'] = ' '.join(properties.get('class', '').split() + [cls])
         for network in self.__networks:
             for centreline in network.get('centrelines', []):
                 centreline['connects'] = [ self.__id_mapper.map_id(id) for id in centreline.get('connects', []) ]
