@@ -59,6 +59,11 @@ class FilePath(object):
             self.__url = path
 
     @property
+    def extension(self):
+        parts = self.filename.rsplit('.')
+        return parts[-1] if len(parts) > 1 else ''
+
+    @property
     def filename(self):
         return urlparse(self.__url).path.rsplit('/', 1)[-1]
 
