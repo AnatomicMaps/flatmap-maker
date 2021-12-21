@@ -109,7 +109,9 @@ class FeatureMap(object):
         if feature.id is not None:
             self.__id_to_feature[feature.id] = feature
         if feature.has_property('class'):
-            self.__class_to_features[feature.get_property('class')].append(feature)
+            classes = feature.get_property('class').split()
+            for cls in classes:
+                self.__class_to_features[cls].append(feature)
         if feature.models is not None:
             self.__model_to_features[feature.models].append(feature)
 
