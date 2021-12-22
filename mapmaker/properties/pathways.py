@@ -275,7 +275,15 @@ class PathModel(object):
         self.__models = path.get('models')
         self.__nerves = list(parse_nerves(path.get('nerves')))
         self.__route = None
-        self.__type = path.get('type')
+
+        if self.__models == 'ilxtr:neuron-type-keast-6':
+            self.__type = 'symp-pre'
+        elif self.__models == 'ilxtr:neuron-type-keast-11':
+            self.__type = 'sensory'
+        else:
+            self.__type = path.get('type')
+
+
         if 'path' in path:  # Manual path specification
             for line_group in parse_path_lines(path['path']):
                 self.__lines.extend(Pathways.make_list(line_group))
@@ -457,6 +465,15 @@ class Pathways(object):
             'paths': []
         }
         connectivity.update(get_knowledge(model_uri))
+        ## <<<<<<<<<<<<<<<<<<<<<
+        connectivity['paths'] = [
+            path for path in connectivity['paths']
+                if path['id'] in [
+                    'ilxtr:neuron-type-keast-6',  # <<<<<<<<<<<<<<<<<<<
+                    'ilxtr:neuron-type-keast-11',  # <<<<<<<<<<<<<<<<<<<
+                ]
+            ]
+        ## <<<<<<<<<<<<<<<<<<<<<
         connectivity['id'] = model_uri.rsplit('/', 1)[-1]
         self.add_connectivity(connectivity)
 
