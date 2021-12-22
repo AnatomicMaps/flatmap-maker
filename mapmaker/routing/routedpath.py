@@ -128,7 +128,10 @@ class PathRouter(object):
         self.__route_graphs[path_id] = route_graph
 
     def layout(self):
-        ordering.layout(self.__route_graphs)
+        ################  WIP <<<<<<<<<<<<
+        ##ordering.layout(self.__route_graphs)
+
+        ## This needs to derive path order in each connection...
         self.__routed_paths = {path_id: RoutedPath(path_id, route_graph)
             for path_id, route_graph in self.__route_graphs.items()}
 
