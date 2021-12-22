@@ -32,8 +32,7 @@ import shapely.geometry
 from mapmaker.geometry import bezier_sample
 from mapmaker.settings import settings
 from mapmaker.utils import log
-from mapmaker.routing.routes import Sheath
-from mapmaker.routing.neurons import Connectivity
+
 import mapmaker.routing.order as ordering
 
 #===============================================================================
@@ -62,10 +61,9 @@ class GeometricShape(object):
 #===============================================================================
 
 class RoutedPath(object):
-    def __init__(self, path_id, route_graph, centreline_scaffold=None):
+    def __init__(self, path_id, route_graph):
         self.__path_id = path_id
         self.__graph = route_graph
-        self.__centreline_scaffold = centreline_scaffold
         self.__path_layout = settings.get('pathLayout', 'automatic')
         self.__node_set = {node for node, data in route_graph.nodes(data=True)
                                 if not data.get('exclude', False)}
@@ -73,13 +71,6 @@ class RoutedPath(object):
                                 if data.get('type') == 'source'}
         self.__target_nodes = {node for node, data in route_graph.nodes(data=True)
                                 if data.get('type') == 'target'}
-        if self.__path_layout == 'automatic':
-            ## The sheath scaffold is a network property and should be set
-            ## from the `centreline_scaffold` parameter
-            self.__sheath = Sheath(route_graph, path_id)
-            self.__sheath.build(self.__source_nodes, self.__target_nodes)
-        else:
-            self.__sheath = None
 
     @property
     def node_set(self):
@@ -101,45 +92,6 @@ class RoutedPath(object):
             between nodes and possibly additional features (e.g. way markers)
             of the paths.
         """
-        display_bezier_points = True #False     ### To come from settings...
-        if self.__path_layout == 'automatic':
-            log("Automated pathway layout. Path ID: ", self.__path_id)
-            evaluate_settings = self.__sheath.settings()
-            # TODO: use evenly-distributed offsets for the final product.
-            number_of_neurons = len(evaluate_settings['derivatives'])
-            # locations = [0.01 + x*(0.99-0.01)/number_of_neurons for x in range(number_of_neurons)]
-            location = 0.5
-            geometry = []
-            for scaffold, path_id, derivative in zip(evaluate_settings['scaffolds'],
-                                                     evaluate_settings['path_ids'],
-                                                     evaluate_settings['derivatives']):
-                scaffold.generate()
-                connectivity = Connectivity(path_id, scaffold, derivative, location)
-                auto_beziers = connectivity.get_neuron_line_beziers()
-                path = BezierPath.fromSegments(auto_beziers)
-                geometry.append(GeometricShape(shapely.geometry.LineString(bezier_sample(path))))
-            end_nodes = set(self.__source_nodes)
-            end_nodes.update(self.__target_nodes)
-            for node in end_nodes:
-                for edge in self.__graph.edges(node, data=True):
-                    if edge[2].get('type') == 'terminal':
-                        line = self.__line_from_edge(edge)
-                        if line is not None:
-                            geometry.append(GeometricShape(line))
-            if display_bezier_points:
-                for beziers in self.__sheath.path_beziers.values():
-                    for bezier in beziers:
-                        bz_pts = tuple([p.x, p.y] for p in bezier.points)
-                        for pt in [bz_pts[0], bz_pts[3]]:
-                            geometry.append(GeometricShape(GeometricShape.circle(pt),
-                                {'type': 'bezier', 'kind': 'bezier-end'}))
-                        for pt in bz_pts[1:3]:
-                            geometry.append(GeometricShape(GeometricShape.circle(pt),
-                                {'type': 'bezier', 'kind': 'bezier-control'}))
-                        geometry.append(GeometricShape(GeometricShape.line(*bz_pts[0:2]), {'type': 'bezier'}))
-                        geometry.append(GeometricShape(GeometricShape.line(*bz_pts[2:4]), {'type': 'bezier'}))
-
-            return geometry
 
         # Fallback is centreline layout
         geometry = []
