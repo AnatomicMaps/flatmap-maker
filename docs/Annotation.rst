@@ -1,8 +1,8 @@
-============================
-Marking up PowerPoint Slides
-============================
+============
+Shape Markup
+============
 
-Map generation is performed by a Python script which processes the shapes in a Powerpoint slide to first create GeoJSON features and then Mapbox vector tiles. The name of a shape is used for mark-up a shape which, together with a separate ``anatomical mapping`` file, is used to annotate and style features, and to control the generation process.
+The ``mapmaker`` tools processes shapes defined either in SVG files or Powerpoint slides to generate a set of GeoJSON features which are converted to Mapbox vector tiles. The id (SVG) or name (Powerpoint) of shapes can contain textual markup, which along with JSON files, determines how resulting features are generated, styled, and annotated.
 
 
 Shapes
