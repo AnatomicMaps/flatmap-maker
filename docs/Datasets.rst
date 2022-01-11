@@ -41,14 +41,12 @@ Flatmap sources held in the Physiome Model Repository (PMR) may be exported as a
     }
 
 
-The JSON description is referred to in the flatmap's manifest with the key ``description``. Assuming the above is saved as ``description.json``, the manifest would contain::
+The JSON description is referred to in the flatmap's manifest with the key ``description``. Assuming the above is saved as ``description.json``, the manifest would contain:
+
+.. code-block:: json
 
     {
-         .
-         .
-         .
+
         "description": "description.json",
-         .
-         .
-         .
+
     }
