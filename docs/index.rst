@@ -19,4 +19,5 @@ Flatmaps are interactive maps for exploring anatomical information over a large 
    README
    Running
    Annotation
+   Datasets
    Reference
