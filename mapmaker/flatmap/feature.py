@@ -148,9 +148,9 @@ class FeatureMap(object):
         if len(anatomical_features) == 0:
             if (anatomical_id, anatomical_layers) not in self.__unknown_anatomy:
                 if len(anatomical_layers) == 0:
-                    log.error(f'Cannot find flatmap feature of type {anatomical_id}')
+                    log.warn(f'Cannot find flatmap feature of type {anatomical_id}')
                 else:
-                    log.error(f'Cannot find flatmap feature of type {anatomical_id} in layers: {anatomical_layers}')
+                    log.warn(f'Cannot find flatmap feature of type {anatomical_id} in layers: {anatomical_layers}')
                 self.__unknown_anatomy.append((anatomical_id, anatomical_layers))
         return anatomical_features
 
