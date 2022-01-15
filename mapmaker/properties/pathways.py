@@ -23,6 +23,7 @@ from typing import Dict, List
 
 #===============================================================================
 
+import networkx as nx
 from pyparsing import delimitedList, Group, ParseException, ParseResults, Suppress
 
 #===============================================================================
@@ -283,7 +284,6 @@ class PathModel(object):
         else:
             self.__type = path.get('type')
 
-
         if 'path' in path:  # Manual path specification
             for line_group in parse_path_lines(path['path']):
                 self.__lines.extend(Pathways.make_list(line_group))
@@ -292,14 +292,19 @@ class PathModel(object):
             self.__route = Route(self.__id, path['route'])
             if self.__connections is not None:
                 log.error(f'Path {self.__id} is specified multiple ways...')
+
         if self.__models is not None:
             knowledge = get_knowledge(self.__models)
             self.__label = knowledge.get('label')
-            if self.__connections is None and 'connectivity' in knowledge:
-                self.__connectivity = tuple(tuple((pair[0], tuple(pair[1]))
-                                                    for pair in node)
-                                                for node in knowledge.get('connectivity')
-                                            )
+            if (self.__connections is None and 'connectivity' in knowledge
+            and 'path' not in path):   # Use SciCrunch knowledge
+                # Construct a graph of SciCrunch's connected pairs
+                G = nx.Graph()
+                for node in knowledge.get('connectivity'):
+                    G.add_edge(tuple((node[0][0], tuple(node[0][1]))),
+                               tuple((node[1][0], tuple(node[1][1]))))
+                self.__connectivity = G
+
         if self.__route is None and self.__connections is None and self.__connectivity is None:
             log.error(f'Path {self.__id} has no route or known connectivity...')
 

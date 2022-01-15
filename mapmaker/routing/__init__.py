@@ -26,7 +26,7 @@ wires are routed.
 
 #===============================================================================
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 import itertools
 
 #===============================================================================
@@ -84,14 +84,14 @@ class Network(object):
         self.__id = network.get('id')
         self.__centreline_graph = nx.Graph()
         self.__centreline_ids = []
-        self.__containing_features = defaultdict(set)  #! Centreline id --> set of feature ids that contain centreline
         self.__contained_centrelines = defaultdict(list)  #! Feature id --> centrelines contained in feature
+        self.__contained_count = {}
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
         for centreline in network.get('centrelines', []):
             id = centreline.get('id')
             if id is None:
                 log.error(f'Centreline in network {self.__id} does not have an id')
-            elif id in self.__containing_features:
+            elif id in self.__centreline_ids:
                 log.error(f'Centreline {id} in network {self.__id} has a duplicated id')
             else:
                 nodes = centreline.get('connects', [])
@@ -102,8 +102,9 @@ class Network(object):
                     edge_properties = {'id': id}
                     if len(nodes) > 2:
                         edge_properties['intermediates'] = nodes[1:-1]
-                    self.__containing_features[id] = set(centreline.get('containedIn', []))
-                    for container_id in self.__containing_features[id]:
+                    containing_features = set(centreline.get('containedIn', []))
+                    self.__contained_count[id] = len(containing_features)
+                    for container_id in containing_features:
                         self.__contained_centrelines[container_id].append(id)
                         if external_properties.get_property(container_id, 'type') == 'nerve':
                             edge_properties['nerve'] = container_id
@@ -211,114 +212,115 @@ class Network(object):
 
     def route_graph_from_connectivity(self, connectivity, feature_map) -> nx.Graph:
     #==============================================================================
-        route_feature_ids = set()
-        node_terminals = {}
 
-        # Construct a graph of SciCrunch's connected pairs
-        G = nx.DiGraph()
-        for connection in connectivity:
-            G.add_edge(connection[0], connection[1], directed=True)
+        def find_feature_ids(connectivity_node):
+            return set([f.id if f.id is not None else f.get_property('class')
+                        for f in feature_map.find_features_by_anatomical_id(*connectivity_node)])
 
-        # Walk edges from each start node, finding network nodes and centrelines
-        seen_edges = []
-        for head_node in [ n for n in G if G.in_degree(n) == 0]:
-            node_finder = NodeFinder(G, self.__centreline_graph, self.__containing_features,
-                                        self.__contained_centrelines, feature_map)
-            for edge in nx.edge_dfs(G, head_node):
-                if edge in seen_edges:
+        def __centreline_end_nodes(centreline_id):
+            for edge in self.__centreline_graph.edges(data='id'):
+                if centreline_id == edge[2]:
+                    return edge[:2]
+
+        # Connectivity graph must be undirected
+        if isinstance(connectivity, nx.DiGraph):
+            connectivity = connectivity.to_undirected()
+
+        route_graph = nx.Graph()
+        # Split into connected sub-graphs
+        for components in nx.connected_components(connectivity):
+            G = connectivity.subgraph(components)
+            for node in G.nodes:
+                feature_id = None
+                found_feature_ids = find_feature_ids(node)
+                if len(found_feature_ids) > 1:
+                    connected_features = found_feature_ids.intersection(self.__centreline_graph)
+                    if len(connected_features) > 1:
+                        log.error(f'Node {node} has too many features: {found_feature_ids}')
+                    elif len(connected_features):
+                        feature_id = connected_features.pop()
+                elif len(found_feature_ids):
+                    feature_id = found_feature_ids.pop()
+                G.nodes[node]['feature_id'] = feature_id
+                G.nodes[node]['feature_nodes'] = None
+
+            # All nodes in the (sub-)graph now have a possible feature
+            route_feature_ids = set()
+            centreline_feature_count = Counter()
+            container_features = []
+            terminal_nodes = []
+            for node in G.nodes:
+                feature_id = G.nodes[node]['feature_id']
+                if feature_id is not None:
+                    if feature_id in self.__centreline_graph:           # Feature is a node
+                        route_feature_ids.add(feature_id)
+                        G.nodes[node]['feature_nodes'] = [feature_id]
+                    elif feature_id in self.__contained_centrelines:    # Path is inside the feature
+                        container_features.append((node, feature_id))
+                        # Count how many ``containers`` the centreline is in
+                        for centreline_id in self.__contained_centrelines[feature_id]:
+                            centreline_feature_count[centreline_id] += 1
+                    elif G.degree(node) == 1:                           # Terminal node on path
+                        terminal_nodes.append(node)
+
+            # Scale the count to get a score indicating how many features
+            # contain the centreline
+            centreline_score = { id: count/self.__contained_count[id]
+                                for id, count in centreline_feature_count.items() }
+            # Then find and use the "most-used" centreline for each feature
+            # that contains centrelines
+            for node, feature_id in container_features:
+                max_centreline = None
+                max_score = 0
+                for centreline_id in self.__contained_centrelines[feature_id]:
+                    score = centreline_score[centreline_id]
+                    if score > max_score:
+                        max_score = score
+                        max_centreline = centreline_id
+                for edge in self.__centreline_graph.edges(data='id'):
+                    if max_centreline == edge[2]:
+                        route_feature_ids.update(edge[:2])
+                        G.nodes[node]['feature_nodes'] = list(edge[:2])
+                        break
+
+            node_terminals = defaultdict(set)
+            for node in terminal_nodes:
+                feature_id = G.nodes[node]['feature_id']
+                feature = feature_map.get_feature(feature_id)
+                if feature is None:
+                    log.warn(f'Cannot find path terminal feature: {feature_id}')
                     continue
-                seen_edges.append(edge)
-                node_finder.add_node(edge[0], False)
-                # Process the last node of the traversal
-                if G.out_degree(edge[1]) == 0:
-                    node_finder.add_node(edge[1], True)
-            route_feature_ids.update(node_finder.feature_ids)
-            node_terminals.update(node_finder.terminals)
+                feature_centre = feature.geometry.centroid
+                for edge in nx.edge_dfs(G, node):
+                    adjacent_node_features = G.nodes[edge[1]]['feature_nodes']
+                    if adjacent_node_features is not None:
+                        if len(adjacent_node_features) == 1:
+                            adjacent_feature = adjacent_node_features[0]
+                        else:
+                            # find closest adjacent feature to node
+                            node0_centre = self.__centreline_graph.nodes[adjacent_node_features[0]]['geometry'].centroid
+                            node1_centre = self.__centreline_graph.nodes[adjacent_node_features[1]]['geometry'].centroid
+                            d0 = feature_centre.distance(node0_centre)
+                            d1 = feature_centre.distance(node1_centre)
+                            adjacent_feature = adjacent_node_features[0] if d0 <= d1 else adjacent_node_features[1]
+                        node_terminals[adjacent_feature].add(feature_id)
+                        break
 
-        route_graph = nx.Graph(get_connected_subgraph(self.__centreline_graph, route_feature_ids))
+            # The centreline paths that connect features on the route
+            route_paths = nx.Graph(get_connected_subgraph(self.__centreline_graph, route_feature_ids))
 
-        # Add edges to terminal nodes that aren't part of the centreline network
-        for end_node, terminal_nodes in node_terminals.items():
-            for terminal_id in terminal_nodes:
-                route_graph.add_edge(end_node, terminal_id)
-                node = route_graph.nodes[terminal_id]
-                self.__set_node_properties(node, terminal_id)
-                route_graph.edges[end_node, terminal_id]['type'] = 'terminal'
+            # Add edges to terminal nodes that aren't part of the centreline network
+            for end_node, terminal_nodes in node_terminals.items():
+                for terminal_id in terminal_nodes:
+                    route_paths.add_edge(end_node, terminal_id)
+                    node = route_paths.nodes[terminal_id]
+                    self.__set_node_properties(node, terminal_id)
+                    route_paths.edges[end_node, terminal_id]['type'] = 'terminal'
+
+            # Add paths and nodes from connected connectivity sub-graph to result
+            route_graph.add_nodes_from(route_paths.nodes(data=True))
+            route_graph.add_edges_from(route_paths.edges(data=True))
 
         return route_graph
-
-#===============================================================================
-
-class NodeFinder(object):
-    def __init__(self, anatomical_graph, centreline_graph, containing_features,
-                                         contained_centrelines, feature_map):
-        self.__anatomical_graph = anatomical_graph
-        self.__centreline_graph = centreline_graph
-        self.__containing_features = containing_features  # Centreline id --> set of feature ids that contain centreline
-        self.__contained_centrelines = contained_centrelines  # Feature id --> centrelines contained in feature
-        self.__feature_map = feature_map
-        self.__feature_ids = []
-        self.__node_terminals = defaultdict(set)
-        self.__matched_features = {}
-        self.__start_terminals = set()
-
-    @property
-    def feature_ids(self):
-        return self.__feature_ids
-
-    @property
-    def terminals(self):
-        if len(self.__start_terminals) and len(self.__feature_ids) > 0:   ### WIP
-            self.__node_terminals[self.__feature_ids[-1]].update(self.__start_terminals)
-            self.__start_terminals = set()
-        return self.__node_terminals
-
-    def __find_feature_ids(self, connectivity_node):
-    #===============================================
-        return set([f.id if f.id is not None else f.get_property('class')
-                    for f in self.__feature_map.find_features_by_anatomical_id(*connectivity_node)])
-
-    def __centreline_end_nodes(self, id):
-    #====================================
-        for edge in self.__centreline_graph.edges(data='id'):
-            if id == edge[2]:
-                return edge[:2]
-
-    def add_node(self, connectivity_node, last_node):
-    #================================================
-        found_ids = self.__find_feature_ids(connectivity_node)
-        if len(found_ids) > 1:
-            log.error(f'Node {connectivity_node} has too many features: {found_ids}')
-        elif len(found_ids) == 1:
-            found_id = list(found_ids)[0]
-            if found_id in self.__centreline_graph:
-                self.__matched_features = {}
-                if len(self.__start_terminals):
-                    self.__node_terminals[found_id] = self.__start_terminals
-                    self.__start_terminals = set()
-                self.__feature_ids.append(found_id)
-            elif found_id in self.__contained_centrelines and len(self.__matched_features) == 0:
-                self.__matched_features = { centreline_id: list(self.__containing_features[centreline_id])
-                                                for centreline_id in self.__contained_centrelines[found_id] }
-            elif self.__anatomical_graph.in_degree(connectivity_node) == 0:
-                self.__start_terminals.add(found_id)     # Start of chain
-            elif last_node:
-                if len(self.__feature_ids):
-                    self.__node_terminals[self.__feature_ids[-1]].add(found_id)
-                #self.__terminal_nodes.add(node)     # End of chain
-
-            end_feature_ids = []
-            if len(self.__matched_features):
-                for centreline_id, feature_ids in self.__matched_features.items():
-                    if found_id in feature_ids:
-                        feature_ids.remove(found_id)
-                        if len(feature_ids) == 0:
-                            end_feature_ids = self.__centreline_end_nodes(centreline_id)
-                            self.__feature_ids.extend(end_feature_ids)
-                            self.__matched_features = {}
-                            if len(self.__start_terminals):
-                                self.__node_terminals[self.__feature_ids[-1]].update(self.__start_terminals)
-                                self.__start_terminals = set()
-                            break
 
 #===============================================================================

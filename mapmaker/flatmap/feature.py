@@ -154,4 +154,7 @@ class FeatureMap(object):
                 self.__unknown_anatomy.append((anatomical_id, anatomical_layers))
         return anatomical_features
 
+    def get_feature(self, id):
+        return self.__id_to_feature.get(id)
+
 #===============================================================================
