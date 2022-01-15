@@ -76,7 +76,7 @@ class Layout(object):
         self.__vars = {}
 
     def add_node(self, Node):
-
+        pass
 
 
 class PathNetwork(object):
