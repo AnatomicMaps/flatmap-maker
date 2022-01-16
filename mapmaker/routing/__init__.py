@@ -312,10 +312,9 @@ class Network(object):
             # Add edges to terminal nodes that aren't part of the centreline network
             for end_node, terminal_nodes in node_terminals.items():
                 for terminal_id in terminal_nodes:
-                    route_paths.add_edge(end_node, terminal_id)
+                    route_paths.add_edge(end_node, terminal_id, type='terminal')
                     node = route_paths.nodes[terminal_id]
                     self.__set_node_properties(node, terminal_id)
-                    route_paths.edges[end_node, terminal_id]['type'] = 'terminal'
 
             # Add paths and nodes from connected connectivity sub-graph to result
             route_graph.add_nodes_from(route_paths.nodes(data=True))
