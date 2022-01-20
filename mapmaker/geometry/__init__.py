@@ -23,12 +23,12 @@ import warnings
 
 #===============================================================================
 
-import pyproj
-
 import numpy as np
 
-from shapely.geometry import LineString, Polygon
+import pyproj
+
 import shapely.affinity
+import shapely.geometry
 import shapely.ops
 import shapely.wkt
 
@@ -209,7 +209,7 @@ def extend_line(geometry):
 
 class LineMatcher(object):
     def __init__(self, first_line):
-        self._previous = LineString(first_line)
+        self._previous = shapely.geometry.LineString(first_line)
         self._coords = []
 
     @property
@@ -218,7 +218,7 @@ class LineMatcher(object):
 
     @property
     def line(self):
-        return LineString(self._coords)
+        return shapely.geometry.LineString(self._coords)
 
     @property
     def previous(self):
@@ -234,7 +234,7 @@ class LineMatcher(object):
                 if where <= (1.0 - END_MATCH_RATIO):
                     self._previous = shapely.ops.substring(line, where, 1, True)
                 elif where >= END_MATCH_RATIO:
-                    self._previous = LineString(reversed(shapely.ops.substring(line, 0, where, True).coords))
+                    self._previous = shapely.geometry.LineString(reversed(shapely.ops.substring(line, 0, where, True).coords))
             else:
                 return False
         else:
@@ -245,7 +245,7 @@ class LineMatcher(object):
                 self._previous = line
             elif end.distance(line.boundary.geoms[1]) <= ALMOST_TOUCHING:
                 self._coords.extend(self._previous.coords)
-                self._previous = LineString(reversed(line.coords))
+                self._previous = shapely.geometry.LineString(reversed(line.coords))
             else:
                 return False
         return True
@@ -267,7 +267,7 @@ def make_boundary(lines):
         coords = line_matcher.coords
         if coords[0] != coords[-1]:
             coords.append(coords[0])
-        return Polygon(coords)
+        return shapely.geometry.Polygon(coords)
     else:
         raise ValueError("Final boundary segment doesn't have a close neighbour")
 
