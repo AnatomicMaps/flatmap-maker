@@ -31,6 +31,8 @@ import itertools
 
 #===============================================================================
 
+from beziers.path import BezierPath
+from beziers.point import Point as BezierPoint
 import networkx as nx
 import shapely.geometry
 
@@ -125,41 +127,52 @@ class Network(object):
             log.warn('Multiple network features for: {}'.format(id))
         return None
 
-    def __set_node_properties(self, node, id):
-    #=========================================
-        feature = self.__find_feature(id)
+    def __set_node_properties_from_feature(self, node_data, feature_id):
+    #===================================================================
+        feature = self.__find_feature(feature_id)
         if feature is not None:
-            if 'geometry' not in node:
+            if 'geometry' not in node_data:
                 for key, value in feature.properties.items():
-                    node[key] = value
-                node['geometry'] = feature.geometry
+                    node_data[key] = value
+                node_data['geometry'] = feature.geometry
 
     def create_geometry(self, feature_map):
     #======================================
         self.__feature_map = feature_map
-        for edge in self.__centreline_graph.edges(data='id'):  # Returns triples: (node, node, id)
-            for node_id in edge[0:2]:
-                self.__set_node_properties(self.__centreline_graph.nodes[node_id], node_id)
-            feature = self.__find_feature(edge[2])
-            if feature is not None:
-                bezier_path = feature.get_property('bezier-path')
-                if bezier_path is None:
-                    log.warn('Centreline {} has no Bezier path'.format(feature.id))
-                else:
-                    bezier_start = bezier_path.pointAtTime(0)
-                    start_point = shapely.geometry.Point(bezier_start.x, bezier_start.y)
-                    end_node_0 = self.__centreline_graph.nodes[edge[0]].get('geometry')
-                    end_node_1 = self.__centreline_graph.nodes[edge[1]].get('geometry')
-                    if end_node_0 is not None and end_node_1 is not None:
-                        self.__centreline_graph.edges[edge[0:2]]['geometry'] = bezier_path
-                        if start_point.distance(end_node_0) < start_point.distance(end_node_1):
-                            self.__centreline_graph.edges[edge[0:2]]['start-node'] = edge[0]
-                        else:
-                            self.__centreline_graph.edges[edge[0:2]]['start-node'] = edge[1]
-        if settings.get('pathLayout', 'automatic') == 'automatic':
-            # Construct the centreline scaffold for the network
-            ##self.__centreline_scaffold = Sheath(self.__id, self.__graph)
-            pass
+        for node_id in self.__centreline_graph.nodes:
+            node_data = self.__centreline_graph.nodes[node_id]
+            self.__set_node_properties_from_feature(node_data, node_id)
+        for node_id, node_geometry in self.__centreline_graph.nodes(data='geometry'):
+            if node_geometry is None:
+                log.warn(f'Centreline node {node_id} has no geometry')
+                continue
+            node_centre = node_geometry.centroid
+            for edge0, edge1, edge_data in self.__centreline_graph.edges(node_id, data=True):
+                feature = self.__find_feature(edge_data.get('id'))
+                if feature is not None:
+                    bezier_path = feature.get_property('bezier-path')
+                    if bezier_path is None:
+                        log.warn(f'Centreline {feature.id} has no Bezier path')
+                        continue
+                    # Adjust end of centreline so that it originates in the centre of
+                    # of its containing node.
+                    start_point = bezier_path.pointAtTime(0.0)
+                    end_point = bezier_path.pointAtTime(1.0)
+                    if (node_centre.distance(shapely.geometry.Point(start_point.x, start_point.y)) <=
+                        node_centre.distance(shapely.geometry.Point(end_point.x, end_point.y))):
+                        segments = bezier_path.asSegments()
+                    else:
+                        segments = [bz.reversed() for bz in bezier_path.asSegments()]
+                        segments.reverse()
+                    start_points = segments[0].points
+                    trim_point = BezierPoint(node_centre.x, node_centre.y)
+                    delta = start_points[0] - trim_point
+                    start_points[0] = trim_point
+                    start_points[1] -= delta
+                    # Update the centreline's Bezier path and assign it to the edge
+                    bezier_path = BezierPath.fromSegments(segments)
+                    feature.set_property('bezier-path', bezier_path)
+                    self.__centreline_graph.edges[(edge0, edge1)]['geometry'] = bezier_path
 
     def route_graph_from_connections(self, connections: dict) -> nx.Graph:
     #=====================================================================
@@ -181,7 +194,7 @@ class Network(object):
             for terminal_id in terminal_nodes:
                 route_graph.add_edge(end_node, terminal_id)
                 node = route_graph.nodes[terminal_id]
-                self.__set_node_properties(node, terminal_id)
+                self.__set_node_properties_from_feature(node, terminal_id)
                 route_graph.edges[end_node, terminal_id]['type'] = 'terminal'
 
         return route_graph
@@ -315,7 +328,7 @@ class Network(object):
                 for terminal_id in terminal_nodes:
                     route_paths.add_edge(end_node, terminal_id, type='terminal')
                     node = route_paths.nodes[terminal_id]
-                    self.__set_node_properties(node, terminal_id)
+                    self.__set_node_properties_from_feature(node, terminal_id)
 
             # Add paths and nodes from connected connectivity sub-graph to result
             route_graph.add_nodes_from(route_paths.nodes(data=True))
