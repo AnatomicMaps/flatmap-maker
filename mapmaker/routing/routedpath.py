@@ -95,13 +95,14 @@ class RoutedPath(object):
 
         # Fallback is centreline layout
         geometry = []
-        for edge in self.__graph.edges.data():
-            nerve = edge[2].get('nerve')
+        for edge0, edge1, edge_data in self.__graph.edges.data():
+            nerve = edge_data.get('nerve')
             properties = { 'nerve': nerve } if nerve is not None else None
-            bezier = edge[2].get('geometry')
+            bezier = edge_data.get('geometry')
             if self.__path_layout != 'linear' and bezier is not None:
                 geometry.append(GeometricShape(shapely.geometry.LineString(bezier_sample(bezier)), properties))
             else:
+                edge = (edge0, edge1)
                 line = self.__line_from_edge(edge)
                 if line is not None:
                     geometry.append(GeometricShape(line, properties))

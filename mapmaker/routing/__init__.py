@@ -218,9 +218,9 @@ class Network(object):
                         for f in feature_map.find_features_by_anatomical_id(*connectivity_node)])
 
         def __centreline_end_nodes(centreline_id):
-            for edge in self.__centreline_graph.edges(data='id'):
-                if centreline_id == edge[2]:
-                    return edge[:2]
+            for _, _, edge_id in self.__centreline_graph.edges(data='id'):
+                if edge_id == centreline_id:
+                    return edge_id
 
         # Connectivity graph must be undirected
         if isinstance(connectivity, nx.DiGraph):
@@ -277,10 +277,11 @@ class Network(object):
                     if score > max_score:
                         max_score = score
                         max_centreline = centreline_id
-                for edge in self.__centreline_graph.edges(data='id'):
-                    if max_centreline == edge[2]:
-                        route_feature_ids.update(edge[:2])
-                        G.nodes[node]['feature_nodes'] = list(edge[:2])
+                for edge0, edge1, edge_id in self.__centreline_graph.edges(data='id'):
+                    if edge_id == max_centreline:
+                        edge = (edge0, edge1)
+                        route_feature_ids.update(edge)
+                        G.nodes[node]['feature_nodes'] = edge
                         break
 
             node_terminals = defaultdict(set)
