@@ -78,23 +78,23 @@ class Feature(object):
         return self.__properties
 
     def visible(self) -> bool:
-        return not self.get_property('invisible')
+        return not self.property('invisible')
 
-    def del_property(self, property: str) -> Any:
-        if property in self.__properties:
-            return self.__properties.pop(property)
+    def del_property(self, key: str) -> Any:
+        if key in self.__properties:
+            return self.__properties.pop(key)
 
-    def get_property(self, property: str, default: Any=None) -> Any:
-        return self.__properties.get(property, default)
+    def property(self, key: str, default: Any=None) -> Any:
+        return self.__properties.get(key, default)
 
-    def has_property(self, property: str) -> bool:
-        return self.__properties.get(property, '') != ''
+    def has_property(self, key: str) -> bool:
+        return self.__properties.get(key, '') != ''
 
-    def set_property(self, property: str, value: Any) -> None:
+    def set_property(self, key: str, value: Any) -> None:
         if value is None:
-            self.del_property(property)
+            self.del_property(key)
         else:
-            self.__properties[property] = value
+            self.__properties[key] = value
 
 #===============================================================================
 
@@ -109,7 +109,7 @@ class FeatureMap(object):
         if feature.id is not None:
             self.__id_to_feature[feature.id] = feature
         if feature.has_property('class'):
-            classes = feature.get_property('class').split()
+            classes = feature.property('class').split()
             for cls in classes:
                 self.__class_to_features[cls].append(feature)
         if feature.models is not None:

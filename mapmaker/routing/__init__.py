@@ -227,7 +227,7 @@ class Network(object):
     #==============================================================================
 
         def find_feature_ids(connectivity_node):
-            return set([f.id if f.id is not None else f.get_property('class')
+            return set([f.id if f.id is not None else f.property('class')
                         for f in feature_map.find_features_by_anatomical_id(*connectivity_node)])
 
         def __centreline_end_nodes(centreline_id):

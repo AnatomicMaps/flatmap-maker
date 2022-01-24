@@ -152,7 +152,7 @@ class MapLayer(FeatureLayer):
         # Add polygon features for nerve cuffs
         nerve_polygons = []
         for feature in self.features:
-            if feature.get_property('type') == 'nerve':
+            if feature.property('type') == 'nerve':
                 feature.set_property('tile-layer', 'pathways')
                 if not feature.has_property('nerveId'):
                     feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
@@ -163,7 +163,7 @@ class MapLayer(FeatureLayer):
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
                     self.flatmap.save_feature_for_lookup(nerve_polygon_feature)
-            elif (feature.get_property('type') == 'nerve-track'
+            elif (feature.property('type') == 'nerve-track'
               and feature.geom_type == 'LineString'):
                 self.__nerve_tracks.append(feature)
         self.features.extend(nerve_polygons)
@@ -193,7 +193,7 @@ class MapLayer(FeatureLayer):
         generate_group = False
         single_features = [ feature for feature in features if not feature.has_children ]
         for feature in single_features:
-            if feature.get_property('boundary'):
+            if feature.property('boundary'):
                 if outermost:
                     if self.__boundary_feature is not None:
                         raise ValueError('Layer cannot have multiple boundaries: {}'.format(feature))
@@ -207,31 +207,31 @@ class MapLayer(FeatureLayer):
                     boundary_polygon = feature.geometry
                     if feature.visible():
                         layer_features.append(feature)
-                cls = feature.get_property('class')
+                cls = feature.property('class')
                 if cls is not None:
                     if cls != boundary_class:
                         boundary_class = cls
                     else:
                         raise ValueError('Class of boundary shapes have changed in {}: {}'.format(group_name, feature))
-            elif feature.get_property('group'):
+            elif feature.property('group'):
                 generate_group = True
                 child_class = feature.del_property('children')
                 grouped_properties.update(feature.properties)
-            elif feature.get_property('region'):
+            elif feature.property('region'):
                 regions.append(self.flatmap.new_feature(feature.geometry.representative_point(), feature.properties))
-            elif not feature.has_property('markup') or feature.get_property('divider'):
+            elif not feature.has_property('markup') or feature.property('divider'):
                 if feature.geom_type == 'LineString':
                     dividers.append(feature.geometry)
                 elif feature.geom_type == 'Polygon':
                     dividers.append(feature.geometry.boundary)
                 if feature.visible():
                     layer_features.append(feature)
-            elif not feature.get_property('interior'):
+            elif not feature.property('interior'):
                 layer_features.append(feature)
 
         interior_features = []
         for feature in features:
-            if feature.get_property('interior') and not feature.get_property('boundary'):
+            if feature.property('interior') and not feature.property('boundary'):
                 interior_features.append(feature)
 
         if boundary_polygon is not None and len(boundary_lines):
@@ -284,7 +284,7 @@ class MapLayer(FeatureLayer):
                         break
         else:
             for feature in features:
-                if feature.get_property('region'):
+                if feature.property('region'):
                     raise ValueError('Region dividers in group {} must have a boundary: {}'.format(group_name, feature))
 
         if not outermost and interior_features:
@@ -297,7 +297,7 @@ class MapLayer(FeatureLayer):
             interior_polygon = shapely.ops.unary_union(interior_polygons)
             for feature in layer_features:
                 if (feature.has_property('markup')
-                and feature.get_property('exterior')
+                and feature.property('exterior')
                 and feature.geom_type in ['Polygon', 'MultiPolygon']):
                     feature.geometry = feature.geometry.buffer(0).difference(interior_polygon)
 
@@ -312,7 +312,7 @@ class MapLayer(FeatureLayer):
 
             grouped_lines = []
             for feature in grouped_polygon_features:
-                if feature.get_property('tile-layer') != 'pathways':
+                if feature.property('tile-layer') != 'pathways':
                     if feature.geom_type == 'LineString':
                         grouped_lines.append(feature.geometry)
                     elif feature.geom_type == 'MultiLineString':

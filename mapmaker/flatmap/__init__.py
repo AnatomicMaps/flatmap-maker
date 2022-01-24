@@ -271,10 +271,10 @@ class FlatMap(object):
         extra_details = []
         for feature in lowres_features:
             self.__map_properties.update_feature_properties(feature)
-            hires_layer_id = feature.get_property('details')
+            hires_layer_id = feature.property('details')
             hires_layer = self.__layer_dict.get(hires_layer_id)
             if hires_layer is None:
-                log.warn("Cannot find details layer '{}'".format(feature.get_property('details')))
+                log.warn("Cannot find details layer '{}'".format(feature.property('details')))
                 continue
             boundary_feature = hires_layer.boundary_feature
             if boundary_feature is None:
@@ -290,8 +290,8 @@ class FlatMap(object):
             dst = np.array(normalised_coords(feature.geometry.minimum_rotated_rectangle), dtype="float32")
             transform = Transform(cv2.getPerspectiveTransform(src, dst))
 
-            minzoom = feature.get_property('maxzoom') + 1
-            if feature.get_property('type') != 'nerve':
+            minzoom = feature.property('maxzoom') + 1
+            if feature.property('type') != 'nerve':
                 # Set the feature's geometry to that of the high-resolution outline
                 feature.geometry = transform.transform_geometry(boundary_feature.geometry)
             else:                             # nerve
