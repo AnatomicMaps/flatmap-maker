@@ -43,15 +43,17 @@ class ExternalProperties(object):
         self.__set_class_properties(properties_dict.get('classes'))
         self.__set_feature_properties(properties_dict.get('features'))
 
-        # Load path definitions
+        # Load path definitions in properties' file
         self.__pathways = Pathways(flatmap, properties_dict.get('paths', []))
+        # Connectivity defined in JSON
         for connectivity_source in manifest.connectivity:
             connectivity = FilePath(connectivity_source).get_json()
             self.__pathways.add_connectivity(connectivity)
+        # Connectivity from SciCrunch
         for connectivity_model in manifest.neuron_connectivity:
             self.__pathways.add_connectivity_model(connectivity_model)
 
-        # Load network definitions
+        # Load network centreline definitions
         self.__networks = { network.get('id'): Network(network, self)
                                 for network in properties_dict.get('networks', []) }
 
