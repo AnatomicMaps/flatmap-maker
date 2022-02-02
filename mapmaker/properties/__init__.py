@@ -73,6 +73,7 @@ class ExternalProperties(object):
             for id, properties in features.items():
                 self.__properties_by_id[id].update(properties)
         elif features is not None:
+            # ``Old`` style of properties
             for feature in features:
                 if 'class' in feature:
                     cls = feature['class']
