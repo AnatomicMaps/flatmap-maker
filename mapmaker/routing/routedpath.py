@@ -24,16 +24,22 @@ File doc...
 
 #===============================================================================
 
+from collections import defaultdict
+from typing import Tuple
+
+#===============================================================================
+
 from beziers.path import BezierPath
+import networkx as nx
 import shapely.geometry
 
 #===============================================================================
 
-from mapmaker.geometry import bezier_sample
+from mapmaker.geometry import bezier_to_linestring
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
-import mapmaker.routing.order as ordering
+from .options import PATH_SEPARATION, SMOOTHING_TOLERANCE
 
 #===============================================================================
 
@@ -51,18 +57,17 @@ class GeometricShape(object):
         return self.__properties
 
     @staticmethod
-    def circle(centre, radius=2000) -> shapely.geometry.Polygon:
+    def circle(centre: Tuple[float], radius: float = 2000) -> shapely.geometry.Polygon:
         return shapely.geometry.Point(centre).buffer(radius)
 
     @staticmethod
-    def line(start, end) -> shapely.geometry.LineString:
+    def line(start: Tuple[float], end: Tuple[float]) -> shapely.geometry.LineString:
         return shapely.geometry.LineString([start, end])
 
 #===============================================================================
 
 class RoutedPath(object):
-    def __init__(self, path_id, route_graph):
-        self.__path_id = path_id
+    def __init__(self, route_graph: nx.Graph):
         self.__graph = route_graph
         self.__path_layout = settings.get('pathLayout', 'automatic')
         self.__node_set = {node for node, data in route_graph.nodes(data=True)
@@ -92,20 +97,26 @@ class RoutedPath(object):
             between nodes and possibly additional features (e.g. way markers)
             of the paths.
         """
-
-        # Fallback is centreline layout
         geometry = []
-        for edge0, edge1, edge_data in self.__graph.edges.data():
-            nerve = edge_data.get('nerve')
-            properties = { 'nerve': nerve } if nerve is not None else None
-            bezier = edge_data.get('geometry')
+        for node_0, node_1, edge_dict in self.__graph.edges.data():
+            edge = (node_0, node_1)
+            properties = {
+                'nerve': edge_dict.get('nerve'),
+                'path-id': edge_dict.get('path-id')
+            }
+            bezier = edge_dict.get('geometry')
             if self.__path_layout != 'linear' and bezier is not None:
-                geometry.append(GeometricShape(shapely.geometry.LineString(bezier_sample(bezier)), properties))
+                path_line = (bezier_to_linestring(bezier, offset=PATH_SEPARATION*edge_dict['offset'])
+                             .simplify(SMOOTHING_TOLERANCE, preserve_topology=False))
             else:
-                edge = (edge0, edge1)
-                line = self.__line_from_edge(edge)
-                if line is not None:
-                    geometry.append(GeometricShape(line, properties))
+                path_line = self.__line_from_edge(edge)
+            if path_line is not None:
+                geometry.append(GeometricShape(path_line, properties))
+                edge_dict['path-ends'] = {
+                    node_0: path_line.coords[0],
+                    node_1: path_line.coords[-1],
+                }
+
         return geometry
 
     # def properties(self):
@@ -117,23 +128,53 @@ class RoutedPath(object):
 #===============================================================================
 
 class PathRouter(object):
-    def __init__(self):
+    def __init__(self, projections: dict):
+        self.__projections = projections
         self.__route_graphs = {}
-        self.__routed_paths = {}
 
-    @property
-    def routed_paths(self):
-        return self.__routed_paths
-
-    def add_path(self, path_id, route_graph):
+    def add_path(self, path_id: str, route_graph: nx.Graph):
         self.__route_graphs[path_id] = route_graph
 
     def layout(self):
+        for path_id, route_graph in self.__route_graphs.items():
+            nx.set_edge_attributes(route_graph, path_id, 'path-id')
+        routes = []
+        seen_paths = []
+        for path_id, route_graph in self.__route_graphs.items():
+            if path_id not in seen_paths:
+                projects_to = self.__projections.get(path_id)
+                if projects_to is not None and projects_to in self.__route_graphs:
+                    routes.append(nx.algorithms.compose(route_graph, self.__route_graphs[projects_to]))
+                    seen_paths.append(path_id)
+                    seen_paths.append(projects_to)
+        for path_id, route_graph in self.__route_graphs.items():
+            if path_id not in seen_paths:
+                if len(route_graph):
+                    routes.append(route_graph)
+
+        # Identify shared sub-paths
+        edges_by_id = {}
+        shared_paths = defaultdict(set)
+        for route_number, route_graph in enumerate(routes):
+            for node_0, node_1, edge_dict in route_graph.edges(data=True):
+                if edge_dict.get('type') != 'terminal':
+                    shared_paths[edge_dict['id']].add(route_number)
+        ## Need to derive path order in each connection from shared_paths...
+
+        ## edge_order = ordering(shared_paths)
+        for route_number, route_graph in enumerate(routes):
+            for node_0, node_1, edge_dict in route_graph.edges(data=True):
+                if edge_dict.get('type') != 'terminal':
+                    edge = (node_0, node_1)
+                    edge_id = edge_dict.get('id')
+                    ordering = edge_order.get(edge_id, [])
+                    if route_number in ordering:
+                        edge_dict['offset'] = ordering.index(route_number) - len(ordering)//2 + ((len(ordering)+1)%2)/2
         ################  WIP <<<<<<<<<<<<
         ##ordering.layout(self.__route_graphs)
 
-        ## This needs to derive path order in each connection...
-        self.__routed_paths = {path_id: RoutedPath(path_id, route_graph)
-            for path_id, route_graph in self.__route_graphs.items()}
+        return { route_number: RoutedPath(route_graph)
+            for route_number, route_graph in enumerate(routes) }
+
 
 #===============================================================================
