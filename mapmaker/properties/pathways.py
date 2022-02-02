@@ -275,14 +275,8 @@ class PathModel(object):
         self.__label = None
         self.__models = path.get('models')
         self.__nerves = list(parse_nerves(path.get('nerves')))
+        self.__path_type = path.get('phenotype', path.get('type'))
         self.__route = None
-
-        if self.__models == 'ilxtr:neuron-type-keast-6':
-            self.__type = 'symp-pre'
-        elif self.__models == 'ilxtr:neuron-type-keast-11':
-            self.__type = 'sensory'
-        else:
-            self.__type = path.get('type')
 
         if 'path' in path:  # Manual path specification
             for line_group in parse_path_lines(path['path']):
@@ -338,7 +332,8 @@ class PathModel(object):
 
     @property
     def path_type(self):
-        return self.__type
+        return self.__path_type
+
 
     @property
     def route(self):
