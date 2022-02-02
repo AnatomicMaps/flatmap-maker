@@ -23,6 +23,8 @@ import warnings
 
 #===============================================================================
 
+from beziers.path import BezierPath
+
 import numpy as np
 
 import pyproj
@@ -160,6 +162,24 @@ class Transform(object):
 def bezier_sample(bz, points=100):
 #=================================
     return [(pt.x, pt.y) for pt in bz.sample(points)]
+
+def bezier_to_linestring(bz, points=100, offset=0):
+#==================================================
+    def sample_with_offset(seg, points=100, offset=0):
+        line = shapely.geometry.LineString([(pt.x, pt.y) for pt in seg.sample(points)])
+        if offset == 0:
+            return line
+        else:
+            return line.parallel_offset(abs(offset), 'left' if offset >= 0 else 'right')
+    if isinstance(bz, BezierPath):
+        coords = []
+        for segment in bz.asSegments():
+            c = sample_with_offset(segment, points, offset).coords
+            coords.extend(c if offset >= 0 else reversed(c))
+        line = shapely.geometry.LineString(coords)
+    else:
+        line = sample_with_offset(bz, points, offset)
+    return line
 
 #===============================================================================
 
