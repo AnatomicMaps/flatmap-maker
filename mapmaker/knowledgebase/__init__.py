@@ -66,8 +66,8 @@ KNOWLEDGE_SCHEMA = """
 #===============================================================================
 
 class KnowledgeBase(object):
-    def __init__(self, store_directory, read_only=False, create=False):
-        self.__db_name = Path(store_directory, KNOWLEDGE_BASE).resolve()
+    def __init__(self, store_directory, read_only=False, create=False, knowledge_base=KNOWLEDGE_BASE):
+        self.__db_name = Path(store_directory, knowledge_base).resolve()
         if create and not self.__db_name.exists():
             db = sqlite3.connect(self.__db_name,
                 detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
@@ -96,8 +96,8 @@ class KnowledgeBase(object):
 #===============================================================================
 
 class KnowledgeStore(KnowledgeBase):
-    def __init__(self, store_directory):
-        super().__init__(store_directory, create=True)
+    def __init__(self, store_directory, knowledge_base=KNOWLEDGE_BASE):
+        super().__init__(store_directory, create=True, knowledge_base=knowledge_base)
         self.__entity_knowledge = {}     # Cache lookups
         self.__scicrunch = SciCrunch()
 
