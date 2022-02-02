@@ -304,6 +304,81 @@
             "properties": {
                 "models": "FMA:65911"
             }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-1",
+            "properties": {
+                "phenotype": "para-post"
+            }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-2",
+            "properties": {
+                "phenotype": "symp-post"
+            }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-3",
+            "properties": {
+                "phenotype": "symp-post"
+            }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-4",
+            "properties": {
+                "phenotype": "symp-post"
+            }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-5",
+            "properties": {
+                "phenotype": "para-pre",
+                "projects": "ilxtr:neuron-type-keast-1"
+            }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-6",
+            "properties": {
+                "phenotype": "symp-pre",
+                "projects": "ilxtr:neuron-type-keast-2"
+            }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-7",
+            "properties": {
+                "phenotype": "symp-pre",
+                "projects": "ilxtr:neuron-type-keast-3"
+            }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-8",
+            "properties": {
+                "phenotype": "symp-pre"
+            }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-9",
+            "properties": {
+               "phenotype": "somatic"
+            }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-10",
+            "properties": {
+               "phenotype": "sensory"
+            }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-11",
+            "properties": {
+               "phenotype": "sensory"
+            }
+        },
+        {
+            "id": "ilxtr:neuron-type-keast-12",
+            "properties": {
+               "phenotype": "sensory"
+            }
         }
     ],
     "networks": [
