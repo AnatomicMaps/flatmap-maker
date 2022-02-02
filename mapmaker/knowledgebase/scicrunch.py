@@ -22,7 +22,6 @@ import os
 
 #===============================================================================
 
-from mapmaker.settings import settings
 from mapmaker.utils import log, request_json
 
 from .apinatomy import Apinatomy
@@ -82,30 +81,25 @@ class SciCrunch(object):
                                     params=params)
                 if data is not None:
                     knowledge['label'] = data.get('data', {}).get('label', entity)
-
             elif ontology in CONNECTIVITY_ONTOLOGIES:
                 data = request_json(SCICRUNCH_CONNECTIVITY_NEURONS.format(NEURON_ID=entity),
                                     params=params)
                 if data is not None:
                     knowledge = Apinatomy.neuron_knowledge(entity, data)
-
             elif ontology in SPARC_ONTOLOGIES:
                 data = request_json(SCICRUNCH_SPARC_VOCAB.format(TERM=entity),
                                     params=params)
                 if data is not None:
                     knowledge['label'] = data.get('labels', [entity])[0]
-
             elif entity.startswith(APINATOMY_MODEL_PREFIX):
                 params['cypherQuery'] = Apinatomy.neurons_for_model_cypher(entity)
                 data = request_json(SCICRUNCH_SPARC_CYPHER,
                                     params=params)
                 if data is not None:
                     knowledge = Apinatomy.model_knowledge(entity, data)
-
         if len(knowledge) == 0 and entity not in self.__unknown_entities:
             log.warn('Unknown anatomical entity: {}'.format(entity))
             self.__unknown_entities.append(entity)
-
         return knowledge
 
 #===============================================================================
