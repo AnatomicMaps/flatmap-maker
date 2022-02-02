@@ -229,7 +229,7 @@ class ResolvedPathways(object):
         for id in nodes:
             node_count = 0
             for feature in self.__feature_map.features(id):
-                if not feature.get_property('exclude'):
+                if not feature.property('exclude'):
                     node_id = feature.feature_id
                     feature.set_property('nodeId', node_id)
                     self.__node_paths[node_id].add(path_id)
