@@ -51,7 +51,7 @@ class ExternalProperties(object):
             self.__pathways.add_connectivity(connectivity)
         # Connectivity from SciCrunch
         for connectivity_model in manifest.neuron_connectivity:
-            self.__pathways.add_connectivity_model(connectivity_model)
+            self.__pathways.add_connectivity_model(connectivity_model, self)
 
         # Load network centreline definitions
         self.__networks = { network.get('id'): Network(network, self)
@@ -91,17 +91,20 @@ class ExternalProperties(object):
 
     def get_property(self, id, key):
     #===============================
-        properties = self.__properties_by_id.get(id, {})
-        property = properties.get(key)
-        if property is None:
-            if 'class' in properties:
-                for cls in properties['class'].split():
-                    property = self.__properties_by_class.get(cls, {}).get(key)
-                    if property is not None:
-                        break
-            else:  # Old way...
-                property = self.__properties_by_class.get(id, {}).get(key)
-        return property
+        return self.properties(id).get(key)
+
+    def properties(self, id):
+    #========================
+        properties = {}
+        properties_by_id = self.__properties_by_id.get(id, {})
+        for cls in properties_by_id.get('class', '').split():
+            properties.update(self.__properties_by_class.get(cls, {}))
+        properties.update(properties_by_id)
+        # Old way: ``id`` could be a ``class``
+        if len(properties) == 0:
+            properties = self.__properties_by_class.get(id, {})
+        # Remove above when all maps converted
+        return properties
 
     def save_knowledge(self):
     #========================
