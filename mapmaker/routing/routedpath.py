@@ -90,6 +90,22 @@ class RoutedPath(object):
             return shapely.geometry.LineString([
                 node_0['geometry'].centroid, node_1['geometry'].centroid])
 
+    def __bezier_geometry(self, path_id, bezier_path):
+        geometry = []
+        for _, node_geometry in self.__graph.nodes(data='geometry'):
+            pass ## geometry.append(GeometricShape(node_geometry, {'type': 'junction'}))
+        for bezier in bezier_path.asSegments():
+            bz_pts = tuple((p.x, p.y) for p in bezier.points)
+            for pt in (bz_pts[0], bz_pts[3]):
+                geometry.append(GeometricShape(GeometricShape.circle(pt),
+                    {'type': 'bezier', 'kind': 'bezier-end'}))
+            for pt in bz_pts[1:3]:
+                geometry.append(GeometricShape(GeometricShape.circle(pt),
+                    {'type': 'bezier', 'kind': 'bezier-control', 'label': path_id}))
+            geometry.append(GeometricShape(GeometricShape.line(*bz_pts[0:2]), {'type': 'bezier'}))
+            geometry.append(GeometricShape(GeometricShape.line(*bz_pts[2:4]), {'type': 'bezier'}))
+        return geometry
+
     def geometry(self) -> [GeometricShape]:
         """
         Returns:
@@ -108,6 +124,9 @@ class RoutedPath(object):
             if self.__path_layout != 'linear' and bezier is not None:
                 path_line = (bezier_to_linestring(bezier, offset=PATH_SEPARATION*edge_dict['offset'])
                              .simplify(SMOOTHING_TOLERANCE, preserve_topology=False))
+                display_bezier_points = False  ### From settings... <<<<<<<<<<<<<<<<<<<<<<<
+                if display_bezier_points:
+                    geometry.extend(self.__bezier_geometry(edge_dict.get('path-id'), bezier))
             else:
                 path_line = self.__line_from_edge(edge)
             if path_line is not None:
