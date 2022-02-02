@@ -111,6 +111,17 @@ class KnowledgeStore(KnowledgeBase):
             ((flatmap.id, entity) for entity in flatmap.entities))
         self.db.execute('commit')
 
+    def flatmap_entities(self, flatmap):
+    #===================================
+        select = ['select distinct entity from flatmap_entities']
+        if flatmap is not None:
+            select.append('where flatmap=?')
+        select.append('order by entity')
+        if flatmap is not None:
+            return [row[0] for row in self.db.execute(' '.join(select), (flatmap,))]
+        else:
+            return [row[0] for row in self.db.execute(' '.join(select))]
+
     def entity_knowledge(self, entity):
     #==================================
         # Optionally refresh local connectivity knowledge from SciCrunch
