@@ -162,6 +162,19 @@ class PathRouter(object):
         ## Need to derive path order in each connection from shared_paths...
 
         ## edge_order = ordering(shared_paths)
+        edge_order = { # When traversing "down" with first entry the "left-most"
+            'L1_dorsal_root': [4],              # 0
+            'L1_spinal_n': [4, 0, 2],           # -g, 0, g
+            'L1_ventral_root_ramus': [0, 2],    # -g/2, g/2
+            'L2_dorsal_root': [4],
+            'L2_spinal_n': [4, 0, 2],
+            'L2_ventral_root_ramus': [0, 2],
+            'bladder_n': [4, 0, 2, 1, 3],       # -2g, -g, 0, g, 2g
+            'hypogastric_n': [4, 0, 2],
+            'lumbar_splanchnic_n': [4, 0, 2],
+            'pelvic_splanchnic_n': [1, 3]
+        }
+
         for route_number, route_graph in enumerate(routes):
             for node_0, node_1, edge_dict in route_graph.edges(data=True):
                 if edge_dict.get('type') != 'terminal':
