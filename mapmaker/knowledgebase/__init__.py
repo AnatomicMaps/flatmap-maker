@@ -100,6 +100,7 @@ class KnowledgeStore(KnowledgeBase):
         super().__init__(store_directory, create=True, knowledge_base=knowledge_base)
         self.__entity_knowledge = {}     # Cache lookups
         self.__scicrunch = SciCrunch()
+        self.__refreshed = []
 
     def add_flatmap(self, flatmap):
     #==============================
@@ -127,8 +128,11 @@ class KnowledgeStore(KnowledgeBase):
         # Optionally refresh local connectivity knowledge from SciCrunch
         if (settings.get('cleanConnectivity', False)
          and (entity.startswith(APINATOMY_MODEL_PREFIX)
-           or entity.split(':')[0] in CONNECTIVITY_ONTOLOGIES)):
+           or entity.split(':')[0] in CONNECTIVITY_ONTOLOGIES)
+         and entity not in self.__refreshed):
+            log.info(f'Refreshing knowledge for {entity}')
             self.db.execute('delete from knowledge where entity=?', (entity,))
+            self.__refreshed.append(entity)
         else:
             # Check local cache
             knowledge = self.__entity_knowledge.get(entity, {})
