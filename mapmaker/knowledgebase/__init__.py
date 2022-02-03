@@ -110,7 +110,7 @@ class KnowledgeStore(KnowledgeBase):
         self.db.execute('delete from flatmap_entities where flatmap=?', (flatmap.id, ))
         self.db.executemany('insert into flatmap_entities(flatmap, entity) values (?, ?)',
             ((flatmap.id, entity) for entity in flatmap.entities))
-        self.db.execute('commit')
+        self.db.commit()
 
     def flatmap_entities(self, flatmap):
     #===================================
@@ -146,6 +146,8 @@ class KnowledgeStore(KnowledgeBase):
             # Consult SciCrunch if we don't know about the entity
             knowledge = self.__scicrunch.get_knowledge(entity)
             if len(knowledge) > 0:
+                if not self.db.in_transaction:
+                    self.db.execute('begin')
                 # Save knowledge in our database
                 self.db.execute('replace into knowledge values (?, ?)', (entity, json.dumps(knowledge)))
                 # Save label and publications in their own tables
@@ -153,6 +155,7 @@ class KnowledgeStore(KnowledgeBase):
                     self.db.execute('replace into labels values (?, ?)', (entity, knowledge['label']))
                 if 'publications' in knowledge:
                     self.update_publications(entity, knowledge.pop('publications', []))
+                self.db.commit()
         # Use the entity's value as its label if none is defined
         if 'label' not in knowledge:
             knowledge['label'] = entity
