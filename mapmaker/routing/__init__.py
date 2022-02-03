@@ -148,24 +148,12 @@ class Network(object):
 
     def create_geometry(self, feature_map):
     #======================================
-        def adjust_segments_start(segs, to_point):
-            points = segs[0].points
-            delta = points[0] - to_point
-            points[0] = to_point
-            points[1] -= delta
-
-        def adjust_segments_end(segs, to_point):
-            points = segs[-1].points
-            delta = points[3] - to_point
-            points[3] = to_point
-            points[2] -= delta
-
         def truncate_segments_start(segs, node):
-            # This assumes node centre == segs[0].start
+            # This assumes node centre is close to segs[0].start
             node_centre = self.__centreline_graph.nodes[node].get('centre')
-            if node_centre is None:
-                return segs
             radii = self.__centreline_graph.nodes[node].get('radii')
+            if node_centre is None or segs[0].start.distanceFrom(node_centre) > radii[0]:
+                return segs
             n = 0
             while n < len(segs) and segs[n].end.distanceFrom(node_centre) < radii[0]:
                 n += 1
@@ -189,11 +177,11 @@ class Network(object):
             return segs[n:]
 
         def truncate_segments_end(segs, node):
-            # This assumes node centre == segs[-1].end
+            # This assumes node centre is close to segs[-1].end
             node_centre = self.__centreline_graph.nodes[node].get('centre')
-            if node_centre is None:
-                return segs
             radii = self.__centreline_graph.nodes[node].get('radii')
+            if node_centre is None or segs[-1].end.distanceFrom(node_centre) > radii[0]:
+                return segs
             n = len(segs) - 1
             while n >= 0 and segs[n].start.distanceFrom(node_centre) < radii[0]:
                 n -= 1
@@ -240,30 +228,25 @@ class Network(object):
                     segments = bezier_path.asSegments()
                     start = bezier_path.pointAtTime(0.0)
                     if start.distanceFrom(node_0_centre) <= start.distanceFrom(node_1_centre):
-                        adjust_segments_start(segments, node_0_centre)
-                        adjust_segments_end(segments, node_1_centre)
                         edge_dict['start-node'] = node_0
                         edge_dict['end-node'] = node_1
                     else:
-                        adjust_segments_start(segments, node_1_centre)
-                        adjust_segments_end(segments, node_0_centre)
                         edge_dict['start-node'] = node_1
                         edge_dict['end-node'] = node_0
-                        forward = False
                 if segments:
                     if self.__centreline_graph.degree(node_0) > 2:
                         if edge_dict['start-node'] == node_0:
-                            # This assumes node_0 centre == segments[0].start
+                            # This assumes node_0 centre is close to segments[0].start
                             segments = truncate_segments_start(segments, node_0)
                         else:
-                            # This assumes node_1 centre == segments[-1].end
+                            # This assumes node_1 centre is close to segments[-1].end
                             segments = truncate_segments_end(segments, node_0)
                     if self.__centreline_graph.degree(node_1) > 2:
                         if edge_dict['start-node'] == node_0:
-                            # This assumes node_0 centre == segments[-1].end
+                            # This assumes node_0 centre is close to segments[-1].end
                             segments = truncate_segments_end(segments, node_1)
                         else:
-                            # This assumes node_1 centre == segments[0].start
+                            # This assumes node_1 centre is close to segments[0].start
                             segments = truncate_segments_start(segments, node_1)
                     edge_dict['tangents'] = {
                         edge_dict['start-node']: segments[0].tangentAtTime(0.0),
