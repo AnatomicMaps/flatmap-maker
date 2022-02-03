@@ -472,9 +472,9 @@ class Pathways(object):
         ## <<<<<<<<<<<<<<<<<<<<<
         connectivity['paths'] = [
             path for path in connectivity['paths']
-                if path['id'] in [
-                    'ilxtr:neuron-type-keast-6',  # <<<<<<<<<<<<<<<<<<<
-                    'ilxtr:neuron-type-keast-11',  # <<<<<<<<<<<<<<<<<<<
+                if path['id'] not in [
+                    'ilxtr:neuron-type-keast-4',  # <<<<<<<<<<<<<<<<<<<
+                    'ilxtr:neuron-type-keast-8',  # <<<<<<<<<<<<<<<<<<<
                 ]
             ]
         ## <<<<<<<<<<<<<<<<<<<<<
