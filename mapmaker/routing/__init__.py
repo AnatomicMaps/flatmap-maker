@@ -217,8 +217,9 @@ class Network(object):
             return segs[:n+1]
 
         self.__feature_map = feature_map
-        for node_id in self.__centreline_graph.nodes:
+        for node_id, degree in self.__centreline_graph.degree():
             node_dict = self.__centreline_graph.nodes[node_id]
+            node_dict['degree'] = degree   # This will be used when laying out route paths
             self.__set_node_properties_from_feature(node_dict, node_id)
 
         for node_0, node_1, edge_dict in self.__centreline_graph.edges(data=True):
@@ -227,12 +228,12 @@ class Network(object):
                 node_0_centre = self.__centreline_graph.nodes[node_0].get('centre')
                 node_1_centre = self.__centreline_graph.nodes[node_1].get('centre')
                 bezier_path = feature.property('bezier-path')
-                forward = True
                 if bezier_path is None:
                     log.warn(f'Centreline {feature.id} has no Bezier path')
                     if node_0_centre is not None and node_1_centre is not None:
                         segments = [ BezierLine(node_0_centre, node_1_centre) ]
                         edge_dict['start-node'] = node_0
+                        edge_dict['end-node'] = node_1
                     else:
                         segments = []
                 else:
@@ -242,34 +243,31 @@ class Network(object):
                         adjust_segments_start(segments, node_0_centre)
                         adjust_segments_end(segments, node_1_centre)
                         edge_dict['start-node'] = node_0
+                        edge_dict['end-node'] = node_1
                     else:
                         adjust_segments_start(segments, node_1_centre)
                         adjust_segments_end(segments, node_0_centre)
+                        edge_dict['start-node'] = node_1
+                        edge_dict['end-node'] = node_0
                         forward = False
                 if segments:
                     if self.__centreline_graph.degree(node_0) > 2:
-                        if forward:
+                        if edge_dict['start-node'] == node_0:
                             # This assumes node_0 centre == segments[0].start
                             segments = truncate_segments_start(segments, node_0)
                         else:
                             # This assumes node_1 centre == segments[-1].end
                             segments = truncate_segments_end(segments, node_0)
                     if self.__centreline_graph.degree(node_1) > 2:
-                        if forward:
+                        if edge_dict['start-node'] == node_0:
                             # This assumes node_0 centre == segments[-1].end
                             segments = truncate_segments_end(segments, node_1)
                         else:
                             # This assumes node_1 centre == segments[0].start
                             segments = truncate_segments_start(segments, node_1)
-                    if forward:
-                        start_node = node_0
-                        end_node = node_1
-                    else:
-                        start_node = node_1
-                        end_node = node_0
                     edge_dict['tangents'] = {
-                        start_node: segments[0].tangentAtTime(0.0),
-                        end_node: segments[-1].tangentAtTime(1.0)
+                        edge_dict['start-node']: segments[0].tangentAtTime(0.0),
+                        edge_dict['end-node']: segments[-1].tangentAtTime(1.0)
                     }
                     edge_dict['geometry'] = BezierPath.fromSegments(segments)
 
