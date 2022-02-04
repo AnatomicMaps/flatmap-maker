@@ -540,7 +540,10 @@ class Pathways(object):
                         }
                         properties.update(geometric_shape.properties)
                         path_id = properties.pop('path-id', None)
-                        if path_id is not None:
+                        if properties.get('type') == 'junction':
+                            if path_id in self.__type_by_path_id:
+                                properties['kind'] = self.__type_by_path_id[path_id]
+                        elif path_id is not None:
                             path = connectivity_model.paths[path_id]
                             properties.update(self.__line_properties(path_id))
                             path_model = path.models
