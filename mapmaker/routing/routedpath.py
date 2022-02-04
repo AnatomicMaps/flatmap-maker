@@ -118,12 +118,36 @@ class RoutedPath(object):
             between nodes and possibly additional features (e.g. way markers)
             of the paths.
         """
-        def join_paths(e0, s0, e1, s1):
+        def join_geometry(node, edge_0, edge_1):
+            e0 = edge_0['path-ends'][node]
+            e1 = edge_1['path-ends'][node]
             d = e0.distanceFrom(e1)/3
             if (e0-e1).angle < (e1-e0).angle:
                 d = -d
+            s0 = edge_0['tangents'][node]
+            s1 = edge_1['tangents'][node]
             bz = CubicBezier(e0, e0 + s0*d, e1 - s1*d, e1)
-            return bezier_to_linestring(bz)
+            geometry = []
+            if edge_0.get('path-id') == edge_1.get('path-id'):
+                geometry.append(
+                    GeometricShape(bezier_to_linestring(bz), {
+                        'nerve': edge_0.get('nerve'),
+                        'path-id': edge_0.get('path-id')
+                        }))
+            else:
+                mid_point = bz.pointAtTime(0.5)
+                geometry.append(GeometricShape.circle(
+                    (mid_point.x, mid_point.y),
+                    radius = 0.8*PATH_SEPARATION,
+                    properties={'type': 'junction', 'path-id': edges[0].get('path-id')}))
+                for n, bz in enumerate(bz.splitAtTime(0.5)):
+                    geometry.append(
+                        GeometricShape(bezier_to_linestring(bz), {
+                            'nerve': edges[n].get('nerve'),
+                            'path-id': edges[n].get('path-id')
+                        }))
+            return geometry
+
         geometry = []
         for node_0, node_1, edge_dict in self.__graph.edges.data():
             edge = (node_0, node_1)
@@ -149,33 +173,31 @@ class RoutedPath(object):
                     }
 
         for node, node_dict in self.__graph.nodes(data=True):
-            if node_dict.get('degree', 0) > 2:
-                ends = []
-                slopes = []
+            if node_dict.get('degree', 0) >= 2:
+                edges = []
                 for node_0, node_1, edge_dict in self.__graph.edges(node, data=True):
                     if edge_dict.get('type') != 'terminal':
-                        ends.append(edge_dict['path-ends'][node])
-                        slopes.append(edge_dict['tangents'][node])
-                if len(ends) == 2:
-                    join_line = join_paths(ends[0], slopes[0], ends[1], slopes[1])
-                    geometry.append(GeometricShape(join_line, properties))
-                elif len(ends) == 3:  ## Generalise
-                    # Check angles between ends to find two most obtuse...
+                        edges.append(edge_dict)
+                if len(edges) == 2:
+                    geometry.extend(join_geometry(node, edges[0], edges[1]))
+                elif len(edges) == 3:  ## Generalise
+                    # Check angles between edges to find two most obtuse...
                     centre = node_dict['centre']
                     min_angle = math.pi
+                    min_pair = None
                     pairs = []
-                    for e0, e1 in itertools.combinations(enumerate(ends), 2):
+                    for e0, e1 in itertools.combinations(enumerate(edges), 2):
                         pairs.append((e0[0], e1[0]))
-                        a = abs((e0[1]-centre).angle-(e1[1]-centre).angle)
+                        a = abs((e0[1]['path-ends'][node] - centre).angle
+                              - (e1[1]['path-ends'][node] - centre).angle)
                         if a > math.pi:
                             a = abs(a - 2*math.pi)
                         if a < min_angle:
-                            a = min_angle
+                            min_angle = a
                             min_pair = pairs[-1]
                     for pair in pairs:
                         if pair != min_pair:
-                            join_line = join_paths(ends[pair[0]], slopes[pair[0]], ends[pair[1]], slopes[pair[1]])
-                            geometry.append(GeometricShape(join_line, properties))
+                            geometry.extend(join_geometry(node, edges[pair[0]], edges[pair[1]]))
 
         return geometry
 
