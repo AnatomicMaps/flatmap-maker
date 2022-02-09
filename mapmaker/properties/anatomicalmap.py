@@ -47,7 +47,10 @@ class AnatomicalMap(object):
     def properties(self, cls):
     #=========================
         if cls in self.__map:
-            return { 'models': self.__map[cls] }
+            term = self.__map[cls]
+            if isinstance(term, dict):
+                term = term['term']
+            return { 'models': term }
         else:
             return {}
 
