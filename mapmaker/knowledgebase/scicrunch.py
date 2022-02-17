@@ -32,7 +32,7 @@ INTERLEX_ONTOLOGIES = ['ILX', 'NLX']
 
 CONNECTIVITY_ONTOLOGIES = [ 'ilxtr' ]
 
-SPARC_ONTOLOGIES = ['FMA', 'NCBITaxon', 'UBERON']
+SPARC_ONTOLOGIES = ['CL', 'EMAPA', 'FMA', 'NCBITaxon', 'UBERON']
 
 APINATOMY_MODEL_PREFIX = 'https://apinatomy.org/uris/models/'
 
