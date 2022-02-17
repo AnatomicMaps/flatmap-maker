@@ -154,6 +154,22 @@ htmlsoup = ["beautifulsoup4"]
 source = ["Cython (>=0.29.7)"]
 
 [[package]]
+name = "mapknowledge"
+version = "0.9.0"
+description = ""
+category = "main"
+optional = false
+python-versions = ">=3.8,<4.0"
+
+[package.dependencies]
+networkx = "*"
+rdflib = "*"
+requests = "*"
+
+[package.source]
+type = "url"
+url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.9.0/mapknowledge-0.9.0-py3-none-any.whl"
+[[package]]
 name = "markupsafe"
 version = "2.0.1"
 description = "Safely add untrusted strings to HTML/XML markup."
