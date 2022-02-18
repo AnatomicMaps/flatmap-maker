@@ -57,6 +57,7 @@ from mapmaker.utils import FilePath, ProgressBar, log
 
 IGNORED_SVG_TAGS = [
     SVG_NS('clipPath'),
+    SVG_NS('image'),
     SVG_NS('linearGradient'),
     SVG_NS('radialGradient'),
     SVG_NS('style'),
@@ -194,7 +195,7 @@ class SVGLayer(MapLayer):
             pass
         elif 'styling' in properties:
             pass
-        elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('image'),
+        elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'),
                              SVG_NS('line'), SVG_NS('path'), SVG_NS('polyline'),
                              SVG_NS('polygon'), SVG_NS('rect')]:
             geometry = self.__get_geometry(element, properties, transform)
