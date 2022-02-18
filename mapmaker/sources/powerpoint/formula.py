@@ -138,7 +138,7 @@ class Geometry(object):
     def __init__(self, shape):
         self._xfrm = shape.element.xfrm
 
-        if shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE:
+        if shape.shape_type in [MSO_SHAPE_TYPE.AUTO_SHAPE, MSO_SHAPE_TYPE.TEXT_BOX]:
             self._geometry = Shapes.lookup(shape.element.prstGeom.attrib['prst'])
             adjustments = shape.element.prstGeom.avLst
 

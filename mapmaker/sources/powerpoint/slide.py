@@ -119,8 +119,13 @@ class PowerpointSlide(MapLayer):
                 grouped_feature = self.__process_group(shape, properties, transform)
                 if grouped_feature is not None:
                     features.append(grouped_feature)
-            elif (shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
-               or shape.shape_type == MSO_SHAPE_TYPE.PICTURE):
+            elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX:
+                if 'id' in properties:
+                    geometry = self.__get_geometry(shape, properties, transform)
+                    if geometry is not None:
+                        feature = self.flatmap.new_feature(geometry, properties)
+                        features.append(feature)
+            elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                 pass
             else:
                 log.warn('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
