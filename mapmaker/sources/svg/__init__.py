@@ -33,6 +33,7 @@ from beziers.quadraticbezier import QuadraticBezier
 from lxml import etree
 import numpy as np
 import shapely.geometry
+import shapely.ops
 
 #===============================================================================
 
@@ -40,7 +41,7 @@ from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_PIXEL
 
 from .cleaner import SVGCleaner
-from .definitions import DefinitionStore
+from .definitions import DefinitionStore, ObjectStore
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import adobe_decode_markup, length_as_pixels, parse_svg_path, SVG_NS
@@ -56,7 +57,7 @@ from mapmaker.utils import FilePath, ProgressBar, log
 # These SVG tags are not used to determine feature geometry
 
 IGNORED_SVG_TAGS = [
-    SVG_NS('clipPath'),
+    SVG_NS('font'),
     SVG_NS('image'),
     SVG_NS('linearGradient'),
     SVG_NS('radialGradient'),
@@ -131,6 +132,7 @@ class SVGLayer(MapLayer):
         self.__style_matcher = StyleMatcher(svg.find(SVG_NS('style')))
         self.__transform = source.transform
         self.__definitions = DefinitionStore()
+        self.__clip_geometries = ObjectStore()
 
     def process(self):
     #=================
@@ -145,16 +147,23 @@ class SVGLayer(MapLayer):
     #=============================================================================
         group_style = self.__style_matcher.element_style(wrapped_group, parent_style)
         group = wrapped_group.etree_element
-        features = self.__process_element_list(wrapped_group,
-            transform@SVGTransform(group.attrib.get('transform')),
-            properties,
-            group_style)
-        properties.pop('tile-layer', None)
-        # If the group element has markup then add a dummy `.group` feature
-        # to pass it to the MapLayer
-        if len(properties):
-            properties['group'] = True
-            features.append(self.flatmap.new_feature(shapely.geometry.Polygon(), properties))
+        group_clip_path = group_style.pop('clip-path', None)
+        clipped = self.__clip_geometries.get_by_url(group_clip_path)
+        if clipped is not None:
+            # Replace any features inside a clipped group with just the clipped outline
+            features = [self.flatmap.new_feature(clipped, properties)]
+        else:
+            features = self.__process_element_list(wrapped_group,
+                transform@SVGTransform(group.attrib.get('transform')),
+                properties,
+                group_style)
+            properties.pop('tile-layer', None)
+            if len(properties):
+                # If the group element has markup then add a dummy `.group` feature
+                # to pass it to the MapLayer
+                properties['group'] = True
+                features.append(self.flatmap.new_feature(shapely.geometry.Polygon(), properties))
+
         return self.add_features(adobe_decode_markup(group), features)
 
     def __process_element_list(self, elements, transform, parent_properties, parent_style, show_progress=False):
@@ -176,9 +185,34 @@ class SVGLayer(MapLayer):
             elif element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
                 wrapped_element = wrap_element(element)
-            self.__process_element(wrapped_element, transform, features, parent_properties, parent_style)
+            if element.tag == SVG_NS('clipPath'):
+                self.__add_clip_geometry(wrapped_element, transform)
+            else:
+                self.__process_element(wrapped_element, transform, features, parent_properties, parent_style)
         progress_bar.close()
         return features
+
+    def __add_clip_geometry(self, wrapped_clip_path, transform):
+    #===========================================================
+        clip_path_element = wrapped_clip_path.etree_element
+        clip_id = clip_path_element.attrib.get('id')
+        if clip_id is None:
+            return
+        geometries = []
+        for wrapped_element in wrapped_clip_path.iter_children():
+            element = wrapped_element.etree_element
+            if element.tag == SVG_NS('use'):
+                element = self.__definitions.use(element)
+            if (element is not None
+            and element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
+                               SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
+                               SVG_NS('rect')]):
+                properties = {}
+                geometry = self.__get_geometry(element, properties, transform)
+                if geometry is not None:
+                    geometries.append(geometry)
+        if len(geometries):
+            self.__clip_geometries.add(clip_id, shapely.ops.unary_union(geometries))
 
     def __process_element(self, wrapped_element, transform, features, parent_properties, parent_style):
     #==================================================================================================
