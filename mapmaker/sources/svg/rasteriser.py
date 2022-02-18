@@ -288,9 +288,7 @@ class SVGTiler(object):
     def __draw_group(self, group, parent_transform, parent_style):
     #=============================================================
         group_style = self.__style_matcher.element_style(group, parent_style)
-        group_clip_path = group_style.get('clip-path')
-        if group_clip_path is not None:
-            del group_style['clip-path']
+        group_clip_path = group_style.pop('clip-path', None)
         drawing_objects = self.__draw_element_list(group,
             parent_transform@SVGTransform(group.etree_element.attrib.get('transform')),
             group_style)

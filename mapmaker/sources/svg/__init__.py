@@ -148,10 +148,9 @@ class SVGLayer(MapLayer):
             transform@SVGTransform(group.attrib.get('transform')),
             properties,
             group_style)
+        properties.pop('tile-layer', None)
         # If the group element has markup then add a dummy `.group` feature
         # to pass it to the MapLayer
-        if 'tile-layer' in properties:
-            del properties['tile-layer']
         if len(properties):
             properties['group'] = True
             features.append(self.flatmap.new_feature(shapely.geometry.Polygon(), properties))
