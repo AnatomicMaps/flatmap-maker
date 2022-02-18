@@ -29,12 +29,6 @@ from urllib.parse import urljoin, urlparse
 
 #===============================================================================
 
-import requests
-
-LOOKUP_TIMEOUT = 5    # seconds; for `requests.get()`
-
-#===============================================================================
-
 # Export from module
 
 from .logging import ProgressBar, configure_logging, log
@@ -100,25 +94,5 @@ class FilePath(object):
 
     def join_url(self, path):
         return urljoin(self.__url, path)
-
-#===============================================================================
-
-def request_json(endpoint, **kwds):
-    try:
-        response = requests.get(endpoint,
-                                headers={'accept': 'application/json'},
-                                timeout=LOOKUP_TIMEOUT,
-                                **kwds)
-        if response.status_code == requests.codes.ok:
-            try:
-                return response.json()
-            except json.JSONDecodeError:
-                error = 'invalid JSON returned'
-        else:
-            error = 'status: {}'.format(response.status_code)
-    except requests.exceptions.RequestException as exception:
-        error = 'exception: {}'.format(exception)
-    log.warn("Couldn't access {}: {}".format(endpoint, error))
-    return None
 
 #===============================================================================
