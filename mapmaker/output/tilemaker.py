@@ -508,24 +508,54 @@ class RasterTileMaker(object):
 #===============================================================================
 
 if __name__ == '__main__':
-    import sys
+    import argparse
+    import os, sys
+
     from mapmaker.sources import RasterSource
-    from mapmaker.layers import RasterLayer
+    from mapmaker.flatmap.layers import RasterLayer
+
+    parser = argparse.ArgumentParser(description='Convert a PDF or JPEG image to a flatmap.')
+
+    parser.add_argument('--initial-zoom', metavar='N', type=int, default=4,
+                        help='initial zoom level (defaults to 4)')
+    parser.add_argument('--max-zoom', dest='max_zoom', metavar='N', type=int, default=10,
+                        help='maximum zoom level (defaults to 10)')
+    parser.add_argument('--min-zoom', dest='min_zoom', metavar='N', type=int, default=2,
+                        help='minimum zoom level (defaults to 2)')
+    parser.add_argument('--map-dir', dest='map_base', metavar='MAP_DIR', required=True,
+                        help='base directory for generated flatmaps')
+    parser.add_argument('--id', dest='map_id', metavar='MAP_ID', required=True,
+                        help='a unique identifier for the map')
+    parser.add_argument('--mode', default='PDF', choices=['PDF', 'JPEG'],
+                        help='Type of SOURCE file')
+    parser.add_argument('source', metavar='SOURCE',
+                        help='PDF or JPEG file')
+
+    args = parser.parse_args()
+
+    if args.min_zoom < 0 or args.min_zoom > args.max_zoom:
+        sys.exit('--min-zoom must be between 0 and {}'.format(args.max_zoom))
+    if args.max_zoom < args.min_zoom or args.max_zoom > 15:
+        sys.exit('--max-zoom must be between {} and 15'.format(args.min_zoom))
+    if args.initial_zoom < args.min_zoom or args.initial_zoom > args.max_zoom:
+        sys.exit('--initial-zoom must be between {} and {}'.format(args.min_zoom, args.max_zoom))
+
+    #map_zoom = (args.min_zoom, args.max_zoom, args.initial_zoom)
+
+    map_dir = os.path.join(args.map_base, args.map_id)
+    if not os.path.exists(map_dir):
+        os.makedirs(map_dir)
 
     map_extent = [-10, -20, 10, 20]
-    max_zoom = 6
-    mode = 'PDF' if len(sys.argv) < 2 else sys.argv[1].upper()
 
-    if mode == 'PDF':
-        pdf_file = '../../tests/sources/rat-test.pdf'
-        with open(pdf_file, 'rb') as f:
-            tile_layer = RasterLayer('test', map_extent, RasterSource('pdf', f.read()))
-    elif mode == 'JPEG':
-        jpeg_file = './MBF/pig/sub-10sam-1P10-1Slide2p3MT10x.jp2'
-        tile_layer = RasterLayer('test', map_extent, RasterSource('image', Image.open(jpeg_file)))
+    if args.mode == 'PDF':
+        with open(args.source, 'rb') as f:
+            source = RasterSource('pdf', f.read())
     else:
-        sys.exit('Unknown mode of test -- must be "JPEG" or "PDF"')
-    tile_maker = RasterTileMaker(tile_layer, '../../maps', max_zoom)
+        source = RasterSource('image', Image.open(args.source))
+
+    tile_layer = RasterLayer(args.map_id, map_extent, source)
+    tile_maker = RasterTileMaker(tile_layer, args.map_base, args.max_zoom)
     tile_maker.make_tiles()
 
 #===============================================================================
