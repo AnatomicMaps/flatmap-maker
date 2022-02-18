@@ -204,7 +204,8 @@ class SVGLayer(MapLayer):
 
             # Ignore element if fill is none and no stroke is specified
             if (element_style.get('fill', '#FFF') == 'none'
-            and element_style.get('stroke', 'none') == 'none'):
+            and element_style.get('stroke', 'none') == 'none'
+            and 'id' not in properties):
                 return
 
             feature = self.flatmap.new_feature(geometry, properties)
