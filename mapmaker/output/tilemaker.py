@@ -28,7 +28,6 @@ import cv2
 import fitz
 import mercantile
 import numpy as np
-from reportlab.graphics import renderPDF
 import shapely.geometry
 from svglib.svglib import svg2rlg
 
@@ -384,11 +383,10 @@ class SVGImageTiler(RasterImageTiler):
 
 class PDFTiler(RasterTiler):
     def __init__(self, raster_layer, tile_set):
-        pdf = fitz.Document(stream=raster_layer.source_data, filetype='application/pdf')
         # Tile the first page of a PDF
-        page = pdf[0]
-        super().__init__(raster_layer, tile_set, page.rect)
-        self.__pdf_page = page
+        self.__pdf = fitz.Document(stream=raster_layer.source_data, filetype='application/pdf')
+        self.__page = self.__pdf[0]
+        super().__init__(raster_layer, tile_set, self.__page.rect)
 
     def get_scaling(self, image_tile_rect):
     #======================================
@@ -399,14 +397,12 @@ class PDFTiler(RasterTiler):
     #================================================
         scaling = self.get_scaling(image_tile_rect)
         # We now clip to avoid a black line if region outside of page...
-        if image_tile_rect.x1 >= self.image_rect.width:
-            image_tile_rect.x1 = self.image_rect.width - 1
-        if image_tile_rect.y1 >= self.image_rect.height:
-            image_tile_rect.y1 = self.image_rect.height - 1
-        pixmap = self.__page.getPixmap(clip=fitz.Rect(image_tile_rect.x0, image_tile_rect.y0,
-                                                      image_tile_rect.x1, image_tile_rect.y1),
-                                           matrix=fitz.Matrix(*scaling),
-                                           alpha=False)
+        width = min(image_tile_rect.x1, self.image_rect.width - 1)
+        height = min(image_tile_rect.y1, self.image_rect.height - 1)
+        pixmap = self.__page.get_pixmap(clip=fitz.Rect(image_tile_rect.x0, image_tile_rect.y0,
+                                                       width, height),
+                                        matrix=fitz.Matrix(*scaling),
+                                        alpha=False)
         image = np.frombuffer(pixmap.samples, 'B').reshape(pixmap.height, pixmap.width, pixmap.n)
         return cv2.cvtColor(image, cv2.COLOR_BGR2RGBA)
 
