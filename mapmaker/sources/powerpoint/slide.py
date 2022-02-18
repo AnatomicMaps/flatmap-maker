@@ -107,6 +107,8 @@ class PowerpointSlide(MapLayer):
             properties.update(self.source.properties_from_markup(shape.name))
             if 'error' in properties:
                 pass
+            elif 'invisible' in properties:
+                pass
             elif 'path' in properties:
                 pass
             elif (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
