@@ -187,7 +187,8 @@ class SVGLayer(MapLayer):
         properties = parent_properties.copy()
         if 'id' in properties:   # We don't inherit `id`  (or do we have a list of inheritable properties??)
             del properties['id']
-        properties.update(self.source.properties_from_markup(adobe_decode_markup(element)))
+        markup = adobe_decode_markup(element)
+        properties.update(self.source.properties_from_markup(markup))
         if 'error' in properties:
             pass
         elif 'path' in properties:
