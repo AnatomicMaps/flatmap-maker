@@ -316,7 +316,7 @@ class MapLayer(FeatureLayer):
                     if feature.geom_type == 'LineString':
                         grouped_lines.append(feature.geometry)
                     elif feature.geom_type == 'MultiLineString':
-                        grouped_lines.extend(list(feature.geometry))
+                        grouped_lines.extend(list(feature.geometry.geoms))
             if len(grouped_lines):
                 feature_group = self.flatmap.new_feature(
                       shapely.geometry.MultiLineString(grouped_lines),
