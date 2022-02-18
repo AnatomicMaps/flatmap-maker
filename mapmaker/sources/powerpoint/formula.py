@@ -29,6 +29,8 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 #===============================================================================
 
+from mapmaker.utils import log
+
 from .presets import Shapes
 
 #===============================================================================
@@ -152,7 +154,9 @@ class Geometry(object):
             adjustments = None
 
         else:
-            print('Unknown geometry for', shape.shape_type)
+            self._geometry = None
+            log.error(f'Unknown geometry for {shape.shape_type}')
+            return
 
         self._variables = {
             'w': shape.width,
@@ -173,7 +177,7 @@ class Geometry(object):
 
     @property
     def path_list(self):
-        return self._geometry.pathLst
+        return self._geometry.pathLst if self._geometry is not None else []
 
     @property
     def xfrm(self):

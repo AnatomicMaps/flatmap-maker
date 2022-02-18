@@ -113,8 +113,9 @@ class PowerpointSlide(MapLayer):
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
              or isinstance(shape, pptx.shapes.connector.Connector)):
                 geometry = self.__get_geometry(shape, properties, transform)
-                feature = self.flatmap.new_feature(geometry, properties)
-                features.append(feature)
+                if geometry is not None:
+                    feature = self.flatmap.new_feature(geometry, properties)
+                    features.append(feature)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 grouped_feature = self.__process_group(shape, properties, transform)
                 if grouped_feature is not None:
@@ -138,6 +139,7 @@ class PowerpointSlide(MapLayer):
     ##
     ## Returns shape's geometry as `shapely` object.
     ##
+        closed = False
         coordinates = []
         bezier_segments = []
         pptx_geometry = Geometry(shape)
@@ -217,7 +219,9 @@ class PowerpointSlide(MapLayer):
         if len(bezier_segments) > 0:
             properties['bezier-path'] = BezierPath.fromSegments(bezier_segments)
 
-        if closed:
+        if len(coordinates) == 0:
+            return None
+        elif closed:
             geometry = shapely.geometry.Polygon(coordinates)
         else:
             geometry = shapely.geometry.LineString(coordinates)
