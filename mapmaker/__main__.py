@@ -64,7 +64,7 @@ def arg_parser():
                         help='Show command used to run Tippecanoe')
 
     zoom_options = parser.add_argument_group('Zoom level')
-    zoom_options.add_argument('--initialZoom', metavar='N', type=int, default=4,
+    zoom_options.add_argument('--initial-zoom', dest='initialZoom', metavar='N', type=int, default=4,
                         help='Initial zoom level (defaults to 4)')
     zoom_options.add_argument('--max-zoom', dest='maxZoom', metavar='N', type=int, default=10,
                         help='Maximum zoom level (defaults to 10)')
