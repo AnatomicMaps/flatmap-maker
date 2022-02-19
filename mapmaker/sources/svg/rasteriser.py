@@ -559,7 +559,7 @@ class SVGTiler(object):
             if rx == 0 or ry == 0: return None
             (cx, cy) = (length_as_pixels(element.attrib.get('cx', 0)),
                         length_as_pixels(element.attrib.get('cy', 0)))
-            path = skia.Path.Oval((cx-rx, cy-ry, cx+rx, cy+ry))
+            path = skia.Path.Oval(skia.Rect(cx-rx, cy-ry, cx+rx, cy+ry))
 
         return path
 
