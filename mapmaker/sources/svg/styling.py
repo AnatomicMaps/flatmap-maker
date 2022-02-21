@@ -77,7 +77,7 @@ class StyleMatcher(cssselect2.Matcher):
             parent_style = {}
         for key, value in self.match(wrapped_element).items():
             if key in UNIMPLEMENTED_STYLES:
-                log.warn("'{}: {}' not implemented".format(key, value))
+                log.warning("'{}: {}' not implemented".format(key, value))
             else:
                 parent_style[key] = ' '.join([t.serialize() for t in value])
         return ElementStyleDict(wrapped_element.etree_element, parent_style)

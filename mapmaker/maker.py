@@ -275,7 +275,7 @@ class MapMaker(object):
                 if kind == 'error':
                     log.error(msg)
                 else:
-                    log.warn(msg)
+                    log.warning(msg)
             self.__flatmap.add_source_layers(layer_number, source_layer)
         if len(self.__flatmap) == 0:
             raise ValueError('No map layers in sources...')

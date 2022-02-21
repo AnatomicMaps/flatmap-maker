@@ -131,7 +131,7 @@ class PowerpointSlide(MapLayer):
             elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                 pass
             else:
-                log.warn('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
+                log.warning('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
             progress_bar.update(1)
         progress_bar.close()
         return features
@@ -216,7 +216,7 @@ class PowerpointSlide(MapLayer):
                     coordinates.extend(bezier_sample(bz))
 
                 else:
-                    log.warn('Unknown path element: {}'.format(c.tag))
+                    log.warning('Unknown path element: {}'.format(c.tag))
 
         if len(bezier_segments) > 0:
             properties['bezier-path'] = BezierPath.fromSegments(bezier_segments)

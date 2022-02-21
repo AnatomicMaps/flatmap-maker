@@ -236,7 +236,7 @@ class ResolvedPathways(object):
                     node_ids.append(node_id)
                     node_count += 1
             if node_count == 0:
-                log.warn(f'Cannot find feature for node: {id}')
+                log.warning(f'Cannot find feature for node: {id}')
         return node_ids
 
     def add_connectivity(self, path_id: str, model: str, path_type: str,

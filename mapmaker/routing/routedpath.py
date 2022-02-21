@@ -90,7 +90,7 @@ class RoutedPath(object):
         node_0 = self.__graph.nodes[edge[0]]
         node_1 = self.__graph.nodes[edge[1]]
         if 'geometry' not in node_0 or 'geometry' not in node_1:
-            log.warn('Edge {} nodes have no geometry'.format(edge))
+            log.warning('Edge {} nodes have no geometry'.format(edge))
         else:
             return shapely.geometry.LineString([
                 node_0['geometry'].centroid, node_1['geometry'].centroid])

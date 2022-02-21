@@ -77,7 +77,7 @@ class AnatomicalMap(object):
                                           'UBERON ID']:
                             col_indices[cell.value] = cell.column - 1
                     if len(col_indices) < 3:
-                        log.warn("Sheet '{}' doean't have a valid header row -- data ignored".format(sheet.title))
+                        log.warning("Sheet '{}' doean't have a valid header row -- data ignored".format(sheet.title))
                         break
                 else:
                     pp_id = row[col_indices['Power point identifier']].value

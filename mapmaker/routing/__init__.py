@@ -100,7 +100,7 @@ class Network(object):
             else:
                 nodes = centreline.get('connects', [])
                 if len(nodes) < 2:
-                    log.warn(f'Centreline {id} in network {self.__id} has too few nodes')
+                    log.warning(f'Centreline {id} in network {self.__id} has too few nodes')
                 else:
                     self.__centreline_ids.append(id)
                     edge_properties = {'id': id}
@@ -124,9 +124,9 @@ class Network(object):
         if len(features) == 1:
             return features[0]
         elif len(features) == 0:
-            log.warn('Unknown network feature: {}'.format(id))
+            log.warning('Unknown network feature: {}'.format(id))
         else:
-            log.warn('Multiple network features for: {}'.format(id))
+            log.warning('Multiple network features for: {}'.format(id))
         return None
 
     def __set_node_properties_from_feature(self, node_dict, feature_id):
@@ -144,7 +144,7 @@ class Network(object):
                 radius = max(math.sqrt(geometry.area/math.pi), MIN_EDGE_JOIN_RADIUS)
                 node_dict['radii'] = (0.999*radius, 1.001*radius)
             else:
-                log.warn(f'Centreline node {node_dict.get("id")} has no geometry')
+                log.warning(f'Centreline node {node_dict.get("id")} has no geometry')
 
     def create_geometry(self, feature_map):
     #======================================
@@ -217,7 +217,7 @@ class Network(object):
                 node_1_centre = self.__centreline_graph.nodes[node_1].get('centre')
                 bezier_path = feature.property('bezier-path')
                 if bezier_path is None:
-                    log.warn(f'Centreline {feature.id} has no Bezier path')
+                    log.warning(f'Centreline {feature.id} has no Bezier path')
                     if node_0_centre is not None and node_1_centre is not None:
                         segments = [ BezierLine(node_0_centre, node_1_centre) ]
                         edge_dict['start-node'] = node_0
@@ -382,7 +382,7 @@ class Network(object):
                 feature_id = G.nodes[node]['feature_id']
                 feature = feature_map.get_feature(feature_id)
                 if feature is None:
-                    log.warn(f'Cannot find path terminal feature: {feature_id}')
+                    log.warning(f'Cannot find path terminal feature: {feature_id}')
                     continue
                 feature_centre = feature.geometry.centroid
                 for edge in nx.edge_dfs(G, node):

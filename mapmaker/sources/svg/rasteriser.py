@@ -498,7 +498,7 @@ class SVGTiler(object):
                         ))
 
         elif element.tag not in [SVG_NS('style'), SVG_NS('text')]:
-            log.warn("'{}' not supported...".format(element.tag))
+            log.warning("'{}' not supported...".format(element.tag))
 
         return drawing_objects
 
@@ -707,7 +707,7 @@ class SVGTiler(object):
                 first_point = None
 
             else:
-                log.warn('Unknown path command: {}'.format(cmd))
+                log.warning('Unknown path command: {}'.format(cmd))
 
         return path
 

@@ -274,7 +274,7 @@ class FlatMap(object):
             hires_layer_id = feature.property('details')
             hires_layer = self.__layer_dict.get(hires_layer_id)
             if hires_layer is None:
-                log.warn("Cannot find details layer '{}'".format(feature.property('details')))
+                log.warning("Cannot find details layer '{}'".format(feature.property('details')))
                 continue
             boundary_feature = hires_layer.boundary_feature
             if boundary_feature is None:

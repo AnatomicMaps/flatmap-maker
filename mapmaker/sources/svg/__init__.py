@@ -251,7 +251,7 @@ class SVGLayer(MapLayer):
         elif element.tag in IGNORED_SVG_TAGS:
             pass
         else:
-            log.warn('"{}" {} not processed...'.format(markup, element.tag))
+            log.warning('"{}" {} not processed...'.format(markup, element.tag))
 
     def __get_geometry(self, element, properties, transform):
     #=======================================================
@@ -486,7 +486,7 @@ class SVGLayer(MapLayer):
                 first_point = None
 
             else:
-                log.warn('Unknown path command: {}'.format(cmd))
+                log.warning('Unknown path command: {}'.format(cmd))
 
         if len(bezier_segments) > 0:
             properties['bezier-path'] = BezierPath.fromSegments(bezier_segments)

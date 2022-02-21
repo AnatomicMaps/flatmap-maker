@@ -75,7 +75,7 @@ class log(object):
         logger.info(''.join(args))
 
     @staticmethod
-    def warn(*args):
+    def warning(*args):
         logger.warn(''.join(args))
 
 #===============================================================================
