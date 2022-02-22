@@ -76,10 +76,6 @@ def arg_parser():
                         help='Refresh local connectivity knowledge from SciCrunch')
     misc_options.add_argument('--id', metavar='ID',
                         help='Set explicit ID for flatmap, overriding manifest')
-    misc_options.add_argument('--path-layout', dest='pathLayout',
-                        choices=['automatic', 'centreline', 'linear'], default='centreline',
-#######                        choices=['automatic', 'centreline', 'linear'], default='automatic',
-                        help="How to layout connecting paths (default 'automatic')")
     misc_options.add_argument('--single-svg', dest='singleSvg', action='store_true',
                         help='Source is a single SVG file, not a flatmap manifest')
 

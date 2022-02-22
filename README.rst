@@ -76,8 +76,7 @@ Command line help
                     [--clean] [--background-tiles]
                     [--check-errors] [--debug] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initialZoom N] [--max-zoom N] [--min-zoom N]
-                    [--id ID]  [--path-layout {automatic,centreline,linear}]
-                    [--single-svg]
+                    [--id ID] [--single-svg]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -110,8 +109,6 @@ Command line help
 
     miscellaneous:
       --id ID               Set explicit ID for flatmap, overriding manifest
-      --path-layout {automatic,centreline,linear}
-                            How to layout connecting paths (default 'automatic')
       --single-svg          Source is a single SVG file, not a flatmap manifest
 
     Required arguments:

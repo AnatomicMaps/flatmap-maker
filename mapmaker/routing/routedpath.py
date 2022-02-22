@@ -40,7 +40,6 @@ import shapely.geometry
 #===============================================================================
 
 from mapmaker.geometry import bezier_to_linestring
-from mapmaker.settings import settings
 from mapmaker.utils import log
 
 from .options import PATH_SEPARATION, SMOOTHING_TOLERANCE
@@ -75,7 +74,6 @@ class RoutedPath(object):
     def __init__(self, route_graph: nx.Graph, number: int):
         self.__graph = route_graph
         self.__number = number
-        self.__path_layout = settings.get('pathLayout', 'automatic')
         self.__node_set = {node for node, data in route_graph.nodes(data=True)
                                 if not data.get('exclude', False)}
         self.__source_nodes = {node for node, data in route_graph.nodes(data=True)
@@ -157,7 +155,7 @@ class RoutedPath(object):
                 'path-id': edge_dict.get('path-id')
             }
             bezier = edge_dict.get('geometry')
-            if self.__path_layout != 'linear' and bezier is not None:
+            if bezier is not None:
                 path_line = (bezier_to_linestring(bezier, offset=PATH_SEPARATION*edge_dict['offset'])
                              .simplify(SMOOTHING_TOLERANCE, preserve_topology=False))
                 display_bezier_points = False  ### From settings... <<<<<<<<<<<<<<<<<<<<<<<
