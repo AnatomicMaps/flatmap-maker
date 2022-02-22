@@ -516,9 +516,6 @@ class Pathways(object):
     def __network_connectivity(self, feature_map, network):
     #======================================================
         log('Routing paths...')
-
-        return   #################  TEMP  <<<<<<<<<<<<<<<<<<<<
-
         for connectivity_model in self.__connectivity_models:
             if connectivity_model.network == network.id:
                 layer = FeatureLayer('{}_routes'.format(connectivity_model.id), self.__flatmap, exported=True)
