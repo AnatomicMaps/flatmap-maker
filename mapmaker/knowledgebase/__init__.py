@@ -91,6 +91,6 @@ def get_knowledge(entity):
     return settings['KNOWLEDGE_STORE'].entity_knowledge(entity)
 
 def update_publications(entity, publications):
-    settings['KNOWLEDGE_STORE'].update_references(entity, publications)
+    settings['KNOWLEDGE_STORE'].update_publications(entity, publications)
 
 #===============================================================================
