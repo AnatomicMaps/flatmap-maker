@@ -39,11 +39,11 @@ import shapely.geometry
 
 #===============================================================================
 
-from mapmaker.geometry import bezier_to_linestring
+from mapmaker.geometry import bezier_connect, bezier_to_linestring
 from mapmaker.utils import log
 
-from .options import PATH_SEPARATION, SMOOTHING_TOLERANCE
 from .layout import TransitMap
+from .options import ARROW_LENGTH, PATH_SEPARATION, SMOOTHING_TOLERANCE
 
 #===============================================================================
 
@@ -73,6 +73,13 @@ class GeometricShape(object):
     @classmethod
     def line(cls, start: Tuple[float], end: Tuple[float], properties: dict = None):
         return cls(shapely.geometry.LineString([start, end]), properties)
+
+    @classmethod
+    def arrow(cls, back: BezierPoint, heading: float, length: float, properties: dict = None):
+        tip = back + BezierPoint.fromAngle(heading)*length
+        offset = BezierPoint.fromAngle(heading + math.pi/2)*length/3
+        arrow = shapely.geometry.Polygon([point_to_coords(tip), point_to_coords(back+offset), point_to_coords(back-offset)])
+        return cls(arrow, properties)
 
 #===============================================================================
 
@@ -167,15 +174,35 @@ class RoutedPath(object):
                 display_bezier_points = False  ### From settings... <<<<<<<<<<<<<<<<<<<<<<<
                 if display_bezier_points:
                     geometry.extend(self.__bezier_geometry(edge_dict.get('path-id'), bezier))
-            else:
-                path_line = self.__line_from_edge(edge)
-            if path_line is not None:
-                geometry.append(GeometricShape(path_line, properties))
-                if edge_dict.get('type') != 'terminal':
-                    edge_dict['path-ends'] = {
-                        edge_dict['start-node']: BezierPoint(*path_line.coords[0]),
-                        edge_dict['end-node']: BezierPoint(*path_line.coords[-1])
-                    }
+                if path_line is not None:
+                    geometry.append(GeometricShape(path_line, properties))
+                    if edge_dict.get('type') != 'terminal':
+                        edge_dict['path-ends'] = {
+                            edge_dict['start-node']: BezierPoint(*path_line.coords[0]),
+                            edge_dict['end-node']: BezierPoint(*path_line.coords[-1])
+                        }
+                        # Save where terminal edges would start from
+                        self.__graph.nodes[edge_dict['start-node']]['start-point'] = BezierPoint(*path_line.coords[0])
+                        self.__graph.nodes[edge_dict['end-node']]['start-point'] = BezierPoint(*path_line.coords[-1])
+
+        # Draw terminal edges
+        for node_0, node_1, edge_dict in self.__graph.edges.data():
+            if edge_dict.get('type') == 'terminal':
+                start_point = self.__graph.nodes[node_0]['start-point']
+                angle = self.__graph.nodes[node_0]['angle'] + math.pi
+                end_coords = self.__graph.nodes[node_1]['geometry'].centroid.coords[0]
+                end_point = coords_to_point(end_coords)
+                heading = (end_point - start_point).angle
+                end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
+                bz = bezier_connect(start_point, end_point, angle, heading)
+                geometry.append(GeometricShape(
+                    bezier_to_linestring(bz), {
+                        'path-id': edge_dict.get('path-id')
+                    }))
+                geometry.append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties = {
+                    'type': 'junction',
+                    'path-id': edge_dict.get('path-id')
+                }))
 
         for node, node_dict in self.__graph.nodes(data=True):
             if node_dict.get('degree', 0) >= 2:

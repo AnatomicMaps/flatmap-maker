@@ -27,6 +27,9 @@ PATH_SEPARATION = 0.5*MIN_EDGE_JOIN_RADIUS
 # Tolerance used when simplifying Shapely objects
 SMOOTHING_TOLERANCE = 10
 
+# Length of an arrow head
+ARROW_LENGTH = 4500
+
 #===============================================================================
 
 

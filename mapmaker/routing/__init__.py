@@ -248,11 +248,15 @@ class Network(object):
                         else:
                             # This assumes node_1 centre is close to segments[0].start
                             segments = truncate_segments_start(segments, node_1)
-                    edge_dict['tangents'] = {
-                        edge_dict['start-node']: segments[0].tangentAtTime(0.0),
-                        edge_dict['end-node']: segments[-1].tangentAtTime(1.0)
-                    }
                     edge_dict['geometry'] = BezierPath.fromSegments(segments)
+                    start_tangent = segments[0].tangentAtTime(0.0)
+                    end_tangent = segments[-1].tangentAtTime(1.0)
+                    edge_dict['tangents'] = {
+                        edge_dict['start-node']: start_tangent,
+                        edge_dict['end-node']: end_tangent
+                    }
+                    self.__centreline_graph.nodes[edge_dict['start-node']]['angle'] = segments[0].startAngle
+                    self.__centreline_graph.nodes[edge_dict['end-node']]['angle'] = segments[-1].endAngle
 
     def route_graph_from_connections(self, connections: dict) -> nx.Graph:
     #=====================================================================
