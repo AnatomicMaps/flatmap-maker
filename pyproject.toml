@@ -5,7 +5,7 @@ description = ""
 authors = ["David Brooks <d.brooks@auckland.ac.nz>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<3.10"
 python-pptx = "*"
 numpy = "*"
 beziers = "*"
@@ -31,6 +31,7 @@ cssselect2 = "*"
 webcolors = "*"
 xmltodict = "^0.12.0"
 mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.9.0/mapknowledge-0.9.0-py3-none-any.whl"}
+Pyomo = "^6.2"
 
 [tool.poetry.dev-dependencies]
 sphinx = "4.0.3"

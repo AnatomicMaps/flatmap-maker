@@ -44,6 +44,7 @@ from mapmaker.settings import settings
 from mapmaker.utils import log
 
 from .options import PATH_SEPARATION, SMOOTHING_TOLERANCE
+from .layout import TransitMap
 
 #===============================================================================
 
@@ -241,21 +242,17 @@ class PathRouter(object):
             for node_0, node_1, edge_dict in route_graph.edges(data=True):
                 if edge_dict.get('type') != 'terminal':
                     shared_paths[edge_dict['id']].add(route_number)
-        ## Need to derive path order in each connection from shared_paths...
+                    edges_by_id[edge_dict['id']] = (node_0, node_1)
 
-        ## edge_order = ordering(shared_paths)
-        edge_order = { # When traversing "down" with first entry the "left-most"
-            'L1_dorsal_root': [4],              # 0
-            'L1_spinal_n': [4, 0, 2],           # -g, 0, g
-            'L1_ventral_root_ramus': [0, 2],    # -g/2, g/2
-            'L2_dorsal_root': [4],
-            'L2_spinal_n': [4, 0, 2],
-            'L2_ventral_root_ramus': [0, 2],
-            'bladder_n': [4, 0, 2, 1, 3],       # -2g, -g, 0, g, 2g
-            'hypogastric_n': [4, 0, 2],
-            'lumbar_splanchnic_n': [4, 0, 2],
-            'pelvic_splanchnic_n': [1, 3]
-        }
+        #for edges from nodes with degree > 2
+        #order by:
+        #math.atan2(delta_y, delta_x)
+        ##pprint([(n, [((e0, e1), d.get('id'), d.get('path-id')) for e0, e1, d in g.edges(data=True) if d.get('type') != 'terminal'])
+        ##            for n, g in enumerate(routes)])
+
+        layout = TransitMap(edges_by_id, shared_paths)
+        layout.solve()
+        edge_order = layout.results()
 
         for route_number, route_graph in enumerate(routes):
             for node_0, node_1, edge_dict in route_graph.edges(data=True):
@@ -265,8 +262,6 @@ class PathRouter(object):
                     ordering = edge_order.get(edge_id, [])
                     if route_number in ordering:
                         edge_dict['offset'] = ordering.index(route_number) - len(ordering)//2 + ((len(ordering)+1)%2)/2
-        ################  WIP <<<<<<<<<<<<
-        ##ordering.layout(self.__route_graphs)
 
         return { route_number: RoutedPath(route_graph, route_number)
             for route_number, route_graph in enumerate(routes) }
