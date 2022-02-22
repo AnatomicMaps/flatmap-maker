@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from math import acos, cos, sin, sqrt, pi as PI
+from math import acos, cos, sin, sqrt, degrees, radians
 import warnings
 
 #===============================================================================
@@ -82,16 +82,6 @@ def extent_to_bounds(extent):
 def mercator_transform(geometry):
 #================================
     return shapely.ops.transform(mercator_transformer.transform, geometry)
-
-#===============================================================================
-
-def degrees(radians):
-#====================
-    return 180*radians/PI
-
-def radians(degrees):
-#====================
-    return PI*degrees/180
 
 #===============================================================================
 
