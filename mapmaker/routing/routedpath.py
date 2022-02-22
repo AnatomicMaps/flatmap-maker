@@ -47,6 +47,12 @@ from .layout import TransitMap
 
 #===============================================================================
 
+def coords_to_point(pt: Tuple[float]) -> BezierPoint:
+    return BezierPoint(*pt)
+
+def point_to_coords(pt: BezierPoint) -> Tuple[float]:
+    return (pt.x, pt.y)
+
 class GeometricShape(object):
     def __init__(self, geometry: shapely.geometry, properties: dict = None):
         self.__geometry = geometry
@@ -99,7 +105,7 @@ class RoutedPath(object):
         for _, node_geometry in self.__graph.nodes(data='geometry'):
             pass ## geometry.append(GeometricShape(node_geometry, {'type': 'junction'}))
         for bezier in bezier_path.asSegments():
-            bz_pts = tuple((p.x, p.y) for p in bezier.points)
+            bz_pts = tuple(point_to_coords(p) for p in bezier.points)
             for pt in (bz_pts[0], bz_pts[3]):
                 geometry.append(GeometricShape.circle(pt,
                     properties={'type': 'bezier', 'kind': 'bezier-end'}))
@@ -136,7 +142,7 @@ class RoutedPath(object):
             else:
                 mid_point = bz.pointAtTime(0.5)
                 geometry.append(GeometricShape.circle(
-                    (mid_point.x, mid_point.y),
+                    point_to_coords(mid_point),
                     radius = 0.8*PATH_SEPARATION,
                     properties={'type': 'junction', 'path-id': edges[0].get('path-id')}))
                 for n, bz in enumerate(bz.splitAtTime(0.5)):
