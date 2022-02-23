@@ -20,6 +20,7 @@
 
 import io
 import os
+import math
 import re
 
 #===============================================================================
@@ -382,7 +383,7 @@ class SVGLayer(MapLayer):
                 if cmd == 'a':
                     pt[0] += current_point[0]
                     pt[1] += current_point[1]
-                phi = radians(params[2])
+                phi = math.radians(params[2])
                 segs = bezier_segments_from_arc_endpoints(tuple2(*params[0:2]), phi, *params[3:5],
                                                           tuple2(*current_point), tuple2(*pt), T)
                 bezier_segments.extend(segs)

@@ -40,7 +40,7 @@ import webcolors
 from .. import WORLD_METRES_PER_PIXEL
 from ..markup import parse_markup
 
-from mapmaker.geometry import degrees, extent_to_bounds, radians, Transform, reflect_point
+from mapmaker.geometry import extent_to_bounds, Transform, reflect_point
 from mapmaker.utils import ProgressBar, log
 from mapmaker.utils.image import image_size
 
@@ -595,12 +595,12 @@ class SVGTiler(object):
                 if cmd == 'a':
                     pt[0] += current_point[0]
                     pt[1] += current_point[1]
-                phi = radians(params[2])
+                phi = math.radians(params[2])
                 if moved:
                     path.moveTo(*current_point)
                     moved = False
                 (rx, ry) = (params[0], params[1])
-                path.arcTo(rx, ry, degrees(phi),
+                path.arcTo(rx, ry, math.degrees(phi),
                     skia.Path.ArcSize.kSmall_ArcSize if params[3] == 0
                         else skia.Path.ArcSize.kLarge_ArcSize,
                     skia.PathDirection.kCCW if params[4] == 0
