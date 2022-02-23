@@ -32,7 +32,9 @@ import math
 
 #===============================================================================
 
+from beziers.line import Line as BezierLine
 from beziers.point import Point as BezierPoint
+
 import networkx as nx
 import shapely.geometry
 
