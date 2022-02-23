@@ -13,7 +13,6 @@ import math
 #===============================================================================
 
 from beziers.cubicbezier import CubicBezier
-from beziers.path import BezierPath
 from beziers.point import Point as BezierPoint
 
 #===============================================================================
@@ -94,8 +93,8 @@ def arc_endpoints_to_centre(r, phi, flagA, flagS, p1, p2):
     return namedtuple('elliptical_arc',
         'centre, radii, theta, delta_theta')(c, r_abs, theta, delta_theta)
 
-def bezier_path_from_arc_endpoints(r, phi, flagA, flagS, p1, p2, T):
-#===================================================================
+def bezier_segments_from_arc_endpoints(r, phi, flagA, flagS, p1, p2, T):
+#=======================================================================
     arc = arc_endpoints_to_centre(r, phi, flagA, flagS, p1, p2)
     end_theta = arc.theta + arc.delta_theta
     t = arc.theta
@@ -109,9 +108,7 @@ def bezier_path_from_arc_endpoints(r, phi, flagA, flagS, p1, p2, T):
     control_points = (BezierPoint(*T.transform_point(cp))
         for cp in cubic_bezier_control_points(arc.centre, arc.radii, phi, t, end_theta))
     segments.append(CubicBezier(*(tuple(control_points)[:3]), BezierPoint(*T.transform_point(p2))))
-    path = BezierPath.fromSegments(segments)
-    path.closed = False
-    return path
+    return segments
 
 #===============================================================================
 

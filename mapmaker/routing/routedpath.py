@@ -32,26 +32,20 @@ from typing import Tuple
 #===============================================================================
 
 from beziers.cubicbezier import CubicBezier
-from beziers.path import BezierPath
 from beziers.point import Point as BezierPoint
 import networkx as nx
 import shapely.geometry
 
 #===============================================================================
 
-from mapmaker.geometry import bezier_connect, bezier_to_linestring
+from mapmaker.geometry.beziers import bezier_connect, bezier_segments_to_linestring, bezier_to_linestring
+from mapmaker.geometry.beziers import coords_to_point, point_to_coords
 from mapmaker.utils import log
 
 from .layout import TransitMap
 from .options import ARROW_LENGTH, PATH_SEPARATION, SMOOTHING_TOLERANCE
 
 #===============================================================================
-
-def coords_to_point(pt: Tuple[float]) -> BezierPoint:
-    return BezierPoint(*pt)
-
-def point_to_coords(pt: BezierPoint) -> Tuple[float]:
-    return (pt.x, pt.y)
 
 class GeometricShape(object):
     def __init__(self, geometry: shapely.geometry, properties: dict = None):
@@ -107,11 +101,11 @@ class RoutedPath(object):
             return shapely.geometry.LineString([
                 node_0['geometry'].centroid, node_1['geometry'].centroid])
 
-    def __bezier_geometry(self, path_id, bezier_path):
+    def __bezier_geometry(self, path_id, segments):
         geometry = []
         for _, node_geometry in self.__graph.nodes(data='geometry'):
             pass ## geometry.append(GeometricShape(node_geometry, {'type': 'junction'}))
-        for bezier in bezier_path.asSegments():
+        for bezier in segments:
             bz_pts = tuple(point_to_coords(p) for p in bezier.points)
             for pt in (bz_pts[0], bz_pts[3]):
                 geometry.append(GeometricShape.circle(pt,
@@ -167,13 +161,13 @@ class RoutedPath(object):
                 'nerve': edge_dict.get('nerve'),
                 'path-id': edge_dict.get('path-id')
             }
-            bezier = edge_dict.get('geometry')
-            if bezier is not None:
-                path_line = (bezier_to_linestring(bezier, offset=PATH_SEPARATION*edge_dict['offset'])
+            segments = edge_dict.get('bezier-segments')
+            if segments is not None:
+                path_line = (bezier_segments_to_linestring(segments, offset=PATH_SEPARATION*edge_dict['offset'])
                              .simplify(SMOOTHING_TOLERANCE, preserve_topology=False))
                 display_bezier_points = False  ### From settings... <<<<<<<<<<<<<<<<<<<<<<<
                 if display_bezier_points:
-                    geometry.extend(self.__bezier_geometry(edge_dict.get('path-id'), bezier))
+                    geometry.extend(self.__bezier_geometry(edge_dict.get('path-id'), segments))
                 if path_line is not None:
                     geometry.append(GeometricShape(path_line, properties))
                     if edge_dict.get('type') != 'terminal':

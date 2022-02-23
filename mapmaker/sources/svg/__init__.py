@@ -47,8 +47,9 @@ from .transform import SVGTransform
 from .utils import adobe_decode_markup, length_as_pixels, parse_svg_path, SVG_NS
 
 from mapmaker.flatmap.layers import MapLayer
-from mapmaker.geometry import bezier_sample, radians, Transform, reflect_point
-from mapmaker.geometry.arc_to_bezier import bezier_path_from_arc_endpoints, tuple2
+from mapmaker.geometry import Transform, reflect_point
+from mapmaker.geometry.beziers import bezier_sample
+from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
 from mapmaker.settings import settings
 from mapmaker.utils import FilePath, ProgressBar, log
 
@@ -382,10 +383,10 @@ class SVGLayer(MapLayer):
                     pt[0] += current_point[0]
                     pt[1] += current_point[1]
                 phi = radians(params[2])
-                path = bezier_path_from_arc_endpoints(tuple2(*params[0:2]), phi, *params[3:5],
-                                                        tuple2(*current_point), tuple2(*pt), T)
-                bezier_segments.extend(path.asSegments())
-                coordinates.extend(bezier_sample(path))
+                segs = bezier_segments_from_arc_endpoints(tuple2(*params[0:2]), phi, *params[3:5],
+                                                          tuple2(*current_point), tuple2(*pt), T)
+                bezier_segments.extend(segs)
+                coordinates.extend(bezier_sample(BezierPath.fromSegments(segs)))
                 current_point = pt
 
             elif cmd in ['c', 'C', 's', 'S']:
@@ -488,8 +489,7 @@ class SVGLayer(MapLayer):
             else:
                 log.warning('Unknown path command: {}'.format(cmd))
 
-        if len(bezier_segments) > 0:
-            properties['bezier-path'] = BezierPath.fromSegments(bezier_segments)
+        properties['bezier-segments'] = bezier_segments
 
         if closed and len(coordinates) >= 3:
             geometry = shapely.geometry.Polygon(coordinates)

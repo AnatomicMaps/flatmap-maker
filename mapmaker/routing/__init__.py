@@ -32,7 +32,6 @@ import math
 
 #===============================================================================
 
-from beziers.path import BezierPath
 from beziers.point import Point as BezierPoint
 import networkx as nx
 import shapely.geometry
@@ -215,8 +214,8 @@ class Network(object):
             if feature is not None:
                 node_0_centre = self.__centreline_graph.nodes[node_0].get('centre')
                 node_1_centre = self.__centreline_graph.nodes[node_1].get('centre')
-                bezier_path = feature.property('bezier-path')
-                if bezier_path is None:
+                segments = feature.property('bezier-segments')
+                if len(segments) == 0:
                     log.warning(f'Centreline {feature.id} has no Bezier path')
                     if node_0_centre is not None and node_1_centre is not None:
                         segments = [ BezierLine(node_0_centre, node_1_centre) ]
@@ -225,8 +224,7 @@ class Network(object):
                     else:
                         segments = []
                 else:
-                    segments = bezier_path.asSegments()
-                    start = bezier_path.pointAtTime(0.0)
+                    start = segments[0].pointAtTime(0.0)
                     if start.distanceFrom(node_0_centre) <= start.distanceFrom(node_1_centre):
                         edge_dict['start-node'] = node_0
                         edge_dict['end-node'] = node_1
@@ -248,7 +246,7 @@ class Network(object):
                         else:
                             # This assumes node_1 centre is close to segments[0].start
                             segments = truncate_segments_start(segments, node_1)
-                    edge_dict['geometry'] = BezierPath.fromSegments(segments)
+                    edge_dict['bezier-segments'] = segments
                     start_tangent = segments[0].tangentAtTime(0.0)
                     end_tangent = segments[-1].tangentAtTime(1.0)
                     edge_dict['tangents'] = {

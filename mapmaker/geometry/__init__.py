@@ -23,10 +23,6 @@ import warnings
 
 #===============================================================================
 
-from beziers.cubicbezier import CubicBezier
-from beziers.path import BezierPath
-from beziers.point import Point as BezierPoint
-
 import numpy as np
 
 import pyproj
@@ -148,42 +144,6 @@ class Transform(object):
     def transform_point(self, point):
     #================================
         return (self.__matrix@[point[0], point[1], 1.0])[:2]
-
-#===============================================================================
-
-def bezier_sample(bz, points=100):
-#=================================
-    return [(pt.x, pt.y) for pt in bz.sample(points)]
-
-def bezier_to_linestring(bz, points=100, offset=0) -> shapely.geometry.LineString:
-#=================================================================================
-    def sample_with_offset(seg, points=100, offset=0):
-        line = shapely.geometry.LineString([(pt.x, pt.y) for pt in seg.sample(points)])
-        if offset == 0:
-            return line
-        else:
-            return line.parallel_offset(abs(offset), 'left' if offset >= 0 else 'right')
-    if isinstance(bz, BezierPath):
-        coords = []
-        for segment in bz.asSegments():
-            c = sample_with_offset(segment, points, offset).coords
-            coords.extend(c if offset >= 0 else reversed(c))
-        line = shapely.geometry.LineString(coords)
-    else:
-        line = sample_with_offset(bz, points, offset)
-    return line
-
-def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle: float = None) -> CubicBezier:
-#==============================================================================================================
-    # Connect points ``a`` and ``b`` with a Bezier curve with a slope
-    # at ``a`` of ``theta`` and a slope at ''b'' of ``pi + theta``.
-    d = a.distanceFrom(b)
-    if d == 0:
-        return
-    if end_angle is None:
-        end_angle = start_angle
-    return CubicBezier(a, a + BezierPoint.fromAngle(start_angle)*d/3,
-                       b - BezierPoint.fromAngle(end_angle)*d/3, b)
 
 #===============================================================================
 

@@ -43,7 +43,7 @@ class Feature(object):
 
     def __str__(self):
         return 'Feature {}: {}'.format(self.__geometry.geom_type,
-            { k:v for k, v in self.__properties.items() if k != 'bezier-path'})
+            { k:v for k, v in self.__properties.items() if k != 'bezier-segments'})
 
     @property
     def feature_id(self) -> int:
