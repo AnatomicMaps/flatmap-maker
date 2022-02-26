@@ -18,6 +18,9 @@
 #
 #===============================================================================
 
+# Length of an arrow head
+ARROW_LENGTH = 4500
+
 # Radius of circular region used to join centrelines
 MIN_EDGE_JOIN_RADIUS = 6000     ## needs to be some fraction of map size...
 
@@ -26,9 +29,6 @@ PATH_SEPARATION = 0.5*MIN_EDGE_JOIN_RADIUS
 
 # Tolerance used when simplifying Shapely objects
 SMOOTHING_TOLERANCE = 10
-
-# Length of an arrow head
-ARROW_LENGTH = 4500
 
 #===============================================================================
 
