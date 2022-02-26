@@ -22,7 +22,7 @@ from collections import defaultdict
 
 #===============================================================================
 
-from mapmaker.knowledgebase import get_knowledge, update_publications
+from mapmaker.knowledgebase import get_knowledge, update_references
 from mapmaker.routing import Network
 from mapmaker.utils import FilePath
 
@@ -114,7 +114,7 @@ class ExternalProperties(object):
             knowledge = self.__pathways.knowledge()
             if 'publications' in knowledge:
                 for source, publication in knowledge.get('publications'):
-                    update_publications(source, publication)
+                    update_references(source, publication)
 
     def update_properties(self, feature_properties):
     #===============================================
