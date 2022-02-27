@@ -369,6 +369,7 @@ class Network(object):
 
     def route_graph_from_connections(self, connections: dict) -> nx.Graph:
     #=====================================================================
+        # This is when the paths are manually specified and don't come from SciCrunch
         end_nodes = []
         terminals = {}
         for node in connections:

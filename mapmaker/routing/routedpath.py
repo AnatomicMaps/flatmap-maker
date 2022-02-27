@@ -148,6 +148,9 @@ class RoutedPath(object):
         """
 
         def join_geometry(node, edge_0, edge_1):
+            """
+            Smoothly join two edges of a route at a node.
+            """
             e0 = edge_0['path-ends'][node]
             e1 = edge_1['path-ends'][node]
             d = e0.distanceFrom(e1)/3
@@ -164,6 +167,7 @@ class RoutedPath(object):
                         'path-id': edge_0.get('path-id')
                         }))
             else:
+                # The edges are from different paths so show a junction.
                 mid_point = bz.pointAtTime(0.5)
                 geometry.append(GeometricShape.circle(
                     point_to_coords(mid_point),
@@ -185,7 +189,6 @@ class RoutedPath(object):
                 'nerve': edge_dict.get('nerve'),
                 'path-id': path_id
             }
-        # Draw terminal edges
             path_components = edge_dict.get('path-components')
             if path_components is None:
                 continue
@@ -235,6 +238,7 @@ class RoutedPath(object):
                     radius = 0.8*PATH_SEPARATION,
                     properties={'type': 'junction', 'path-id': path_id}))
 
+        # Draw paths to terminal nodes
         for node_0, node_1, edge_dict in self.__graph.edges.data():
             if edge_dict.get('type') == 'terminal':
                 start_point = self.__graph.nodes[node_0]['start-point']
