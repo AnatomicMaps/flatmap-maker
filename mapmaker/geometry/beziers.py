@@ -39,13 +39,13 @@ def point_to_coords(pt: BezierPoint) -> Tuple[float]:
 
 #===============================================================================
 
-def bezier_sample(bz, points=100):
-#=================================
-    return [(pt.x, pt.y) for pt in bz.sample(points)]
+def bezier_sample(bz, num_points=100):
+#=====================================
+    return [(pt.x, pt.y) for pt in bz.sample(num_points)]
 
-def bezier_to_linestring(bz, points=100, offset=0):
-#==================================================
-    line = shapely.geometry.LineString(bezier_sample(bz, points))
+def bezier_to_linestring(bz, num_points=100, offset=0):
+#======================================================
+    line = shapely.geometry.LineString(bezier_sample(bz, num_points))
     if offset == 0:
         return line
     else:
