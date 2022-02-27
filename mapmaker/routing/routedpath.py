@@ -79,6 +79,29 @@ class GeometricShape(object):
 
 #===============================================================================
 
+def bezier_control_points(bezier, label=''):
+    """
+    Draw cubic Bezier control points and tangents.
+
+    :param      bezier:  A CubicBezier
+    :param      label:   A label for the middle control points
+
+    :returns:   A list of GeometricShapes
+    """
+    geometry = []
+    bz_pts = tuple(point_to_coords(p) for p in bezier.points)
+    for pt in (bz_pts[0], bz_pts[3]):
+        geometry.append(GeometricShape.circle(pt, radius=1000,
+            properties={'type': 'bezier', 'kind': 'bezier-end'}))
+    for pt in bz_pts[1:3]:
+        geometry.append(GeometricShape.circle(pt, radius=1000,
+            properties={'type': 'bezier', 'kind': 'bezier-control', 'label': label}))
+    geometry.append(GeometricShape.line(*bz_pts[0:2], properties={'type': 'bezier'}))
+    geometry.append(GeometricShape.line(*bz_pts[2:4], properties={'type': 'bezier'}))
+    return geometry
+
+#===============================================================================
+
 class IntermediateNode:
 #======================
     def __init__(self, width, mid_point, start_angle, end_angle):
@@ -122,22 +145,6 @@ class RoutedPath(object):
         else:
             return shapely.geometry.LineString([
                 node_0['geometry'].centroid, node_1['geometry'].centroid])
-
-    def __bezier_geometry(self, path_id, segments):
-        geometry = []
-        for _, node_geometry in self.__graph.nodes(data='geometry'):
-            pass ## geometry.append(GeometricShape(node_geometry, {'type': 'junction'}))
-        for bezier in segments:
-            bz_pts = tuple(point_to_coords(p) for p in bezier.points)
-            for pt in (bz_pts[0], bz_pts[3]):
-                geometry.append(GeometricShape.circle(pt,
-                    properties={'type': 'bezier', 'kind': 'bezier-end'}))
-            for pt in bz_pts[1:3]:
-                geometry.append(GeometricShape.circle(pt,
-                    properties={'type': 'bezier', 'kind': 'bezier-control', 'label': path_id}))
-            geometry.append(GeometricShape.line(*bz_pts[0:2], properties={'type': 'bezier'}))
-            geometry.append(GeometricShape.line(*bz_pts[2:4], properties={'type': 'bezier'}))
-        return geometry
 
     def geometry(self) -> [GeometricShape]:
         """
