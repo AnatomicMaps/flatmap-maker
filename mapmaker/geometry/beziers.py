@@ -51,17 +51,6 @@ def bezier_to_linestring(bz, num_points=100, offset=0):
     else:
         return line.parallel_offset(abs(offset), 'left' if offset >= 0 else 'right')
 
-def bezier_segments_to_linestring(segments: List[BezierSegment],
-                                  points: int = 100, offset: float = 0) -> shapely.geometry.LineString:
-#======================================================================================================
-    if len(segments) == 1:
-        return bezier_to_linestring(segments[0], points, offset)
-    coords = []
-    for segment in segments:
-        c = bezier_to_linestring(segment, points, offset).coords
-        coords.extend(c if offset >= 0 else reversed(c))
-    return shapely.geometry.LineString(coords)
-
 def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle: float = None) -> CubicBezier:
 #==============================================================================================================
     # Connect points ``a`` and ``b`` with a Bezier curve with a slope
@@ -91,15 +80,6 @@ def closest_time(bz: BezierPath, pt: BezierPoint, steps: int = 100) -> tuple:
     for n in range(4):
         (t, delta_t, closest) = subdivide_search(t - delta_t, t + delta_t, steps)
     return t
-
-def bezier_polygon_intersection(bz: BezierPath, poly: shapely.geometry.Polygon):
-    """
-    Intersection between a Bezier path and a polygon.
-    """
-
-    line = bezier_to_linestring(bz)
-    times = [closest_time(bz, coords_to_point((pt.x, pt.y)))
-                for pt in line.intersection(poly.boundary).geoms]
 
 #===============================================================================
 
