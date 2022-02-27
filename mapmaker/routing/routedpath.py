@@ -110,7 +110,7 @@ class IntermediateNode:
         """
         self.__start_angle = start_angle
         self.__mid_angle = (start_angle + end_angle)/2   # Has the same sense as start_angle
-        self.__mid_normal = BezierPoint.fromAngle(self.__mid_angle + math.pi/2)*width
+        self.__mid_normal = BezierPoint.fromAngle(self.__mid_angle + math.pi/2)*width/2.0
         self.__mid_point = mid_point
         self.__end_angle = end_angle
 
@@ -210,7 +210,7 @@ class RoutedPath(object):
                     component_num += 1
                     next_line_coords = bezier_to_linestring(path_components[component_num], offset=path_offset).coords
                     intermediate_geometry = component.geometry(intermediate_start, BezierPoint(*next_line_coords[0]),
-                                                               offset=edge_dict['offset']/edge_dict['max-paths'])
+                                                               offset=2*edge_dict['offset']/edge_dict['max-paths'])
                     line_coords = intermediate_geometry[0].coords
                     intermediate_nodes.append(intermediate_geometry[1])
                     coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
