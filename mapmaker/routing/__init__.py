@@ -272,6 +272,7 @@ class Network(object):
                         feature = self.__find_feature(intermediate)
                         if feature is not None:
                             intermediates[intermediate] = feature.geometry
+
                     # Find where the centreline's segments cross intermediate nodes
                     intersection_times = {}
                     for seg_num, bz in enumerate(segments):
@@ -290,15 +291,17 @@ class Network(object):
                                     else:
                                         time_points.append((sorted((closest_time(bz, coords_to_point((pt.x, pt.y)))
                                                                                     for pt in intersecting_points)), node_id))
-                            else:
-                                log.warning(f"Intermediate node {node_id} doesn't intersect centreline {edge_id}")
-                        intersection_times[seg_num] = sorted(time_points)
+                        if len(time_points) > 0:
+                            intersection_times[seg_num] = sorted(time_points)
+                    if len(intermediates) > 0 and len(intersection_times) == 0:
+                        log.warning(f"Intermediate node {node_id} doesn't intersect centreline {edge_id}")
 
+                    # Find the width of an intermediate node by getting the length of the line through
+                    # an internal point in a given direction.
                     def node_width_along_line(node_id, point, dirn):
                         geometry = intermediates[node_id]
                         bounds = geometry.bounds
                         max_width = shapely.geometry.Point(*bounds[0:2]).distance(shapely.geometry.Point(*bounds[2:4]))
-                        ##breakpoint()
                         line = shapely.geometry.LineString([point_to_coords(point - dirn*max_width),
                                                             point_to_coords(point + dirn*max_width)])
                         if geometry.intersects(line):
@@ -311,12 +314,12 @@ class Network(object):
                         return 0
 
                     path_components = []
+                    last_intersection = None
                     for seg_num in range(len(segments)):
-                        last_intersection = None
                         prev_intersection = None
                         bz = segments[seg_num]
                         scale = partial(time_scale, lambda x: x, 0.0)
-                        node_intersections = intersection_times[seg_num]
+                        node_intersections = intersection_times.get(seg_num, [])
                         intersection_num = 0
                         while intersection_num < len(node_intersections):
                             times, node_id = node_intersections[intersection_num]
@@ -361,10 +364,10 @@ class Network(object):
                                     scale = partial(time_scale, scale, time_1)
                                 prev_intersection = (times[1], node_id)
                             intersection_num += 1
-                        if last_intersection is not None:
-                            log.error(f'Last intermediate node {last_intersection[1]} on centreline {edge_id} only intersects once')
-                        else:
+                        if last_intersection is None:
                             path_components.append(bz)
+                    if last_intersection is not None:
+                        log.error(f'Last intermediate node {last_intersection[1]} on centreline {edge_id} only intersects once')
             edge_dict['path-components'] = path_components
 
     def route_graph_from_connections(self, connections: dict) -> nx.Graph:

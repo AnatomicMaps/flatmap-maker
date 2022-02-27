@@ -204,7 +204,6 @@ class RoutedPath(object):
             coords = []
             intermediate_start = None
             component_num = 0
-            next_line_coords = None
             while component_num < len(path_components):
                 component = path_components[component_num]
                 if isinstance(component, IntermediateNode):
@@ -214,17 +213,14 @@ class RoutedPath(object):
                                                                offset=edge_dict['offset']/edge_dict['max-paths'])
                     line_coords = intermediate_geometry[0].coords
                     intermediate_nodes.append(intermediate_geometry[1])
-                elif next_line_coords is not None:
+                    coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
                     line_coords = next_line_coords
                     intermediate_start = BezierPoint(*line_coords[-1])
-                    next_line_coords = None
                 else:
                     line_coords = bezier_to_linestring(component, offset=path_offset).coords
                     intermediate_start = BezierPoint(*line_coords[-1])
                 coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
                 component_num += 1
-                if next_line_coords is not None:
-                    coords.extend(next_line_coords if path_offset >= 0 else reversed(next_line_coords))
                 path_line = shapely.geometry.LineString(coords)
             if path_line is not None:
                 path_line = path_line.simplify(SMOOTHING_TOLERANCE, preserve_topology=False)
@@ -264,6 +260,7 @@ class RoutedPath(object):
                     'path-id': edge_dict.get('path-id')
                 }))
 
+        # Connect edges at branch nodes
         for node, node_dict in self.__graph.nodes(data=True):
             if node_dict.get('degree', 0) >= 2:
                 edges = []
