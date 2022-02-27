@@ -29,10 +29,12 @@ wires are routed.
 from collections import Counter, defaultdict
 import itertools
 import math
+from functools import partial
 
 #===============================================================================
 
 from beziers.line import Line as BezierLine
+from beziers.path import BezierPath
 from beziers.point import Point as BezierPoint
 
 import networkx as nx
@@ -40,11 +42,13 @@ import shapely.geometry
 
 #===============================================================================
 
+from mapmaker.geometry.beziers import bezier_to_linestring, closest_time
+from mapmaker.geometry.beziers import coords_to_point, point_to_coords
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
 from .options import MIN_EDGE_JOIN_RADIUS
-from .routedpath import PathRouter
+from .routedpath import IntermediateNode, PathRouter
 
 #===============================================================================
 
@@ -205,6 +209,9 @@ class Network(object):
             segs[n] = split[0]
             return segs[:n+1]
 
+        def time_scale(scale, T, x):
+            return (scale(x) - T)/(1.0 - T)
+
         self.__feature_map = feature_map
         for node_id, degree in self.__centreline_graph.degree():
             node_dict = self.__centreline_graph.nodes[node_id]
@@ -212,7 +219,8 @@ class Network(object):
             self.__set_node_properties_from_feature(node_dict, node_id)
 
         for node_0, node_1, edge_dict in self.__centreline_graph.edges(data=True):
-            feature = self.__find_feature(edge_dict.get('id'))
+            edge_id = edge_dict.get('id')
+            feature = self.__find_feature(edge_id)
             if feature is not None:
                 node_0_centre = self.__centreline_graph.nodes[node_0].get('centre')
                 node_1_centre = self.__centreline_graph.nodes[node_1].get('centre')
@@ -248,7 +256,7 @@ class Network(object):
                         else:
                             # This assumes node_1 centre is close to segments[0].start
                             segments = truncate_segments_start(segments, node_1)
-                    edge_dict['bezier-segments'] = segments
+
                     start_tangent = segments[0].tangentAtTime(0.0)
                     end_tangent = segments[-1].tangentAtTime(1.0)
                     edge_dict['tangents'] = {
@@ -257,6 +265,107 @@ class Network(object):
                     }
                     self.__centreline_graph.nodes[edge_dict['start-node']]['angle'] = segments[0].startAngle
                     self.__centreline_graph.nodes[edge_dict['end-node']]['angle'] = segments[-1].endAngle
+
+                    # Get the geometry of any intermediate nodes along an edge
+                    intermediates = {}
+                    for intermediate in edge_dict.get('intermediates', []):
+                        feature = self.__find_feature(intermediate)
+                        if feature is not None:
+                            intermediates[intermediate] = feature.geometry
+                    # Find where the centreline's segments cross intermediate nodes
+                    intersection_times = {}
+                    for seg_num, bz in enumerate(segments):
+                        line = bezier_to_linestring(bz)
+                        time_points = []
+                        for node_id, geometry in intermediates.items():
+                            if geometry.intersects(line):
+                                intersection = geometry.boundary.intersection(line)
+                                if isinstance(intersection, shapely.geometry.Point):
+                                    time_points.append(((closest_time(bz, coords_to_point((intersection.x, intersection.y))), ),
+                                                        node_id))
+                                else:
+                                    intersecting_points = intersection.geoms
+                                    if len(intersecting_points) > 2:
+                                        log.warning(f"Intermediate node {node_id} has multiple intersections with centreline {edge_id}")
+                                    else:
+                                        time_points.append((sorted((closest_time(bz, coords_to_point((pt.x, pt.y)))
+                                                                                    for pt in intersecting_points)), node_id))
+                            else:
+                                log.warning(f"Intermediate node {node_id} doesn't intersect centreline {edge_id}")
+                        intersection_times[seg_num] = sorted(time_points)
+
+                    def node_width_along_line(node_id, point, dirn):
+                        geometry = intermediates[node_id]
+                        bounds = geometry.bounds
+                        max_width = shapely.geometry.Point(*bounds[0:2]).distance(shapely.geometry.Point(*bounds[2:4]))
+                        ##breakpoint()
+                        line = shapely.geometry.LineString([point_to_coords(point - dirn*max_width),
+                                                            point_to_coords(point + dirn*max_width)])
+                        if geometry.intersects(line):
+                            intersection = geometry.boundary.intersection(line)
+                            if isinstance(intersection, shapely.geometry.MultiPoint):
+                                intersecting_points = intersection.geoms
+                                if len(intersecting_points) == 2:
+                                    return intersecting_points[0].distance(intersecting_points[1])
+                        log.error(f'Cannot get width of intermediate {node_id}')
+                        return 0
+
+                    path_components = []
+                    for seg_num in range(len(segments)):
+                        last_intersection = None
+                        prev_intersection = None
+                        bz = segments[seg_num]
+                        scale = partial(time_scale, lambda x: x, 0.0)
+                        node_intersections = intersection_times[seg_num]
+                        intersection_num = 0
+                        while intersection_num < len(node_intersections):
+                            times, node_id = node_intersections[intersection_num]
+                            if len(times) == 0:
+                                continue
+                            time_0 = scale(times[0])
+                            if len(times) == 1:
+                                if last_intersection is not None:
+                                    assert node_id == last_intersection[1]
+                                    # check times[0] < 0.5  ??
+                                    parts = bz.splitAtTime(time_0)
+                                    join_path = BezierPath.fromSegments([last_intersection[0], parts[0]])
+                                    mid_point = join_path.pointAtTime(0.5)
+                                    # An approximation to the mid-point normal
+                                    mid_normal = BezierPoint.fromAngle((math.pi + last_intersection[0].startAngle - parts[0].endAngle)/2)
+                                    width = node_width_along_line(node_id, mid_point, mid_normal)
+                                    path_components.append(IntermediateNode(width, mid_point, last_intersection[0].startAngle, parts[0].endAngle))
+                                    bz = parts[1]
+                                    scale = partial(time_scale, scale, time_0)
+                                    last_intersection = None
+                                elif (intersection_num + 1) == len(node_intersections):
+                                    # check times[0] > 0.5 ??
+                                    parts = bz.splitAtTime(time_0)
+                                    path_components.append(parts[0])
+                                    last_intersection = (parts[1], node_id)
+                                else:
+                                    log.error(f'Node {node_id} only intersects once with centreline {edge_id}')
+                            else:
+                                if prev_intersection is not None and prev_intersection[0] >= times[0]:
+                                    log.error(f'Intermediate nodes {prev_intersection[1]} and {node_id} overlap on centreline {edge_id}')
+                                else:
+                                    parts = bz.splitAtTime(time_0)
+                                    path_components.append(parts[0])
+                                    bz = parts[1]
+                                    scale = partial(time_scale, scale, time_0)
+                                    time_1 = scale(times[1])
+                                    parts = bz.splitAtTime(time_1)
+                                    mid_point = parts[0].pointAtTime(0.5)
+                                    width = node_width_along_line(node_id, mid_point, parts[0].normalAtTime(0.5))
+                                    path_components.append(IntermediateNode(width, mid_point, parts[0].startAngle, parts[0].endAngle))
+                                    bz = parts[1]
+                                    scale = partial(time_scale, scale, time_1)
+                                prev_intersection = (times[1], node_id)
+                            intersection_num += 1
+                        if last_intersection is not None:
+                            log.error(f'Last intermediate node {last_intersection[1]} on centreline {edge_id} only intersects once')
+                        else:
+                            path_components.append(bz)
+            edge_dict['path-components'] = path_components
 
     def route_graph_from_connections(self, connections: dict) -> nx.Graph:
     #=====================================================================
@@ -287,18 +396,7 @@ class Network(object):
     #==================================================================
         path_router = PathRouter(projections)
         for path_id, route_graph in route_graphs.items():
-            # Save the geometry of any intermediate points on an edge
-            for edge in route_graph.edges(data='intermediates'):
-                if edge[2] is not None:
-                    way_point_geometry = []
-                    for way_point in edge[2]:
-                        feature = self.__find_feature(way_point)
-                        if feature is not None:
-                            way_point_geometry.append(feature.geometry)
-                    del(route_graph.edges[edge[0:2]]['intermediates'])
-                    route_graph.edges[edge[0:2]]['way-points'] = way_point_geometry
             path_router.add_path(path_id, route_graph)
-
         # Layout the paths and return the resulting routes
         return path_router.layout()
 

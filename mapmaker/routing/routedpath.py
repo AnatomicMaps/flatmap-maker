@@ -32,13 +32,15 @@ from typing import Tuple
 #===============================================================================
 
 from beziers.cubicbezier import CubicBezier
+from beziers.path import BezierPath
 from beziers.point import Point as BezierPoint
+
 import networkx as nx
 import shapely.geometry
 
 #===============================================================================
 
-from mapmaker.geometry.beziers import bezier_connect, bezier_segments_to_linestring, bezier_to_linestring
+from mapmaker.geometry.beziers import bezier_connect, bezier_to_linestring
 from mapmaker.geometry.beziers import coords_to_point, point_to_coords
 from mapmaker.utils import log
 
@@ -74,6 +76,26 @@ class GeometricShape(object):
         offset = BezierPoint.fromAngle(heading + math.pi/2)*length/3
         arrow = shapely.geometry.Polygon([point_to_coords(tip), point_to_coords(back+offset), point_to_coords(back-offset)])
         return cls(arrow, properties)
+
+#===============================================================================
+
+class IntermediateNode:
+#======================
+    def __init__(self, width, mid_point, start_angle, end_angle):
+        """
+        ``start_angle`` and ``end_angle`` are directions into the node.
+        """
+        self.__start_angle = start_angle
+        self.__mid_angle = (start_angle + end_angle)/2   # Has the same sense as start_angle
+        self.__mid_normal = BezierPoint.fromAngle(self.__mid_angle + math.pi/2)*width
+        self.__mid_point = mid_point
+        self.__end_angle = end_angle
+
+    def geometry(self, start_point, end_point, num_points=100, offset=0):
+        node_point = self.__mid_point + self.__mid_normal*offset
+        segs = [ bezier_connect(start_point, node_point, self.__start_angle, self.__mid_angle),
+                 bezier_connect(node_point, end_point, self.__mid_angle, self.__end_angle) ]
+        return (bezier_to_linestring(BezierPath.fromSegments(segs), num_points=num_points, offset=offset), node_point)
 
 #===============================================================================
 
@@ -124,6 +146,7 @@ class RoutedPath(object):
             between nodes and possibly additional features (e.g. way markers)
             of the paths.
         """
+
         def join_geometry(node, edge_0, edge_1):
             e0 = edge_0['path-ends'][node]
             e1 = edge_1['path-ends'][node]
@@ -157,29 +180,61 @@ class RoutedPath(object):
         geometry = []
         for node_0, node_1, edge_dict in self.__graph.edges.data():
             edge = (node_0, node_1)
+            path_id = edge_dict.get('path-id')
             properties = {
                 'nerve': edge_dict.get('nerve'),
-                'path-id': edge_dict.get('path-id')
+                'path-id': path_id
             }
-            segments = edge_dict.get('bezier-segments')
-            if segments is not None:
-                path_line = (bezier_segments_to_linestring(segments, offset=PATH_SEPARATION*edge_dict['offset'])
-                             .simplify(SMOOTHING_TOLERANCE, preserve_topology=False))
-                display_bezier_points = False  ### From settings... <<<<<<<<<<<<<<<<<<<<<<<
-                if display_bezier_points:
-                    geometry.extend(self.__bezier_geometry(edge_dict.get('path-id'), segments))
-                if path_line is not None:
-                    geometry.append(GeometricShape(path_line, properties))
-                    if edge_dict.get('type') != 'terminal':
-                        edge_dict['path-ends'] = {
-                            edge_dict['start-node']: BezierPoint(*path_line.coords[0]),
-                            edge_dict['end-node']: BezierPoint(*path_line.coords[-1])
-                        }
-                        # Save where terminal edges would start from
-                        self.__graph.nodes[edge_dict['start-node']]['start-point'] = BezierPoint(*path_line.coords[0])
-                        self.__graph.nodes[edge_dict['end-node']]['start-point'] = BezierPoint(*path_line.coords[-1])
-
         # Draw terminal edges
+            path_components = edge_dict.get('path-components')
+            if path_components is None:
+                continue
+            path_offset = PATH_SEPARATION*edge_dict['offset']
+            intermediate_nodes = []
+            coords = []
+            intermediate_start = None
+            component_num = 0
+            next_line_coords = None
+            while component_num < len(path_components):
+                component = path_components[component_num]
+                if isinstance(component, IntermediateNode):
+                    component_num += 1
+                    next_line_coords = bezier_to_linestring(path_components[component_num], offset=path_offset).coords
+                    intermediate_geometry = component.geometry(intermediate_start, BezierPoint(*next_line_coords[0]),
+                                                               offset=edge_dict['offset']/edge_dict['max-paths'])
+                    line_coords = intermediate_geometry[0].coords
+                    intermediate_nodes.append(intermediate_geometry[1])
+                elif next_line_coords is not None:
+                    line_coords = next_line_coords
+                    intermediate_start = BezierPoint(*line_coords[-1])
+                    next_line_coords = None
+                else:
+                    line_coords = bezier_to_linestring(component, offset=path_offset).coords
+                    intermediate_start = BezierPoint(*line_coords[-1])
+                coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
+                component_num += 1
+                if next_line_coords is not None:
+                    coords.extend(next_line_coords if path_offset >= 0 else reversed(next_line_coords))
+                path_line = shapely.geometry.LineString(coords)
+            if path_line is not None:
+                path_line = path_line.simplify(SMOOTHING_TOLERANCE, preserve_topology=False)
+                geometry.append(GeometricShape(path_line, properties))
+                if edge_dict.get('type') != 'terminal':
+                    # Save where branch node edges will connect
+                    edge_dict['path-ends'] = {
+                        edge_dict['start-node']: BezierPoint(*path_line.coords[0]),
+                        edge_dict['end-node']: BezierPoint(*path_line.coords[-1])
+                    }
+                    # Save where terminal edges would start from
+                    self.__graph.nodes[edge_dict['start-node']]['start-point'] = BezierPoint(*path_line.coords[0])
+                    self.__graph.nodes[edge_dict['end-node']]['start-point'] = BezierPoint(*path_line.coords[-1])
+            # Draw intermediate nodes
+            for node_point in intermediate_nodes:
+                geometry.append(GeometricShape.circle(
+                    point_to_coords(node_point),
+                    radius = 0.8*PATH_SEPARATION,
+                    properties={'type': 'junction', 'path-id': path_id}))
+
         for node_0, node_1, edge_dict in self.__graph.edges.data():
             if edge_dict.get('type') == 'terminal':
                 start_point = self.__graph.nodes[node_0]['start-point']
@@ -287,6 +342,7 @@ class PathRouter(object):
                     ordering = edge_order.get(edge_id, [])
                     if route_number in ordering:
                         edge_dict['offset'] = ordering.index(route_number) - len(ordering)//2 + ((len(ordering)+1)%2)/2
+                        edge_dict['max-paths'] = len(ordering)
 
         return { route_number: RoutedPath(route_graph, route_number)
             for route_number, route_graph in enumerate(routes) }
