@@ -26,6 +26,7 @@ from mapmaker import MIN_ZOOM
 from mapmaker.exceptions import GroupValueError
 from mapmaker.geometry import connect_dividers, extend_line, make_boundary
 from mapmaker.geometry import save_geometry
+from mapmaker.utils import log
 
 #===============================================================================
 
@@ -194,6 +195,8 @@ class MapLayer(FeatureLayer):
         single_features = [ feature for feature in features if not feature.has_children ]
         for feature in single_features:
             if feature.property('boundary'):
+                if feature.property('group'):
+                    log.error(f'Group element cannot have `.boundary` markup')
                 if outermost:
                     if self.__boundary_feature is not None:
                         raise ValueError('Layer cannot have multiple boundaries: {}'.format(feature))
