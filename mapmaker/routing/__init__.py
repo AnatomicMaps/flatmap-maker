@@ -345,7 +345,7 @@ class Network(object):
                             path_components.append(bz)
                     if last_intersection is not None:
                         log.error(f'Last intermediate node {last_intersection[1]} on centreline {edge_id} only intersects once')
-            edge_dict['path-components'] = path_components
+                    edge_dict['path-components'] = path_components
 
     def route_graph_from_connections(self, connections: dict) -> nx.Graph:
     #=====================================================================
