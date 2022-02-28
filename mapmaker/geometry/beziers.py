@@ -39,6 +39,26 @@ def point_to_coords(pt: BezierPoint) -> Tuple[float]:
 
 #===============================================================================
 
+def width_along_line(geometry, point: BezierPoint, dirn: BezierPoint) -> float:
+#==============================================================================
+    """
+    Find the width of a node by getting the length of the line through an internal
+    point in a given direction.
+    """
+    bounds = geometry.bounds
+    max_width = shapely.geometry.Point(*bounds[0:2]).distance(shapely.geometry.Point(*bounds[2:4]))
+    line = shapely.geometry.LineString([point_to_coords(point - dirn*max_width),
+                                        point_to_coords(point + dirn*max_width)])
+    if geometry.intersects(line):
+        intersection = geometry.boundary.intersection(line)
+        if isinstance(intersection, shapely.geometry.MultiPoint):
+            intersecting_points = intersection.geoms
+            if len(intersecting_points) == 2:
+                return intersecting_points[0].distance(intersecting_points[1])
+    return 0
+
+#===============================================================================
+
 def bezier_sample(bz, num_points=100):
 #=====================================
     return [(pt.x, pt.y) for pt in bz.sample(num_points)]

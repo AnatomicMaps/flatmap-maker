@@ -41,7 +41,7 @@ import shapely.geometry
 #===============================================================================
 
 from mapmaker.geometry.beziers import bezier_connect, bezier_to_linestring
-from mapmaker.geometry.beziers import coords_to_point, point_to_coords
+from mapmaker.geometry.beziers import coords_to_point, point_to_coords, width_along_line
 from mapmaker.utils import log
 
 from .layout import TransitMap
@@ -104,18 +104,21 @@ def bezier_control_points(bezier, label=''):
 
 class IntermediateNode:
 #======================
-    def __init__(self, width, mid_point, start_angle, end_angle):
-        """
-        ``start_angle`` and ``end_angle`` are directions into the node.
-        """
+    def __init__(self, id, geometry, start_angle, end_angle):
+        self.__id = id
         self.__start_angle = start_angle
-        self.__mid_angle = (start_angle + end_angle)/2   # Has the same sense as start_angle
-        self.__mid_normal = BezierPoint.fromAngle(self.__mid_angle + math.pi/2)*width/2.0
-        self.__mid_point = mid_point
+        self.__mid_angle = (start_angle + end_angle)/2.0
         self.__end_angle = end_angle
+        centre = geometry.centroid
+        self.__mid_point = BezierPoint(centre.x, centre.y)
+        mid_normal = BezierPoint.fromAngle(self.__mid_angle + math.pi/2)
+        width = width_along_line(geometry, self.__mid_point, mid_normal)
+        if width == 0:
+           log.error(f'Cannot get width of node {id}')
+        self.__width_normal = mid_normal*width/2.0
 
     def geometry(self, start_point, end_point, num_points=100, offset=0):
-        node_point = self.__mid_point + self.__mid_normal*offset
+        node_point = self.__mid_point + self.__width_normal*offset
         segs = [ bezier_connect(start_point, node_point, self.__start_angle, self.__mid_angle),
                  bezier_connect(node_point, end_point, self.__mid_angle, self.__end_angle) ]
         return (bezier_to_linestring(BezierPath.fromSegments(segs), num_points=num_points, offset=offset), node_point)

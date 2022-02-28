@@ -296,23 +296,6 @@ class Network(object):
                     if len(intermediates) > 0 and len(intersection_times) == 0:
                         log.warning(f"Intermediate node {node_id} doesn't intersect centreline {edge_id}")
 
-                    # Find the width of an intermediate node by getting the length of the line through
-                    # an internal point in a given direction.
-                    def node_width_along_line(node_id, point, dirn):
-                        geometry = intermediates[node_id]
-                        bounds = geometry.bounds
-                        max_width = shapely.geometry.Point(*bounds[0:2]).distance(shapely.geometry.Point(*bounds[2:4]))
-                        line = shapely.geometry.LineString([point_to_coords(point - dirn*max_width),
-                                                            point_to_coords(point + dirn*max_width)])
-                        if geometry.intersects(line):
-                            intersection = geometry.boundary.intersection(line)
-                            if isinstance(intersection, shapely.geometry.MultiPoint):
-                                intersecting_points = intersection.geoms
-                                if len(intersecting_points) == 2:
-                                    return intersecting_points[0].distance(intersecting_points[1])
-                        log.error(f'Cannot get width of intermediate {node_id}')
-                        return 0
-
                     path_components = []
                     last_intersection = None
                     for seg_num in range(len(segments)):
@@ -325,18 +308,14 @@ class Network(object):
                             times, node_id = node_intersections[intersection_num]
                             if len(times) == 0:
                                 continue
+                            geometry = intermediates[node_id]
                             time_0 = scale(times[0])
                             if len(times) == 1:
                                 if last_intersection is not None:
                                     assert node_id == last_intersection[1]
                                     # check times[0] < 0.5  ??
                                     parts = bz.splitAtTime(time_0)
-                                    join_path = BezierPath.fromSegments([last_intersection[0], parts[0]])
-                                    mid_point = join_path.pointAtTime(0.5)
-                                    # An approximation to the mid-point normal
-                                    mid_normal = BezierPoint.fromAngle((math.pi + last_intersection[0].startAngle - parts[0].endAngle)/2)
-                                    width = node_width_along_line(node_id, mid_point, mid_normal)
-                                    path_components.append(IntermediateNode(width, mid_point, last_intersection[0].startAngle, parts[0].endAngle))
+                                    path_components.append(IntermediateNode(node_id, geometry, last_intersection[0].startAngle, parts[0].endAngle))
                                     bz = parts[1]
                                     scale = partial(time_scale, scale, time_0)
                                     last_intersection = None
@@ -357,9 +336,7 @@ class Network(object):
                                     scale = partial(time_scale, scale, time_0)
                                     time_1 = scale(times[1])
                                     parts = bz.splitAtTime(time_1)
-                                    mid_point = parts[0].pointAtTime(0.5)
-                                    width = node_width_along_line(node_id, mid_point, parts[0].normalAtTime(0.5))
-                                    path_components.append(IntermediateNode(width, mid_point, parts[0].startAngle, parts[0].endAngle))
+                                    path_components.append(IntermediateNode(node_id, geometry, parts[0].startAngle, parts[0].endAngle))
                                     bz = parts[1]
                                     scale = partial(time_scale, scale, time_1)
                                 prev_intersection = (times[1], node_id)
