@@ -225,8 +225,8 @@ class Network(object):
                 node_0_centre = self.__centreline_graph.nodes[node_0].get('centre')
                 node_1_centre = self.__centreline_graph.nodes[node_1].get('centre')
                 segments = feature.property('bezier-segments')
-                if len(segments) == 0:
-                    log.warning(f'Centreline {feature.id} has no Bezier path')
+                if len(segments) == 0 or node_0_centre is None or node_1_centre is None:
+                    log.warning(f'Centreline {feature.id} has no Bezier path or some nodes are missing ({node_0} and/or {node_1})')
                     if node_0_centre is not None and node_1_centre is not None:
                         segments = [ BezierLine(node_0_centre, node_1_centre) ]
                         edge_dict['start-node'] = node_0
