@@ -8,7 +8,7 @@ Mapmaker is a Python application for generating `Mapbox <https://www.mapbox.com/
 Documentation
 -------------
 
-* https://flatmap-maker.readthedocs.io/en/latest/.
+* https://flatmap-maker.readthedocs.io/en/devel/.
 
 Requirements
 ------------
