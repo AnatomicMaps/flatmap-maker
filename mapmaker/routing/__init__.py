@@ -111,7 +111,7 @@ class Network(object):
                     edge_properties = {'id': id}
                     if len(nodes) > 2:
                         edge_properties['intermediates'] = nodes[1:-1]
-                    containing_features = set(centreline.get('containedIn', []))
+                    containing_features = set(centreline.get('contained-in', []))
                     self.__contained_count[id] = len(containing_features)
                     for container_id in containing_features:
                         self.__contained_centrelines[container_id].append(id)
