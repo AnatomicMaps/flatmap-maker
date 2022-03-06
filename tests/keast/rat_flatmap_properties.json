@@ -387,18 +387,17 @@
         "centrelines": [
         {
             "id": "L1_dorsal_root",
-            "connects": ["L1-spinal", "S45_L1", "L1_dorsal_root_end"],
-            "containedIn": ["S45_L1"]
+            "connects": ["L1-spinal", "S45_L1", "L1_dorsal_root_end"]
         },
         {
             "id": "L1_ventral_root",
             "connects": ["L1-spinal", "L1_ventral_root_end"],
-            "containedIn": ["S43_L1", "S50_L1_T",  "S50_L1_B"]
+            "contained-in": ["S43_L1", "S50_L1_T",  "S50_L1_B"]
         },
         {
             "id": "L1_ventral_root_ramus",
             "connects": ["L1-spinal", "L1_ventral_root_ramus_end"],
-            "containedIn": ["S43_L1", "S48_L1", "S46_L1", "S49_L1"]
+            "contained-in": ["S43_L1", "S48_L1", "S46_L1", "S49_L1"]
         },
         {
             "id": "L1_spinal_n",
@@ -406,13 +405,12 @@
         },
         {
             "id": "L2_dorsal_root",
-            "connects": ["L2-spinal", "S45_L2", "L2_dorsal_root_end"],
-            "containedIn": ["S45_L2"]
+            "connects": ["L2-spinal", "S45_L2", "L2_dorsal_root_end"]
         },
         {
             "id": "L2_ventral_root_ramus",
             "connects": ["L2-spinal", "L2_ventral_root_ramus_end"],
-            "containedIn": ["S43_L2", "S48_L2", "S46_L2", "S49_L2"]
+            "contained-in": ["S43_L2", "S48_L2", "S46_L2", "S49_L2"]
         },
         {
             "id": "L2_spinal_n",
@@ -424,7 +422,8 @@
         },
         {
             "id": "L6_ventral_root",
-            "connects": ["L6-spinal", "L6_ventral_root_end"]
+            "connects": ["L6-spinal", "L6_ventral_root_end"],
+            "contained-in": ["S43_L6"]
         },
         {
             "id": "L6_spinal_n",
@@ -436,7 +435,8 @@
         },
         {
             "id": "S1_ventral_root",
-            "connects": ["S1-spinal", "S1_ventral_root_end"]
+            "connects": ["S1-spinal", "S1_ventral_root_end"],
+            "contained-in": ["S43_S1"]
         },
         {
             "id": "S1_spinal_n",
@@ -445,22 +445,22 @@
         {
             "id": "lumbar_splanchnic_n",
             "connects": ["L1_L2_spinal_n-lumbar_splanchnic_n", "keast_6"],
-            "containedIn": ["keast_7"]
+            "contained-in": ["keast_7"]
         },
         {
             "id": "pelvic_splanchnic_n",
             "connects": ["L6_S1_spinal_n-pelvic_splanchnic_n", "keast_3"],
-            "containedIn": ["keast_4"]
+            "contained-in": ["keast_4"]
         },
         {
             "id": "hypogastric_n",
             "connects": ["keast_6", "keast_3"],
-            "containedIn": ["keast_5"]
+            "contained-in": ["keast_5"]
         },
         {
             "id": "bladder_n",
             "connects": ["keast_3", "bladder_n-bladder"],
-            "containedIn": ["keast_1"]
+            "contained-in": ["keast_1"]
         }]
     }]
 }
