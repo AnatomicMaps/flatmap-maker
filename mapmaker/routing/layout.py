@@ -252,11 +252,31 @@ if __name__ == '__main__':
         'pelvic_splanchnic_n': {1, 3}
     }
 
+    result = {
+        'L1_dorsal_root': [4],
+        'L1_spinal_n': [4, 0, 2],
+        'L1_ventral_root_ramus': [0, 2],
+        'L2_dorsal_root': [4],
+        'L2_spinal_n': [4, 0, 2],
+        'L2_ventral_root_ramus': [0, 2],
+        'L6_dorsal_root': [3],
+        'L6_spinal_n': [3, 1],
+        'L6_ventral_root': [1],
+        'S1_dorsal_root': [3],
+        'S1_spinal_n': [3, 1],
+        'S1_ventral_root': [1],
+        'bladder_n': [4, 0, 2, 3, 1],
+        'hypogastric_n': [4, 0, 2],
+        'lumbar_splanchnic_n': [4, 0, 2],
+        'pelvic_splanchnic_n': [3, 1]
+    }
 
     tee = False
     tm = TransitMap(route_edges, L, node_order)
 
     tm.solve(tee=tee)
     pprint(tm.results())
+
+    assert result == tm.results(), 'Unexpected result set -- optimisation failed?'
 
 #===============================================================================
