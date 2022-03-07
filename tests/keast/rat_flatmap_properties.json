@@ -282,9 +282,33 @@
             }
         },
         {
+            "id": "S43_L6",
+            "properties": {
+                "models": "EMAPA:25279"
+            }
+        },
+        {
+            "id": "S43_S1",
+            "properties": {
+                "models": "EMAPA:25281"
+            }
+        },
+        {
             "id": "S45_L2",
             "properties": {
                 "models": "UBERON:0002856"
+            }
+        },
+        {
+            "id": "S45_L6",
+            "properties": {
+                "models": "EMAPA:25169"
+            }
+        },
+        {
+            "id": "S45_S1",
+            "properties": {
+                "models": "UBERON:0002860"
             }
         },
         {
