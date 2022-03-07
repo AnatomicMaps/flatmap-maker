@@ -40,93 +40,118 @@ class TransitMap:
 
         self.__model = ConcreteModel()
 
+        #======================================================================
+
+        self.__edge_set = { e for _, _, e in self.__graph.edges(data='id') }
+
+        #======================================================================
+
         # e_l_le_p
         def e_l_le_p_set():
-            for _, _, e in self.__graph.edges(data='id'):
+            for e in self.__edge_set:
                 for l in self.__lines[e]:
                     for p in range(1, len(self.__lines[e])+1):
                         yield (e, l, p)
-        self.__model.e_l_le_p = Var(e_l_le_p_set(), domain=Binary)
 
-        def line_position_unique_constraint(model, e, l, p):
+        def e_l_le_p_constraint(model, e, l, p):
             if p == len(self.__lines[e]):
                 return Constraint.Skip
             return model.e_l_le_p[e, l, p] <= model.e_l_le_p[e, l, p+1]
-        self.__model.line_position_unique_constraint = Constraint(e_l_le_p_set(), rule=line_position_unique_constraint)
 
         def edge_position_set():
-            for _, _, e in self.__graph.edges(data='id'):
+            for e in self.__edge_set:
                 for p in range(1, len(self.__lines[e])+1):
                     yield (e, p)
 
         def edge_position_unique_constraint(model, e, p):
             return sum(model.e_l_le_p[e, l, p] for l in self.__lines[e]) == p
+
+        self.__model.e_l_le_p = Var(e_l_le_p_set(), domain=Binary)
+        self.__model.e_l_le_p_constraint = Constraint(e_l_le_p_set(), rule=e_l_le_p_constraint)
         self.__model.edge_position_unique_constraint = Constraint(edge_position_set(), rule=edge_position_unique_constraint)
+
+        #======================================================================
 
         # e_A_lt_B
         def e_A_lt_B_set():
-            for node, degree in self.__graph.degree:
-                if degree >= 2:
-                    for pair in itertools.permutations(self.__graph.edges(node, data='id'), 2):
-                        e, e1 = (pair[0][2], pair[1][2])
-                        for A, B in itertools.combinations(self.__lines[e], 2):
-                            if A in self.__lines[e1] and B in self.__lines[e1]:
-                                yield (node, e, A, B)
-                                yield (node, e, B, A)
-        self.__model.e_A_lt_B = Var(set(e_A_lt_B_set()), domain=Binary)
+            for e in self.__edge_set:
+                for A, B in itertools.combinations(self.__lines[e], 2):
+                    yield (e, A, B)
+                    yield (e, B, A)
 
-        def node_crossing_order_constraint(model, node, e, A, B):
+        def e_A_lt_B_constraint_1(model, e, A, B):
             return (sum(model.e_l_le_p[e, A, p] for p in range(1, len(self.__lines[e])+1))
                   - sum(model.e_l_le_p[e, B, p] for p in range(1, len(self.__lines[e])+1))
-                  + len(lines[e])*model.e_A_lt_B[node, e, B, A]) >= 0
-        self.__model.node_crossing_order_constraint = Constraint(set(e_A_lt_B_set()), rule=node_crossing_order_constraint)
+                  + len(lines[e])*model.e_A_lt_B[e, B, A]) >= 0
 
-        def node_crossing_unique_constraint(model, node, e, A, B):
-            return model.e_A_lt_B[node, e, A, B] + model.e_A_lt_B[node, e, B, A] == 1
-        self.__model.node_crossing_unique_constraint = Constraint(set(e_A_lt_B_set()), rule=node_crossing_unique_constraint)
+        def e_A_lt_B_constraint_2(model, e, A, B):
+            return model.e_A_lt_B[e, A, B] + model.e_A_lt_B[e, B, A] == 1
+
+        self.__model.e_A_lt_B = Var(set(e_A_lt_B_set()), domain=Binary)
+        self.__model.e_A_lt_B_constraint_1 = Constraint(set(e_A_lt_B_set()), rule=e_A_lt_B_constraint_1)
+        self.__model.e_A_lt_B_constraint_2 = Constraint(set(e_A_lt_B_set()), rule=e_A_lt_B_constraint_2)
+
+        #======================================================================
 
         # e_e1_A_B
-        def e_e1_A_B_set():
+        def e_e1_A_B_node_set():
             for node, degree in self.__graph.degree:
+                if degree >= 2:
+                    for e, e1 in itertools.permutations(self.edges(node), 2):
+                        for A, B in itertools.permutations(self.__lines[e], 2):
+                            if A in self.__lines[e1] and B in self.__lines[e1]:
+                                yield (node, e, e1, A, B)
+
+        def e_e1_A_B_constraint_1(model, node, e, e1, A, B):
+            return (model.e_A_lt_B[e,  A, B]
+                  - model.e_A_lt_B[e1, A, B]
+                  - model.e_e1_A_B[node, e, e1, A, B]) <= 0
+
+        def e_e1_A_B_constraint_2(model, node, e, e1, A, B):
+            return (model.e_A_lt_B[e1, A, B]
+                  - model.e_A_lt_B[e,  A, B]
+                  - model.e_e1_A_B[node, e, e1, A, B]) <= 0
+
+        self.__model.e_e1_A_B = Var(e_e1_A_B_node_set(), domain=Binary)
+        self.__model.e_e1_A_B_constraint_1 = Constraint(e_e1_A_B_node_set(), rule=e_e1_A_B_constraint_1)
+        self.__model.e_e1_A_B_constraint_2 = Constraint(e_e1_A_B_node_set(), rule=e_e1_A_B_constraint_2)
+
+            return (sum(model.e_l_le_p[e, A, p] for p in range(1, len(self.__lines[e])+1))
+                  - sum(model.e_l_le_p[e, B, p] for p in range(1, len(self.__lines[e])+1))
+
+
                 if degree >= 2:
                     for pair in itertools.permutations(self.__graph.edges(node, data='id'), 2):
                         e, e1 = (pair[0][2], pair[1][2])
-                        for A, B in itertools.permutations(self.__lines[e], 2):
                             yield (node, e, e1, A, B)
-        self.__model.e_e1_A_B = Var(e_e1_A_B_set(), domain=Binary)
 
-        def node_crossing_exists_constraint_1(model, node, e, e1, A, B):
             if (A not in self.__lines[e]  or B not in self.__lines[e]
              or A not in self.__lines[e1] or B not in self.__lines[e1]):
-                return Constraint.Skip   ## Why needed ??
-            return (model.e_A_lt_B[node, e,  A, B]
-                  - model.e_A_lt_B[node, e1, A, B]
-                  - model.e_e1_A_B[node, e, e1, A, B]) <= 0
 
-        def node_crossing_exists_constraint_2(model, node, e, e1, A, B):
             if (A not in self.__lines[e]  or B not in self.__lines[e]
              or A not in self.__lines[e1] or B not in self.__lines[e1]):
                 return Constraint.Skip
-            return (model.e_A_lt_B[node, e1, A, B]
-                  - model.e_A_lt_B[node, e,  A, B]
-                  - model.e_e1_A_B[node, e, e1, A, B]) <= 0
 
-        self.__model.node_crossing_exists_constraint_1 = Constraint(e_e1_A_B_set(), rule=node_crossing_exists_constraint_1)
-        self.__model.node_crossing_exists_constraint_2 = Constraint(e_e1_A_B_set(), rule=node_crossing_exists_constraint_2)
 
         # We minimise total crossings-over of lines
         def total_crossings(model):
-            return sum(model.e_e1_A_B[node, e1, e2, A, B]
-                for (node, e1, e2, A, B) in e_e1_A_B_set())
+            return (sum(model.e_e1_A_B[node, e1, e2, A, B]
+                            for (node, e1, e2, A, B) in self.__model.e_e1_A_B))
         self.__model.total_crossings = Objective(rule=total_crossings)
 
     def solve(self):
+    def edges(self, node):
+    #=====================
+        for _, _, e in self.__graph.edges(node, data='id'):
+            yield e
+
         # Solve the model using CBC
         SolverFactory('cbc').solve(self.__model)
 
     def results(self):
+    #=================
         ordered = {}
-        for _, _, e in self.__graph.edges(data='id'):
+        for e in self.__edge_set:
             order = []
             last_l = None
             for l in self.__lines[e]:
