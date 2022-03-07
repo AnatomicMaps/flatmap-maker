@@ -174,14 +174,15 @@ class TransitMap:
 
         self.__model.total_crossings = Objective(rule=total_crossings)
 
-    def solve(self):
     def edges(self, node):
     #=====================
         for _, _, e in self.__graph.edges(node, data='id'):
             yield e
 
+    def solve(self, tee=False):
+    #==========================
         # Solve the model using CBC
-        SolverFactory('cbc').solve(self.__model)
+        SolverFactory('cbc').solve(self.__model, tee=tee)
 
     def results(self):
     #=================
@@ -238,9 +239,10 @@ if __name__ == '__main__':
     }
 
 
-    tm.solve()
+    tee = False
     tm = TransitMap(route_edges, L, node_order)
 
+    tm.solve(tee=tee)
     pprint(tm.results())
 
 #===============================================================================
