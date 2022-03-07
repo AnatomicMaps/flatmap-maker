@@ -32,7 +32,7 @@ from pyomo.environ import *
 # Hannah Bast, Patrick Brosi, Sabine Storandt.
 
 class TransitMap:
-    def __init__(self, route, lines):
+    def __init__(self, route, lines, node_edge_order):
         self.__graph = nx.Graph()
         self.__lines = lines
         for id, edge in route.items():
@@ -116,6 +116,38 @@ class TransitMap:
         self.__model.e_e1_A_B_constraint_1 = Constraint(e_e1_A_B_node_set(), rule=e_e1_A_B_constraint_1)
         self.__model.e_e1_A_B_constraint_2 = Constraint(e_e1_A_B_node_set(), rule=e_e1_A_B_constraint_2)
 
+        #======================================================================
+
+        # e_e1_e2_A_B
+        # e, e1, e2 are in counter-clockwise order
+        # A, B both in L(e) s.th. neither A nor B in both L(e1), L(e2)
+        # A in L(e1) <==> B in L(e2) ==> value = 1 if eA<B, 0 if eB<A
+        # A in L(e2) <==> B in L(e1) ==> value = 0 if eA<B, 1 if eB<A
+
+        def e_e1_e2_A_B_node_set():
+            for node, degree in self.__graph.degree:
+                if degree > 2 and node in node_edge_order:
+                    ordered_edges = node_edge_order[node]
+                    for n, e in enumerate(ordered_edges):
+                        edges = ordered_edges[n+1:] + ordered_edges[:n]
+                        for (e1, e2) in itertools.combinations(edges, 2):
+                            for A, B in itertools.combinations(self.__lines[e], 2):
+                                if ((not (A in self.__lines[e1] and B in self.__lines[e1])
+                                 and not (A in self.__lines[e2] and B in self.__lines[e2]))
+                                 and (A in self.__lines[e1] and B in self.__lines[e2]
+                                   or A in self.__lines[e2] and B in self.__lines[e1])):
+                                    yield (node, e, e1, e2, A, B)
+
+        def e_e1_e2_A_B_constraint(model, node, e, e1, e2, A, B):
+            if A in self.__lines[e2]:
+                return 1 - model.e_A_lt_B[e, A, B] - model.e_e1_e2_A_B[node, e, e1, e2, A, B] <= 0
+            else:
+                return 1 - model.e_A_lt_B[e, B, A] - model.e_e1_e2_A_B[node, e, e1, e2, A, B] <= 0
+
+
+        self.__model.e_e1_e2_A_B = Var(e_e1_e2_A_B_node_set(), domain=Binary)
+        self.__model.e_e1_e2_A_B_constraint = Constraint(e_e1_e2_A_B_node_set(), rule=e_e1_e2_A_B_constraint)
+
             return (sum(model.e_l_le_p[e, A, p] for p in range(1, len(self.__lines[e])+1))
                   - sum(model.e_l_le_p[e, B, p] for p in range(1, len(self.__lines[e])+1))
 
@@ -136,7 +168,10 @@ class TransitMap:
         # We minimise total crossings-over of lines
         def total_crossings(model):
             return (sum(model.e_e1_A_B[node, e1, e2, A, B]
-                            for (node, e1, e2, A, B) in self.__model.e_e1_A_B))
+                            for (node, e1, e2, A, B) in self.__model.e_e1_A_B)
+                  + sum(model.e_e1_e2_A_B[node, e, e1, e2, A, B]
+                            for (node, e, e1, e2, A, B) in self.__model.e_e1_e2_A_B))
+
         self.__model.total_crossings = Objective(rule=total_crossings)
 
     def solve(self):
@@ -183,6 +218,12 @@ if __name__ == '__main__':
         'pelvic_splanchnic_n': ('keast_3', 'L6_S1_spinal_n-pelvic_splanchnic_n')
     }
 
+    node_order = {   # Order 3 and above nodes where lines differ between edges, anticlockwise order
+        'keast_3': ['bladder_n', 'pelvic_splanchnic_n', 'hypogastric_n'],
+        'L1-spinal': ['lumbar_splanchnic_n', 'L1_ventral_root_ramus', 'L1_dorsal_root'],
+        'L2-spinal': ['lumbar_splanchnic_n', 'L2_ventral_root_ramus', 'L2_dorsal_root'],
+    }
+
     L = {
         'L1_dorsal_root': {4},
         'L1_spinal_n': {0, 2, 4},
@@ -196,9 +237,9 @@ if __name__ == '__main__':
         'pelvic_splanchnic_n': {1, 3}
     }
 
-    tm = TransitMap(route_edges, L)
 
     tm.solve()
+    tm = TransitMap(route_edges, L, node_order)
 
     pprint(tm.results())
 
