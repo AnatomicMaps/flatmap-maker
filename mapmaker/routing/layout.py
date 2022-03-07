@@ -208,7 +208,7 @@ if __name__ == '__main__':
     route_edges = {
         'L1_dorsal_root': ('L1_dorsal_root_end', 'L1-spinal'),
         'L1_spinal_n': ('L1-spinal', 'L1_L2_spinal_n-lumbar_splanchnic_n'),
-        'L1_ventral_root_ramus': ('L1-spinal', 'L1_ventral_root_ramusd'),
+        'L1_ventral_root_ramus': ('L1-spinal', 'L1_ventral_root_ramus_end'),
         'L2_dorsal_root': ('L2-spinal', 'L2_dorsal_root_end'),
         'L2_spinal_n': ('L2-spinal', 'L1_L2_spinal_n-lumbar_splanchnic_n'),
         'L2_ventral_root_ramus': ('L2-spinal', 'L2_ventral_root_ramus_end'),
