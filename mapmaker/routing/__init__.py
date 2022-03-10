@@ -152,13 +152,21 @@ class Network(object):
             else:
                 log.warning(f'Centreline node {node_dict.get("id")} has no geometry')
 
+    def __node_centre(self, node):
+    #=============================
+        return self.__centreline_graph.nodes[node].get('centre')
+
+    def __node_radii(self, node):
+    #============================
+        return self.__centreline_graph.nodes[node].get('radii')
+
     def create_geometry(self, feature_map):
     #======================================
         def truncate_segments_start(segs, node):
             # This assumes node centre is close to segs[0].start
-            node_centre = self.__centreline_graph.nodes[node].get('centre')
-            radii = self.__centreline_graph.nodes[node].get('radii')
-            if node_centre is None or segs[0].start.distanceFrom(node_centre) > radii[0]:
+            node_centre = self.__node_centre(node)
+            radii = self.__node_radii(node)
+            if segs[0].start.distanceFrom(node_centre) > radii[0]:
                 return segs
             n = 0
             while n < len(segs) and segs[n].end.distanceFrom(node_centre) < radii[0]:
@@ -184,9 +192,9 @@ class Network(object):
 
         def truncate_segments_end(segs, node):
             # This assumes node centre is close to segs[-1].end
-            node_centre = self.__centreline_graph.nodes[node].get('centre')
-            radii = self.__centreline_graph.nodes[node].get('radii')
-            if node_centre is None or segs[-1].end.distanceFrom(node_centre) > radii[0]:
+            node_centre = self.__node_centre(node)
+            radii = self.__node_radii(node)
+            if segs[-1].end.distanceFrom(node_centre) > radii[0]:
                 return segs
             n = len(segs) - 1
             while n >= 0 and segs[n].start.distanceFrom(node_centre) < radii[0]:
@@ -216,7 +224,11 @@ class Network(object):
         self.__feature_map = feature_map
         for node_id, degree in self.__centreline_graph.degree():
             node_dict = self.__centreline_graph.nodes[node_id]
-            node_dict['degree'] = degree   # This will be used when laying out route paths
+            node_dict['degree'] = degree
+            # Direction of a path at the node boundary, going towards the centre (radians)
+            node_dict['edge-direction'] = {}
+            # Angle of the radial line from the node's centre to a path's intersection with the boundary (radians)
+            node_dict['edge-angle'] = {}
             self.__set_node_properties_from_feature(node_dict, node_id)
 
         for node_0, node_1, edge_dict in self.__centreline_graph.edges(data=True):
@@ -230,44 +242,46 @@ class Network(object):
                     log.warning(f'Centreline {feature.id} has no Bezier path or some nodes are missing ({node_0} and/or {node_1})')
                     if node_0_centre is not None and node_1_centre is not None:
                         segments = [ BezierLine(node_0_centre, node_1_centre) ]
-                        edge_dict['start-node'] = node_0
-                        edge_dict['end-node'] = node_1
+                        start_node = node_0
+                        end_node = node_1
                     else:
                         segments = []
                 else:
                     start = segments[0].pointAtTime(0.0)
                     if start.distanceFrom(node_0_centre) <= start.distanceFrom(node_1_centre):
-                        edge_dict['start-node'] = node_0
-                        edge_dict['end-node'] = node_1
+                        start_node = node_0
+                        end_node = node_1
                     else:
-                        edge_dict['start-node'] = node_1
-                        edge_dict['end-node'] = node_0
+                        start_node = node_1
+                        end_node = node_0
                 if segments:
                     if self.__centreline_graph.degree(node_0) > 2:
-                        if edge_dict['start-node'] == node_0:
+                        if start_node == node_0:
                             # This assumes node_0 centre is close to segments[0].start
                             segments = truncate_segments_start(segments, node_0)
                         else:
                             # This assumes node_1 centre is close to segments[-1].end
                             segments = truncate_segments_end(segments, node_0)
                     if self.__centreline_graph.degree(node_1) > 2:
-                        if edge_dict['start-node'] == node_0:
+                        if start_node == node_0:
                             # This assumes node_0 centre is close to segments[-1].end
                             segments = truncate_segments_end(segments, node_1)
                         else:
                             # This assumes node_1 centre is close to segments[0].start
                             segments = truncate_segments_start(segments, node_1)
 
-                    start_tangent = segments[0].tangentAtTime(0.0)
-                    end_tangent = segments[-1].tangentAtTime(1.0)
-                    edge_dict['tangents'] = {
-                        edge_dict['start-node']: start_tangent,
-                        edge_dict['end-node']: end_tangent
-                    }
-                    self.__centreline_graph.nodes[edge_dict['start-node']]['angle'] = segments[0].startAngle
-                    self.__centreline_graph.nodes[edge_dict['end-node']]['angle'] = segments[-1].endAngle
+                    # Save centreline geometry at its ends for use in drawing paths
+                    edge_dict['start-node'] = start_node
+                    # Direction is towards node
+                    self.__centreline_graph.nodes[start_node]['edge-direction'][edge_id] = segments[0].startAngle + math.pi
+                    self.__centreline_graph.nodes[start_node]['edge-angle'][edge_id] = (
+                                            (segments[0].pointAtTime(0.0) - self.__node_centre(start_node)).angle)
+                    edge_dict['end-node'] = end_node
+                    self.__centreline_graph.nodes[end_node]['edge-direction'][edge_id] = segments[-1].endAngle
+                    self.__centreline_graph.nodes[end_node]['edge-angle'][edge_id] = (
+                                            (segments[0].pointAtTime(0.0) - self.__node_centre(end_node)).angle)
 
-                    # Get the geometry of any intermediate nodes along an edge
+                   # Get the geometry of any intermediate nodes along an edge
                     intermediates = {}
                     for intermediate in edge_dict.get('intermediates', []):
                         feature = self.__find_feature(intermediate)
@@ -489,6 +503,8 @@ class Network(object):
 
             # Add edges to terminal nodes that aren't part of the centreline network
             for end_node, terminal_nodes in node_terminals.items():
+                # This will be used when drawing path to terminal node
+                route_paths.nodes[end_node]['direction'] = list(route_paths.nodes[end_node]['edge-direction'].items())[0][1]
                 for terminal_id in terminal_nodes:
                     route_paths.add_edge(end_node, terminal_id, type='terminal')
                     node = route_paths.nodes[terminal_id]

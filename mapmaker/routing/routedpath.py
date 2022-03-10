@@ -157,24 +157,22 @@ class RoutedPath(object):
             of the paths.
         """
 
-        def join_geometry(node, edge_0, edge_1):
+        def join_geometry(node, node_dict, edge_dict_0, edge_dict_1):
             """
             Smoothly join two edges of a route at a node.
             """
-            e0 = edge_0['path-ends'][node]
-            e1 = edge_1['path-ends'][node]
+            e0 = edge_dict_0['path-end'][node]
+            e1 = edge_dict_1['path-end'][node]
             d = e0.distanceFrom(e1)/3
-            if (e0-e1).angle < (e1-e0).angle:
-                d = -d
-            s0 = edge_0['tangents'][node]
-            s1 = edge_1['tangents'][node]
+            s0 = BezierPoint.fromAngle(node_dict['edge-direction'][edge_dict_0.get('id')])
+            s1 = BezierPoint.fromAngle(node_dict['edge-direction'][edge_dict_1.get('id')] + math.pi)
             bz = CubicBezier(e0, e0 + s0*d, e1 - s1*d, e1)
             geometry = []
-            if edge_0.get('path-id') == edge_1.get('path-id'):
+            if edge_dict_0.get('path-id') == edge_dict_1.get('path-id'):
                 geometry.append(
                     GeometricShape(bezier_to_linestring(bz), {
-                        'nerve': edge_0.get('nerve'),
-                        'path-id': edge_0.get('path-id')
+                        'nerve': edge_dict_0.get('nerve'),
+                        'path-id': edge_dict_0.get('path-id')
                         }))
             else:
                 # The edges are from different paths so show a junction.
@@ -182,12 +180,13 @@ class RoutedPath(object):
                 geometry.append(GeometricShape.circle(
                     point_to_coords(mid_point),
                     radius = 0.8*PATH_SEPARATION,
-                    properties={'type': 'junction', 'path-id': edges[0].get('path-id')}))
+                    properties={'type': 'junction', 'path-id': edge_dict_0.get('path-id')}))
+                edge_dicts = [edge_dict_0, edge_dict_1]
                 for n, bz in enumerate(bz.splitAtTime(0.5)):
                     geometry.append(
                         GeometricShape(bezier_to_linestring(bz), {
-                            'nerve': edges[n].get('nerve'),
-                            'path-id': edges[n].get('path-id')
+                            'nerve': edge_dicts[n].get('nerve'),
+                            'path-id': edge_dicts[n].get('path-id')
                         }))
             return geometry
 
@@ -226,15 +225,16 @@ class RoutedPath(object):
                 component_num += 1
                 path_line = shapely.geometry.LineString(coords)
             if path_line is not None:
+                # Draw path line
                 path_line = path_line.simplify(SMOOTHING_TOLERANCE, preserve_topology=False)
                 geometry.append(GeometricShape(path_line, properties))
                 if edge_dict.get('type') != 'terminal':
-                    # Save where branch node edges will connect
-                    edge_dict['path-ends'] = {
+                    # Save where branch node edges will connect to offsetted path line
+                    edge_dict['path-end'] = {
                         edge_dict['start-node']: BezierPoint(*path_line.coords[0]),
                         edge_dict['end-node']: BezierPoint(*path_line.coords[-1])
                     }
-                    # Save where terminal edges would start from
+                    # Save offsetted point where terminal edges start from
                     self.__graph.nodes[edge_dict['start-node']]['start-point'] = BezierPoint(*path_line.coords[0])
                     self.__graph.nodes[edge_dict['end-node']]['start-point'] = BezierPoint(*path_line.coords[-1])
             # Draw intermediate nodes
@@ -248,7 +248,7 @@ class RoutedPath(object):
         for node_0, node_1, edge_dict in self.__graph.edges.data():
             if edge_dict.get('type') == 'terminal':
                 start_point = self.__graph.nodes[node_0]['start-point']
-                angle = self.__graph.nodes[node_0]['angle'] + math.pi
+                angle = self.__graph.nodes[node_0]['direction']
                 end_coords = self.__graph.nodes[node_1]['geometry'].centroid.coords[0]
                 end_point = coords_to_point(end_coords)
                 heading = (end_point - start_point).angle
@@ -266,22 +266,22 @@ class RoutedPath(object):
         # Connect edges at branch nodes
         for node, node_dict in self.__graph.nodes(data=True):
             if node_dict.get('degree', 0) >= 2:
-                edges = []
+                edge_dicts = []
                 for node_0, node_1, edge_dict in self.__graph.edges(node, data=True):
                     if edge_dict.get('type') != 'terminal':
-                        edges.append(edge_dict)
-                if len(edges) == 2:
-                    geometry.extend(join_geometry(node, edges[0], edges[1]))
-                elif len(edges) == 3:  ## Generalise
+                        edge_dicts.append(edge_dict)
+                if len(edge_dicts) == 2:
+                    geometry.extend(join_geometry(node, node_dict, edge_dicts[0], edge_dicts[1]))
+                elif len(edge_dicts) == 3:  ## Generalise
                     # Check angles between edges to find two most obtuse...
                     centre = node_dict['centre']
                     min_angle = math.pi
                     min_pair = None
                     pairs = []
-                    for e0, e1 in itertools.combinations(enumerate(edges), 2):
+                    for e0, e1 in itertools.combinations(enumerate(edge_dicts), 2):
                         pairs.append((e0[0], e1[0]))
-                        a = abs((e0[1]['path-ends'][node] - centre).angle
-                              - (e1[1]['path-ends'][node] - centre).angle)
+                        a = abs((e0[1]['path-end'][node] - centre).angle
+                              - (e1[1]['path-end'][node] - centre).angle)
                         if a > math.pi:
                             a = abs(a - 2*math.pi)
                         if a < min_angle:
@@ -289,7 +289,7 @@ class RoutedPath(object):
                             min_pair = pairs[-1]
                     for pair in pairs:
                         if pair != min_pair:
-                            geometry.extend(join_geometry(node, edges[pair[0]], edges[pair[1]]))
+                            geometry.extend(join_geometry(node, node_dict, edge_dicts[pair[0]], edge_dicts[pair[1]]))
 
         return geometry
 
