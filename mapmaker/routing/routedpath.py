@@ -328,8 +328,13 @@ class PathRouter(object):
 
         # Identify shared sub-paths
         edges_by_id = {}
+        node_edge_order = {}
         shared_paths = defaultdict(set)
         for route_number, route_graph in enumerate(routes):
+            for node, node_data in route_graph.nodes(data=True):
+                if node not in node_edge_order and node_data.get('degree', 0) > 2:
+                    # sorted list of edges in counter-clockwise order
+                    node_edge_order[node] = tuple(x[0] for x in sorted(node_data.get('edge-angle').items(), key=lambda x: x[1]))
             for node_0, node_1, edge_dict in route_graph.edges(data=True):
                 if edge_dict.get('type') != 'terminal':
                     shared_paths[edge_dict['id']].add(route_number)
@@ -340,8 +345,7 @@ class PathRouter(object):
         #math.atan2(delta_y, delta_x)
         ##pprint([(n, [((e0, e1), d.get('id'), d.get('path-id')) for e0, e1, d in g.edges(data=True) if d.get('type') != 'terminal'])
         ##            for n, g in enumerate(routes)])
-
-        layout = TransitMap(edges_by_id, shared_paths)
+        layout = TransitMap(edges_by_id, shared_paths, node_edge_order)
         layout.solve()
         edge_order = layout.results()
 
