@@ -345,9 +345,13 @@ class PathRouter(object):
         #math.atan2(delta_y, delta_x)
         ##pprint([(n, [((e0, e1), d.get('id'), d.get('path-id')) for e0, e1, d in g.edges(data=True) if d.get('type') != 'terminal'])
         ##            for n, g in enumerate(routes)])
-        layout = TransitMap(edges_by_id, shared_paths, node_edge_order)
-        layout.solve()
-        edge_order = layout.results()
+        # Don't invoke solver if there's only a single shared path...
+        if len(routes) > 1:
+            layout = TransitMap(edges_by_id, shared_paths, node_edge_order)
+            layout.solve()
+            edge_order = layout.results()
+        else:
+            edge_order = { id: list(route) for id, route in shared_paths.items() }
 
         for route_number, route_graph in enumerate(routes):
             for node_0, node_1, edge_dict in route_graph.edges(data=True):
