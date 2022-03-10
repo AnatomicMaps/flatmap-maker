@@ -91,10 +91,10 @@ def bezier_control_points(bezier, label=''):
     geometry = []
     bz_pts = tuple(point_to_coords(p) for p in bezier.points)
     for pt in (bz_pts[0], bz_pts[3]):
-        geometry.append(GeometricShape.circle(pt, radius=1000,
+        geometry.append(GeometricShape.circle(pt, radius=500,
             properties={'type': 'bezier', 'kind': 'bezier-end'}))
     for pt in bz_pts[1:3]:
-        geometry.append(GeometricShape.circle(pt, radius=1000,
+        geometry.append(GeometricShape.circle(pt, radius=400,
             properties={'type': 'bezier', 'kind': 'bezier-control', 'label': label}))
     geometry.append(GeometricShape.line(*bz_pts[0:2], properties={'type': 'bezier'}))
     geometry.append(GeometricShape.line(*bz_pts[2:4], properties={'type': 'bezier'}))
