@@ -150,6 +150,7 @@ class RoutedPath(object):
                 node_0['geometry'].centroid, node_1['geometry'].centroid])
 
     def geometry(self) -> [GeometricShape]:
+    #======================================
         """
         Returns:
             A list of geometric objects. This are LineStrings describing paths
@@ -307,9 +308,11 @@ class PathRouter(object):
         self.__route_graphs = {}
 
     def add_path(self, path_id: str, route_graph: nx.Graph):
+    #=======================================================
         self.__route_graphs[path_id] = route_graph
 
     def layout(self):
+    #================
         for path_id, route_graph in self.__route_graphs.items():
             nx.set_edge_attributes(route_graph, path_id, 'path-id')
         routes = []
