@@ -49,6 +49,70 @@ from .options import ARROW_LENGTH, PATH_SEPARATION, SMOOTHING_TOLERANCE
 
 #===============================================================================
 
+class PathRouter(object):
+    def __init__(self, projections: dict):
+        self.__projections = projections
+        self.__route_graphs = {}
+
+    def add_path(self, path_id: str, route_graph: nx.Graph):
+    #=======================================================
+        self.__route_graphs[path_id] = route_graph
+
+    def layout(self):
+    #================
+        for path_id, route_graph in self.__route_graphs.items():
+            nx.set_edge_attributes(route_graph, path_id, 'path-id')
+        routes = []
+        seen_paths = []
+        for path_id, route_graph in self.__route_graphs.items():
+            if path_id not in seen_paths:
+                projects_to = self.__projections.get(path_id)
+                if projects_to is not None and projects_to in self.__route_graphs:
+                    routes.append(nx.algorithms.compose(route_graph, self.__route_graphs[projects_to]))
+                    seen_paths.append(path_id)
+                    seen_paths.append(projects_to)
+        for path_id, route_graph in self.__route_graphs.items():
+            if path_id not in seen_paths:
+                if len(route_graph):
+                    routes.append(route_graph)
+
+        # Identify shared sub-paths
+        edges_by_id = {}
+        node_edge_order = {}
+        shared_paths = defaultdict(set)
+        for route_number, route_graph in enumerate(routes):
+            for node, node_data in route_graph.nodes(data=True):
+                if node not in node_edge_order and node_data.get('degree', 0) > 2:
+                    # sorted list of edges in counter-clockwise order
+                    node_edge_order[node] = tuple(x[0] for x in sorted(node_data.get('edge-angle').items(), key=lambda x: x[1]))
+            for node_0, node_1, edge_dict in route_graph.edges(data=True):
+                if edge_dict.get('type') != 'terminal':
+                    shared_paths[edge_dict['id']].add(route_number)
+                    edges_by_id[edge_dict['id']] = (node_0, node_1)
+
+        # Don't invoke solver if there's only a single shared path...
+        if len(routes) > 1:
+            layout = TransitMap(edges_by_id, shared_paths, node_edge_order)
+            layout.solve()
+            edge_order = layout.results()
+        else:
+            edge_order = { id: list(route) for id, route in shared_paths.items() }
+
+        for route_number, route_graph in enumerate(routes):
+            for node_0, node_1, edge_dict in route_graph.edges(data=True):
+                if edge_dict.get('type') != 'terminal':
+                    edge = (node_0, node_1)
+                    edge_id = edge_dict.get('id')
+                    ordering = edge_order.get(edge_id, [])
+                    if route_number in ordering:
+                        edge_dict['offset'] = ordering.index(route_number) - len(ordering)//2 + ((len(ordering)+1)%2)/2
+                        edge_dict['max-paths'] = len(ordering)
+
+        return { route_number: RoutedPath(route_graph, route_number)
+            for route_number, route_graph in enumerate(routes) }
+
+#===============================================================================
+
 class GeometricShape(object):
     def __init__(self, geometry: shapely.geometry, properties: dict = None):
         self.__geometry = geometry
@@ -299,75 +363,5 @@ class RoutedPath(object):
     #         'kind': self.__path_type,
     #         'type': 'line-dash' if self.__path_type.endswith('-post') else 'line'
     #     }
-
-#===============================================================================
-
-class PathRouter(object):
-    def __init__(self, projections: dict):
-        self.__projections = projections
-        self.__route_graphs = {}
-
-    def add_path(self, path_id: str, route_graph: nx.Graph):
-    #=======================================================
-        self.__route_graphs[path_id] = route_graph
-
-    def layout(self):
-    #================
-        for path_id, route_graph in self.__route_graphs.items():
-            nx.set_edge_attributes(route_graph, path_id, 'path-id')
-        routes = []
-        seen_paths = []
-        for path_id, route_graph in self.__route_graphs.items():
-            if path_id not in seen_paths:
-                projects_to = self.__projections.get(path_id)
-                if projects_to is not None and projects_to in self.__route_graphs:
-                    routes.append(nx.algorithms.compose(route_graph, self.__route_graphs[projects_to]))
-                    seen_paths.append(path_id)
-                    seen_paths.append(projects_to)
-        for path_id, route_graph in self.__route_graphs.items():
-            if path_id not in seen_paths:
-                if len(route_graph):
-                    routes.append(route_graph)
-
-        # Identify shared sub-paths
-        edges_by_id = {}
-        node_edge_order = {}
-        shared_paths = defaultdict(set)
-        for route_number, route_graph in enumerate(routes):
-            for node, node_data in route_graph.nodes(data=True):
-                if node not in node_edge_order and node_data.get('degree', 0) > 2:
-                    # sorted list of edges in counter-clockwise order
-                    node_edge_order[node] = tuple(x[0] for x in sorted(node_data.get('edge-angle').items(), key=lambda x: x[1]))
-            for node_0, node_1, edge_dict in route_graph.edges(data=True):
-                if edge_dict.get('type') != 'terminal':
-                    shared_paths[edge_dict['id']].add(route_number)
-                    edges_by_id[edge_dict['id']] = (node_0, node_1)
-
-        #for edges from nodes with degree > 2
-        #order by:
-        #math.atan2(delta_y, delta_x)
-        ##pprint([(n, [((e0, e1), d.get('id'), d.get('path-id')) for e0, e1, d in g.edges(data=True) if d.get('type') != 'terminal'])
-        ##            for n, g in enumerate(routes)])
-        # Don't invoke solver if there's only a single shared path...
-        if len(routes) > 1:
-            layout = TransitMap(edges_by_id, shared_paths, node_edge_order)
-            layout.solve()
-            edge_order = layout.results()
-        else:
-            edge_order = { id: list(route) for id, route in shared_paths.items() }
-
-        for route_number, route_graph in enumerate(routes):
-            for node_0, node_1, edge_dict in route_graph.edges(data=True):
-                if edge_dict.get('type') != 'terminal':
-                    edge = (node_0, node_1)
-                    edge_id = edge_dict.get('id')
-                    ordering = edge_order.get(edge_id, [])
-                    if route_number in ordering:
-                        edge_dict['offset'] = ordering.index(route_number) - len(ordering)//2 + ((len(ordering)+1)%2)/2
-                        edge_dict['max-paths'] = len(ordering)
-
-        return { route_number: RoutedPath(route_graph, route_number)
-            for route_number, route_graph in enumerate(routes) }
-
 
 #===============================================================================
