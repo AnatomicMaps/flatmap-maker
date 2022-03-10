@@ -30,7 +30,7 @@ tinycss2 = "*"
 cssselect2 = "*"
 webcolors = "*"
 xmltodict = "^0.12.0"
-mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.9.0/mapknowledge-0.9.0-py3-none-any.whl"}
+mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.9.4/mapknowledge-0.9.4-py3-none-any.whl"}
 Pyomo = "^6.2"
 
 [tool.poetry.dev-dependencies]

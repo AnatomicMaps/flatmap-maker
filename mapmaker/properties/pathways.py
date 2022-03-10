@@ -91,6 +91,33 @@ def parse_nerves(node_id_string):
 
 #===============================================================================
 
+PATH_TYPES = {
+    'ilxtr:MotorPhenotype': 'somatic',    ## Rename to 'motor' but will need viewer update...
+    'ilxtr:ParasympatheticPhenotype': 'para',
+    'ilxtr:SensoryPhenotype': 'sensory',
+    'ilxtr:SympatheticPhenotype': 'symp',
+}
+
+PATH_ORDER = {
+    'ilxtr:PostGanglionicPhenotype': 'post',
+    'ilxtr:PreGanglionicPhenotype': 'pre',
+}
+
+def path_type_from_phenotypes(phenotypes):
+#=========================================
+    path_type = []
+    for phenotype in phenotypes:
+        if phenotype in PATH_TYPES:
+            path_type.append(PATH_TYPES[phenotype])
+            break
+    for phenotype in phenotypes:
+        if phenotype in PATH_ORDER:
+            path_type.append(PATH_ORDER[phenotype])
+            break
+    return '-'.join(path_type)
+
+#===============================================================================
+
 class ResolvedPath(object):
     """
     A path described in terms of numeric feature ids.
@@ -275,8 +302,8 @@ class Path(object):
         self.__label = None
         self.__models = path.get('models')
         self.__nerves = list(parse_nerves(path.get('nerves')))
-        self.__path_type = path.get('phenotype', path.get('type'))
         self.__projection = path.get('projects')
+        self.__path_type = path.get('type')
         self.__route = None
 
         if 'path' in path:  # Manual path specification
@@ -294,6 +321,7 @@ class Path(object):
             if (self.__connections is None and 'connectivity' in knowledge
             and 'path' not in path):   # Use SciCrunch knowledge
                 # Construct a graph of SciCrunch's connected pairs
+                self.__path_type = path_type_from_phenotypes(knowledge.get('phenotypes', []))
                 G = nx.Graph()
                 for node in knowledge.get('connectivity'):
                     G.add_edge(tuple((node[0][0], tuple(node[0][1]))),
