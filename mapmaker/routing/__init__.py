@@ -255,14 +255,14 @@ class Network(object):
                         start_node = node_1
                         end_node = node_0
                 if segments:
-                    if self.__centreline_graph.degree(node_0) > 2:
+                    if self.__centreline_graph.degree(node_0) >= 2:
                         if start_node == node_0:
                             # This assumes node_0 centre is close to segments[0].start
                             segments = truncate_segments_start(segments, node_0)
                         else:
                             # This assumes node_1 centre is close to segments[-1].end
                             segments = truncate_segments_end(segments, node_0)
-                    if self.__centreline_graph.degree(node_1) > 2:
+                    if self.__centreline_graph.degree(node_1) >= 2:
                         if start_node == node_0:
                             # This assumes node_0 centre is close to segments[-1].end
                             segments = truncate_segments_end(segments, node_1)

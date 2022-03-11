@@ -164,6 +164,45 @@ def bezier_control_points(bezier, label=''):
     geometry.append(GeometricShape.line(*bz_pts[2:4], properties={'type': 'bezier'}))
     return geometry
 
+def join_geometry(node, node_dict, edge_dict_0, edge_dict_1):
+#============================================================
+    """
+    Smoothly join two edges of a route at a node.
+    """
+    bz = smooth_join(edge_dict_0['path-end'][node],
+                        node_dict['edge-direction'][edge_dict_0['id']],
+                        node_dict['edge-direction'][edge_dict_1['id']] + math.pi,
+                     edge_dict_1['path-end'][node])
+    geometry = []
+    if edge_dict_0.get('path-id') == edge_dict_1.get('path-id'):
+        geometry.append(
+            GeometricShape(bezier_to_linestring(bz), {
+                'nerve': edge_dict_0.get('nerve'),
+                'path-id': edge_dict_0.get('path-id')
+                }))
+    else:
+        # The edges are from different paths so show a junction.
+        mid_point = bz.pointAtTime(0.5)
+        geometry.append(GeometricShape.circle(
+            point_to_coords(mid_point),
+            radius = 0.8*PATH_SEPARATION,
+            properties={'type': 'junction', 'path-id': edge_dict_0.get('path-id')}))
+        edge_dicts = [edge_dict_0, edge_dict_1]
+        for n, bz in enumerate(bz.splitAtTime(0.5)):
+            geometry.append(
+                GeometricShape(bezier_to_linestring(bz), {
+                    'nerve': edge_dicts[n].get('nerve'),
+                    'path-id': edge_dicts[n].get('path-id')
+                }))
+    return geometry
+
+def smooth_join(e0, a0, a1, e1):
+#===============================
+    d = e0.distanceFrom(e1)/3
+    s0 = BezierPoint.fromAngle(a0)
+    s1 = BezierPoint.fromAngle(a1)
+    return CubicBezier(e0, e0 + s0*d, e1 - s1*d, e1)
+
 #===============================================================================
 
 class IntermediateNode:
@@ -221,40 +260,6 @@ class RoutedPath(object):
             between nodes and possibly additional features (e.g. way markers)
             of the paths.
         """
-
-        def join_geometry(node, node_dict, edge_dict_0, edge_dict_1):
-            """
-            Smoothly join two edges of a route at a node.
-            """
-            e0 = edge_dict_0['path-end'][node]
-            e1 = edge_dict_1['path-end'][node]
-            d = e0.distanceFrom(e1)/3
-            s0 = BezierPoint.fromAngle(node_dict['edge-direction'][edge_dict_0.get('id')])
-            s1 = BezierPoint.fromAngle(node_dict['edge-direction'][edge_dict_1.get('id')] + math.pi)
-            bz = CubicBezier(e0, e0 + s0*d, e1 - s1*d, e1)
-            geometry = []
-            if edge_dict_0.get('path-id') == edge_dict_1.get('path-id'):
-                geometry.append(
-                    GeometricShape(bezier_to_linestring(bz), {
-                        'nerve': edge_dict_0.get('nerve'),
-                        'path-id': edge_dict_0.get('path-id')
-                        }))
-            else:
-                # The edges are from different paths so show a junction.
-                mid_point = bz.pointAtTime(0.5)
-                geometry.append(GeometricShape.circle(
-                    point_to_coords(mid_point),
-                    radius = 0.8*PATH_SEPARATION,
-                    properties={'type': 'junction', 'path-id': edge_dict_0.get('path-id')}))
-                edge_dicts = [edge_dict_0, edge_dict_1]
-                for n, bz in enumerate(bz.splitAtTime(0.5)):
-                    geometry.append(
-                        GeometricShape(bezier_to_linestring(bz), {
-                            'nerve': edge_dicts[n].get('nerve'),
-                            'path-id': edge_dicts[n].get('path-id')
-                        }))
-            return geometry
-
         geometry = []
         for node_0, node_1, edge_dict in self.__graph.edges.data():
             edge = (node_0, node_1)
@@ -335,7 +340,20 @@ class RoutedPath(object):
                 for node_0, node_1, edge_dict in self.__graph.edges(node, data=True):
                     if edge_dict.get('type') != 'terminal':
                         edge_dicts.append(edge_dict)
-                if len(edge_dicts) == 2:
+                if len(edge_dicts) == 1:
+                    # Draw path from node boundary to offsetted centre
+                    edge_dict = edge_dicts[0]
+                    offset = PATH_SEPARATION*edge_dict['offset']
+                    edge_angle = node_dict['edge-angle'][edge_dict['id']]
+                    bz = smooth_join(edge_dict['path-end'][node],
+                                        node_dict['edge-direction'][edge_dict['id']],
+                                        edge_angle,
+                                     node_dict['centre'] + BezierPoint.fromAngle(edge_angle + math.pi/2)*offset)
+                    geometry.append(GeometricShape(bezier_to_linestring(bz), {
+                        'nerve': edge_dict.get('nerve'),
+                        'path-id': edge_dict.get('path-id')
+                    }))
+                elif len(edge_dicts) == 2:
                     geometry.extend(join_geometry(node, node_dict, edge_dicts[0], edge_dicts[1]))
                 elif len(edge_dicts) == 3:  ## Generalise
                     # Check angles between edges to find two most obtuse...
