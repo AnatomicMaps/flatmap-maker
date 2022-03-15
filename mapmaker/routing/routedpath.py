@@ -105,37 +105,44 @@ class PathRouter(object):
                     routes.append(route_graph)
 
         # Identify shared sub-paths
-        edges_by_id = {}
+        edges = set()
         node_edge_order = {}
         shared_paths = defaultdict(set)
         for route_number, route_graph in enumerate(routes):
             for node, node_data in route_graph.nodes(data=True):
                 if node not in node_edge_order and node_data.get('degree', 0) > 2:
                     # sorted list of edges in counter-clockwise order
-                    node_edge_order[node] = tuple(x[0] for x in sorted(node_data.get('edge-angle').items(), key=lambda x: x[1]))
-            for node_0, node_1, edge_dict in route_graph.edges(data=True):
-                if edge_dict.get('type') != 'terminal':
-                    shared_paths[edge_dict['id']].add(route_number)
-                    edges_by_id[edge_dict['id']] = (node_0, node_1)
-
-        # Don't invoke solver if there's only a single shared path...
-        if len(routes) > 1:
-            layout = TransitMap(edges_by_id, shared_paths, node_edge_order)
-            layout.solve()
-            edge_order = layout.results()
-        else:
-            edge_order = { id: list(route) for id, route in shared_paths.items() }
-
-        for route_number, route_graph in enumerate(routes):
+                    node_edge_order[node] =  tuple(x[0] for x in sorted(node_data.get('edge-node-angle').items(), key=lambda x: x[1]))
             for node_0, node_1, edge_dict in route_graph.edges(data=True):
                 if edge_dict.get('type') != 'terminal':
                     edge = (node_0, node_1)
-                    edge_id = edge_dict.get('id')
-                    ordering = edge_order.get(edge_id, [])
-                    if route_number in ordering:
-                        edge_dict['offset'] = ordering.index(route_number) - len(ordering)//2 + ((len(ordering)+1)%2)/2
-                        edge_dict['max-paths'] = len(ordering)
+                    shared_paths[edge].add(route_number)
+                    edges.add(edge)
 
+        # Don't invoke solver if there's only a single shared path...
+        if len(routes) > 1:
+            layout = TransitMap(edges, shared_paths, node_edge_order)
+            layout.solve()
+            edge_order = layout.results()
+        else:
+            edge_order = { edge: list(route) for edge, route in shared_paths.items() }
+
+        for route_number, route_graph in enumerate(routes):
+            for _, node_dict in route_graph.nodes(data=True):
+                node_dict['offsets'] = {}
+            for node_0, node_1, edge_dict in route_graph.edges(data=True):
+                if edge_dict.get('type') != 'terminal':
+                    if (node_0, node_1) in edge_order:
+                        ordering = edge_order[(node_0, node_1)]
+                    else:
+                        ordering = edge_order.get((node_1, node_0), [])
+                        (node_0, node_1) = tuple(reversed((node_0, node_1)))
+                    if route_number in ordering:
+                        edge_dict['max-paths'] = len(ordering)
+                        route_index = ordering.index(route_number)
+                        offset = len(ordering)//2 - ((len(ordering)+1)%2)/2
+                        route_graph.nodes[node_0]['offsets'][node_1] = route_index - offset
+                        route_graph.nodes[node_1]['offsets'][node_0] = len(ordering) - route_index - 1 - offset
         return { route_number: RoutedPath(route_graph, route_number)
             for route_number, route_graph in enumerate(routes) }
 
@@ -299,7 +306,8 @@ class RoutedPath(object):
             path_components = edge_dict.get('path-components')
             if path_components is None:
                 continue
-            path_offset = PATH_SEPARATION*edge_dict['offset']
+            offset = self.__graph.nodes[edge_dict['start-node']]['offsets'][edge_dict['end-node']]
+            path_offset = PATH_SEPARATION*offset
             intermediate_nodes = []
             coords = []
             intermediate_start = None
@@ -310,7 +318,7 @@ class RoutedPath(object):
                     component_num += 1
                     next_line_coords = bezier_to_linestring(path_components[component_num], offset=path_offset).coords
                     intermediate_geometry = component.geometry(intermediate_start, BezierPoint(*next_line_coords[0]),
-                                                               offset=2*edge_dict['offset']/edge_dict['max-paths'])
+                                                               offset=2*offset/edge_dict['max-paths'])
                     line_coords = intermediate_geometry[0].coords
                     intermediate_nodes.append(intermediate_geometry[1])
                     coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
@@ -365,14 +373,16 @@ class RoutedPath(object):
         for node, node_dict in self.__graph.nodes(data=True):
             if node_dict.get('degree', 0) >= 2:
                 edge_dicts = []
-                for node_0, node_1, edge_dict in self.__graph.edges(node, data=True):
+                edge_nodes = []
+                for _, node_1, edge_dict in self.__graph.edges(node, data=True):
                     if edge_dict.get('type') != 'terminal':
                         edge_dicts.append(edge_dict)
-                if len(edge_dicts) == 1:
+                        edge_nodes.append(node_1)
+                if len(edge_nodes) == 1:
                     # Draw path from node boundary to offsetted centre
                     edge_dict = edge_dicts[0]
-                    offset = PATH_SEPARATION*edge_dict['offset']
-                    edge_angle = node_dict['edge-angle'][edge_dict['id']]
+                    offset = PATH_SEPARATION*self.__graph.nodes[node]['offsets'][edge_nodes[0]]
+                    edge_angle = node_dict['edge-node-angle'][edge_nodes[0]]
                     bz = smooth_join(edge_dict['path-end'][node],
                                         node_dict['edge-direction'][edge_dict['id']],
                                         edge_angle,

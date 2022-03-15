@@ -228,7 +228,8 @@ class Network(object):
             # Direction of a path at the node boundary, going towards the centre (radians)
             node_dict['edge-direction'] = {}
             # Angle of the radial line from the node's centre to a path's intersection with the boundary (radians)
-            node_dict['edge-angle'] = {}
+            node_dict['edge-node-angle'] = {}
+            # Set additional node attributes from its feature's geometry
             self.__set_node_properties_from_feature(node_dict, node_id)
 
         for node_0, node_1, edge_dict in self.__centreline_graph.edges(data=True):
@@ -274,14 +275,15 @@ class Network(object):
                     edge_dict['start-node'] = start_node
                     # Direction is towards node
                     self.__centreline_graph.nodes[start_node]['edge-direction'][edge_id] = segments[0].startAngle + math.pi
-                    self.__centreline_graph.nodes[start_node]['edge-angle'][edge_id] = (
+                    self.__centreline_graph.nodes[start_node]['edge-node-angle'][end_node] = (
                                             (segments[0].pointAtTime(0.0) - self.__node_centre(start_node)).angle)
+
                     edge_dict['end-node'] = end_node
                     self.__centreline_graph.nodes[end_node]['edge-direction'][edge_id] = segments[-1].endAngle
-                    self.__centreline_graph.nodes[end_node]['edge-angle'][edge_id] = (
+                    self.__centreline_graph.nodes[end_node]['edge-node-angle'][start_node] = (
                                             (segments[0].pointAtTime(0.0) - self.__node_centre(end_node)).angle)
 
-                   # Get the geometry of any intermediate nodes along an edge
+                    # Get the geometry of any intermediate nodes along an edge
                     intermediates = {}
                     for intermediate in edge_dict.get('intermediates', []):
                         feature = self.__find_feature(intermediate)
@@ -375,6 +377,7 @@ class Network(object):
                 terminals[end_node] = node.get('terminals', [])
             else:
                 end_nodes.append(node)
+
         # Our route as a subgraph of the centreline network
         route_graph = nx.Graph(get_connected_subgraph(self.__centreline_graph, end_nodes))
 
