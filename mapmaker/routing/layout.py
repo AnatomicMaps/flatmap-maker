@@ -32,152 +32,163 @@ from pyomo.environ import *
 # Hannah Bast, Patrick Brosi, Sabine Storandt.
 
 class TransitMap:
-    def __init__(self, route, lines, node_edge_order):
-        self.__graph = nx.Graph()
-        self.__lines = lines
-        for id, edge in route.items():
-            self.__graph.add_edge(*edge, id=id)
-
+    def __init__(self, edges, edge_lines, node_edge_order):
+        self.__graph = nx.Graph(edges)
+        for edge in self.__graph.edges:
+            self.__graph.edges[edge]['lines'] = set()
+        for edge, lines in edge_lines.items():
+            self.__graph.edges[edge]['lines'].update(lines)
         self.__model = ConcreteModel()
+        node_ordering = { key: tuple(node for node in ordered_nodes if node in self.__graph)
+                            for key, ordered_nodes in node_edge_order.items() }
 
         #======================================================================
 
-        self.__edge_set = { e for _, _, e in self.__graph.edges(data='id') }
+        # n_n1_l_le_p   or   e_l<=p
 
-        #======================================================================
+        def n_n1_l_le_p_set():
+            for n, n1, lines in self.__graph.edges(data='lines'):
+                for l in lines:
+                    for p in range(1, len(lines)+1):
+                        yield (n, n1, l, p)
+                        yield (n1, n, l, p)
 
-        # e_l_le_p
-        def e_l_le_p_set():
-            for e in self.__edge_set:
-                for l in self.__lines[e]:
-                    for p in range(1, len(self.__lines[e])+1):
-                        yield (e, l, p)
-
-        def e_l_le_p_constraint(model, e, l, p):
-            if p == len(self.__lines[e]):
+        def n_n1_l_le_p_constraint(model, n, n1, l, p):
+            if p == len(self.__graph.edges[n, n1]['lines']):
                 return Constraint.Skip
-            return model.e_l_le_p[e, l, p] <= model.e_l_le_p[e, l, p+1]
+            return model.n_n1_l_le_p[n, n1, l, p] <= model.n_n1_l_le_p[n, n1, l, p+1]
 
         def edge_position_set():
-            for e in self.__edge_set:
-                for p in range(1, len(self.__lines[e])+1):
-                    yield (e, p)
+            for n, n1, lines in self.__graph.edges(data='lines'):
+                for p in range(1, len(lines)+1):
+                    yield (n, n1, p)
+                    yield (n1, n, p)
 
-        def edge_position_unique_constraint(model, e, p):
-            return sum(model.e_l_le_p[e, l, p] for l in self.__lines[e]) == p
+        def edge_position_unique_constraint(model, n, n1, p):
+            return sum(model.n_n1_l_le_p[n, n1, l, p] for l in self.__graph.edges[n, n1]['lines']) == p
 
-        self.__model.e_l_le_p = Var(e_l_le_p_set(), domain=Binary)
-        self.__model.e_l_le_p_constraint = Constraint(e_l_le_p_set(), rule=e_l_le_p_constraint)
+        def edge_line_set():
+            for n, n1, lines in self.__graph.edges(data='lines'):
+                for l in lines:
+                    yield (n, n1, l)
+
+        def edge_line_mirror_constraint(model, n, n1, l):
+            lines = self.__graph.edges[n, n1]['lines']
+            return (sum(model.n_n1_l_le_p[n, n1, l, p]
+                      + model.n_n1_l_le_p[n1, n, l, p] for p in range(1, len(lines)+1))) == (len(lines) + 1)
+
+        self.__model.n_n1_l_le_p = Var(n_n1_l_le_p_set(), domain=Binary)
+        self.__model.n_n1_l_p_constraint = Constraint(n_n1_l_le_p_set(), rule=n_n1_l_le_p_constraint)
         self.__model.edge_position_unique_constraint = Constraint(edge_position_set(), rule=edge_position_unique_constraint)
+        self.__model.edge_line_mirror_constraint = Constraint(edge_line_set(), rule=edge_line_mirror_constraint)
 
         #======================================================================
 
-        # e_A_lt_B
-        def e_A_lt_B_set():
-            for e in self.__edge_set:
-                for A, B in itertools.combinations(self.__lines[e], 2):
-                    yield (e, A, B)
-                    yield (e, B, A)
+        # n_n1_A_lt_B   or  e_A<B
+        # A before B in (n, n1) <===> B before A in (n1, n)
 
-        def e_A_lt_B_constraint_1(model, e, A, B):
-            return (sum(model.e_l_le_p[e, A, p] for p in range(1, len(self.__lines[e])+1))
-                  - sum(model.e_l_le_p[e, B, p] for p in range(1, len(self.__lines[e])+1))
-                  + len(lines[e])*model.e_A_lt_B[e, B, A]) >= 0
+        def n_n1_A_lt_B_set():
+            for n, n1, lines in self.__graph.edges(data='lines'):
+                for A, B in itertools.combinations(lines, 2):
+                    yield (n, n1, A, B)
+                    yield (n, n1, B, A)
+                    yield (n1, n, A, B)
+                    yield (n1, n, B, A)
 
-        def e_A_lt_B_constraint_2(model, e, A, B):
-            return model.e_A_lt_B[e, A, B] + model.e_A_lt_B[e, B, A] == 1
+        def n_n1_A_lt_B_constraint_1(model, n, n1, A, B):
+            lines = self.__graph.edges[n, n1]['lines']
+            return (sum(model.n_n1_l_le_p[n, n1, A, p] for p in range(1, len(lines)+1))
+                  - sum(model.n_n1_l_le_p[n, n1, B, p] for p in range(1, len(lines)+1))
+                  + len(lines)*model.n_n1_A_lt_B[n, n1, B, A]) >= 0
 
-        self.__model.e_A_lt_B = Var(set(e_A_lt_B_set()), domain=Binary)
-        self.__model.e_A_lt_B_constraint_1 = Constraint(set(e_A_lt_B_set()), rule=e_A_lt_B_constraint_1)
-        self.__model.e_A_lt_B_constraint_2 = Constraint(set(e_A_lt_B_set()), rule=e_A_lt_B_constraint_2)
+        def n_n1_A_lt_B_constraint_2(model, n, n1, A, B):
+            return model.n_n1_A_lt_B[n, n1, A, B] + model.n_n1_A_lt_B[n, n1, B, A] == 1
+
+        def n_n1_A_lt_B_constraint_3(model, n, n1, A, B):
+            return model.n_n1_A_lt_B[n, n1, A, B] + model.n_n1_A_lt_B[n1, n, A, B] == 1
+
+        self.__model.n_n1_A_lt_B = Var(set(n_n1_A_lt_B_set()), domain=Binary)
+        self.__model.n_n1_A_lt_B_constraint_1 = Constraint(set(n_n1_A_lt_B_set()), rule=n_n1_A_lt_B_constraint_1)
+        self.__model.n_n1_A_lt_B_constraint_2 = Constraint(set(n_n1_A_lt_B_set()), rule=n_n1_A_lt_B_constraint_2)
+        self.__model.n_n1_A_lt_B_constraint_3 = Constraint(set(n_n1_A_lt_B_set()), rule=n_n1_A_lt_B_constraint_3)
 
         #======================================================================
 
-        # e_e1_A_B
-        def e_e1_A_B_node_set():
+        # n_n1_n2_A_B   #   n_e_e1_A&B
+        # A, B in both (n, n1) and (n, n2) (and also (n1, n) and (n2, n))
+        # 0 if A, B don't cross, 1 if they cross
+
+        def n_n1_n2_A_B_set():
             for node, degree in self.__graph.degree:
                 if degree >= 2:
-                    for e, e1 in itertools.combinations(self.edges(node), 2):
-                        for A, B in itertools.combinations(self.__lines[e], 2):
-                            if A in self.__lines[e1] and B in self.__lines[e1]:
-                                yield (node, e, e1, A, B)
+                    for e1, e2 in itertools.combinations(self.__graph.edges(node, data='lines'), 2):
+                        for A, B in itertools.combinations(e1[2], 2):
+                            if A in e2[2] and B in e2[2]:
+                                yield (node, e1[1], e2[1], A, B)
 
-        def e_e1_A_B_constraint_1(model, node, e, e1, A, B):
-            return (model.e_A_lt_B[e,  A, B]
-                  - model.e_A_lt_B[e1, A, B]
-                  - model.e_e1_A_B[node, e, e1, A, B]) <= 0
+        def n_n1_n2_A_B_constraint_1(model, node, n1, n2, A, B):
+            return (model.n_n1_A_lt_B[node, n1, A, B]
+                  - model.n_n1_A_lt_B[node, n2, B, A]
+                  - model.n_n1_n2_A_B[node, n1, n2, A, B]) <= 0
 
-        def e_e1_A_B_constraint_2(model, node, e, e1, A, B):
-            return (model.e_A_lt_B[e1, A, B]
-                  - model.e_A_lt_B[e,  A, B]
-                  - model.e_e1_A_B[node, e, e1, A, B]) <= 0
+        def n_n1_n2_A_B_constraint_2(model, node, n1, n2, A, B):
+            return (model.n_n1_A_lt_B[node, n2, B, A]
+                  - model.n_n1_A_lt_B[node, n1, A, B]
+                  - model.n_n1_n2_A_B[node, n1, n2, A, B]) <= 0
 
-        self.__model.e_e1_A_B = Var(e_e1_A_B_node_set(), domain=Binary)
-        self.__model.e_e1_A_B_constraint_1 = Constraint(e_e1_A_B_node_set(), rule=e_e1_A_B_constraint_1)
-        self.__model.e_e1_A_B_constraint_2 = Constraint(e_e1_A_B_node_set(), rule=e_e1_A_B_constraint_2)
+        self.__model.n_n1_n2_A_B = Var(n_n1_n2_A_B_set(), domain=Binary)
+        self.__model.n_n1_n2_A_B_constraint_1 = Constraint(n_n1_n2_A_B_set(), rule=n_n1_n2_A_B_constraint_1)
+        self.__model.n_n1_n2_A_B_constraint_2 = Constraint(n_n1_n2_A_B_set(), rule=n_n1_n2_A_B_constraint_2)
 
         #======================================================================
 
-        # e_e1_e2_A_B
-        # e, e1, e2 are in counter-clockwise order
-        # A, B both in L(e) s.th. neither A nor B in both L(e1), L(e2)
-        # A in L(e1) <==> B in L(e2) ==> value = 1 if eA<B, 0 if eB<A
-        # A in L(e2) <==> B in L(e1) ==> value = 0 if eA<B, 1 if eB<A
+        # n_n1_n2_n3_A_B
+        # (n, n1), (n, n2), (n, n3) are in counter-clockwise order
+        # A, B both in L((n, n1)) s.th. neither A nor B in both L((n, n2)), L((n, n3))
+        # A in L((n, n2)) <==> B in L((n, n3)) ==> value = 1 if eA<B, 0 if eB<A
+        # A in L((n, n2)) <==> B in L((n, n2)) ==> value = 0 if eA<B, 1 if eB<A
 
-        def e_e1_e2_A_B_node_set():
+        def n_n1_n2_n3_A_B_set():
             for node, degree in self.__graph.degree:
-                if degree > 2 and node in node_edge_order:
-                    ordered_edges = node_edge_order[node]
-                    for n, e in enumerate(ordered_edges):
-                        edges = ordered_edges[n+1:] + ordered_edges[:n]
-                        for (e1, e2) in itertools.combinations(edges, 2):
-                            for A, B in itertools.combinations(self.__lines[e], 2):
-                                if ((not (A in self.__lines[e1] and B in self.__lines[e1])
-                                 and not (A in self.__lines[e2] and B in self.__lines[e2]))
-                                 and (A in self.__lines[e1] and B in self.__lines[e2]
-                                   or A in self.__lines[e2] and B in self.__lines[e1])):
-                                    yield (node, e, e1, e2, A, B)
+                if degree > 2 and node in node_ordering:
+                    ordered_nodes = node_ordering[node]
+                    for i, n1 in enumerate(ordered_nodes):
+                        nodes = ordered_nodes[i+1:] + ordered_nodes[:i]
+                        e1_lines = self.__graph.edges[node, n1]['lines']
+                        for (n2, n3) in itertools.combinations(nodes, 2):
+                            e2_lines = self.__graph.edges[node, n2]['lines']
+                            e3_lines = self.__graph.edges[node, n3]['lines']
+                            for A, B in itertools.combinations(e1_lines, 2):
+                                if ((not (A in e2_lines and B in e2_lines)
+                                 and not (A in e3_lines and B in e3_lines))
+                                 and (A in e2_lines and B in e3_lines
+                                   or A in e3_lines and B in e2_lines)):
+                                    yield (node, n1, n2, n3, A, B)
 
-        def e_e1_e2_A_B_constraint(model, node, e, e1, e2, A, B):
-            if A in self.__lines[e2]:
-                return 1 - model.e_A_lt_B[e, A, B] - model.e_e1_e2_A_B[node, e, e1, e2, A, B] <= 0
+        def n_n1_n2_n3_A_B_constraint(model, node, n1, n2, n3, A, B):
+            if A in self.__graph.edges[node, n3]['lines']:
+                return 1 - model.n_n1_A_lt_B[node, n1, A, B] - model.n_n1_n2_n3_A_B[node, n1, n2, n3, A, B] <= 0
             else:
-                return 1 - model.e_A_lt_B[e, B, A] - model.e_e1_e2_A_B[node, e, e1, e2, A, B] <= 0
+                return 1 - model.n_n1_A_lt_B[node, n1, B, A] - model.n_n1_n2_n3_A_B[node, n1, n2, n3, A, B] <= 0
 
+        self.__model.n_n1_n2_n3_A_B = Var(n_n1_n2_n3_A_B_set(), domain=Binary)
+        self.__model.n_n1_n2_n3_A_B_constraint = Constraint(n_n1_n2_n3_A_B_set(), rule=n_n1_n2_n3_A_B_constraint)
 
-        self.__model.e_e1_e2_A_B = Var(e_e1_e2_A_B_node_set(), domain=Binary)
-        self.__model.e_e1_e2_A_B_constraint = Constraint(e_e1_e2_A_B_node_set(), rule=e_e1_e2_A_B_constraint)
-
-            return (sum(model.e_l_le_p[e, A, p] for p in range(1, len(self.__lines[e])+1))
-                  - sum(model.e_l_le_p[e, B, p] for p in range(1, len(self.__lines[e])+1))
-
-
-                if degree >= 2:
-                    for pair in itertools.permutations(self.__graph.edges(node, data='id'), 2):
-                        e, e1 = (pair[0][2], pair[1][2])
-                            yield (node, e, e1, A, B)
-
-            if (A not in self.__lines[e]  or B not in self.__lines[e]
-             or A not in self.__lines[e1] or B not in self.__lines[e1]):
-
-            if (A not in self.__lines[e]  or B not in self.__lines[e]
-             or A not in self.__lines[e1] or B not in self.__lines[e1]):
-                return Constraint.Skip
-
+        #======================================================================
 
         # We minimise total crossings-over of lines
         def total_crossings(model):
-            return (sum(model.e_e1_A_B[node, e1, e2, A, B]
-                            for (node, e1, e2, A, B) in self.__model.e_e1_A_B)
-                  + sum(model.e_e1_e2_A_B[node, e, e1, e2, A, B]
-                            for (node, e, e1, e2, A, B) in self.__model.e_e1_e2_A_B))
+            return (sum(model.n_n1_n2_A_B[node, n1, n2, A, B]
+                            for (node, n1, n2, A, B) in model.n_n1_n2_A_B)
+                  + sum(model.n_n1_n2_n3_A_B[node, n1, n2, n3, A, B]
+                            for (node, n1, n2, n3, A, B) in model.n_n1_n2_n3_A_B))
 
         self.__model.total_crossings = Objective(rule=total_crossings)
 
-    def edges(self, node):
-    #=====================
-        for _, _, e in self.__graph.edges(node, data='id'):
-            yield e
+    #======================================================================
+
+
+    #======================================================================
 
     def solve(self, tee=False):
     #==========================
@@ -186,18 +197,18 @@ class TransitMap:
 
     def results(self):
     #=================
-        ordered = {}
-        for e in self.__edge_set:
+        ordering = {}
+        for n, n1, lines in self.__graph.edges(data='lines'):
             order = []
             last_l = None
-            for l in self.__lines[e]:
-                for p in range(1, len(self.__lines[e])+1):
-                    if self.__model.e_l_le_p[e, l, p].value == 1:
+            for l in lines:
+                for p in range(1, len(lines)+1):
+                    if self.__model.n_n1_l_le_p[n, n1, l, p].value == 1:
                         if l != last_l:
                             order.append((p, l))
                             last_l = l
-            ordered[e] = [l for _, l in sorted(order)]
-        return ordered
+            ordering[(n, n1)] = [l for _, l in sorted(order)]
+       return ordering
 
 #===============================================================================
 
@@ -206,77 +217,77 @@ if __name__ == '__main__':
 
     from pprint import pprint
 
-    route_edges = {
-        'L1_dorsal_root': ('L1_dorsal_root_end', 'L1-spinal'),
-        'L1_spinal_n': ('L1-spinal', 'L1_L2_spinal_n-lumbar_splanchnic_n'),
-        'L1_ventral_root_ramus': ('L1-spinal', 'L1_ventral_root_ramus_end'),
-        'L2_dorsal_root': ('L2-spinal', 'L2_dorsal_root_end'),
-        'L2_spinal_n': ('L2-spinal', 'L1_L2_spinal_n-lumbar_splanchnic_n'),
-        'L2_ventral_root_ramus': ('L2-spinal', 'L2_ventral_root_ramus_end'),
-        'L6_dorsal_root': ('L6_dorsal_root_end', 'L6-spinal'),
-        'L6_spinal_n': ('L6_S1_spinal_n-pelvic_splanchnic_n', 'L6-spinal'),
-        'L6_ventral_root': ('L6_ventral_root_end', 'L6-spinal'),
-        'S1_dorsal_root': ('S1_dorsal_root_end', 'S1-spinal'),
-        'S1_spinal_n': ('L6_S1_spinal_n-pelvic_splanchnic_n', 'S1-spinal'),
-        'S1_ventral_root': ('S1_ventral_root_end', 'S1-spinal'),
-        'bladder_n': ('bladder_n-bladder', 'keast_3'),
-        'hypogastric_n': ('keast_6', 'keast_3'),
-        'lumbar_splanchnic_n': ('keast_6', 'L1_L2_spinal_n-lumbar_splanchnic_n'),
-        'pelvic_splanchnic_n': ('keast_3', 'L6_S1_spinal_n-pelvic_splanchnic_n')
+    edges = {
+        ('L1_L2_spinal_n-lumbar_splanchnic_n', 'L1-spinal'),
+        ('L1_L2_spinal_n-lumbar_splanchnic_n', 'L2-spinal'),
+        ('L1_L2_spinal_n-lumbar_splanchnic_n', 'keast_6'),
+        ('L1_dorsal_root_end', 'L1-spinal'),
+        ('L1_ventral_root_ramus_end', 'L1-spinal'),
+        ('L2-spinal', 'L2_ventral_root_ramus_end'),
+        ('L2_dorsal_root_end', 'L2-spinal'),
+        ('L6-spinal', 'L6_dorsal_root_end'),
+        ('L6_S1_spinal_n-pelvic_splanchnic_n', 'L6-spinal'),
+        ('L6_ventral_root_end', 'L6-spinal'),
+        ('S1-spinal', 'L6_S1_spinal_n-pelvic_splanchnic_n'),
+        ('S1_dorsal_root_end', 'S1-spinal'),
+        ('S1_ventral_root_end', 'S1-spinal'),
+        ('bladder_n-bladder', 'keast_3'),
+        ('keast_3', 'L6_S1_spinal_n-pelvic_splanchnic_n'),
+        ('keast_3', 'bladder_n-bladder'),
+        ('keast_3', 'keast_6'),
+        ('keast_6', 'keast_3')
     }
 
-    node_order = {   # Order 3 and above nodes where lines differ between edges, anticlockwise order
-        'keast_3': ['bladder_n', 'pelvic_splanchnic_n', 'hypogastric_n'],
-        'L1-spinal': ['lumbar_splanchnic_n', 'L1_ventral_root_ramus', 'L1_dorsal_root'],
-        'L2-spinal': ['lumbar_splanchnic_n', 'L2_ventral_root_ramus', 'L2_dorsal_root'],
-        'L6-spinal': ['pelvic_splanchnic_n', 'L6_ventral_root', 'L6_dorsal_root'],
-        'S1-spinal': ['pelvic_splanchnic_n', 'S1_ventral_root', 'S1_dorsal_root'],
+    edge_lines = {
+        ('L1-spinal', 'L1_L2_spinal_n-lumbar_splanchnic_n'): {1, 2, 4},
+        ('L1-spinal', 'L1_dorsal_root_end'): {4},
+        ('L1_ventral_root_ramus_end', 'L1-spinal'): {1, 2},
+        ('L2-spinal', 'L1_L2_spinal_n-lumbar_splanchnic_n'): {1, 2, 4},
+        ('L2-spinal', 'L2_dorsal_root_end'): {4},
+        ('L2-spinal', 'L2_ventral_root_ramus_end'): {1, 2},
+        ('L6-spinal', 'L6_S1_spinal_n-pelvic_splanchnic_n'): {0, 3},
+        ('L6_dorsal_root_end', 'L6-spinal'): {3},
+        ('L6_ventral_root_end', 'L6-spinal'): {0},
+        ('S1-spinal', 'L6_S1_spinal_n-pelvic_splanchnic_n'): {0, 3},
+        ('S1-spinal', 'S1_dorsal_root_end'): {3},
+        ('S1-spinal', 'S1_ventral_root_end'): {0},
+        ('bladder_n-bladder', 'keast_3'): {2},           ### NB. Node order difference
+        ('keast_3', 'L6_S1_spinal_n-pelvic_splanchnic_n'): {0, 3},
+        ('keast_3', 'bladder_n-bladder'): {0, 1, 3, 4},  ### NB. Node order difference
+        ('keast_6', 'L1_L2_spinal_n-lumbar_splanchnic_n'): {1, 2, 4},
+        ('keast_6', 'keast_3'): {1, 2, 4}
     }
 
-    L = {
-        'L1_dorsal_root': {4},
-        'L1_spinal_n': {0, 2, 4},
-        'L1_ventral_root_ramus': {0, 2},
-        'L2_dorsal_root': {4},
-        'L2_spinal_n': {0, 2, 4},
-        'L2_ventral_root_ramus': {0, 2},
-        'L6_dorsal_root': {3},
-        'L6_spinal_n': {1, 3},
-        'L6_ventral_root': {1},
-        'S1_dorsal_root': {3},
-        'S1_spinal_n': {1, 3},
-        'S1_ventral_root': {1},
-        'bladder_n': {0, 1, 2, 3, 4},
-        'hypogastric_n': {0, 2, 4},
-        'lumbar_splanchnic_n': {0, 2, 4},
-        'pelvic_splanchnic_n': {1, 3}
+    node_edge_order = {   # Order 3 and above nodes where lines differ between edges, anticlockwise order
+        'L1_L2_spinal_n-lumbar_splanchnic_n': ('keast_6', 'L2-spinal', 'L1-spinal'),
+        'L6_S1_spinal_n-pelvic_splanchnic_n': ('keast_3', 'S1-spinal', 'L6-spinal'),
+        'L1-spinal': ('L1_L2_spinal_n-lumbar_splanchnic_n',
+                      'L1_ventral_root_ramus_end',
+                      'L1_ventral_root_end',
+                      'L1_dorsal_root_end'),
+        'L2-spinal': ('L1_L2_spinal_n-lumbar_splanchnic_n',
+                      'L2_ventral_root_ramus_end',
+                      'L2_dorsal_root_end'),
+        'L6-spinal': ('L6_S1_spinal_n-pelvic_splanchnic_n',
+                      'L6_ventral_root_end',
+                      'L6_dorsal_root_end'),
+        'S1-spinal': ('L6_S1_spinal_n-pelvic_splanchnic_n',
+                      'S1_ventral_root_end',
+                      'S1_dorsal_root_end'),
+        'keast_3': ('bladder_n-bladder',
+                    'L6_S1_spinal_n-pelvic_splanchnic_n',
+                    'keast_6')
     }
 
-    result = {
-        'L1_dorsal_root': [4],
-        'L1_spinal_n': [4, 0, 2],
-        'L1_ventral_root_ramus': [0, 2],
-        'L2_dorsal_root': [4],
-        'L2_spinal_n': [4, 0, 2],
-        'L2_ventral_root_ramus': [0, 2],
-        'L6_dorsal_root': [3],
-        'L6_spinal_n': [3, 1],
-        'L6_ventral_root': [1],
-        'S1_dorsal_root': [3],
-        'S1_spinal_n': [3, 1],
-        'S1_ventral_root': [1],
-        'bladder_n': [4, 0, 2, 3, 1],
-        'hypogastric_n': [4, 0, 2],
-        'lumbar_splanchnic_n': [4, 0, 2],
-        'pelvic_splanchnic_n': [3, 1]
-    }
 
     tee = False
-    tm = TransitMap(route_edges, L, node_order)
+    tm = TransitMap(edges, edge_lines, node_edge_order)
+
+    pprint(edge_lines)
+    print()
 
     tm.solve(tee=tee)
-    pprint(tm.results())
-
-    assert result == tm.results(), 'Unexpected result set -- optimisation failed?'
+    results = tm.results()
+    pprint(results)
 
 #===============================================================================
