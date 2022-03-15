@@ -49,9 +49,13 @@ from .options import ARROW_LENGTH, PATH_SEPARATION, SMOOTHING_TOLERANCE
 
 #===============================================================================
 
+PRE_GANGLIONIC_TYPES = ['para-pre', 'symp-pre']
+POST_GANGLIONIC_TYPES = ['para-post', 'symp-post']
+
+#===============================================================================
+
 class PathRouter(object):
-    def __init__(self, projections: dict):
-        self.__projections = projections
+    def __init__(self):
         self.__route_graphs = {}
 
     def add_path(self, path_id: str, route_graph: nx.Graph):
@@ -62,15 +66,39 @@ class PathRouter(object):
     #================
         for path_id, route_graph in self.__route_graphs.items():
             nx.set_edge_attributes(route_graph, path_id, 'path-id')
+
+        # We match up paths that have pre- and post-ganglionic types and
+        # pair them together if they are of the same type and share a
+        # terminal (i.e. degree one) node.
+        pre_ganglionic_nodes = defaultdict(list)
+        post_ganglionic_nodes = defaultdict(list)
+        post_types = {}
+        # Find the paths and nodes we are interested in
+        for path_id, route_graph in self.__route_graphs.items():
+            if route_graph.graph.get('path-type') in PRE_GANGLIONIC_TYPES:
+                for node, degree in route_graph.degree():
+                    if degree == 1:
+                        pre_ganglionic_nodes[path_id].append((node, route_graph.graph.get('path-type')[:4]))
+            elif route_graph.graph.get('path-type') in POST_GANGLIONIC_TYPES:
+                for node, degree in route_graph.degree():
+                    if degree == 1:
+                        post_ganglionic_nodes[path_id].append(node)
+                        post_types[path_id] = route_graph.graph.get('path-type')[:4]
+        # Look for pairs and add them to the list of routes
         routes = []
         seen_paths = []
-        for path_id, route_graph in self.__route_graphs.items():
-            if path_id not in seen_paths:
-                projects_to = self.__projections.get(path_id)
-                if projects_to is not None and projects_to in self.__route_graphs:
-                    routes.append(nx.algorithms.compose(route_graph, self.__route_graphs[projects_to]))
-                    seen_paths.append(path_id)
-                    seen_paths.append(projects_to)
+        for pre_path, pre_nodes in pre_ganglionic_nodes.items():
+            matched = False
+            for node, path_type in pre_nodes:
+                for post_path, post_nodes in post_ganglionic_nodes.items():
+                    if path_type == post_types[post_path] and node in post_nodes:
+                        routes.append(nx.algorithms.compose(self.__route_graphs[pre_path], self.__route_graphs[post_path]))
+                        seen_paths.append(pre_path)
+                        seen_paths.append(post_path)
+                        matched = True
+                        break
+                if matched: break
+        # Now add in the paths that haven't been paired
         for path_id, route_graph in self.__route_graphs.items():
             if path_id not in seen_paths:
                 if len(route_graph):

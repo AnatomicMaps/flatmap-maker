@@ -302,7 +302,6 @@ class Path(object):
         self.__label = None
         self.__models = path.get('models')
         self.__nerves = list(parse_nerves(path.get('nerves')))
-        self.__projection = path.get('projects')
         self.__path_type = path.get('type')
         self.__route = None
 
@@ -362,10 +361,6 @@ class Path(object):
     @property
     def path_type(self):
         return self.__path_type
-
-    @property
-    def projection(self):
-        return self.__projection
 
     @property
     def route(self):
@@ -549,16 +544,9 @@ class Pathways(object):
                 layer = FeatureLayer('{}_routes'.format(connectivity_model.id), self.__flatmap, exported=True)
                 self.__flatmap.add_layer(layer)
                 route_graphs = {}
-                projections = {}
                 for path in connectivity_model.paths.values():
-                    if path.projection is not None:
-                        projections[path.id] = path.projection
-                    if path.connections is not None:
-                        route_graphs[path.id] = network.route_graph_from_connections(path.connections)
-                    else:
-                        route_graphs[path.id] = network.route_graph_from_connectivity(path.connectivity, feature_map)
-
-                routed_paths = network.layout(route_graphs, projections)
+                    route_graphs[path.id] = network.route_graph_from_path(path, feature_map)
+                routed_paths = network.layout(route_graphs)
 
                 for route_number, routed_path in routed_paths.items():
                     for geometric_shape in routed_path.geometry():

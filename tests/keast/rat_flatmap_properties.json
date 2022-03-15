@@ -328,24 +328,6 @@
             "properties": {
                 "models": "FMA:65911"
             }
-        },
-        {
-            "id": "ilxtr:neuron-type-keast-5",
-            "properties": {
-                "projects": "ilxtr:neuron-type-keast-1"
-            }
-        },
-        {
-            "id": "ilxtr:neuron-type-keast-6",
-            "properties": {
-                "projects": "ilxtr:neuron-type-keast-2"
-            }
-        },
-        {
-            "id": "ilxtr:neuron-type-keast-7",
-            "properties": {
-                "projects": "ilxtr:neuron-type-keast-3"
-            }
         }
     ],
     "networks": [

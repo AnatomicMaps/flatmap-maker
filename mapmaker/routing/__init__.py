@@ -362,8 +362,8 @@ class Network(object):
                         log.error(f'Last intermediate node {last_intersection[1]} on centreline {edge_id} only intersects once')
                     edge_dict['path-components'] = path_components
 
-    def route_graph_from_connections(self, connections: dict) -> nx.Graph:
-    #=====================================================================
+    def __route_graph_from_connections(self, connections: dict) -> nx.Graph:
+    #=======================================================================
         # This is when the paths are manually specified and don't come from SciCrunch
         end_nodes = []
         terminals = {}
@@ -385,12 +385,20 @@ class Network(object):
                 node = route_graph.nodes[terminal_id]
                 self.__set_node_properties_from_feature(node, terminal_id)
                 route_graph.edges[end_node, terminal_id]['type'] = 'terminal'
-
         return route_graph
 
-    def layout(self, route_graphs: nx.Graph, projections: dict) -> dict:
-    #==================================================================
-        path_router = PathRouter(projections)
+    def route_graph_from_path(self, path, feature_map):
+    #==================================================
+        if path.connections is not None:
+            route_graph = self.__route_graph_from_connections(path.connections)
+        else:
+            route_graph = self.__route_graph_from_connectivity(path.connectivity, feature_map)
+        route_graph.graph['path-type'] = path.path_type
+        return route_graph
+
+    def layout(self, route_graphs: nx.Graph) -> dict:
+    #================================================
+        path_router = PathRouter()
         for path_id, route_graph in route_graphs.items():
             path_router.add_path(path_id, route_graph)
         # Layout the paths and return the resulting routes
@@ -401,8 +409,9 @@ class Network(object):
         return (id in self.__centreline_ids
              or id in self.__centreline_graph)
 
-    def route_graph_from_connectivity(self, connectivity, feature_map) -> nx.Graph:
-    #==============================================================================
+    def __route_graph_from_connectivity(self, connectivity, feature_map) -> nx.Graph:
+    #================================================================================
+        # Connectivity comes from SciCrunch
 
         def find_feature_ids(connectivity_node):
             return set([f.id if f.id is not None else f.property('class')
