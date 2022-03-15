@@ -97,8 +97,8 @@ class TransitMap:
         def e_e1_A_B_node_set():
             for node, degree in self.__graph.degree:
                 if degree >= 2:
-                    for e, e1 in itertools.permutations(self.edges(node), 2):
-                        for A, B in itertools.permutations(self.__lines[e], 2):
+                    for e, e1 in itertools.combinations(self.edges(node), 2):
+                        for A, B in itertools.combinations(self.__lines[e], 2):
                             if A in self.__lines[e1] and B in self.__lines[e1]:
                                 yield (node, e, e1, A, B)
 
