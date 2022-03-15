@@ -208,7 +208,7 @@ class TransitMap:
                             order.append((p, l))
                             last_l = l
             ordering[(n, n1)] = [l for _, l in sorted(order)]
-       return ordering
+        return ordering
 
 #===============================================================================
 
