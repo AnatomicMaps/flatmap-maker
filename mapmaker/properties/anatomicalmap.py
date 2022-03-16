@@ -39,6 +39,7 @@ class AnatomicalMap(object):
                 self.__map = self.__load_spreadsheet(path.get_BytesIO())
             else:
                 self.__map = path.get_json()
+        self.__missing_terms = []
 
     @property
     def mapping_dict(self):
@@ -46,13 +47,27 @@ class AnatomicalMap(object):
 
     def properties(self, cls):
     #=========================
+        properties = {}
         if cls in self.__map:
             term = self.__map[cls]
             if isinstance(term, dict):
-                term = term['term']
-            return { 'models': term }
-        else:
-            return {}
+                properties.update(term)
+                models = properties.pop('term', '').strip()
+            else:
+                models = term.strip()
+            if models != '':
+                properties['models'] = models
+            elif cls not in self.__missing_terms:
+                self.__missing_terms.append(cls)
+                log.warning(f'Missing ontological term for {cls}')
+        return properties
+
+    def name(self, cls):
+    #===================
+        if cls in self.__map:
+            properties = self.__map[cls]
+            if isinstance(properties, dict):
+                return properties.get('name')
 
     def __load_spreadsheet(self, bytes):
     #===================================

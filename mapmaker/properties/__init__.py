@@ -144,6 +144,8 @@ class ExternalProperties(object):
             knowledge = get_knowledge(feature_properties['models'])
             if 'label' not in feature_properties:
                 feature_properties['label'] = knowledge.get('label')
+        elif 'label' not in feature_properties and 'name' in feature_properties:
+            feature_properties['label'] = feature_properties.pop('name')
         # Hide unlabelled centreline network features
         for shape_type in NETWORK_SHAPE_TYPES:
             if shape_type in feature_properties:
