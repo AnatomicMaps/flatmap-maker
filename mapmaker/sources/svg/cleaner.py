@@ -27,8 +27,9 @@ from lxml import etree
 #===============================================================================
 
 from mapmaker import __version__
+from mapmaker.settings import settings
 
-from .. import EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
+from .. import NETWORK_SHAPE_TYPES, EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
 from ..markup import parse_markup
 from .utils import adobe_decode_markup
 
@@ -68,10 +69,14 @@ class SVGCleaner(object):
         if markup.startswith('.'):
             properties = self.__map_properties.update_properties(parse_markup(markup))
             for key, value in properties.items():
-                if key in EXCLUDE_SHAPE_TYPES:
+                if not self.__all_layers and key == 'tile-layer' and value in EXCLUDE_TILE_LAYERS:
                     return True
-                elif not self.__all_layers and key == 'tile-layer' and value in EXCLUDE_TILE_LAYERS:
-                    return True
+                elif key in EXCLUDE_SHAPE_TYPES:
+                    if key in NETWORK_SHAPE_TYPES:
+                        if not settings.get('showCentrelines', False) and 'models' not in properties:
+                            return True
+                    else:
+                        return True
         return False
 
 #===============================================================================

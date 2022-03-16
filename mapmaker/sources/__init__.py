@@ -49,10 +49,15 @@ WORLD_METRES_PER_UM = 100
 
 # Shapes/path with these marked up types and tile layers are excluded when
 # image tiling.
-EXCLUDE_SHAPE_TYPES = [
-    'group', 'invisible', 'marker', 'path', 'region',
-    'centreline', 'node',
+
+NETWORK_SHAPE_TYPES = [
+    'centreline', 'node'
     ]
+
+EXCLUDE_SHAPE_TYPES = NETWORK_SHAPE_TYPES + [
+    'group', 'invisible', 'marker', 'path', 'region',
+    ]
+
 EXCLUDE_TILE_LAYERS = ['pathways']
 
 #===============================================================================

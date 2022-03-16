@@ -24,6 +24,7 @@ from collections import defaultdict
 
 from mapmaker.knowledgebase import get_knowledge, update_references
 from mapmaker.routing import Network
+from mapmaker.sources import NETWORK_SHAPE_TYPES
 from mapmaker.utils import FilePath
 
 from .anatomicalmap import AnatomicalMap
@@ -128,11 +129,6 @@ class ExternalProperties(object):
         if id is not None:         # id overrides class
             feature_properties.update(self.__anatomical_map.properties(id))
             feature_properties.update(self.__properties_by_id.get(id, {}))
-            # Drop network nodes that don't have anatomical meaning
-            for network in self.__networks.values():
-                if network.contains(id) and 'models' not in feature_properties:
-                    feature_properties['exclude'] = True
-                    break
         self.__pathways.update_line_or_nerve_properties(feature_properties)
 
         if 'marker' in feature_properties:
@@ -148,6 +144,20 @@ class ExternalProperties(object):
             knowledge = get_knowledge(feature_properties['models'])
             if 'label' not in feature_properties:
                 feature_properties['label'] = knowledge.get('label')
+        # Hide unlabelled centreline network features
+        for shape_type in NETWORK_SHAPE_TYPES:
+            if shape_type in feature_properties:
+                if 'label' in feature_properties:
+                    feature_properties['type'] = 'network'
+                else:
+                    feature_properties['exclude'] = True
+                break
+        # Hide unlabelled features in network topology
+        if id is not None:
+            for network in self.__networks.values():
+                if network.contains(id) and 'label' not in feature_properties:
+                    feature_properties['exclude'] = True
+                    break
         return feature_properties
 
     def update_feature_properties(self, feature):

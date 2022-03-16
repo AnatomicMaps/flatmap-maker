@@ -433,13 +433,16 @@ class SVGTiler(object):
             stroke = element_style.get('stroke', 'none')
             stroked = (stroke != 'none')
             if stroked:
+                stroke_opacity = 1.0
                 markup = adobe_decode_markup(element)
                 if markup.startswith('.'):
                     properties = parse_markup(markup)
-                    if 'id' in properties or 'class' in properties:
+                    if 'centreline' in properties or 'node' in properties:
+                        stroke_opacity = 0.5
+                    elif 'id' in properties or 'class' in properties:
                         stroked = False
             if stroked:
-                opacity = float(element_style.get('stroke-opacity', 1.0))
+                opacity = stroke_opacity*float(element_style.get('stroke-opacity', 1.0))
                 paint = skia.Paint(AntiAlias=True,
                     Style=skia.Paint.kStroke_Style,
                     Color=make_colour(stroke, opacity),
