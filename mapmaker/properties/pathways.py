@@ -493,13 +493,6 @@ class Pathways(object):
         }
         connectivity.update(get_knowledge(model_uri))
         ## <<<<<<<<<<<<<<<<<<<<<
-        connectivity['paths'] = [
-            path for path in connectivity['paths']
-                if path['id'] not in [
-                    'ilxtr:neuron-type-keast-4',  # <<<<<<<<<<<<<<<<<<<
-                    'ilxtr:neuron-type-keast-8',  # <<<<<<<<<<<<<<<<<<<
-                ]
-            ]
         ## <<<<<<<<<<<<<<<<<<<<<
         # External properties overrides knowledge base
         for path in connectivity['paths']:
