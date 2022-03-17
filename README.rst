@@ -149,9 +149,10 @@ The manifest is a JSON dictionary that MUST specify:
 It MAY optionally specify:
 
 * a taxon identifier specifying what the flatmap ``models``.
-* the name of a ``properties`` JSON file specifying properties of features.
-* the name of an ``anatomicalMap`` file assigning anatomical identifiers to features.
-* The map's ``connectivity`` as a list of JSON files, each specifying a connectivity model.
+* a ``properties`` JSON file specifying properties of features.
+* a ``description`` JSON file specifying a description of the map as a SPARC dataset.
+* an ``anatomicalMap`` JSON file assigning anatomical identifiers to features.
+* The map's ``neuronConnectivity`` as a list of URLs, each specifying a SCKAN connectivity model.
 
 A source is a JSON dictionary that MUST specify:
 
@@ -177,11 +178,12 @@ For example:
     {
         "id": "whole-rat",
         "models": "NCBITaxon:10114",
-        "anatomicalMap": "anatomical_map.xlsx",
-        "properties": "rat_flatmap_properties.json",
-        "connectivity": [
-            "keast_bladder.json",
-            "rat_connectivity.json"
+        "description": "description.json",
+        "anatomicalMap": "anatomical_map.json",
+        "properties": "properties.json",
+        "neuronConnectivity": [
+            "https://apinatomy.org/uris/models/keast-bladder",
+            "https://apinatomy.org/uris/models/ard-arm-cardiac"
         ],
         "sources": [
             {
@@ -214,29 +216,6 @@ Properties file
 
 TODO...
 
-Connectivity files
-------------------
-
-TODO...
-
-Example:
-
-.. code-block:: json
-
-    {
-        "id": "keast-bladder",
-        "source": "https://apinatomy.org/uris/models/keast-bladder",
-        "paths": [
-            {
-                "id": "path_3",
-                "type": "somatic",
-                "path": "P38, P39, P40, P41",
-                "route": "(S41_2_L5, S41_2_L6), C5, C6, S43_L5, S43_L6, S50_L5_T, S50_L6_T, S50_L5_B, S50_L6_B, urinary_5",
-                "nerves": "keast_2",
-                "models": "ilxtr:neuron-type-keast-9"
-            }
-        ]
-    }
 
 Shape markup
 ------------
