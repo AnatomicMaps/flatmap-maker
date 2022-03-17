@@ -65,6 +65,9 @@ class FilePath(object):
     def url(self):
         return self.__url
 
+    def __str__(self):
+        return str(self.__url)
+
     def close(self):
         self.__fp.close()
 
