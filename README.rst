@@ -69,10 +69,10 @@ Command line help
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
-                    [--clean] [--background-tiles]
+                    [--clean] [--background-tiles] [--show-centrelines]
                     [--check-errors] [--debug] [--save-drawml] [--save-geojson] [--tippecanoe]
-                    [--initialZoom N] [--max-zoom N] [--min-zoom N]
-                    [--id ID] [--single-svg]
+                    [--initial-zoom N] [--max-zoom N] [--min-zoom N]
+                    [--clean-connectivity] [--id ID] [--single-svg]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -90,6 +90,7 @@ Command line help
     Image tiling:
       --clean               Remove all files from generated map's directory before generating new map
       --background-tiles    generate image tiles of map's layers (may take a while...)
+      --show-centrelines    Show centrelines and nodes on image tiles
 
     Diagnostics:
       --check-errors        check for errors without generating a map
@@ -99,11 +100,12 @@ Command line help
       --tippecanoe          Show command used to run Tippecanoe
 
     Zoom level:
-      --initialZoom N       initial zoom level (defaults to 4)
+      --initial-zoom N       initial zoom level (defaults to 4)
       --max-zoom N          maximum zoom level (defaults to 10)
       --min-zoom N          minimum zoom level (defaults to 2)
 
     miscellaneous:
+      --clean-connectivity  Refresh local connectivity knowledge from SciCrunch
       --id ID               Set explicit ID for flatmap, overriding manifest
       --single-svg          Source is a single SVG file, not a flatmap manifest
 
