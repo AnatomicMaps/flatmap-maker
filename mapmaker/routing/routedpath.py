@@ -179,6 +179,7 @@ class GeometricShape(object):
 #===============================================================================
 
 def bezier_control_points(bezier, label=''):
+#===========================================
     """
     Draw cubic Bezier control points and tangents.
 
