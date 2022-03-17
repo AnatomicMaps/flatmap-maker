@@ -26,6 +26,18 @@ from shapely.geometry.base import BaseGeometry
 #===============================================================================
 
 from mapmaker.utils import log
+from mapmaker.knowledgebase import get_label
+
+#===============================================================================
+
+def entity_name(entity):
+    if entity is None:
+        return 'None'
+    label = get_label(entity)
+    if label == entity:
+        return entity
+    else:
+        return f'{label} ({entity})'
 
 #===============================================================================
 
@@ -130,7 +142,7 @@ class FeatureMap(object):
             feature_ids.extend([f.feature_id for f in self.features(id)])
         return feature_ids
 
-    def find_features_by_anatomical_id(self, anatomical_id, anatomical_layers):
+    def find_path_features_by_anatomical_id(self, path_id, anatomical_id, anatomical_layers):
         if len(anatomical_layers) == 0:
             anatomical_features = self.__model_to_features.get(anatomical_id, [])
         else:
@@ -148,9 +160,10 @@ class FeatureMap(object):
         if len(anatomical_features) == 0:
             if (anatomical_id, anatomical_layers) not in self.__unknown_anatomy:
                 if len(anatomical_layers) == 0:
-                    log.warning(f'Cannot find flatmap feature of type {anatomical_id}')
+                    log.warning(f'{path_id}: Cannot find feature: {entity_name(anatomical_id)}')
                 else:
-                    log.warning(f'Cannot find flatmap feature of type {anatomical_id} in layers: {anatomical_layers}')
+                    layer_names = ', '.join([entity_name(entity) for entity in anatomical_layers if entity is not None])
+                    log.warning(f'{path_id}: Cannot find feature: {entity_name(anatomical_id)} in layers: {layer_names}')
                 self.__unknown_anatomy.append((anatomical_id, anatomical_layers))
         return anatomical_features
 

@@ -60,8 +60,8 @@ Find the subgraph G' induced on G, that
 See: https://stackoverflow.com/questions/58076592/python-networkx-connect-subgraph-with-a-loose-node
 """
 
-def get_connected_subgraph(graph, v_prime):
-#==========================================
+def get_connected_subgraph(path_id, graph, v_prime):
+#===================================================
     """Given a graph G=(V,E), and a vertex set V', find the V'', that
     1) is a superset of V', and
     2) when used to induce a subgraph on G forms a connected component.
@@ -81,9 +81,12 @@ def get_connected_subgraph(graph, v_prime):
     """
     vpp = set()
     for source, target in itertools.combinations(v_prime, 2):
-        paths = nx.all_shortest_paths(graph, source, target)
-        for path in paths:
-            vpp.update(path)
+        if nx.has_path(graph, source, target):
+            paths = nx.all_shortest_paths(graph, source, target)
+            for path in paths:
+                vpp.update(path)
+        else:
+            log.warning(f'{path_id}: No network connection between {source} and {target}')
     return graph.subgraph(vpp)
 
 #===============================================================================
@@ -364,12 +367,12 @@ class Network(object):
                         log.error(f'Last intermediate node {last_intersection[1]} on centreline {edge_id} only intersects once')
                     edge_dict['path-components'] = path_components
 
-    def __route_graph_from_connections(self, connections: dict) -> nx.Graph:
-    #=======================================================================
+    def __route_graph_from_connections(self, path) -> nx.Graph:
+    #==========================================================
         # This is when the paths are manually specified and don't come from SciCrunch
         end_nodes = []
         terminals = {}
-        for node in connections:
+        for node in path.connections:
             if isinstance(node, dict):
                 # Check that dict has 'node', 'terminals' and 'type'...
                 end_node = node['node']
@@ -379,7 +382,7 @@ class Network(object):
                 end_nodes.append(node)
 
         # Our route as a subgraph of the centreline network
-        route_graph = nx.Graph(get_connected_subgraph(self.__centreline_graph, end_nodes))
+        route_graph = nx.Graph(get_connected_subgraph(path.id, self.__centreline_graph, end_nodes))
 
         # Add edges to terminal nodes that aren't part of the centreline network
         for end_node, terminal_nodes in terminals.items():
@@ -393,9 +396,9 @@ class Network(object):
     def route_graph_from_path(self, path, feature_map):
     #==================================================
         if path.connections is not None:
-            route_graph = self.__route_graph_from_connections(path.connections)
+            route_graph = self.__route_graph_from_connections(path)
         else:
-            route_graph = self.__route_graph_from_connectivity(path.connectivity, feature_map)
+            route_graph = self.__route_graph_from_connectivity(path, feature_map)
         route_graph.graph['path-type'] = path.path_type
         return route_graph
 
@@ -412,13 +415,13 @@ class Network(object):
         return (id in self.__centreline_ids
              or id in self.__centreline_graph)
 
-    def __route_graph_from_connectivity(self, connectivity, feature_map) -> nx.Graph:
-    #================================================================================
+    def __route_graph_from_connectivity(self, path, feature_map) -> nx.Graph:
+    #========================================================================
         # Connectivity comes from SciCrunch
 
         def find_feature_ids(connectivity_node):
             return set([f.id if f.id is not None else f.property('class')
-                        for f in feature_map.find_features_by_anatomical_id(*connectivity_node)])
+                        for f in feature_map.find_path_features_by_anatomical_id(path.id, *connectivity_node)])
 
         def __centreline_end_nodes(centreline_id):
             for _, _, edge_id in self.__centreline_graph.edges(data='id'):
@@ -426,6 +429,7 @@ class Network(object):
                     return edge_id
 
         # Connectivity graph must be undirected
+        connectivity = path.connectivity
         if isinstance(connectivity, nx.DiGraph):
             connectivity = connectivity.to_undirected()
 
@@ -492,7 +496,7 @@ class Network(object):
                 feature_id = G.nodes[node]['feature_id']
                 feature = feature_map.get_feature(feature_id)
                 if feature is None:
-                    log.warning(f'Cannot find path terminal feature: {feature_id}')
+                    log.warning(f'{path.id}: Cannot find path terminal feature with ID: {feature_id}')
                     continue
                 feature_centre = feature.geometry.centroid
                 for edge in nx.edge_dfs(G, node):
@@ -511,16 +515,17 @@ class Network(object):
                         break
 
             # The centreline paths that connect features on the route
-            route_paths = nx.Graph(get_connected_subgraph(self.__centreline_graph, route_feature_ids))
+            route_paths = nx.Graph(get_connected_subgraph(path.id, self.__centreline_graph, route_feature_ids))
 
             # Add edges to terminal nodes that aren't part of the centreline network
             for end_node, terminal_nodes in node_terminals.items():
                 # This will be used when drawing path to terminal node
-                route_paths.nodes[end_node]['direction'] = list(route_paths.nodes[end_node]['edge-direction'].items())[0][1]
-                for terminal_id in terminal_nodes:
-                    route_paths.add_edge(end_node, terminal_id, type='terminal')
-                    node = route_paths.nodes[terminal_id]
-                    self.__set_node_properties_from_feature(node, terminal_id)
+                if end_node in route_paths:
+                    route_paths.nodes[end_node]['direction'] = list(route_paths.nodes[end_node]['edge-direction'].items())[0][1]
+                    for terminal_id in terminal_nodes:
+                        route_paths.add_edge(end_node, terminal_id, type='terminal')
+                        node = route_paths.nodes[terminal_id]
+                        self.__set_node_properties_from_feature(node, terminal_id)
 
             # Add paths and nodes from connected connectivity sub-graph to result
             route_graph.add_nodes_from(route_paths.nodes(data=True))

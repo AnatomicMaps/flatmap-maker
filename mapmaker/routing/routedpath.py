@@ -381,16 +381,19 @@ class RoutedPath(object):
                 if len(edge_nodes) == 1:
                     # Draw path from node boundary to offsetted centre
                     edge_dict = edge_dicts[0]
-                    offset = PATH_SEPARATION*self.__graph.nodes[node]['offsets'][edge_nodes[0]]
-                    edge_angle = node_dict['edge-node-angle'][edge_nodes[0]]
-                    bz = smooth_join(edge_dict['path-end'][node],
-                                        node_dict['edge-direction'][edge_dict['id']],
-                                        edge_angle,
-                                     node_dict['centre'] + BezierPoint.fromAngle(edge_angle + math.pi/2)*offset)
-                    geometry.append(GeometricShape(bezier_to_linestring(bz), {
-                        'nerve': edge_dict.get('nerve'),
-                        'path-id': edge_dict.get('path-id')
-                    }))
+                    try:
+                        offset = PATH_SEPARATION*self.__graph.nodes[node]['offsets'][edge_nodes[0]]
+                        edge_angle = node_dict['edge-node-angle'][edge_nodes[0]]
+                        bz = smooth_join(edge_dict['path-end'][node],
+                                            node_dict['edge-direction'][edge_dict['id']],
+                                            edge_angle,
+                                         node_dict['centre'] + BezierPoint.fromAngle(edge_angle + math.pi/2)*offset)
+                        geometry.append(GeometricShape(bezier_to_linestring(bz), {
+                            'nerve': edge_dict.get('nerve'),
+                            'path-id': edge_dict.get('path-id')
+                        }))
+                    except KeyError:
+                        log.warning(f"{edge_dict.get('path-id')}: Missing geometry for {node} and/or {edge_nodes[0]}")
                 elif len(edge_dicts) == 2:
                     geometry.extend(join_geometry(node, node_dict, edge_dicts[0], edge_dicts[1]))
                 elif len(edge_dicts) == 3:  ## Generalise

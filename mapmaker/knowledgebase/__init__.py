@@ -87,6 +87,9 @@ class KnowledgeStore(mapknowledge.KnowledgeStore):
 
 #===============================================================================
 
+def get_label(entity):
+    return get_knowledge(entity).get('label', entity)
+
 def get_knowledge(entity):
     return settings['KNOWLEDGE_STORE'].entity_knowledge(entity)
 
