@@ -205,11 +205,16 @@ def join_geometry(node, node_dict, edge_dict_0, edge_dict_1):
     """
     Smoothly join two edges of a route at a node.
     """
-    bz = smooth_join(edge_dict_0['path-end'][node],
-                        node_dict['edge-direction'][edge_dict_0['id']],
-                        node_dict['edge-direction'][edge_dict_1['id']] + math.pi,
-                     edge_dict_1['path-end'][node])
     geometry = []
+    try:
+        bz = smooth_join(edge_dict_0['path-end'][node],
+                            node_dict['edge-direction'][edge_dict_0['id']],
+                            node_dict['edge-direction'][edge_dict_1['id']] + math.pi,
+                         edge_dict_1['path-end'][node])
+    except KeyError:
+        log.warning(f"{edge_dict_0['path-id']}: Missing edge direction for {node} with {edge_dict_0['id']} and/or {edge_dict_1['id']}")
+        return geometry
+
     if edge_dict_0.get('path-id') == edge_dict_1.get('path-id'):
         geometry.append(
             GeometricShape(bezier_to_linestring(bz), {

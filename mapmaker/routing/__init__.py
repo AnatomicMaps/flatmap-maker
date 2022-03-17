@@ -506,11 +506,15 @@ class Network(object):
                             adjacent_feature = adjacent_node_features[0]
                         else:
                             # find closest adjacent feature to node
-                            node0_centre = self.__centreline_graph.nodes[adjacent_node_features[0]]['geometry'].centroid
-                            node1_centre = self.__centreline_graph.nodes[adjacent_node_features[1]]['geometry'].centroid
-                            d0 = feature_centre.distance(node0_centre)
-                            d1 = feature_centre.distance(node1_centre)
-                            adjacent_feature = adjacent_node_features[0] if d0 <= d1 else adjacent_node_features[1]
+                            try:
+                                node0_centre = self.__centreline_graph.nodes[adjacent_node_features[0]]['geometry'].centroid
+                                node1_centre = self.__centreline_graph.nodes[adjacent_node_features[1]]['geometry'].centroid
+                                d0 = feature_centre.distance(node0_centre)
+                                d1 = feature_centre.distance(node1_centre)
+                                adjacent_feature = adjacent_node_features[0] if d0 <= d1 else adjacent_node_features[1]
+                            except KeyError:
+                                log.warning(f'{path.id}: Missing geometry for {adjacent_node_features[0]} and/or {adjacent_node_features[1]}')
+                                break
                         node_terminals[adjacent_feature].add(feature_id)
                         break
 
