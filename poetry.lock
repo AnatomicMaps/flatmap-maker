@@ -155,7 +155,7 @@ source = ["Cython (>=0.29.7)"]
 
 [[package]]
 name = "mapknowledge"
-version = "0.9.5"
+version = "0.9.6"
 description = ""
 category = "main"
 optional = false
@@ -168,7 +168,7 @@ requests = "*"
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.9.5/mapknowledge-0.9.5-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.9.6/mapknowledge-0.9.6-py3-none-any.whl"
 [[package]]
 name = "markupsafe"
 version = "2.1.0"
