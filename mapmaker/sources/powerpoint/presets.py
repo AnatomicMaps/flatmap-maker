@@ -23,11 +23,19 @@ import os.path
 import pptx.oxml as oxml
 import pptx.oxml.ns as ns
 
+from pptx.dml.color import ColorFormat
+from pptx.dml.line import LineFormat
+from pptx.oxml.dml.color import CT_Percentage, _BaseColorElement
+from pptx.oxml.theme import CT_OfficeStyleSheet
+
 from pptx.oxml.shapes.autoshape import CT_GeomGuideList
+from pptx.oxml.shapes.shared import CT_LineProperties
 from pptx.oxml.simpletypes import XsdString
+from pptx.oxml.slide import _BaseSlideElement
 
 from pptx.oxml.xmlchemy import (
     BaseOxmlElement,
+    OneAndOnlyOne,
     RequiredAttribute,
     ZeroOrMore,
     ZeroOrOne
@@ -86,5 +94,115 @@ class Shapes(object):
     @staticmethod
     def lookup(name):
         return Shapes.definitions_[name]
+
+#===============================================================================
+#===============================================================================
+
+class ThemeDefinition(CT_OfficeStyleSheet):
+    name = RequiredAttribute("name", XsdString)
+    themeElements = OneAndOnlyOne("a:themeElements")
+
+    @classmethod
+    def new(cls, xml):
+        """Return theme definition"""
+        t = oxml.parse_xml(xml)
+        return t
+
+#===============================================================================
+
+class ThemeElements(BaseOxmlElement):
+    clrScheme = OneAndOnlyOne("a:clrScheme")
+
+#===============================================================================
+
+class ColourScheme(BaseOxmlElement):
+    name = RequiredAttribute("name", XsdString)
+
+#===============================================================================
+
+oxml.register_element_cls("a:theme", ThemeDefinition)
+oxml.register_element_cls("a:themeElements", ThemeElements)
+oxml.register_element_cls("a:clrScheme", ColourScheme)
+
+#===============================================================================
+
+class CT_SlideMasterUpdated(_BaseSlideElement):
+    """
+    ``<p:sldMaster>`` element, root of a slide master part
+    """
+
+    _tag_seq = (
+        "p:cSld",
+        "p:clrMap",
+        "p:sldLayoutIdLst",
+        "p:transition",
+        "p:timing",
+        "p:hf",
+        "p:txStyles",
+        "p:extLst",
+    )
+    cSld = OneAndOnlyOne("p:cSld")
+    clrMap = OneAndOnlyOne("p:clrMap")    ### We need access to clrMap
+    sldLayoutIdLst = ZeroOrOne("p:sldLayoutIdLst", successors=_tag_seq[3:])
+    del _tag_seq
+
+#===============================================================================
+
+oxml.register_element_cls("p:sldMaster", CT_SlideMasterUpdated)
+
+#===============================================================================
+
+# Monkey patching color to get colour properties...
+
+oxml.register_element_cls('a:alpha', CT_Percentage)
+_BaseColorElement.alpha = ZeroOrOne("a:alpha")
+_BaseColorElement.alpha.populate_class_members(_BaseColorElement, "alpha")
+ColorFormat.alpha = property(lambda self: (self._color._xClr.alpha.val
+                                 if self._color._xClr.alpha is not None
+                                 else 1.0))
+
+ColorFormat.lumMod = property(lambda self: (self._color._xClr.lumMod.val
+                                  if self._color._xClr.lumMod is not None
+                                  else 1.0))
+ColorFormat.lumOff = property(lambda self: (self._color._xClr.lumOff.val
+                                  if self._color._xClr.lumOff is not None
+                                  else 0.0))
+
+oxml.register_element_cls("a:satMod", CT_Percentage)
+_BaseColorElement.satMod = ZeroOrOne("a:satMod")
+_BaseColorElement.satMod.populate_class_members(_BaseColorElement, "satMod")
+ColorFormat.satMod = property(lambda self: (self._color._xClr.satMod.val
+                                  if self._color._xClr.satMod is not None
+                                  else 1.0))
+
+oxml.register_element_cls("a:shade", CT_Percentage)
+_BaseColorElement.shade = ZeroOrOne("a:shade")
+_BaseColorElement.shade.populate_class_members(_BaseColorElement, "shade")
+ColorFormat.shade = property(lambda self: (self._color._xClr.shade.val
+                                  if self._color._xClr.shade is not None
+                                  else 1.0))
+
+oxml.register_element_cls("a:tint", CT_Percentage)
+_BaseColorElement.tint = ZeroOrOne("a:tint")
+_BaseColorElement.tint.populate_class_members(_BaseColorElement, "tint")
+ColorFormat.tint = property(lambda self: (self._color._xClr.tint.val
+                                  if self._color._xClr.tint is not None
+                                  else 0.0))
+
+#===============================================================================
+
+# Monkey patching line properties to get end types...
+
+CT_LineProperties.headEnd = ZeroOrOne("a:headEnd")
+CT_LineProperties.headEnd.populate_class_members(CT_LineProperties, "headEnd")
+LineFormat.headEnd = property(lambda self: (self._ln.headEnd.attrib
+                                  if self._ln is not None and self._ln.headEnd is not None
+                                  else {}))
+
+CT_LineProperties.tailEnd = ZeroOrOne("a:tailEnd")
+CT_LineProperties.tailEnd.populate_class_members(CT_LineProperties, "tailEnd")
+LineFormat.tailEnd = property(lambda self: (self._ln.tailEnd.attrib
+                                  if self._ln is not None and self._ln.tailEnd is not None
+                                  else {}))
 
 #===============================================================================
