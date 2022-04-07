@@ -55,8 +55,9 @@ class Manifest(object):
         self.__connections = {}
         self.__connectivity = []
         self.__neuron_connectivity = []
-            id = self.__url.rsplit('/', 1)[-1].rsplit('.', 1)[0].replace('_', '-').replace(' ', '_')
         if single_file is not None:
+            if id is None:
+                id = self.__url.rsplit('/', 1)[-1].rsplit('.', 1)[0].replace('_', '-').replace(' ', '_')
             self.__manifest = {
                 'id': id,
                 'sources': [
@@ -69,7 +70,9 @@ class Manifest(object):
             }
         else:
             self.__manifest = self.__path.get_json()
-            if 'id' not in self.__manifest:
+            if id is not None:
+                self.__manifest['id'] = id
+            elif 'id' not in self.__manifest:
                 raise ValueError('No id given for manifest')
             if 'sources' not in self.__manifest:
                 raise ValueError('No sources given for manifest')
@@ -165,7 +168,7 @@ class MapMaker(object):
             self.__manifest = Manifest(options['source'], single_file=options.get('singleFile'), id=options.get('id'))
         else:
             raise ValueError('No source manifest specified')
-        self.__id = options.get('id', self.__manifest.id)
+        self.__id = self.__manifest.id
         if self.__id is None:
             raise ValueError('No id given for map')
         log('Making map: {}'.format(self.__id))
