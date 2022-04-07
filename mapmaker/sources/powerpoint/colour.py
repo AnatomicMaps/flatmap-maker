@@ -95,7 +95,12 @@ class ColourMap(object):
         if shade != 1.0:
             shaded = np.uint8(shade*np.array(rgb))
             rgb = RGBColor(*shaded.tolist())
-        return '#{}'.format(str(rgb))
+        return f'#{str(rgb)}'
+
+    def scheme_colour(self, name):
+    #=============================
+        key = DML(name)
+        if key in self.__colour_defs:
+            return f'#{str(self.__colour_defs[key])}'
 
 #===============================================================================
-

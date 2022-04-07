@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+from collections import defaultdict
 import json
 import math
 import os
@@ -40,10 +41,7 @@ class GeoJSONOutput(object):
         self.__layer = layer
         self.__map_area = map_area
         self.__output_dir = output_dir
-        self.__geojson_layers = {
-            'features': [],
-            'pathways': [],
-        }
+        self.__geojson_layers = defaultdict(list)
 
     def save(self, features, pretty_print=False):
     #============================================

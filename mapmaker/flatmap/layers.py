@@ -169,17 +169,17 @@ class MapLayer(FeatureLayer):
                 self.__nerve_tracks.append(feature)
         self.features.extend(nerve_polygons)
 
-    def add_features(self, group_name, features, outermost=False):
-    #=============================================================
+    def add_features(self, group_name, features, tile_layer='features', outermost=False):
+    #====================================================================================
         base_properties = {
-            'tile-layer': 'features'
+            'tile-layer': tile_layer
             }
 
         layer_features = []    # Features that will be added to the layer
         grouped_properties = {
             'group': True,
             'interior': True,
-            'tile-layer': 'features'
+            'tile-layer': tile_layer
         }
 
         # We first find our boundary polygon(s)

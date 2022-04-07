@@ -220,6 +220,7 @@ class RasterSource(object):
 
 # Export our sources here to avoid circular imports
 
+from .celldl import CellDlSource
 from .mbfbioscience import MBFSource
 from .powerpoint import PowerpointSource
 from .svg import SVGSource
