@@ -49,21 +49,21 @@ from .sources import MBFSource, PowerpointSource, SVGSource
 #===============================================================================
 
 class Manifest(object):
-    def __init__(self, manifest_path, single_svg=False):
+    def __init__(self, manifest_path, single_file=None, id=None):
         self.__path = FilePath(manifest_path)
         self.__url = self.__path.url
         self.__connections = {}
         self.__connectivity = []
         self.__neuron_connectivity = []
-        if single_svg:
             id = self.__url.rsplit('/', 1)[-1].rsplit('.', 1)[0].replace('_', '-').replace(' ', '_')
+        if single_file is not None:
             self.__manifest = {
                 'id': id,
                 'sources': [
                     {
                         'id': id,
                         'href': self.__url,
-                        'kind': 'base'
+                        'kind': 'base' if single_file == 'svg' else single_file
                     }
                 ]
             }
@@ -162,7 +162,7 @@ class MapMaker(object):
 
         # Check we have been given a map source and get our manifest
         if 'source' in options:
-            self.__manifest = Manifest(options['source'], options.get('singleSvg', False))
+            self.__manifest = Manifest(options['source'], single_file=options.get('singleFile'), id=options.get('id'))
         else:
             raise ValueError('No source manifest specified')
         self.__id = options.get('id', self.__manifest.id)

@@ -72,7 +72,7 @@ Command line help
                     [--clean] [--background-tiles] [--show-centrelines]
                     [--check-errors] [--debug] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N] [--min-zoom N]
-                    [--clean-connectivity] [--id ID] [--single-svg]
+                    [--clean-connectivity] [--id ID] [--single-file {celldl,svg}]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -107,7 +107,7 @@ Command line help
     miscellaneous:
       --clean-connectivity  Refresh local connectivity knowledge from SciCrunch
       --id ID               Set explicit ID for flatmap, overriding manifest
-      --single-svg          Source is a single SVG file, not a flatmap manifest
+      --single-file {celldl,svg}    Source is a single file of the designated type, not a flatmap manifest
 
     Required arguments:
       --output OUTPUT       base directory for generated flatmaps

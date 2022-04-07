@@ -78,8 +78,8 @@ def arg_parser():
                         help='Refresh local connectivity knowledge from SciCrunch')
     misc_options.add_argument('--id', metavar='ID',
                         help='Set explicit ID for flatmap, overriding manifest')
-    misc_options.add_argument('--single-svg', dest='singleSvg', action='store_true',
-                        help='Source is a single SVG file, not a flatmap manifest')
+    misc_options.add_argument('--single-file', dest='singleFile', choices=['celldl', 'svg'],
+                        help='Source is a single file of the designated type, not a flatmap manifest')
 
     required = parser.add_argument_group('Required arguments')
     required.add_argument('--output', required=True,
