@@ -100,7 +100,7 @@ Command line help
       --tippecanoe          Show command used to run Tippecanoe
 
     Zoom level:
-      --initial-zoom N       initial zoom level (defaults to 4)
+      --initial-zoom N      initial zoom level (defaults to 4)
       --max-zoom N          maximum zoom level (defaults to 10)
       --min-zoom N          minimum zoom level (defaults to 2)
 
