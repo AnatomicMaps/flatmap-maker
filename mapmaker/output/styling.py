@@ -95,7 +95,7 @@ class MapStyle(object):
         return {
             'version': 8,
             'sources': TileSources.style(raster_sources, vector_layer_dict, bounds, map_zoom),
-            'glyphs': 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+            'glyphs': 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
             'zoom': map_zoom[2],
             'center': [float(x) for x in metadata['center'].split(',')],
             'layers': []
