@@ -492,6 +492,14 @@ class SVGLayer(MapLayer):
 
         properties['bezier-segments'] = bezier_segments
 
+        if properties.get('node', False):
+            if not closed and not properties.get('closed', False):
+                log.warning(f"Nodes must be closed shapes: {properties.get['markup']}")
+                properties['closed'] = True
+        elif (properties.get('centreline', False)
+          and (closed or properties.get('closed', False))):
+            log.warning(f"Centrelines can't be closed shapes: {properties.get['markup']}" )
+
         if closed and len(coordinates) >= 3:
             geometry = shapely.geometry.Polygon(coordinates)
         elif properties.get('closed', False) and len(coordinates) >= 3:
