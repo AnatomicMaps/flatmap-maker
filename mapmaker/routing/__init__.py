@@ -31,6 +31,8 @@ import itertools
 import math
 from functools import partial
 
+from pprint import pprint
+
 #===============================================================================
 
 from beziers.line import Line as BezierLine
@@ -242,14 +244,17 @@ class Network(object):
                 node_0_centre = self.__centreline_graph.nodes[node_0].get('centre')
                 node_1_centre = self.__centreline_graph.nodes[node_1].get('centre')
                 segments = feature.property('bezier-segments')
-                if len(segments) == 0 or node_0_centre is None or node_1_centre is None:
-                    log.warning(f'Centreline {feature.id} has no Bezier path or some nodes are missing ({node_0} and/or {node_1})')
-                    if node_0_centre is not None and node_1_centre is not None:
-                        segments = [ BezierLine(node_0_centre, node_1_centre) ]
-                        start_node = node_0
-                        end_node = node_1
-                    else:
-                        segments = []
+
+                if node_0_centre is None or node_1_centre is None:
+                    log.warning(f'Centreline {feature.id} nodes are missing ({node_0} and/or {node_1})')
+                    if len(segments) == 0:
+                        log.warning(f'Centreline {feature.id} has no Bezier path')
+                    segments = []
+                elif len(segments) == 0:
+                    log.warning(f'Centreline {feature.id} has no Bezier path')
+                    segments = [ BezierLine(node_0_centre, node_1_centre) ]
+                    start_node = node_0
+                    end_node = node_1
                 else:
                     start = segments[0].pointAtTime(0.0)
                     if start.distanceFrom(node_0_centre) <= start.distanceFrom(node_1_centre):
@@ -522,7 +527,12 @@ class Network(object):
             route_paths = nx.Graph(get_connected_subgraph(path.id, self.__centreline_graph, route_feature_ids))
 
             # Add edges to terminal nodes that aren't part of the centreline network
+            ##pprint(route_feature_ids)
+            ##pprint(node_terminals)
+            ##pprint(route_paths.nodes)
+
             for end_node, terminal_nodes in node_terminals.items():
+                #assert route_paths.nodes[end_node]['degree'] == 1  ## May not be true...
                 # This will be used when drawing path to terminal node
                 if end_node in route_paths:
                     route_paths.nodes[end_node]['direction'] = list(route_paths.nodes[end_node]['edge-direction'].items())[0][1]
