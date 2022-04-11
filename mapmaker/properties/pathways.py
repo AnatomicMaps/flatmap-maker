@@ -549,6 +549,7 @@ class Pathways(object):
                         }
                         properties.update(geometric_shape.properties)
                         path_id = properties.pop('path-id', None)
+                        nerve_features = []
                         if properties.get('type') == 'junction':
                             if path_id in self.__type_by_path_id:
                                 properties['kind'] = self.__type_by_path_id[path_id]
@@ -563,8 +564,6 @@ class Pathways(object):
                                 nerve_features = feature_map.features(nerve)
                                 for feature in nerve_features:
                                     feature.set_property('type', 'nerve')
-                            else:
-                                nerve_features = []
                         feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
                         layer.add_feature(feature)
                         if path_id is not None:
