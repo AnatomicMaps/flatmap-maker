@@ -53,6 +53,12 @@ PPTX_NAMESPACE = {
     'r': "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 }
 
+def pptx_resolve(qname):
+    parts = qname.split(':', 1)
+    if len(parts) == 2 and parts[0] in PPTX_NAMESPACE:
+        return f'{{{PPTX_NAMESPACE[parts[0]]}}}{parts[1]}'
+    return qname
+
 #===============================================================================
 
 def text_alignment(shape):
@@ -198,11 +204,21 @@ class Slide():
                         'shape-name': shape.name,
                         'colour': self.__get_colour(shape)
                     }
+                    shape_xml = etree.fromstring(shape.element.xml)
+                    shape_links = set()
+                    for link_ref in shape_xml.findall('.//a:hlinkClick',
+                                                    namespaces=PPTX_NAMESPACE):
+                        r_id = link_ref.attrib[pptx_resolve('r:id')]
+                        if (r_id in shape.part.rels
+                         and shape.part.rels[r_id].reltype == 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink'):
+                            shape_links.add(shape.part.rels[r_id].target_ref)
+                    if len(shape_links):
+                        shape_properties['hyperlinks'] = list(shape_links)
                     if isinstance(shape, pptx.shapes.connector.Connector):
                         shape_type = 'connector'
                         xml = etree.fromstring(shape.element.xml)
-                        if (connection := xml.find('.//p:nvCxnSpPr/p:cNvCxnSpPr',
-                                                    namespaces=PPTX_NAMESPACE)) is not None:
+                        if (connection := shape_xml.find('.//p:x`/p:cNvCxnSpPr',
+                                                        namespaces=PPTX_NAMESPACE)) is not None:
                             for c in connection.getchildren():
                                 if c.tag == DML('stCxn'):
                                     shape_properties['connection-start'] = int(c.attrib['id'])
@@ -211,8 +227,8 @@ class Slide():
                         line_style = 'solid'
                         head_end = 'none'
                         tail_end = 'none'
-                        if (line_props := xml.find('.//p:spPr/a:ln',
-                                                    namespaces=PPTX_NAMESPACE)) is not None:
+                        if (line_props := shape_xml.find('.//p:spPr/a:ln',
+                                                        namespaces=PPTX_NAMESPACE)) is not None:
                             for prop in line_props.getchildren():
                                 if prop.tag == DML('prstDash'):
                                     line_style = prop.attrib['val']
