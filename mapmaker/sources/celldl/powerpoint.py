@@ -231,11 +231,11 @@ class Slide():
                                                         namespaces=PPTX_NAMESPACE)) is not None:
                             for prop in line_props.getchildren():
                                 if prop.tag == DML('prstDash'):
-                                    line_style = prop.attrib['val']
+                                    line_style = prop.attrib.get('val', 'solid')
                                 elif prop.tag == DML('headEnd'):
-                                    head_end = prop.attrib['type']
+                                    head_end = prop.attrib.get('type', 'none')
                                 elif prop.tag == DML('tailEnd'):
-                                    tail_end = prop.attrib['type']
+                                    tail_end = prop.attrib.get('type', 'none')
                         shape_properties['line-style'] = line_style
                         shape_properties['head-end'] = head_end
                         shape_properties['tail-end'] = tail_end
