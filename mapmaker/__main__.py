@@ -54,8 +54,8 @@ def arg_parser():
                         help="Show centrelines and nodes on image tiles")
 
     debug_options = parser.add_argument_group('Diagnostics')
-    debug_options.add_argument('--check-errors', dest='errorCheck', action='store_true',
-                        help='Check for errors without generating a map')
+    debug_options.add_argument('--authoring', action='store_true',
+                        help="For use when checking a new map: highlight incomplete features; show centreline network; no image tiles; no neuron paths; etc")
     debug_options.add_argument('--debug', action='store_true',
                         help='Show a traceback for error exceptions')
     debug_options.add_argument('--save-drawml', dest='saveDrawML', action='store_true',

@@ -108,6 +108,7 @@ class SVGSource(MapSource):
         if self.__layer.boundary_feature is not None:
             self.__boundary_geometry = self.__layer.boundary_feature.geometry
         if self.__exported:
+        if not settings.get('authoring', False) and self.__exported:
             # Save a cleaned copy of the SVG in the map's output directory
             cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties)
             cleaner.clean()

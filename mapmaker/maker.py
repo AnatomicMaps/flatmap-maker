@@ -160,6 +160,11 @@ class MapMaker(object):
             raise ValueError('Initial zoom must be between {} and {}'.format(min_zoom, max_zoom))
         self.__zoom = (min_zoom, max_zoom, initial_zoom)
 
+        # Authoring implies to clean output directory and no image tiles
+        if settings.get('authoring', False):
+            options['clean'] = False
+            options.pop('backgroundTiles', None)
+
         # Save options into global ``settings`` dict
         settings.update(options)
 
@@ -214,17 +219,16 @@ class MapMaker(object):
         # Process flatmap's sources to create MapLayers
         self.__process_sources()
 
-        if not settings.get('errorCheck', False):
-            # Finish off flatmap
-            self.__flatmap.close()
-            # Output all features (as GeoJSON)
-            self.__output_geojson()
-            # Generate vector tiles from GeoJSON
-            self.__make_vector_tiles()
-            # Generate image tiles as needed
-            self.__check_raster_tiles()
-            # Save the flatmap's metadata
-            self.__save_metadata()
+        # Finish off flatmap
+        self.__flatmap.close()
+        # Output all features (as GeoJSON)
+        self.__output_geojson()
+        # Generate vector tiles from GeoJSON
+        self.__make_vector_tiles()
+        # Generate image tiles as needed
+        self.__check_raster_tiles()
+        # Save the flatmap's metadata
+        self.__save_metadata()
 
         # All done so clean up
         self.__finish_make()

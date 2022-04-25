@@ -24,6 +24,7 @@ from collections import defaultdict
 
 from mapmaker.knowledgebase import get_knowledge, update_references
 from mapmaker.routing import Network
+from mapmaker.settings import settings
 from mapmaker.sources import NETWORK_SHAPE_TYPES
 from mapmaker.utils import FilePath
 
@@ -154,8 +155,8 @@ class ExternalProperties(object):
                 else:
                     feature_properties['exclude'] = True
                 break
-        # Hide unlabelled features in network topology
-        if id is not None:
+        # Hide unlabelled features in network topology if not authoring
+        if not settings.get('authoring', False) and id is not None:
             for network in self.__networks.values():
                 if network.contains(id) and 'label' not in feature_properties:
                     feature_properties['exclude'] = True
