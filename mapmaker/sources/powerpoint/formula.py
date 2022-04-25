@@ -151,7 +151,7 @@ class Geometry(object):
         elif (shape.shape_type == MSO_SHAPE_TYPE.PICTURE
            or isinstance(shape, pptx.shapes.connector.Connector)):
             self._geometry = Shapes.lookup(shape.element.spPr.prstGeom.attrib['prst'])
-            adjustments = None
+            adjustments = shape.element.spPr.prstGeom.avLst
 
         else:
             self._geometry = None
