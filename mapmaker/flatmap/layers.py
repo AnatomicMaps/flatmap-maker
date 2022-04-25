@@ -73,7 +73,8 @@ class FeatureLayer(object):
 
     def add_feature(self, feature):
     #==============================
-        self.__features.append(feature)
+        if self.__flatmap.feature_exported(feature):
+            self.__features.append(feature)
 
     def annotate(self, feature, properties):
     #=======================================

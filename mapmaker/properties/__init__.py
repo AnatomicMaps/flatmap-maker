@@ -63,6 +63,16 @@ class ExternalProperties(object):
     def connectivity(self):
         return self.__pathways.connectivity
 
+    def network_feature(self, feature):
+    #==================================
+    ##
+    ## Is the ``feature`` included in some network?
+    ##
+        for network in self.__networks.values():
+            if network.has_feature(feature):
+                return True
+        return False
+
     def __set_class_properties(self, classes):
     #=========================================
         if classes is not None:
@@ -152,7 +162,7 @@ class ExternalProperties(object):
             # Hide unlabelled centreline network features
             for shape_type in NETWORK_SHAPE_TYPES:
                 if shape_type in feature_properties:
-                    if 'label' in feature_properties:
+                    if 'label' in feature_properties or settings.get('onlyNetworks', False):
                         feature_properties['type'] = 'network'
                     else:
                         feature_properties['exclude'] = True

@@ -34,6 +34,7 @@ from mapmaker.geometry import bounds_to_extent, extent_to_bounds, normalised_coo
 from mapmaker.knowledgebase import get_knowledge
 from mapmaker.properties import ExternalProperties
 from mapmaker.properties.pathways import Route
+from mapmaker.settings import settings
 from mapmaker.utils import log
 
 from .feature import Feature, FeatureMap
@@ -176,6 +177,11 @@ class FlatMap(object):
         feature = Feature(self.__last_feature_id, geometry, properties, has_children)
         self.__features[self.__last_feature_id] = feature
         return feature
+
+    def feature_exported(self, feature):
+    #===================================
+        return (not settings.get('onlyNetworks', False)
+             or self.__map_properties.network_feature(feature))
 
     def add_layer(self, layer):
     #==========================
