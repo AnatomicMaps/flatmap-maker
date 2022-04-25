@@ -147,20 +147,22 @@ class ExternalProperties(object):
                 feature_properties['label'] = knowledge.get('label')
         elif 'label' not in feature_properties and 'name' in feature_properties:
             feature_properties['label'] = feature_properties.pop('name')
-        # Hide unlabelled centreline network features
-        for shape_type in NETWORK_SHAPE_TYPES:
-            if shape_type in feature_properties:
-                if 'label' in feature_properties:
-                    feature_properties['type'] = 'network'
-                else:
-                    feature_properties['exclude'] = True
-                break
-        # Hide unlabelled features in network topology if not authoring
-        if not settings.get('authoring', False) and id is not None:
-            for network in self.__networks.values():
-                if network.contains(id) and 'label' not in feature_properties:
-                    feature_properties['exclude'] = True
+        # Hide unlabelled features if not authoring
+        if not settings.get('authoring', False):
+            # Hide unlabelled centreline network features
+            for shape_type in NETWORK_SHAPE_TYPES:
+                if shape_type in feature_properties:
+                    if 'label' in feature_properties:
+                        feature_properties['type'] = 'network'
+                    else:
+                        feature_properties['exclude'] = True
                     break
+            # Hide unlabelled features in network topology
+            if id is not None:
+                for network in self.__networks.values():
+                    if network.contains(id) and 'label' not in feature_properties:
+                        feature_properties['exclude'] = True
+                        break
         return feature_properties
 
     def update_feature_properties(self, feature):
