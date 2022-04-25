@@ -117,7 +117,7 @@ class SVGSource(MapSource):
                       '{}.svg'.format(self.flatmap.id)), 'wb') as fp:
                 cleaner.save(fp)
         if settings.get('backgroundTiles', False):
-            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
+            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=settings.get('showCentrelines', False))
             cleaner.clean()
             cleaned_svg = io.BytesIO()
             cleaner.save(cleaned_svg)
