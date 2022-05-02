@@ -217,7 +217,7 @@ class Slide():
                     if isinstance(shape, pptx.shapes.connector.Connector):
                         shape_type = 'connector'
                         xml = etree.fromstring(shape.element.xml)
-                        if (connection := shape_xml.find('.//p:x`/p:cNvCxnSpPr',
+                        if (connection := shape_xml.find('.//p:nvCxnSpPr/p:cNvCxnSpPr',
                                                         namespaces=PPTX_NAMESPACE)) is not None:
                             for c in connection.getchildren():
                                 if c.tag == DML('stCxn'):
