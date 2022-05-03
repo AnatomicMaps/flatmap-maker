@@ -100,6 +100,7 @@ class Network(object):
         self.__centreline_ids = []
         self.__contained_centrelines = defaultdict(list)  #! Feature id --> centrelines contained in feature
         self.__contained_count = {}
+        self.__feature_ids = set()
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
         for centreline in network.get('centrelines', []):
             id = centreline.get('id')
@@ -108,15 +109,18 @@ class Network(object):
             elif id in self.__centreline_ids:
                 log.error(f'Centreline {id} in network {self.__id} has a duplicated id')
             else:
+                self.__feature_ids.add(id)
                 nodes = centreline.get('connects', [])
                 if len(nodes) < 2:
                     log.warning(f'Centreline {id} in network {self.__id} has too few nodes')
                 else:
+                    self.__feature_ids.update(nodes)
                     self.__centreline_ids.append(id)
                     edge_properties = {'id': id}
                     if len(nodes) > 2:
                         edge_properties['intermediates'] = nodes[1:-1]
                     containing_features = set(centreline.get('contained-in', []))
+                    self.__feature_ids.update(containing_features)
                     containing_features.update(nodes[1:-1])
                     self.__contained_count[id] = len(containing_features)
                     for container_id in containing_features:
@@ -128,6 +132,14 @@ class Network(object):
     @property
     def id(self):
         return self.__id
+
+    def has_feature(self, feature):
+    #==============================
+    ##
+    ## Is the ``feature`` included in this network?
+    ##
+        return (feature.id in self.__feature_ids
+             or feature.property('tile-layer') == 'pathways')
 
     def __find_feature(self, id):
     #============================
