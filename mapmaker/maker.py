@@ -44,7 +44,7 @@ from .output.tilemaker import RasterTileMaker
 
 from .settings import settings
 
-from .sources import CellDlSource, MBFSource, PowerpointSource, SVGSource
+from .sources import MBFSource, PowerpointSource, SVGSource
 
 #===============================================================================
 
@@ -275,8 +275,6 @@ class MapMaker(object):
                                          exported=(layer_number==0))
             elif kind in ['base', 'details']:
                 source_layer = SVGSource(self.__flatmap, id, href, kind)
-            elif kind == 'celldl':
-                source_layer = CellDlSource(self.__flatmap, id, href)
             else:
                 raise ValueError('Unsupported source kind: {}'.format(kind))
             source_layer.process()
