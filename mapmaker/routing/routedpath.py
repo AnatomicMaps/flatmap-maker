@@ -261,11 +261,15 @@ class IntermediateNode:
            log.error(f'Cannot get width of node {id}')
         self.__width_normal = mid_normal*width/2.0
 
-    def geometry(self, start_point, end_point, num_points=100, offset=0):
+    def geometry(self, path_id, start_point, end_point, num_points=100, offset=0):
         node_point = self.__mid_point + self.__width_normal*offset
+        geometry = [GeometricShape.circle(
+            point_to_coords(node_point),
+            radius = 0.8*PATH_SEPARATION,
+            properties={'type': 'junction', 'path-id': path_id})]
         segs = [ bezier_connect(start_point, node_point, self.__start_angle, self.__mid_angle),
                  bezier_connect(node_point, end_point, self.__mid_angle, self.__end_angle) ]
-        return (bezier_to_linestring(BezierPath.fromSegments(segs), num_points=num_points, offset=offset), node_point)
+        return (bezier_to_linestring(BezierPath.fromSegments(segs), num_points=num_points, offset=offset), geometry)
 
 #===============================================================================
 
@@ -316,23 +320,23 @@ class RoutedPath(object):
             path_offset = PATH_SEPARATION*offset
             intermediate_nodes = []
             coords = []
-            intermediate_start = None
             component_num = 0
             while component_num < len(path_components):
                 component = path_components[component_num]
                 if isinstance(component, IntermediateNode):
                     component_num += 1
                     next_line_coords = bezier_to_linestring(path_components[component_num], offset=path_offset).coords
-                    intermediate_geometry = component.geometry(intermediate_start, BezierPoint(*next_line_coords[0]),
+                    intermediate_geometry = component.geometry(path_id, intermediate_start,
+                                                               BezierPoint(*(next_line_coords[0] if path_offset >= 0 else next_line_coords[-1])),
                                                                offset=2*offset/edge_dict['max-paths'])
                     line_coords = intermediate_geometry[0].coords
-                    intermediate_nodes.append(intermediate_geometry[1])
+                    geometry.extend(intermediate_geometry[1])
                     coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
                     line_coords = next_line_coords
-                    intermediate_start = BezierPoint(*line_coords[-1])
+                    intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
                 else:
                     line_coords = bezier_to_linestring(component, offset=path_offset).coords
-                    intermediate_start = BezierPoint(*line_coords[-1])
+                    intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
                 coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
                 component_num += 1
                 path_line = shapely.geometry.LineString(coords)
@@ -349,12 +353,6 @@ class RoutedPath(object):
                     # Save offsetted point where terminal edges start from
                     self.__graph.nodes[edge_dict['start-node']]['start-point'] = BezierPoint(*path_line.coords[0])
                     self.__graph.nodes[edge_dict['end-node']]['start-point'] = BezierPoint(*path_line.coords[-1])
-            # Draw intermediate nodes
-            for node_point in intermediate_nodes:
-                geometry.append(GeometricShape.circle(
-                    point_to_coords(node_point),
-                    radius = 0.8*PATH_SEPARATION,
-                    properties={'type': 'junction', 'path-id': path_id}))
 
         # Draw paths to terminal nodes
         for node_0, node_1, edge_dict in self.__graph.edges.data():
