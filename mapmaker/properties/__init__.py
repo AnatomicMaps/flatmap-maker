@@ -157,22 +157,36 @@ class ExternalProperties(object):
                 feature_properties['label'] = knowledge.get('label')
         elif 'label' not in feature_properties and 'name' in feature_properties:
             feature_properties['label'] = feature_properties.pop('name')
-        # Hide unlabelled features if not authoring
-        if not settings.get('authoring', False):
-            # Hide unlabelled centreline network features
-            for shape_type in NETWORK_SHAPE_TYPES:
-                if shape_type in feature_properties:
-                    if 'label' in feature_properties or settings.get('onlyNetworks', False):
-                        feature_properties['type'] = 'network'
-                    else:
-                        feature_properties['exclude'] = True
-                    break
-            # Hide unlabelled features in network topology
+
+
+        authoring = settings.get('authoring', False)
+        if authoring:
+            # Show id and classes in label if authoring
+            labels = []
             if id is not None:
-                for network in self.__networks.values():
-                    if network.contains(id) and 'label' not in feature_properties:
-                        feature_properties['exclude'] = True
-                        break
+                labels.append(f'Id: {id}')
+            if len(classes):
+                labels.append(f'Class: {", ".join(classes)}')
+            if 'model' in feature_properties:
+                labels.append(f'Models: {feature_properties.get("models")}')
+            if 'label' in feature_properties or len(labels) == 0:
+                labels.append(f'Label: {feature_properties.get("label")}')
+            feature_properties['label'] = '\n'.join(labels)
+
+        for shape_type in NETWORK_SHAPE_TYPES:
+            if shape_type in feature_properties:
+                if 'models' in feature_properties:
+                    feature_properties['type'] = 'network'
+                elif not authoring:
+                    # Hide unlabelled network features if not authoring
+                    feature_properties['exclude'] = True
+                break
+        if id is not None and not authoring:
+            # Hide unlabelled network features if not authoring
+            for network in self.__networks.values():
+                if network.contains(id) and 'label' not in feature_properties:
+                    feature_properties['exclude'] = True
+                    break
         return feature_properties
 
     def update_feature_properties(self, feature):
