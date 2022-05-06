@@ -78,6 +78,11 @@ class GeoJSONOutput(object):
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
+            ## TODO: Conditionally add centroid and have viewer check if there's one...
+            if len(mercator_geometry.centroid.coords) > 0:
+                centroid = list(list(mercator_geometry.centroid.coords)[0])
+            else:
+                centroid = None
             geojson = {
                 'type': 'Feature',
                 'id': feature.feature_id,
@@ -102,7 +107,7 @@ class GeoJSONOutput(object):
                 scale = math.log(math.sqrt(self.__map_area/area), 2)
                 geojson['properties']['scale'] = scale
                 if scale > 6 and 'group' not in properties and 'minzoom' not in properties:
-                    geojson['tippecanoe']['minzoom'] = 5
+                    geojson['tippecanoe']['minzoom'] = 4
             else:
                 geojson['properties']['scale'] = 10
 
