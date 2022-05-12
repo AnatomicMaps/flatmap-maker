@@ -167,7 +167,7 @@ class ExternalProperties(object):
                 labels.append(f'Id: {id}')
             if len(classes):
                 labels.append(f'Class: {", ".join(classes)}')
-            if 'model' in feature_properties:
+            if 'models' in feature_properties:
                 labels.append(f'Models: {feature_properties.get("models")}')
             if 'label' in feature_properties or len(labels) == 0:
                 labels.append(f'Label: {feature_properties.get("label")}')
