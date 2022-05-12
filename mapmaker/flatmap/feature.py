@@ -147,6 +147,8 @@ class FeatureMap(object):
             anatomical_features = self.__model_to_features.get(anatomical_id, [])
         else:
             features = self.__model_to_features.get(anatomical_id, [])
+            if len(features) == 1:
+                return [features[0]]
             for anatomical_layer in anatomical_layers:
                 included_features = []
                 layer_features = self.__model_to_features.get(anatomical_layer, [])
