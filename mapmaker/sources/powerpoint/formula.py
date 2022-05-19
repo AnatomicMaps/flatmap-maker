@@ -141,20 +141,24 @@ class Geometry(object):
         self._xfrm = shape.element.xfrm
 
         if shape.shape_type in [MSO_SHAPE_TYPE.AUTO_SHAPE, MSO_SHAPE_TYPE.TEXT_BOX]:
-            self._geometry = Shapes.lookup(shape.element.prstGeom.attrib['prst'])
+            self.__shape_kind = shape.element.prstGeom.attrib['prst']
+            self.__geometry = Shapes.lookup(self.__shape_kind)
             adjustments = shape.element.prstGeom.avLst
 
         elif shape.shape_type == MSO_SHAPE_TYPE.FREEFORM:
-            self._geometry = shape.element.spPr.custGeom
+            self.__shape_kind = 'freeform'
+            self.__geometry = shape.element.spPr.custGeom
             adjustments = None
 
         elif (shape.shape_type == MSO_SHAPE_TYPE.PICTURE
            or isinstance(shape, pptx.shapes.connector.Connector)):
-            self._geometry = Shapes.lookup(shape.element.spPr.prstGeom.attrib['prst'])
+            self.__shape_kind = shape.element.spPr.prstGeom.attrib['prst']
+            self.__geometry = Shapes.lookup(self.__shape_kind)
             adjustments = shape.element.spPr.prstGeom.avLst
 
         else:
-            self._geometry = None
+            self.__shape_kind = None
+            self.__geometry = None
             log.error(f'Unknown geometry for {shape.shape_type}')
             return
 
@@ -163,13 +167,13 @@ class Geometry(object):
             'h': shape.height
         }
 
-        if self._geometry.gdLst is not None:
-            for gd in self._geometry.gdLst:
                 self._variables[gd.name] = gd.fmla
+        if self.__geometry.gdLst is not None:
+            for gd in self.__geometry.gdLst:
 
-        if self._geometry.avLst is not None:
-            for gd in self._geometry.avLst:
                 self._variables[gd.name] = gd.fmla
+        if self.__geometry.avLst is not None:
+            for gd in self.__geometry.avLst:
 
         if adjustments is not None:
             for gd in adjustments:
@@ -177,7 +181,11 @@ class Geometry(object):
 
     @property
     def path_list(self):
-        return self._geometry.pathLst if self._geometry is not None else []
+        return self.__geometry.pathLst if self.__geometry is not None else []
+
+    @property
+    def shape_kind(self):
+        return self.__shape_kind
 
     @property
     def xfrm(self):

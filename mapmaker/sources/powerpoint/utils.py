@@ -126,6 +126,7 @@ def get_shape_geometry(shape, transform, properties=None):
 
     if properties is not None:
         properties['bezier-segments'] = bezier_segments
+        properties['shape-kind'] = pptx_geometry.shape_kind
 
     if len(coordinates) == 0:
         return None
