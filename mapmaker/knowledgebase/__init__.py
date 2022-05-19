@@ -51,11 +51,13 @@ FLATMAP_SCHEMA = """
 #===============================================================================
 
 class KnowledgeStore(mapknowledge.KnowledgeStore):
-    def __init__(self, store_directory, knowledge_base=KNOWLEDGE_BASE):
+    def __init__(self, store_directory, knowledge_base=KNOWLEDGE_BASE, create=True, read_only=False):
         new_db = not Path(store_directory, knowledge_base).resolve().exists()
         super().__init__(store_directory,
                          knowledge_base=knowledge_base,
-                         clean_connectivity=settings.get('cleanConnectivity', False))
+                         clean_connectivity=settings.get('cleanConnectivity', False),
+                         create=create,
+                         read_only=read_only)
         if new_db:
             self.db.executescript(FLATMAP_SCHEMA)
             labels_db = Path(store_directory, LABELS_DB).resolve()
