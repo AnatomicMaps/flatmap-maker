@@ -29,16 +29,19 @@ from pptx.oxml.dml.color import CT_Percentage, _BaseColorElement
 from pptx.oxml.theme import CT_OfficeStyleSheet
 
 from pptx.oxml.shapes.autoshape import CT_GeomGuideList
+from pptx.oxml.shapes.groupshape import CT_GroupShapeProperties
 from pptx.oxml.shapes.shared import CT_LineProperties
 from pptx.oxml.simpletypes import XsdString
 from pptx.oxml.slide import _BaseSlideElement
 
 from pptx.oxml.xmlchemy import (
     BaseOxmlElement,
+    Choice,
     OneAndOnlyOne,
     RequiredAttribute,
     ZeroOrMore,
-    ZeroOrOne
+    ZeroOrOne,
+    ZeroOrOneChoice
 )
 
 #===============================================================================
@@ -149,6 +152,50 @@ class CT_SlideMasterUpdated(_BaseSlideElement):
 #===============================================================================
 
 oxml.register_element_cls("p:sldMaster", CT_SlideMasterUpdated)
+
+#===============================================================================
+
+class CT_GroupShapePropertiesUpdated(CT_GroupShapeProperties):
+    """p:grpSpPr element """
+
+    _tag_seq = (
+        "a:xfrm",
+        "a:noFill",
+        "a:solidFill",
+        "a:gradFill",
+        "a:blipFill",
+        "a:pattFill",
+        "a:grpFill",
+        "a:effectLst",
+        "a:effectDag",
+        "a:scene3d",
+        "a:extLst",
+    )
+    xfrm = ZeroOrOne("a:xfrm", successors=_tag_seq[1:])
+    eg_groupFillProperties = ZeroOrOneChoice(
+        (
+            Choice("a:noFill"),
+            Choice("a:solidFill"),
+            Choice("a:gradFill"),
+            Choice("a:blipFill"),
+            Choice("a:pattFill"),
+            Choice("a:grpFill"),
+        ),
+        successors=_tag_seq[7:],
+    )
+    effectLst = ZeroOrOne("a:effectLst", successors=_tag_seq[8:])
+    del _tag_seq
+
+    @property
+    def eg_fillProperties(self):
+        """
+        Required to fulfill the interface used by dml.fill.
+        """
+        return self.eg_groupFillProperties
+
+#===============================================================================
+
+oxml.register_element_cls("p:grpSpPr", CT_GroupShapePropertiesUpdated)
 
 #===============================================================================
 
