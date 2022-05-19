@@ -32,6 +32,7 @@ from urllib.parse import urljoin, urlparse
 # Export from module
 
 from .logging import ProgressBar, configure_logging, log
+from .treelist import TreeList
 
 #===============================================================================
 
