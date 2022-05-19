@@ -53,18 +53,26 @@ FLATMAP_SCHEMA = """
 class KnowledgeStore(mapknowledge.KnowledgeStore):
     def __init__(self, store_directory, knowledge_base=KNOWLEDGE_BASE, create=True, read_only=False):
         new_db = not Path(store_directory, knowledge_base).resolve().exists()
-        super().__init__(store_directory,
-                         knowledge_base=knowledge_base,
-                         clean_connectivity=settings.get('cleanConnectivity', False),
-                         create=create,
-                         read_only=read_only)
-        if new_db:
+        if create and new_db:
+            super().__init__(store_directory,
+                             knowledge_base=knowledge_base,
+                             clean_connectivity=settings.get('cleanConnectivity', False),
+                             create=create,
+                             read_only=False)
             self.db.executescript(FLATMAP_SCHEMA)
             labels_db = Path(store_directory, LABELS_DB).resolve()
             if labels_db.exists():
                 with self.db:
                     self.db.executemany('insert into labels(entity, label) values (?, ?)',
                         sqlite3.connect(labels_db).execute('select entity, label from labels').fetchall())
+            if read_only:
+                super().open(read_only=True)
+        else:
+            super().__init__(store_directory,
+                             knowledge_base=knowledge_base,
+                             clean_connectivity=settings.get('cleanConnectivity', False),
+                             create=create,
+                             read_only=read_only)
 
     def add_flatmap(self, flatmap):
     #==============================
