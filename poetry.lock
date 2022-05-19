@@ -155,7 +155,7 @@ source = ["Cython (>=0.29.7)"]
 
 [[package]]
 name = "mapknowledge"
-version = "0.9.7"
+version = "0.9.8"
 description = ""
 category = "main"
 optional = false
@@ -168,7 +168,7 @@ requests = "*"
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.9.7/mapknowledge-0.9.7-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.9.8/mapknowledge-0.9.8-py3-none-any.whl"
 [[package]]
 name = "markupsafe"
 version = "2.1.1"
@@ -714,7 +714,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4.0"
-content-hash = "2ef102a47af95ecad65aae4df1041cf53eafbffb31213c1d04fee8c1d598c6aa"
+content-hash = "5569227db9fb3480db8a44706b7fa77a494dc43682ff18c0ab43cc1f3fe83303"
 
 [metadata.files]
 alabaster = [
