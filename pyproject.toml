@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mapmaker"
-version = "1.4.2a4"
+version = "1.4.2a5"
 description = ""
 authors = ["David Brooks <d.brooks@auckland.ac.nz>"]
 
