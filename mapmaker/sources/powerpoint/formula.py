@@ -138,7 +138,7 @@ class Evaluator(object):
 
 class Geometry(object):
     def __init__(self, shape):
-        self._xfrm = shape.element.xfrm
+        self.__xfrm = shape.element.xfrm
 
         if shape.shape_type in [MSO_SHAPE_TYPE.AUTO_SHAPE, MSO_SHAPE_TYPE.TEXT_BOX]:
             self.__shape_kind = shape.element.prstGeom.attrib['prst']
@@ -162,22 +162,22 @@ class Geometry(object):
             log.error(f'Unknown geometry for {shape.shape_type}')
             return
 
-        self._variables = {
+        self.__variables = {
             'w': shape.width,
             'h': shape.height
         }
 
-                self._variables[gd.name] = gd.fmla
         if self.__geometry.gdLst is not None:
             for gd in self.__geometry.gdLst:
+                self.__variables[gd.name] = gd.fmla
 
-                self._variables[gd.name] = gd.fmla
         if self.__geometry.avLst is not None:
             for gd in self.__geometry.avLst:
+                self.__variables[gd.name] = gd.fmla
 
         if adjustments is not None:
             for gd in adjustments:
-                self._variables[gd.name] = gd.fmla
+                self.__variables[gd.name] = gd.fmla
 
     @property
     def path_list(self):
@@ -189,14 +189,14 @@ class Geometry(object):
 
     @property
     def xfrm(self):
-        return self._xfrm
+        return self.__xfrm
 
     def evaluate(self, x):
         try: return float(x)
         except ValueError: pass
         try: return self.evaluate(PRESET_VARIABLES[x])
         except KeyError: pass
-        try: return self.evaluate(self._variables[x])
+        try: return self.evaluate(self.__variables[x])
         except KeyError: pass
         return Evaluator.evaluate(x, self)
 
