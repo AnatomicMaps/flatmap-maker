@@ -14,6 +14,11 @@ __version__ = '1.0.0'
 SVG_NS = 'http://www.w3.org/2000/svg'
 SVG_GROUP = f'{{{SVG_NS}}}g'
 
+NAMESPACE_MAP = {
+    None: 'http://www.w3.org/2000/svg',
+    'xlink': 'http://www.w3.org/1999/xlink',
+}
+
 #===============================================================================
 
 class DeGrouper(object):
@@ -40,7 +45,7 @@ class DeGrouper(object):
     def __process_element(self, element, output=None):
     #=================================================
         if output is None:
-            output = etree.Element(element.tag, **element.attrib, nsmap={None: SVG_NS})
+            output = etree.Element(element.tag, **element.attrib, nsmap=NAMESPACE_MAP)
         elif element.tag != SVG_GROUP or len(element.attrib) > 0 or len(element) > 1:
             output = etree.SubElement(output, element.tag, **element.attrib)
         for child in element:
