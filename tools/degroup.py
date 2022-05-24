@@ -8,7 +8,7 @@ from lxml import etree
 
 #===============================================================================
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 
 SVG_NS = 'http://www.w3.org/2000/svg'
@@ -36,7 +36,7 @@ class DeGrouper(object):
     #==============
         for comment in self.__svg.xpath('/comment()'):
             self.__output.addprevious(comment)
-        header = f' Degrouped at {datetime.now(timezone.utc).isoformat()} '
+        header = f' Degrouped at {datetime.now(timezone.utc).isoformat()} using version {__version__}'
         self.__output.addprevious(etree.Comment(header))
         degrouped = etree.ElementTree(self.__output)
         degrouped.write(self.__svg_file, encoding='utf-8', pretty_print=True,
