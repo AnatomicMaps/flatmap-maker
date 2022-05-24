@@ -391,6 +391,8 @@ class MapMaker(object):
         }
         if self.__flatmap.models is not None:
             map_index['describes'] = self.__flatmap.models
+        if settings.get('authoring', False):
+            map_index['authoring'] = True
 
         # Create `index.json` for building a map in the viewer
         with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:
