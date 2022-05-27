@@ -460,12 +460,12 @@ class Network(object):
                 if len(found_feature_ids) > 1:
                     connected_features = found_feature_ids.intersection(self.__centreline_graph)
                     if len(connected_features) > 1:
-                        log.error(f'Node {node} has too many connected features: {found_feature_ids}')
+                        log.error(f'{path.id}: Node {node} has too many connected features: {found_feature_ids}')
                     elif len(connected_features):
                         feature_id = connected_features.pop()
                     else:
                         # Possible terminal nodes
-                        log.warning(f'Node {node} has multiple terminal features: {found_feature_ids}')
+                        log.warning(f'{path.id}: Node {node} has multiple terminal features: {found_feature_ids}')
                         feature_id = found_feature_ids.pop()
                 elif len(found_feature_ids):
                     feature_id = found_feature_ids.pop()
