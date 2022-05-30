@@ -2,7 +2,7 @@
 #
 #  Flatmap viewer and annotation tools
 #
-#  Copyright (c) 2019  David Brooks
+#  Copyright (c) 2019 - 2022  David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ class PowerpointSource(MapSource):
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
         pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_href)[0]))
-        self.set_raster_source(RasterSource('pdf', pdf_source.get_data()))
+        self.set_raster_source(RasterSource('pdf', None, file_path=pdf_source))
 
     @property
     def transform(self):

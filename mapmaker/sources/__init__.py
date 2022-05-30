@@ -211,10 +211,13 @@ class RasterSource(object):
     def __init__(self, kind, data, **kwds):
         self.__kind = kind
         self.__data = data
+        self.__file_path = kwds.pop('file_path', None)
         self.__params = kwds
 
     @property
     def data(self):
+        if self.__data is None and self.__file_path is not None:
+            self.__data = self.__file_path.get_data()
         return self.__data
 
     @property
