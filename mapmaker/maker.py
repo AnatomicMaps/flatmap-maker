@@ -160,10 +160,11 @@ class MapMaker(object):
             raise ValueError('Initial zoom must be between {} and {}'.format(min_zoom, max_zoom))
         self.__zoom = (min_zoom, max_zoom, initial_zoom)
 
-        # Authoring implies to clean output directory and no image tiles
-        if settings.get('authoring', False):
-            options['clean'] = False
+        # Authoring implies to clean output directory, report deprecated markup, and don't tile background
+        if options.get('authoring', False):
             options.pop('backgroundTiles', None)
+            options['clean'] = True
+            options['showDeprecated'] = True
 
         # Save options into global ``settings`` dict
         settings.update(options)
