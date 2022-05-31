@@ -44,7 +44,7 @@ from .output.tilemaker import RasterTileMaker
 
 from .settings import settings
 
-from .sources import MBFSource, PowerpointSource, SVGSource
+from .sources import FCPowerpoint, MBFSource, PowerpointSource, SVGSource
 
 #===============================================================================
 
@@ -265,7 +265,9 @@ class MapMaker(object):
             id = source.get('id')
             kind = source.get('kind')
             href = source['href']
-            if kind == 'slides':
+            if kind == 'fc_slides':
+                source_layer = FCPowerpoint(self.__flatmap, id, href)
+            elif kind == 'slides':
                 source_layer = PowerpointSource(self.__flatmap, id, href)
             elif kind == 'image':
                 if layer_number > 0 and 'boundary' not in source:

@@ -22,52 +22,92 @@ import os
 
 #===============================================================================
 
-import numpy as np
+from mapmaker.flatmap.layers import MapLayer
+from mapmaker.settings import settings
+from mapmaker.utils import log, FilePath, TreeList
 
-from pptx import Presentation
+from .. import MapSource, RasterSource
+
+from .powerpoint import Powerpoint, SHAPE_TYPE
 
 #===============================================================================
 
-from .. import MapSource, RasterSource
-from .. import WORLD_METRES_PER_EMU
+class PowerpointSlide(MapLayer):
+    def __init__(self, source, slide, slide_number):
+        if slide.id is not None:
+            id = slide.id
+        else:
+            id = 'slide-{:02d}'.format(slide_number)
+        super().__init__(id, source, exported=(slide_number==1))
+        self.__slide = slide
+        self.__slide_number = slide_number
 
-from mapmaker.geometry import Transform
-from mapmaker.settings import settings
-from mapmaker.utils import log, FilePath
+    @property
+    def slide(self):
+        return self.__slide
 
-from .slide import PowerpointSlide
+    @property
+    def slide_number(self):
+        return self.__slide_number
+
+    def _extract_shapes(self):              # Override in sub-class
+    #=========================
+        return self.__slide.process()
+
+    def process(self):
+    #=================
+        shapes = self._extract_shapes()
+        features = self.__process_shape_list(shapes)
+        self.add_features('Slide', features, outermost=True)
+
+    def __process_shape_list(self, shapes):
+    #======================================
+        features = []
+        for shape in shapes:
+            if isinstance(shape, TreeList):
+                group_features = self.__process_shape_list(shape)
+                grouped_feature = self.add_features('Group', group_features)
+                if grouped_feature is not None:
+                    features.append(grouped_feature)
+            else:
+##                print('>>>>>>>>>>>>>>>', shape.type, shape.label)
+                properties = shape.properties
+                self.source.check_markup_errors(properties)
+                if 'tile-layer' not in properties:
+                    properties['tile-layer'] = 'features'   # Passed through to map viewer
+                if 'error' in properties:
+                    pass
+                elif 'invisible' in properties:
+                    pass
+                elif 'path' in properties:
+                    pass
+                else:
+                    feature = self.flatmap.new_feature(shape.geometry, shape.properties)
+                    features.append(feature)
+        return features
 
 #===============================================================================
 
 class PowerpointSource(MapSource):
-    def __init__(self, flatmap, id, source_href):
+    def __init__(self, flatmap, id, source_href, SlideClass=PowerpointSlide):
         super().__init__(flatmap, id, source_href, 'slides')
-        self.__pptx = Presentation(FilePath(source_href).get_BytesIO())
-        self.__slides = self.__pptx.slides
-
-        (width, height) = (self.__pptx.slide_width, self.__pptx.slide_height)
-        self.__transform = Transform([[WORLD_METRES_PER_EMU,                     0, 0],
-                                      [                    0, -WORLD_METRES_PER_EMU, 0],
-                                      [                    0,                     0, 1]])@np.array([[1, 0, -width/2.0],
-                                                                                                    [0, 1, -height/2.0],
-                                                                                                    [0, 0,         1.0]])
-        top_left = self.__transform.transform_point((0, 0))
-        bottom_right = self.__transform.transform_point((width, height))
-        # southwest and northeast corners
-        self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
+        self.__SlideClass = SlideClass
+        self.__powerpoint = Powerpoint(source_href)
+        self.bounds = self.__powerpoint.bounds   # Set bounds of MapSource
+        self.__slides = self.__powerpoint.slides
         pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_href)[0]))
         self.set_raster_source(RasterSource('pdf', None, file_path=pdf_source))
 
     @property
     def transform(self):
-        return self.__transform
+        return self.__powerpoint.transform
 
     def process(self):
     #=================
         for n in range(len(self.__slides)):
             slide = self.__slides[n]
             slide_number = n + 1
-            slide_layer = PowerpointSlide(self, slide, slide_number)
+            slide_layer = self.__SlideClass(self, slide, slide_number)
             log('Slide {}, {}'.format(slide_number, slide_layer.id))
             if settings.get('saveDrawML'):
                 xml = open(os.path.join(settings.get('output'),

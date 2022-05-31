@@ -42,11 +42,11 @@ from mapmaker.geometry import Transform
 from mapmaker.utils import FilePath, log, ProgressBar, TreeList
 
 from .. import WORLD_METRES_PER_EMU
-from ..markup import parse_layer_directive
-from ..powerpoint.colour import ColourMap, Theme
-from ..powerpoint.presets import DML
-from ..powerpoint.transform import DrawMLTransform
-from ..powerpoint.utils import get_shape_geometry
+from ..markup import parse_layer_directive, parse_markup
+from .colour import ColourMap, Theme
+from .presets import DML
+from .transform import DrawMLTransform
+from .utils import get_shape_geometry
 
 #===============================================================================
 
@@ -109,22 +109,24 @@ class Powerpoint():
     def __init__(self, source_href):
         ppt_bytes = FilePath(source_href).get_BytesIO()
         pptx = Presentation(ppt_bytes)
-        theme = Theme(ppt_bytes)
+
         (width, height) = (pptx.slide_width, pptx.slide_height)
         self.__transform = Transform([[WORLD_METRES_PER_EMU,                     0, 0],
                                       [                    0, -WORLD_METRES_PER_EMU, 0],
                                       [                    0,                     0, 1]])@np.array([[1, 0, -width/2.0],
                                                                                                     [0, 1, -height/2.0],
                                                                                                     [0, 0,         1.0]])
-        self.__slides = [Slide(slide, theme, self.__transform) for slide in pptx.slides]
         top_left = self.__transform.transform_point((0, 0))
         bottom_right = self.__transform.transform_point((width, height))
         # southwest and northeast corners
-        self.__geometry = shapely.geometry.box(top_left[0], bottom_right[1], bottom_right[0], top_left[1])
+        self.__bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
+
+        theme = Theme(ppt_bytes)
+        self.__slides = [Slide(slide, theme, self.__transform) for slide in pptx.slides]
 
     @property
-    def geometry(self):
-        return self.__geometry
+    def bounds(self):
+        return self.__bounds
 
     @property
     def slides(self):
@@ -139,7 +141,7 @@ class Powerpoint():
 class Slide():
     def __init__(self, slide, theme, transform):
         self.__id = None
-        self.__key_slide = False
+        # Get any layer directives
         if slide.has_notes_slide:
             notes_slide = slide.notes_slide
             notes_text = notes_slide.notes_text_frame.text
@@ -150,23 +152,31 @@ class Slide():
                                  .format(slide_number, notes_text))
                 if 'id' in layer_directive:
                     self.__id = layer_directive['id']
-                self.__key_slide = layer_directive.get('key', False)
         self.__colour_map = ColourMap(theme, slide)
         self.__slide = slide
         self.__transform = transform
+        self.__shapes_by_id = {}
 
     @property
     def id(self):
         return self.__id
 
     @property
-    def key_slide(self):
-        return self.__key_slide
+    def slide(self):
+        return self.__slide
+
+    @property
+    def slide_id(self):
+        return self.__slide.slide_id
+
+    def shape(self, id):
+    #===================
+        return self.__shapes_by_id.get(id)
 
     def process(self):
     #=================
-        # Return the group tree structure as a nested list
-        return self.__process_shape_list(self.__slide.shapes, self.__transform, show_progress=True)
+        # Return the slide's group structure as a nested list of Shapes
+        return self.__process_pptx_shapes(self.__slide.shapes, self.__transform, show_progress=True)
 
     def __get_colour(self, shape, group_colour=None):
     #================================================
@@ -205,8 +215,8 @@ class Slide():
 
     def __process_group(self, group, transform):
     #===========================================
-        return self.__process_shape_list(group.shapes, transform@DrawMLTransform(group),
-                                         group_colour=self.__get_colour(group))
+        return self.__process_pptx_shapes(group.shapes, transform@DrawMLTransform(group),
+                                          group_colour=self.__get_colour(group))
 
         if len(shapes) < 2:  ## shapes[0] might be a TreeList ##
                              ## or shapes[0].type != SHAPE_TYPE.FEATURE:
@@ -228,7 +238,6 @@ class Slide():
         if label == '':
             return shapes
 
-
         # Merge a group of shapes that are all the same colour and with only
         # one having a label into a single shape
         return Shape(SHAPE_TYPE.FEATURE, group.shape_id,
@@ -239,39 +248,40 @@ class Slide():
                         'text-align': alignment
                        })
 
-    def __process_shape_list(self, shape_list, transform, group_colour=None, show_progress=False):
-    #=============================================================================================
+    def __process_pptx_shapes(self, pptx_shapes, transform, group_colour=None, show_progress=False):
+    #===============================================================================================
         progress_bar = ProgressBar(show=show_progress,
-            total=len(shape_list),
+            total=len(pptx_shapes),
             unit='shp', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         shapes = TreeList()
-        for shape in shape_list:
-            if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
-             or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
-             or shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
-             or isinstance(shape, pptx.shapes.connector.Connector)):
-                colour, alpha = self.__get_colour(shape, group_colour)
-                shape_properties = {
-                    'shape-name': shape.name,
+        for pptx_shape in pptx_shapes:
+            shape_name = pptx_shape.name
+            shape_properties = parse_markup(shape_name) if shape_name.startswith('.') else {}
+            if (pptx_shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
+             or pptx_shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
+             or pptx_shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
+             or isinstance(pptx_shape, pptx.shapes.connector.Connector)):
+                colour, alpha = self.__get_colour(pptx_shape, group_colour)
+                shape_properties.update({
+                    'shape-name': shape_name,
                     'colour': colour
-                }
+                })
                 if alpha < 1.0:
                     shape_properties['opacity'] = round(100*alpha, 1)
-                geometry = get_shape_geometry(shape, transform, shape_properties)
+                geometry = get_shape_geometry(pptx_shape, transform, shape_properties)
                 if geometry is not None:
-                    shape_properties.pop('bezier-segments', None)   # We don't use this here
-                    shape_xml = etree.fromstring(shape.element.xml)
+                    shape_xml = etree.fromstring(pptx_shape.element.xml)
                     for link_ref in shape_xml.findall('.//a:hlinkClick',
                                                     namespaces=PPTX_NAMESPACE):
                         r_id = link_ref.attrib[pptx_resolve('r:id')]
-                        if (r_id in shape.part.rels
-                         and shape.part.rels[r_id].reltype == 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink'):
-                            shape_properties['hyperlink'] = shape.part.rels[r_id].target_ref
+                        if (r_id in pptx_shape.part.rels
+                         and pptx_shape.part.rels[r_id].reltype == 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink'):
+                            shape_properties['hyperlink'] = pptx_shape.part.rels[r_id].target_ref
                             break
-                    if isinstance(shape, pptx.shapes.connector.Connector):
+                    if isinstance(pptx_shape, pptx.shapes.connector.Connector):
                         shape_type = SHAPE_TYPE.CONNECTOR
-                        xml = etree.fromstring(shape.element.xml)
+                        xml = etree.fromstring(pptx_shape.element.xml)
                         if (connection := shape_xml.find('.//p:nvCxnSpPr/p:cNvCxnSpPr',
                                                         namespaces=PPTX_NAMESPACE)) is not None:
                             for c in connection.getchildren():
@@ -294,20 +304,22 @@ class Slide():
                         shape_properties['line-style'] = line_style
                         shape_properties['head-end'] = head_end
                         shape_properties['tail-end'] = tail_end
-                        shape_properties['stroke-width'] = abs(transform.scale_length((int(shape.line.width.emu), 0))[0])
+                        shape_properties['stroke-width'] = abs(transform.scale_length((int(pptx_shape.line.width.emu), 0))[0])
                     else:
                         shape_type = SHAPE_TYPE.FEATURE
-                        label = text_content(shape)
+                        label = text_content(pptx_shape)
                         if label != '':
                             shape_properties['label'] = label
-                            shape_properties['align'] = text_alignment(shape)
-                    shapes.append(Shape(shape_type, shape.shape_id, geometry, shape_properties))
-            elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
-                shapes.append(self.__process_group(shape, transform))
-            elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
-                log.warning('Image "{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
+                            shape_properties['align'] = text_alignment(pptx_shape)
+                    shape = Shape(shape_type, pptx_shape.shape_id, geometry, shape_properties)
+                    self.__shapes_by_id[shape.id] = shape
+                    shapes.append(shape)
+            elif pptx_shape.shape_type == MSO_SHAPE_TYPE.GROUP:
+                shapes.append(self.__process_group(pptx_shape, transform))
+            elif pptx_shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+                log.warning('Image "{}" {} not processed...'.format(shape_name, str(pptx_shape.shape_type)))
             else:
-                log.warning('Shape "{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
+                log.warning('Shape "{}" {} not processed...'.format(shape_name, str(pptx_shape.shape_type)))
             progress_bar.update(1)
 
         progress_bar.close()

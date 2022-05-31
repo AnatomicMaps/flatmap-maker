@@ -96,6 +96,8 @@ class MapLayer(FeatureLayer):
         super().__init__(id, source.flatmap, exported)
         self.__source = source
         self.__boundary_feature = None
+        self.__bounds = source.bounds
+        self.__outer_geometry = shapely.geometry.box(*source.bounds)
         self.__detail_features = []
 #*        self.__ontology_data = self.options.ontology_data
         self.__nerve_tracks = []
@@ -111,12 +113,20 @@ class MapLayer(FeatureLayer):
         self.__boundary_feature = value
 
     @property
+    def bounds(self):
+        return self.__bounds
+
+    @property
     def detail_features(self):
         return self.__detail_features
 
     @property
     def details_layer(self):
         return self.__details_layer
+
+    @property
+    def outer_geometry(self):
+        return self.__outer_geometry
 
     @property
     def nerve_tracks(self):

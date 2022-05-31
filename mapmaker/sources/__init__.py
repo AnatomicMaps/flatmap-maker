@@ -184,18 +184,22 @@ class MapSource(object):
         if not markup.startswith('.'):
             return {}
         properties = parse_markup(markup)
+        self.check_markup_errors(properties)
+        return properties
+
+    def check_markup_errors(self, properties):
+    #=========================================
         if 'error' in properties:
             self.error('error', '{}: {} in markup: {}'
-                       .format(self.id, properties['error'], markup))
+                       .format(self.id, properties['error'], properties['markup']))
         if 'warning' in properties:
             self.error('warning', '{}: {} in markup: {}'
-                       .format(self.id, properties['warning'], markup))
+                       .format(self.id, properties['warning'], properties['markup']))
         for key in ['id', 'path']:
             if key in properties:
                 if self.__flatmap.is_duplicate_feature_id(properties[key]):
                    self.error('error', '{}: duplicate id in markup: {}'
-                              .format(self.id, markup))
-        return properties
+                              .format(self.id, properties['markup']))
 
     def process(self):
     #=================
@@ -232,6 +236,7 @@ class RasterSource(object):
 
 # Export our sources here to avoid circular imports
 
+from .fc_powerpoint import FCPowerpoint
 from .mbfbioscience import MBFSource
 from .powerpoint import PowerpointSource
 from .svg import SVGSource
