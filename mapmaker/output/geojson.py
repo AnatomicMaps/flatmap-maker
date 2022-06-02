@@ -85,11 +85,12 @@ class GeoJSONOutput(object):
                 centroid = list(list(mercator_geometry.centroid.coords)[0])
             else:
                 centroid = None
+            tile_layer = properties['tile-layer']
             geojson = {
                 'type': 'Feature',
                 'id': feature.feature_id,
                 'tippecanoe' : {
-                    'layer' : properties['tile-layer']
+                    'layer' : f'{self.__layer.id}_{tile_layer}'
                 },
                 'geometry': shapely.geometry.mapping(mercator_geometry),
                 'properties': {
