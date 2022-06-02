@@ -75,6 +75,8 @@ class GeoJSONOutput(object):
                 progress_bar.update(1)
                 continue
             properties = feature.properties.copy()
+            if 'bezier-segments' in properties:   # Don't export Bezier segments
+                properties.pop('bezier-segments')
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
@@ -110,9 +112,6 @@ class GeoJSONOutput(object):
                     geojson['tippecanoe']['minzoom'] = 4
             else:
                 geojson['properties']['scale'] = 10
-
-            if 'bezier-segments' in properties:   # Don't export Bezier segments
-                properties.pop('bezier-segments')
 
             for (key, value) in properties.items():
                 if not ignore_property(key):
