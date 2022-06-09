@@ -161,7 +161,6 @@ class SVGLayer(MapLayer):
                 children[0].set(k, v)
             group = children[0]
             wrapped_group = wrap_element(group)
-        self.__level += 1
         group_style = self.__style_matcher.element_style(wrapped_group, parent_style)
         group_clip_path = group_style.pop('clip-path', None)
         clipped = self.__clip_geometries.get_by_url(group_clip_path)
