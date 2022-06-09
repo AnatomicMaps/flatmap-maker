@@ -31,7 +31,21 @@ import itertools
 import math
 from functools import partial
 
-from pprint import pprint
+
+#===============================================================================
+
+try:
+    # Python 3.10
+    from itertools import pairwise
+except ImportError:
+    # Python < 3.10
+    from itertools import tee
+
+    def pairwise(iterable):
+        "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+        a, b = tee(iterable)
+        next(b, None)
+        return zip(a, b)
 
 #===============================================================================
 
@@ -49,6 +63,7 @@ from mapmaker.geometry.beziers import bezier_to_linestring, closest_time
 from mapmaker.geometry.beziers import coords_to_point, point_to_coords
 from mapmaker.settings import settings
 from mapmaker.utils import log
+import mapmaker.utils.graph as graph_utils
 
 from .options import MIN_EDGE_JOIN_RADIUS
 from .routedpath import IntermediateNode, PathRouter
@@ -97,10 +112,12 @@ def get_connected_subgraph(path_id, graph, v_prime):
 class Network(object):
     def __init__(self, network: dict, external_properties):
         self.__id = network.get('id')
-        self.__centreline_graph = nx.Graph()
+        self.__centreline_graph = nx.MultiGraph()   # Can have multiple paths between two nodes
         self.__centreline_ids = []
-        self.__contained_centrelines = defaultdict(list)  #! Feature id --> centrelines contained in feature
-        self.__contained_count = {}
+        self.__contained_centrelines = defaultdict(list)    #! Feature id --> centrelines contained in feature
+        self.__contained_by_id = {}                         #! Centreline id --> set of features that centreline is contained in
+        self.__edges_by_id = {}                             #! Centreline id --> edge
+        self.__models_to_id = {}                            #! Ontological term --> centreline id
         self.__feature_ids = set()
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
         for centreline in network.get('centrelines', []):
@@ -111,6 +128,12 @@ class Network(object):
                 log.error(f'Centreline {id} in network {self.__id} has a duplicated id')
             else:
                 self.__feature_ids.add(id)
+                if (models := centreline.get('models')) is not None:
+                    if models in self.__models_to_id:
+                        log.warning(f'Features `{id}` and `{self.__models_to_id[models]}` both model {models}')
+                    else:
+                        self.__models_to_id[models] = id
+
                 nodes = centreline.get('connects', [])
                 if len(nodes) < 2:
                     log.warning(f'Centreline {id} in network {self.__id} has too few nodes')
@@ -123,12 +146,14 @@ class Network(object):
                     containing_features = set(centreline.get('contained-in', []))
                     self.__feature_ids.update(containing_features)
                     containing_features.update(nodes[1:-1])
-                    self.__contained_count[id] = len(containing_features)
+                    if len(containing_features):
+                        self.__contained_by_id[id] = containing_features
                     for container_id in containing_features:
                         self.__contained_centrelines[container_id].append(id)
                         if external_properties.get_property(container_id, 'type') == 'nerve':
                             edge_properties['nerve'] = container_id
-                    self.__centreline_graph.add_edge(nodes[0], nodes[-1], **edge_properties)
+                    key = self.__centreline_graph.add_edge(nodes[0], nodes[-1], **edge_properties)
+                    self.__edges_by_id[id] = (nodes[0], nodes[-1], key)
 
     @property
     def id(self):
@@ -438,40 +463,207 @@ class Network(object):
 
     def __route_graph_from_connectivity(self, path) -> nx.Graph:
     #===========================================================
-        # Connectivity comes from SciCrunch
+        # Connectivity comes from SCKAN
+
+        def find_centreline_from_containers(features):
+        #=============================================
+            max_score = 0
+            centreline_id = None
+            for id, containing_features in self.__contained_by_id.items():
+                if common := len(containing_features.intersection(features)):
+                    # Jaccard index
+                    score = common/(len(features) + len(containing_features) - common)
+                    if score > max_score:
+                        max_score = score
+                        centreline_id = id
+            return centreline_id
 
         def find_feature_ids(connectivity_node):
+        #=======================================
+            # First check if we can directly identify the centreline
+            if (centreline := self.__models_to_id.get(connectivity_node[0])) is not None:
+                return {
+                    'feature-id': centreline,
+                    'centreline': centreline
+                }
             features = self.__feature_map.find_path_features_by_anatomical_id(*connectivity_node)
             if len(features) == 0:
-                log.warning(f'{path.id}: Cannot find feature: {full_node_name(*connectivity_node)}')
-            return set(f.id if f.id is not None else f.property('class') for f in features)
+                return {'warning': f'Cannot find feature: {full_node_name(*connectivity_node)}'}
+            feature_ids = set(f.id if f.id is not None else f.property('class')    ## Class is deprecated as an identifier...
+                                        for f in features)
+            if len(feature_ids) > 1:
+                # We've found multiple features on the flatmap, so restrict them to the set of centreline nodes
+                # to see if we can find a unique feature
+                connected_features = feature_ids.intersection(self.__centreline_graph)
+                if len(connected_features) > 1:
+                    return {'error': f'Node {node} has too many connected features: {feature_ids}'}
+                elif len(connected_features):  # len(connected_features) == 1
+                    return {'feature-id': connected_features.pop()}
+                else:                          # len(connected_features) == 0
+                    # Multiple terminal nodes -- simply choose one
+                    return {
+                        'warning': f'Node {node} has multiple terminal features: {feature_ids}',
+                        'feature-id': feature_ids.pop()
+                    }
+            elif len(feature_ids):
+                return {'feature-id': feature_ids.pop()}
+            print(f'{path.id}: Cannot find {connectivity_node}   <<<<<<<<<<<<<<<<<<<<<<')
+            return {}
+
+        def join_centrelines(centreline_0, centreline_1):
+        #================================================
+            # The centrelines should either have a node in common
+            # or there should be a centreline connecting them
+            nodes_0 = self.__edges_by_id[centreline_0][0:2]
+            nodes_1 = self.__edges_by_id[centreline_1][0:2]
+            if nodes_0[0] in nodes_1 or nodes_0[1] in nodes_1:
+                return set()
+            result = set()
+            for n0 in nodes_0:
+                for n1 in nodes_1:
+                    if (n0, n1) in self.__centreline_graph.edges:
+                        for key in self.__centreline_graph[n0][n1]:
+                            result.add(self.__centreline_graph.edges[n0, n1, key]['id'])
+            if len(result) > 1:
+                log.warning(f'{path.id}: Multiple centrelines joining centerlines {centreline_0} and {centreline_1}')
+            elif len(result) == 0:
+                log.warning(f'{path.id}: No centreline joining centrelines {centreline_0} and {centreline_1}')
+            return result
+
+        def join_centreline_to_node(centreline, node):
+        #=============================================
+            # A centreline and feature node. Either the feature
+            # node is one of the centreline's nodes or there
+            # should be a centreline connecting them
+            nodes = self.__edges_by_id[centreline][0:2]
+            result = set()
+            if node not in nodes:
+                for n0 in nodes:
+                    if (n0, node) in self.__centreline_graph.edges:
+                        for key in self.__centreline_graph[n0][node]:
+                            result.add(self.__centreline_graph.edges[n0, node, key]['id'])
+                        break
+                if len(result) > 1:
+                    log.warning(f'{path.id}: Multiple centrelines joining {centreline} with node {node}')
+                elif len(result) == 0:
+                    log.warning(f'{path.id}: No centreline joining {centreline} with node {node}')
+            return result
+
+        def join_nodes(node_0, node_1):
+        #==============================
+            # Two feature nodes. There should be a centreline
+            # connecting them.
+            result = set()
+            if (node_0, node_1) in self.__centreline_graph.edges:
+                for key in self.__centreline_graph[node_0][node_1]:
+                    result.add(self.__centreline_graph.edges[node_0, node_1, key]['id'])
+            if len(result) > 1:
+                log.warning(f'{path.id}: Multiple centrelines joining nodes {node_0} and {node_1}')
+            elif len(result) == 0:
+                log.warning(f'{path.id}: No centreline joining nodes {node_0} and {node_1}')
+            return result
+
+        def centrelines_from_node_dicts(dict_0, dict_1):
+        #===============================================
+            centrelines = set()
+            if centreline_0 := dict_0.get('centreline'):
+                centrelines.add(centreline_0)
+                if centreline_1 := dict_1.get('centreline'):
+                    centrelines.update(join_centrelines(centreline_0, centreline_1))
+                    centrelines.add(centreline_1)
+                elif feature_1 := dict_1.get('feature-id'):
+                    centrelines.update(join_centreline_to_node(centreline_0, feature_1))
+            elif feature_0 := dict_0.get('feature-id'):
+                if centreline_1 := dict_1.get('centreline'):
+                    centrelines.add(centreline_1)
+                    centrelines.update(join_centreline_to_node(centreline_1, feature_0))
+                elif feature_1 := dict_1.get('feature-id'):
+                    centrelines.update(join_nodes(feature_0, feature_1))
+            return centrelines
+
+        def valid_feature_in_node_dicts(dicts, start_index):
+        #===================================================
+            while start_index < len(dicts) and dicts[start_index].get('feature-id') is None:
+                start_index += 1
+            return start_index
 
         # Connectivity graph must be undirected
+
         connectivity = path.connectivity
         if isinstance(connectivity, nx.DiGraph):
             connectivity = connectivity.to_undirected()
 
+        # The resulting route graph
+
         route_graph = nx.Graph()
-        # Split into connected sub-graphs
+
+        # Process each connected sub-graph
+
         for components in nx.connected_components(connectivity):
-            G = connectivity.subgraph(components)
-            for node in G.nodes:
-                feature_id = None
-                found_feature_ids = find_feature_ids(node)
-                if len(found_feature_ids) > 1:
-                    connected_features = found_feature_ids.intersection(self.__centreline_graph)
-                    if len(connected_features) > 1:
-                        log.error(f'{path.id}: Node {node} has too many connected features: {found_feature_ids}')
-                    elif len(connected_features):
-                        feature_id = connected_features.pop()
-                    else:
-                        # Possible terminal nodes
-                        log.warning(f'{path.id}: Node {node} has multiple terminal features: {found_feature_ids}')
-                        feature_id = found_feature_ids.pop()
-                elif len(found_feature_ids):
-                    feature_id = found_feature_ids.pop()
-                G.nodes[node]['feature_id'] = feature_id
-                G.nodes[node]['feature_nodes'] = None
+
+            # Simplify connectivity by collapsing consecutive degree 2 nodes
+            # into a single edge, returning a nx.MultiDiGraph
+
+            G = graph_utils.smooth_edges(connectivity.subgraph(components), path_attribute='path-nodes')
+
+            # Find feature corresponding to each connectivity node
+
+            for node in G:
+                G.nodes[node].update(find_feature_ids(node))
+
+            # And feature for each node on edge's smoothed path
+
+            for (node_0, node_1, key, edge_dict) in G.edges(keys=True, data=True):
+                # ``path-features`` is a list parallel with ``path-nodes``
+                edge_dict['path-features'] = [find_feature_ids(node) for node in edge_dict['path-nodes']]
+                if len(path_features := edge_dict['path-features']):
+                    # split into segments delimited by path features that map to a centreline
+                    segment_boundaries = [-1]
+                    segment_boundaries.extend([n for (n, path_feature) in enumerate(path_features)
+                                                    if path_feature.get('centreline') is not None])
+                    segment_boundaries.append(len(path_features))
+                    for start, end in pairwise(segment_boundaries):
+                        if (end - start) > 1:
+                            centreline = find_centreline_from_containers([path_feature.get('feature-id')
+                                                                            for path_feature in path_features[start+1:end]
+                                                                                if path_feature.get('feature-id') is not None])
+                            for path_feature in path_features[start+1:end]:
+                                if path_feature.get('feature-id') is not None:
+                                    path_feature['centreline'] = centreline
+
+            seen_edges = []
+            centreline_set = set()
+            # Construct and extract centrelines from the features we've fond, preserving
+            # local connectedness
+            for start_node, start_dict in G.nodes(data=True):
+                for end_node, edge_data in G[start_node].items():
+                    for key in edge_data:
+                        edge = (start_node, end_node, key)
+                        if edge not in seen_edges:
+                            node_dicts = [start_dict]
+                            node_dicts.extend(G.edges[edge].get('path-features', []))
+                            node_dicts.append(G.nodes[end_node])
+                            index = valid_feature_in_node_dicts(node_dicts, 0)
+                            while index < (len(node_dicts) - 1):
+                                next_index = valid_feature_in_node_dicts(node_dicts, index+1)
+                                if next_index < len(node_dicts):
+                                    centreline_set.update(
+                                        centrelines_from_node_dicts(node_dicts[index], node_dicts[next_index]))
+                                index = next_index
+
+            # Construct the route graph from the centrelines that make it up
+            route_graph = nx.Graph()
+            for centreline in centreline_set:
+                node_0, node_1, key = self.__edges_by_id[centreline]
+                route_graph.add_node(node_0, **self.__centreline_graph.nodes[node_0])
+                route_graph.add_node(node_1, **self.__centreline_graph.nodes[node_1])
+                route_graph.add_edge(node_0, node_1, **self.__centreline_graph.edges[node_0, node_1, key])
+
+            return route_graph
+
+
+
+####################    WIP for terminal node processing...
 
             # All nodes in the (sub-)graph now have a possible feature
             route_feature_ids = set()
