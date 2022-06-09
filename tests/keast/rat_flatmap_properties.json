@@ -178,7 +178,7 @@
             }
         },
         {
-            "class": "keast_1",
+            "id": "keast_1",
             "properties": {
                 "models": "EMAPA:31526",
                 "label": "bladder nerves",
@@ -210,25 +210,25 @@
             }
         },
         {
-            "class": "keast_2",
+            "id": "keast_2",
             "properties": {
                 "type": "nerve"
             }
         },
         {
-            "class": "keast_4",
+            "id": "keast_4",
             "properties": {
                 "type": "nerve"
             }
         },
         {
-            "class": "keast_5",
+            "id": "keast_5",
             "properties": {
                 "type": "nerve"
             }
         },
         {
-            "class": "keast_7",
+            "id": "keast_7",
             "properties": {
                 "type": "nerve"
             }
