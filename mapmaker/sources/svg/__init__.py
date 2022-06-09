@@ -147,8 +147,22 @@ class SVGLayer(MapLayer):
 
     def __process_group(self, wrapped_group, properties, transform, parent_style):
     #=============================================================================
-        group_style = self.__style_matcher.element_style(wrapped_group, parent_style)
         group = wrapped_group.etree_element
+        children = wrapped_group.etree_children
+        if len(children) == 0:
+            return None
+        elif (len(children) == 1
+          and children[0].tag == SVG_NS('g')
+          and len(children[0].attrib) == 0):
+            # If a group only has a single group element with no attributes
+            # then don't skip processing of the outer group after copying
+            # its attributes to the child.
+            for k, v in group.items():
+                children[0].set(k, v)
+            group = children[0]
+            wrapped_group = wrap_element(group)
+        self.__level += 1
+        group_style = self.__style_matcher.element_style(wrapped_group, parent_style)
         group_clip_path = group_style.pop('clip-path', None)
         clipped = self.__clip_geometries.get_by_url(group_clip_path)
         if clipped is not None:
@@ -161,11 +175,10 @@ class SVGLayer(MapLayer):
                 group_style)
             properties.pop('tile-layer', None)
             if len(properties):
-                # If the group element has markup then add a dummy `.group` feature
-                # to pass it to the MapLayer
-                properties['group'] = True
-                features.append(self.flatmap.new_feature(shapely.geometry.Polygon(), properties))
-
+                # If the group element has markup and contains geometry then add it as a feature
+                geometries = [f.geometry for f in features if f.geometry.is_valid]
+                if len(geometries):
+                    features.append(self.flatmap.new_feature(shapely.ops.unary_union(geometries), properties))
         return self.add_features(adobe_decode_markup(group), features)
 
     def __process_element_list(self, elements, transform, parent_properties, parent_style, show_progress=False):
@@ -220,11 +233,12 @@ class SVGLayer(MapLayer):
     #==================================================================================================
         element = wrapped_element.etree_element
         element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
-        properties = parent_properties.copy()
-        if 'id' in properties:   # We don't inherit `id`  (or do we have a list of inheritable properties??)
-            del properties['id']
         markup = adobe_decode_markup(element)
-        properties.update(self.source.properties_from_markup(markup))
+        properties_from_markup = self.source.properties_from_markup(markup)
+        properties = parent_properties.copy()
+        if 'id' in properties_from_markup:   # We don't inherit `id`
+            properties.pop('id', None)
+        properties.update(properties_from_markup)
         if 'error' in properties:
             pass
         elif 'path' in properties:
