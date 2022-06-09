@@ -39,6 +39,13 @@ def entity_name(entity):
     else:
         return f'{label} ({entity})'
 
+def full_node_name(anatomical_id, anatomical_layers):
+    if len(anatomical_layers) == 0:
+        return entity_name(anatomical_id)
+    else:
+        layer_names = ', '.join([entity_name(entity) for entity in anatomical_layers if entity is not None])
+        return f'{entity_name(anatomical_id)} in {layer_names}'
+
 #===============================================================================
 
 class Feature(object):
@@ -115,7 +122,6 @@ class FeatureMap(object):
         self.__class_to_features = defaultdict(list)
         self.__id_to_feature = {}
         self.__model_to_features = defaultdict(list)
-        self.__unknown_anatomy = []
 
     def add_feature(self, feature):
         if feature.id is not None:
@@ -142,13 +148,14 @@ class FeatureMap(object):
             feature_ids.extend([f.feature_id for f in self.features(id)])
         return feature_ids
 
-    def find_path_features_by_anatomical_id(self, path_id, anatomical_id, anatomical_layers):
+    def find_path_features_by_anatomical_id(self, anatomical_id, anatomical_layers):
+    #===============================================================================
         if len(anatomical_layers) == 0:
-            anatomical_features = self.__model_to_features.get(anatomical_id, [])
+            return self.__model_to_features.get(anatomical_id, [])
         else:
             features = self.__model_to_features.get(anatomical_id, [])
             if len(features) == 1:
-                return [features[0]]
+                return features
             for anatomical_layer in anatomical_layers:
                 included_features = []
                 layer_features = self.__model_to_features.get(anatomical_layer, [])
@@ -159,17 +166,10 @@ class FeatureMap(object):
                 anatomical_features = included_features
                 if len(included_features) == 1:
                     break
-        if len(anatomical_features) == 0:
-            if (anatomical_id, anatomical_layers) not in self.__unknown_anatomy:
-                if len(anatomical_layers) == 0:
-                    log.warning(f'{path_id}: Cannot find feature: {entity_name(anatomical_id)}')
-                else:
-                    layer_names = ', '.join([entity_name(entity) for entity in anatomical_layers if entity is not None])
-                    log.warning(f'{path_id}: Cannot find feature: {entity_name(anatomical_id)} in layers: {layer_names}')
-                self.__unknown_anatomy.append((anatomical_id, anatomical_layers))
         return anatomical_features
 
     def get_feature(self, id):
+    #=========================
         return self.__id_to_feature.get(id)
 
 #===============================================================================

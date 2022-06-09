@@ -44,6 +44,7 @@ import shapely.geometry
 
 #===============================================================================
 
+from mapmaker.flatmap.feature import full_node_name
 from mapmaker.geometry.beziers import bezier_to_linestring, closest_time
 from mapmaker.geometry.beziers import coords_to_point, point_to_coords
 from mapmaker.settings import settings
@@ -440,8 +441,10 @@ class Network(object):
         # Connectivity comes from SciCrunch
 
         def find_feature_ids(connectivity_node):
-            return set([f.id if f.id is not None else f.property('class')
-                        for f in self.__feature_map.find_path_features_by_anatomical_id(path.id, *connectivity_node)])
+            features = self.__feature_map.find_path_features_by_anatomical_id(*connectivity_node)
+            if len(features) == 0:
+                log.warning(f'{path.id}: Cannot find feature: {full_node_name(*connectivity_node)}')
+            return set(f.id if f.id is not None else f.property('class') for f in features)
 
         # Connectivity graph must be undirected
         connectivity = path.connectivity
