@@ -113,8 +113,10 @@ def __match_to_hex(m):
             '_' if c in string.whitespace else
             '_x{:02X}_'.format(ord(c)))
 
-def adobe_encode(s):
-#===================
+def adobe_encode(s, suffix=None):
+#================================
+    if suffix is not None:
+        s = f'{s} {str(suffix)} '
     return re.sub('.', __match_to_hex, s)
 
 #===============================================================================
