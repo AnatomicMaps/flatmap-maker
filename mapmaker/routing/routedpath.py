@@ -68,8 +68,9 @@ class PathRouter(object):
             nx.set_edge_attributes(route_graph, path_id, 'path-id')
 
         # We match up paths that have pre- and post-ganglionic types and
-        # pair them together if they are of the same type and share a
-        # terminal (i.e. degree one) node.
+        # pair them together if they are of the same type, share a
+        # terminal (i.e. degree one) node, and have different edges connected
+        # to the terminal node
         pre_ganglionic_nodes = defaultdict(list)
         post_ganglionic_nodes = defaultdict(list)
         post_types = {}
@@ -91,13 +92,16 @@ class PathRouter(object):
             matched = False
             for node, path_type in pre_nodes:
                 for post_path, post_nodes in post_ganglionic_nodes.items():
-                    if path_type == post_types[post_path] and node in post_nodes:
+                    if (path_type == post_types[post_path] and node in post_nodes
+                      and list(self.__route_graphs[pre_path].neighbors(node))[0]
+                       != list(self.__route_graphs[post_path].neighbors(node))[0]):
                         routes.append(nx.algorithms.compose(self.__route_graphs[pre_path], self.__route_graphs[post_path]))
                         seen_paths.append(pre_path)
                         seen_paths.append(post_path)
                         matched = True
                         break
                 if matched: break
+
         # Now add in the paths that haven't been paired
         for path_id, route_graph in self.__route_graphs.items():
             if path_id not in seen_paths:
@@ -108,6 +112,7 @@ class PathRouter(object):
         edges = set()
         node_edge_order = {}
         shared_paths = defaultdict(set)
+
         for route_number, route_graph in enumerate(routes):
             for node, node_data in route_graph.nodes(data=True):
                 if node not in node_edge_order and node_data.get('degree', 0) > 2:
