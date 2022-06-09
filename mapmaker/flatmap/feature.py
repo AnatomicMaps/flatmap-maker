@@ -124,6 +124,7 @@ class FeatureMap(object):
         self.__model_to_features = defaultdict(list)
 
     def add_feature(self, feature):
+    #==============================
         if feature.id is not None:
             self.__id_to_feature[feature.id] = feature
         if feature.has_property('class'):
@@ -134,15 +135,18 @@ class FeatureMap(object):
             self.__model_to_features[feature.models].append(feature)
 
     def duplicate_id(self, id):
+    #==========================
         return self.__id_to_feature.get(id, None) is not None
 
     def features(self, id):
+    #======================
         feature = self.__id_to_feature.get(id)
         if feature is None:
             return self.__class_to_features.get(id, [])
         return [feature]
 
     def feature_ids(self, ids):
+    #==========================
         feature_ids = []
         for id in ids:
             feature_ids.extend([f.feature_id for f in self.features(id)])
