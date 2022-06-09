@@ -383,7 +383,7 @@ class RoutedPath(object):
             if node_dict.get('degree', 0) >= 2:
                 edge_dicts = []
                 edge_nodes = []
-                for _, node_1, edge_dict in self.__graph.edges(node, data=True):
+                for node_0, node_1, edge_dict in self.__graph.edges(node, data=True):
                     if edge_dict.get('type') != 'terminal':
                         edge_dicts.append(edge_dict)
                         edge_nodes.append(node_1)
