@@ -443,11 +443,6 @@ class Network(object):
             return set([f.id if f.id is not None else f.property('class')
                         for f in self.__feature_map.find_path_features_by_anatomical_id(path.id, *connectivity_node)])
 
-        def __centreline_end_nodes(centreline_id):
-            for _, _, edge_id in self.__centreline_graph.edges(data='id'):
-                if edge_id == centreline_id:
-                    return edge_id
-
         # Connectivity graph must be undirected
         connectivity = path.connectivity
         if isinstance(connectivity, nx.DiGraph):
