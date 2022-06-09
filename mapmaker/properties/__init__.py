@@ -73,6 +73,12 @@ class ExternalProperties(object):
                 return True
         return False
 
+    def set_feature_map(self, feature_map):
+    #======================================
+        self.__pathways.set_feature_map(feature_map)
+        for network in self.__networks.values():
+            network.set_feature_map(feature_map)
+
     def __set_class_properties(self, classes):
     #=========================================
         if classes is not None:
@@ -96,11 +102,9 @@ class ExternalProperties(object):
                     properties = feature.get('properties', {})
                     self.__properties_by_id[id].update(properties)
 
-    def generate_connectivity(self, feature_map):
-    #============================================
-        self.__pathways.generate_connectivity(
-            feature_map,
-            list(self.__networks.values()))
+    def generate_connectivity(self):
+    #===============================
+        self.__pathways.generate_connectivity(self.__networks.values())
 
     def get_property(self, id, key):
     #===============================

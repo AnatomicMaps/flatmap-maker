@@ -133,6 +133,10 @@ class Network(object):
     def id(self):
         return self.__id
 
+    def set_feature_map(self, feature_map):
+    #======================================
+        self.__feature_map = feature_map
+
     def has_feature(self, feature):
     #==============================
     ##
@@ -177,8 +181,8 @@ class Network(object):
     #============================
         return self.__centreline_graph.nodes[node].get('radii')
 
-    def create_geometry(self, feature_map):
-    #======================================
+    def create_geometry(self):
+    #=========================
         def truncate_segments_start(segs, node):
             # This assumes node centre is close to segs[0].start
             node_centre = self.__node_centre(node)
@@ -238,7 +242,6 @@ class Network(object):
         def time_scale(scale, T, x):
             return (scale(x) - T)/(1.0 - T)
 
-        self.__feature_map = feature_map
         for node_id, degree in self.__centreline_graph.degree():
             node_dict = self.__centreline_graph.nodes[node_id]
             node_dict['degree'] = degree
@@ -410,12 +413,12 @@ class Network(object):
                 route_graph.edges[end_node, terminal_id]['type'] = 'terminal'
         return route_graph
 
-    def route_graph_from_path(self, path, feature_map):
-    #==================================================
+    def route_graph_from_path(self, path):
+    #=====================================
         if path.connections is not None:
             route_graph = self.__route_graph_from_connections(path)
         else:
-            route_graph = self.__route_graph_from_connectivity(path, feature_map)
+            route_graph = self.__route_graph_from_connectivity(path)
         route_graph.graph['path-type'] = path.path_type
         return route_graph
 
@@ -432,13 +435,13 @@ class Network(object):
         return (id in self.__centreline_ids
              or id in self.__centreline_graph)
 
-    def __route_graph_from_connectivity(self, path, feature_map) -> nx.Graph:
-    #========================================================================
+    def __route_graph_from_connectivity(self, path) -> nx.Graph:
+    #===========================================================
         # Connectivity comes from SciCrunch
 
         def find_feature_ids(connectivity_node):
             return set([f.id if f.id is not None else f.property('class')
-                        for f in feature_map.find_path_features_by_anatomical_id(path.id, *connectivity_node)])
+                        for f in self.__feature_map.find_path_features_by_anatomical_id(path.id, *connectivity_node)])
 
         def __centreline_end_nodes(centreline_id):
             for _, _, edge_id in self.__centreline_graph.edges(data='id'):

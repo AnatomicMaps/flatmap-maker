@@ -418,6 +418,7 @@ class Pathways(object):
         self.__path_models_by_id = {}
         self.__connectivity_by_path_id = {}
         self.__connectivity_models = []
+        self.__feature_map = None
         self.add_connectivity({'paths': paths_list})
 
     @staticmethod
@@ -443,6 +444,10 @@ class Pathways(object):
                 'type-paths': self.__resolved_pathways.type_paths,
             })
         return connectivity
+
+    def set_feature_map(self, feature_map):
+    #======================================
+        self.__feature_map = feature_map
 
     def __line_properties(self, path_id):
     #====================================
@@ -530,8 +535,8 @@ class Pathways(object):
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
-    def __network_connectivity(self, feature_map, network):
-    #======================================================
+    def __network_connectivity(self, network):
+    #=========================================
         log('Routing paths...')
         for connectivity_model in self.__connectivity_models:
             if connectivity_model.network == network.id:
@@ -539,7 +544,7 @@ class Pathways(object):
                 self.__flatmap.add_layer(layer)
                 route_graphs = {}
                 for path in connectivity_model.paths.values():
-                    route_graphs[path.id] = network.route_graph_from_path(path, feature_map)
+                    route_graphs[path.id] = network.route_graph_from_path(path)
                 routed_paths = network.layout(route_graphs)
 
                 for route_number, routed_path in routed_paths.items():
@@ -569,7 +574,7 @@ class Pathways(object):
                                 properties['label'] = path.label
                             nerve = properties.pop('nerve', None)
                             if nerve is not None:
-                                nerve_features = feature_map.features(nerve)
+                                nerve_features = self.__feature_map.features(nerve)
                                 for feature in nerve_features:
                                     feature.set_property('type', 'nerve')
                         feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
@@ -582,11 +587,11 @@ class Pathways(object):
                                                                       feature.feature_id,
                                                                       nerve_features)
 
-    def generate_connectivity(self, feature_map, networks):
-    #======================================================
+    def generate_connectivity(self, networks):
+    #=========================================
         if self.__resolved_pathways is not None:
             return
-        self.__resolved_pathways = ResolvedPathways(feature_map)
+        self.__resolved_pathways = ResolvedPathways(self.__feature_map)
         errors = False
         for path_id in self.__layer_paths:
             try:
@@ -602,8 +607,8 @@ class Pathways(object):
                 errors = True
         for network in networks:
             if network.id is not None:
-                network.create_geometry(feature_map)
-                self.__network_connectivity(feature_map, network)
+                network.create_geometry()
+                self.__network_connectivity(network)
         if errors:
             raise ValueError('Errors in mapping paths and routes')
 
