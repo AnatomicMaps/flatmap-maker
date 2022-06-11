@@ -109,11 +109,12 @@ def not_empty(image):
 #===============================================================================
 
 class MapSource(object):
-    def __init__(self, flatmap, id, source_href, kind):
+    def __init__(self, flatmap, id, source_href, kind, source_range=None):
         self.__flatmap = flatmap
         self.__id = id
         self.__source_href = source_href
         self.__kind = kind
+        self.__source_range = source_range
         self.__errors = []
         self.__layers = []
         self.__bounds = (0, 0, 0, 0)
@@ -166,6 +167,10 @@ class MapSource(object):
     @property
     def source_href(self):
         return self.__source_href
+
+    @property
+    def source_range(self):
+        return self.__source_range
 
     def add_layer(self, layer):
     #==========================

@@ -385,7 +385,10 @@ class PDFTiler(RasterTiler):
     def __init__(self, raster_layer, tile_set):
         # Tile the first page of a PDF
         self.__pdf = fitz.Document(stream=raster_layer.source_data, filetype='application/pdf')
-        self.__page = self.__pdf[0]
+        if raster_layer.source_range is None:
+            self.__page = self.__pdf[0]
+        else:
+            self.__page = self.__pdf[raster_layer.source_range[0] - 1]
         super().__init__(raster_layer, tile_set, self.__page.rect)
 
     def get_scaling(self, image_tile_rect):

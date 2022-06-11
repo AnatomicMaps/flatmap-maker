@@ -262,14 +262,23 @@ class MapMaker(object):
         def kind_order(source):
             kind = source.get('kind', '')
             return ('0' if kind in ['base', 'slides'] else '1') + kind
+        # Make sure any source range is a list of int
+        def get_range(source_range):
+            if source_range is not None:
+                if isinstance(source_range, list):
+                    return [int(n) for n in source_range]
+                else:
+                    return [int(source_range)]
         for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
             id = source.get('id')
             kind = source.get('kind')
             href = source['href']
             if kind == 'fc_slides':
-                source_layer = FCPowerpoint(self.__flatmap, id, href)
+                source_layer = FCPowerpoint(self.__flatmap, id, href,
+                                    source_range=get_range(source.get('slides')))
             elif kind == 'slides':
-                source_layer = PowerpointSource(self.__flatmap, id, href)
+                source_layer = PowerpointSource(self.__flatmap, id, href,
+                                    source_range=get_range(source.get('slides')))
             elif kind == 'image':
                 if layer_number > 0 and 'boundary' not in source:
                     raise ValueError('An image source must specify a boundary')

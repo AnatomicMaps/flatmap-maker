@@ -38,7 +38,11 @@ class PowerpointSlide(MapLayer):
             id = slide.id
         else:
             id = 'slide-{:02d}'.format(slide_number)
-        super().__init__(id, source, exported=(slide_number==1))
+        if source.source_range is None:
+            exported = slide_number == 1
+        else:
+            exported = slide_number == source.source_range[0]
+        super().__init__(id, source, exported=exported)
         self.__slide = slide
         self.__slide_number = slide_number
 
@@ -89,8 +93,8 @@ class PowerpointSlide(MapLayer):
 #===============================================================================
 
 class PowerpointSource(MapSource):
-    def __init__(self, flatmap, id, source_href, SlideClass=PowerpointSlide):
-        super().__init__(flatmap, id, source_href, 'slides')
+    def __init__(self, flatmap, id, source_href, source_range=None, SlideClass=PowerpointSlide):
+        super().__init__(flatmap, id, source_href, 'slides', source_range=source_range)
         self.__SlideClass = SlideClass
         self.__powerpoint = Powerpoint(source_href)
         self.bounds = self.__powerpoint.bounds   # Set bounds of MapSource
@@ -104,9 +108,15 @@ class PowerpointSource(MapSource):
 
     def process(self):
     #=================
-        for n in range(len(self.__slides)):
-            slide = self.__slides[n]
-            slide_number = n + 1
+        if self.source_range is None:
+            slide_numbers = range(1, len(self.__slides)+1)
+        else:
+            slide_numbers = self.source_range
+        for slide_number in slide_numbers:
+            # Skip slides not in the presentation
+            if slide_number < 1 or slide_number >= (len(self.__slides) + 1):
+                continue
+            slide = self.__slides[slide_number - 1]
             slide_layer = self.__SlideClass(self, slide, slide_number)
             log('Slide {}, {}'.format(slide_number, slide_layer.id))
             if settings.get('saveDrawML'):

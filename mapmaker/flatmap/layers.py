@@ -418,6 +418,10 @@ class RasterLayer(object):
         return self.__map_source.raster_source.data
 
     @property
+    def source_extent(self):
+        return self.__map_source.extent
+
+    @property
     def source_kind(self):
         return self.__map_source.raster_source.kind
 
@@ -426,7 +430,7 @@ class RasterLayer(object):
         return self.__map_source.raster_source.params
 
     @property
-    def source_extent(self):
-        return self.__map_source.extent
+    def source_range(self):
+        return self.__map_source.source_range
 
 #===============================================================================
