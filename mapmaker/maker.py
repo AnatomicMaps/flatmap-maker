@@ -274,6 +274,7 @@ class MapMaker(object):
             kind = source.get('kind')
             href = source['href']
             if kind == 'fc_slides':
+                settings['functionalConnectivity'] = True
                 source_layer = FCPowerpoint(self.__flatmap, id, href,
                                     source_range=get_range(source.get('slides')))
             elif kind == 'slides':
@@ -403,7 +404,7 @@ class MapMaker(object):
         }
         if self.__flatmap.models is not None:
             map_index['describes'] = self.__flatmap.models
-        if settings.get('authoring', False):
+        if settings.get('authoring', False) or settings.get('functionalConnectivity', False):
             map_index['authoring'] = True
 
         # Create `index.json` for building a map in the viewer
