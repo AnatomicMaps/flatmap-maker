@@ -176,4 +176,8 @@ class FeatureMap(object):
     #=========================
         return self.__id_to_feature.get(id)
 
+    def has_feature(self, id):
+    #=========================
+        return id in self.__id_to_feature
+
 #===============================================================================

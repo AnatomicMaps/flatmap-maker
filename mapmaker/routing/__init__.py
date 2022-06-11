@@ -162,6 +162,10 @@ class Network(object):
     def set_feature_map(self, feature_map):
     #======================================
         self.__feature_map = feature_map
+        # Check that the network's features are on the map
+        for id in sorted(self.__feature_ids):
+            if not feature_map.has_feature(id):
+                log.warning(f'Network feature {id} cannot be found on the flatmap')
 
     def has_feature(self, feature):
     #==============================
