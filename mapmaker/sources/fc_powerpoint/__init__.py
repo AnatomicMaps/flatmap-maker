@@ -211,7 +211,7 @@ class FCSlide(PowerpointSlide):
     def __find_ftu_label(self, id):
     #==============================
         while (label := self.__features[id].label) == '':
-            if id in self.__organs:
+            if id == 0 or id in self.__organs:
                 break
             id = self.__features[id].parents[0]
         return label
