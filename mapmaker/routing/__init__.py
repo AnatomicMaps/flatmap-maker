@@ -170,9 +170,7 @@ class Network(object):
 
     def has_feature(self, feature):
     #==============================
-    ##
-    ## Is the ``feature`` included in this network?
-    ##
+        # Is the ``feature`` included in this network?
         return (feature.id in self.__feature_ids
              or feature.property('tile-layer') == 'pathways')
 

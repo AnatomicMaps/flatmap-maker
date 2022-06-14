@@ -65,9 +65,7 @@ class ExternalProperties(object):
 
     def network_feature(self, feature):
     #==================================
-    ##
-    ## Is the ``feature`` included in some network?
-    ##
+        # Is the ``feature`` included in some network?
         for network in self.__networks.values():
             if network.has_feature(feature):
                 return True
