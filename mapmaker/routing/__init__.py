@@ -500,13 +500,13 @@ class Network(object):
                 # to see if we can find a unique feature
                 connected_features = feature_ids.intersection(self.__centreline_graph)
                 if len(connected_features) > 1:
-                    return {'error': f'Node {node} has too many connected features: {feature_ids}'}
+                    return {'error': f'Node {full_node_name(*connectivity_node)} has too many connected features: {feature_ids}'}
                 elif len(connected_features):  # len(connected_features) == 1
                     return {'feature-id': connected_features.pop()}
                 else:                          # len(connected_features) == 0
                     # Multiple terminal nodes -- simply choose one
                     return {
-                        'warning': f'Node {node} has multiple terminal features: {feature_ids}',
+                        'warning': f'Node {full_node_name(*connectivity_node)} has multiple terminal features: {feature_ids}',
                         'feature-id': feature_ids.pop()
                     }
             elif len(feature_ids):
@@ -521,17 +521,19 @@ class Network(object):
             nodes_0 = self.__edges_by_id[centreline_0][0:2]
             nodes_1 = self.__edges_by_id[centreline_1][0:2]
             if nodes_0[0] in nodes_1 or nodes_0[1] in nodes_1:
-                return set()
-            result = set()
+                return {'centrelines': set()}
+            result = {}
+            centrelines = set()
             for n0 in nodes_0:
                 for n1 in nodes_1:
                     if (n0, n1) in self.__centreline_graph.edges:
                         for key in self.__centreline_graph[n0][n1]:
-                            result.add(self.__centreline_graph.edges[n0, n1, key]['id'])
-            if len(result) > 1:
-                log.warning(f'{path.id}: Multiple centrelines joining centerlines {centreline_0} and {centreline_1}')
-            elif len(result) == 0:
-                log.warning(f'{path.id}: No centreline joining centrelines {centreline_0} and {centreline_1}')
+                            centrelines.add(self.__centreline_graph.edges[n0, n1, key]['id'])
+            if len(centrelines) > 1:
+                result['warning'] = f'Multiple centrelines joining centerlines {centreline_0} and {centreline_1}'
+            elif len(centrelines) == 0:
+                result['warning'] = f'No centreline joining centrelines {centreline_0} and {centreline_1}'
+            result['centrelines'] = centrelines
             return result
 
         def join_centreline_to_node(centreline, node):
@@ -540,50 +542,66 @@ class Network(object):
             # node is one of the centreline's nodes or there
             # should be a centreline connecting them
             nodes = self.__edges_by_id[centreline][0:2]
-            result = set()
+            result = {}
+            centrelines = set()
             if node not in nodes:
                 for n0 in nodes:
                     if (n0, node) in self.__centreline_graph.edges:
                         for key in self.__centreline_graph[n0][node]:
-                            result.add(self.__centreline_graph.edges[n0, node, key]['id'])
+                            centrelines.add(self.__centreline_graph.edges[n0, node, key]['id'])
                         break
-                if len(result) > 1:
-                    log.warning(f'{path.id}: Multiple centrelines joining {centreline} with node {node}')
-                elif len(result) == 0:
-                    log.warning(f'{path.id}: No centreline joining {centreline} with node {node}')
+                if len(centrelines) > 1:
+                    result['warning'] = f'Multiple centrelines joining {centreline} with node {node}'
+                elif len(centrelines) == 0:
+                    result['warning'] = f'No centreline joining {centreline} with node {node}'
+            result['centrelines'] = centrelines
             return result
 
         def join_nodes(node_0, node_1):
         #==============================
             # Two feature nodes. There should be a centreline
             # connecting them.
-            result = set()
+            result = {}
+            centrelines = set()
             if (node_0, node_1) in self.__centreline_graph.edges:
                 for key in self.__centreline_graph[node_0][node_1]:
-                    result.add(self.__centreline_graph.edges[node_0, node_1, key]['id'])
-            if len(result) > 1:
-                log.warning(f'{path.id}: Multiple centrelines joining nodes {node_0} and {node_1}')
-            elif len(result) == 0:
-                log.warning(f'{path.id}: No centreline joining nodes {node_0} and {node_1}')
+                    centrelines.add(self.__centreline_graph.edges[node_0, node_1, key]['id'])
+            if len(centrelines) > 1:
+                result['warning'] = f'Multiple centrelines joining nodes {node_0} and {node_1}'
+            elif len(centrelines) == 0:
+                result['warning'] = f'No centreline joining nodes {node_0} and {node_1}'
+            result['centrelines'] = centrelines
             return result
 
         def centrelines_from_node_dicts(dict_0, dict_1):
         #===============================================
             centrelines = set()
+            warnings = []
             if centreline_0 := dict_0.get('centreline'):
                 centrelines.add(centreline_0)
                 if centreline_1 := dict_1.get('centreline'):
-                    centrelines.update(join_centrelines(centreline_0, centreline_1))
+                    join = join_centrelines(centreline_0, centreline_1)
+                    centrelines.update(join['centrelines'])
+                    warnings.append(join.get('warning'))
                     centrelines.add(centreline_1)
                 elif feature_1 := dict_1.get('feature-id'):
-                    centrelines.update(join_centreline_to_node(centreline_0, feature_1))
+                    join = join_centreline_to_node(centreline_0, feature_1)
+                    centrelines.update(join['centrelines'])
+                    warnings.append(join.get('warning'))
             elif feature_0 := dict_0.get('feature-id'):
                 if centreline_1 := dict_1.get('centreline'):
                     centrelines.add(centreline_1)
-                    centrelines.update(join_centreline_to_node(centreline_1, feature_0))
+                    join = join_centreline_to_node(centreline_1, feature_0)
+                    centrelines.update(join['centrelines'])
+                    warnings.append(join.get('warning'))
                 elif feature_1 := dict_1.get('feature-id'):
-                    centrelines.update(join_nodes(feature_0, feature_1))
-            return centrelines
+                    join = join_nodes(feature_0, feature_1)
+                    centrelines.update(join['centrelines'])
+                    warnings.append(join.get('warning'))
+            return {
+                'centrelines': centrelines,
+                'warnings': warnings
+            }
 
         def valid_feature_in_node_dicts(dicts, start_index):
         #===================================================
@@ -651,8 +669,15 @@ class Network(object):
                             while index < (len(node_dicts) - 1):
                                 next_index = valid_feature_in_node_dicts(node_dicts, index+1)
                                 if next_index < len(node_dicts):
-                                    centreline_set.update(
-                                        centrelines_from_node_dicts(node_dicts[index], node_dicts[next_index]))
+                                    joined = centrelines_from_node_dicts(node_dicts[index], node_dicts[next_index])
+                                    centreline_set.update(joined['centrelines'])
+                                    if len(warnings := joined['warnings']):
+                                        for warning in warnings:
+                                            if warning is not None:
+                                                log.warning(f'{path.id}: {warning}')
+                                        for i in range(index, next_index):
+                                            if (warning := node_dicts[i].get('warning')) is not None:
+                                                log.info(f'{path.id}: {warning}')
                                 index = next_index
 
             # Construct the route graph from the centrelines that make it up
