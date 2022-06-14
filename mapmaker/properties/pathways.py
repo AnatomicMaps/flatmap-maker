@@ -115,6 +115,8 @@ def path_type_from_phenotypes(phenotypes):
         if phenotype in PATH_ORDER:
             path_type.append(PATH_ORDER[phenotype])
             break
+    if len(path_type) == 0:         ## <<<<<<<<<<<<<<<<<
+        path_type.append('cns')     ## <<<<<<<<<<<<<<<<<
     return '-'.join(path_type)
 
 #===============================================================================
