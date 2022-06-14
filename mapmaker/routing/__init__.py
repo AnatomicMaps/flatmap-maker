@@ -632,6 +632,16 @@ class Network(object):
                 start_index += 1
             return start_index
 
+        def log_errors(path_id, G):
+        #==========================
+            for node in G:
+                if (warning := G.nodes[node].get('warning')) is not None:
+                    log.warning(f'{path_id}: {warning}')
+            for (_, _, edge_dict) in G.edges(data=True):
+                for feature in edge_dict['path-features']:
+                    if (warning := feature.get('warning')) is not None:
+                        log.warning(f'{path_id}: {warning}')
+
         # Connectivity graph must be undirected
 
         connectivity = path.connectivity
@@ -705,6 +715,9 @@ class Network(object):
                                                 log.info(f'{path.id}: {warning}')
                                 index = next_index
 
+            if len(centreline_set) == 0:
+                log.warning(f'{path.id}: No centrelines found...')
+                log_errors(path.id, G)
             # Construct the route graph from the centrelines that make it up
             route_paths = nx.MultiGraph()
             for centreline in centreline_set:
