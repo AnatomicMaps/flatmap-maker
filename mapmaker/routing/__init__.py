@@ -130,7 +130,7 @@ class Network(object):
                 self.__feature_ids.add(id)
                 if (models := centreline.get('models')) is not None:
                     if models in self.__models_to_id:
-                        log.warning(f'Features `{id}` and `{self.__models_to_id[models]}` both model {models}')
+                        log.warning(f'Centrelines `{id}` and `{self.__models_to_id[models]}` both model {models}')
                     else:
                         self.__models_to_id[models] = id
                         if external_properties.get_property(id, 'models') is None:
