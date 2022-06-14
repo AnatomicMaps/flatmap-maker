@@ -110,6 +110,10 @@ class ExternalProperties(object):
     #===============================
         return self.properties(id).get(key)
 
+    def set_property(self, id, key, value):
+    #======================================
+        self.__properties_by_id[id][key] = value
+
     def properties(self, id):
     #========================
         properties = {}
