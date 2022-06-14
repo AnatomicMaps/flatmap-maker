@@ -133,7 +133,8 @@ class Network(object):
                         log.warning(f'Features `{id}` and `{self.__models_to_id[models]}` both model {models}')
                     else:
                         self.__models_to_id[models] = id
-
+                        if external_properties.get_property(id, 'models') is None:
+                            external_properties.set_property(id, 'models', models)
                 nodes = centreline.get('connects', [])
                 if len(nodes) < 2:
                     log.warning(f'Centreline {id} in network {self.__id} has too few nodes')
