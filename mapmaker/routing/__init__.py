@@ -655,15 +655,15 @@ class Network(object):
         for components in nx.connected_components(connectivity):
 
             # Simplify connectivity by collapsing consecutive degree 2 nodes
-            # into a single edge, returning a nx.MultiDiGraph
-
+            # into a single edge, returning a nx.MultiDiGraph. Each node has
+            # a ``degree`` attribute with the node's degree in the source graph
             G = graph_utils.smooth_edges(connectivity.subgraph(components), path_attribute='path-nodes')
 
             # Find feature corresponding to each connectivity node and identify terminal nodes
-            for node, degree in G.degree():
-                G.nodes[node].update(find_feature_ids(node))
-                if degree == 1 and G.nodes[node].get('feature-id') is not None:
-                    G.nodes[node]['terminal'] = True
+            for node, node_dict in G.nodes(data=True):
+                node_dict.update(node_dict_for_feature(node))
+                if node_dict['degree'] == 1:
+                    node_dict['terminal'] = True
 
             # And feature for each node on edge's smoothed path
 
