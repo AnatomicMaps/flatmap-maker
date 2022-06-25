@@ -452,6 +452,8 @@ class SVGLayer(MapLayer):
                     coordinates.append(T.transform_point(current_point))
                     moved = False
                 coordinates.append(T.transform_point(pt))
+                bz = BezierLine(BezierPoint(*coordinates[-2]), BezierPoint(*coordinates[-1]))
+                bezier_segments.append(bz)
                 current_point = pt
 
             elif cmd in ['m', 'M']:
