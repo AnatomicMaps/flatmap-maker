@@ -360,8 +360,10 @@ class RoutedPath(object):
                     self.__graph.nodes[edge_dict['end-node']]['start-point'] = BezierPoint(*path_line.coords[-1])
 
         # Draw paths to terminal nodes
+        terminal_nodes = set()
         for node_0, node_1, edge_dict in self.__graph.edges.data():
             if edge_dict.get('type') == 'terminal':
+                terminal_nodes.update([node_0, node_1])
                 start_point = self.__graph.nodes[node_0]['start-point']
                 angle = self.__graph.nodes[node_0]['direction']
                 end_coords = self.__graph.nodes[node_1]['geometry'].centroid.coords[0]
@@ -387,7 +389,7 @@ class RoutedPath(object):
                     if edge_dict.get('type') != 'terminal':
                         edge_dicts.append(edge_dict)
                         edge_nodes.append(node_1)
-                if len(edge_nodes) == 1:
+                if len(edge_nodes) == 1 and edge_nodes[0] not in terminal_nodes:
                     # Draw path from node boundary to offsetted centre
                     edge_dict = edge_dicts[0]
                     try:
