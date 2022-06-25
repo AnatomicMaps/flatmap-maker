@@ -561,9 +561,9 @@ class Network(object):
                         for key in self.__centreline_graph[n0][n1]:
                             centrelines.add(self.__centreline_graph.edges[n0, n1, key]['id'])
             if len(centrelines) > 1:
-                result['warning'] = f'Multiple centrelines joining centerlines {centreline_0} and {centreline_1}'
+                result['warning'] = f'Centerlines {centreline_0} and {centreline_1} have everal centrelines connecting them: {centrelines}'
             elif len(centrelines) == 0:
-                result['warning'] = f'No centreline joining centrelines {centreline_0} and {centreline_1}'
+                result['warning'] = f'No path between centrelines {centreline_0} and {centreline_1}'
             result['centrelines'] = centrelines
             return result
 
@@ -583,14 +583,14 @@ class Network(object):
                             centrelines.add(self.__centreline_graph.edges[n0, node, key]['id'])
                         break
                 if len(centrelines) > 1:
-                    result['warning'] = f'Multiple centrelines joining {centreline} with node {node}'
+                    result['warning'] = f'Node {node} has several centrelines connecting it {centreline}: {centrelines}'
                 elif len(centrelines) == 0:
                     if node_dict.get('terminal', False):
                         # node is terminal of closest end of centreline
                         closest_node = closest_node_to(node, nodes)
                         result['node-terminals'] = {closest_node: node}
                     else:
-                        result['warning'] = f'No centreline joining {centreline} with node {node}'
+                        result['warning'] = f'Centreline {centreline} has no path to node {node}'
             result['centrelines'] = centrelines
             return result
 
@@ -606,14 +606,14 @@ class Network(object):
                 for key in self.__centreline_graph[node_0][node_1]:
                     centrelines.add(self.__centreline_graph.edges[node_0, node_1, key]['id'])
             if len(centrelines) > 1:
-                result['warning'] = f'Multiple centrelines joining nodes {node_0} and {node_1}'
+                result['warning'] = f'Nodes {node_0} and {node_1} have several centrelines connecting them: {centrelines}'
             elif len(centrelines) == 0:
                 if node_dict_0.get('terminal', False):
                     result['node-terminals'] = {node_1: node_0}   # node_0 is terminal of node_1
                 elif node_dict_1.get('terminal', False):
                     result['node-terminals'] = {node_0: node_1}   # node_1 is terminal of node_0
                 else:
-                    result['warning'] = f'No centreline joining nodes {node_0} and {node_1}'
+                    result['warning'] = f'No centreline path between nodes {node_0} and {node_1}'
             result['centrelines'] = centrelines
             return result
 
