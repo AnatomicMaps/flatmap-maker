@@ -77,7 +77,7 @@ class FlatMap(object):
         self.__centre = None
         self.__min_zoom = maker.zoom[0]
 
-        self.__feature_map = FeatureMap()
+        self.__feature_map = FeatureMap(manifest.connectivity_terms)
         self.__features = OrderedDict()
         self.__last_feature_id = 0
 

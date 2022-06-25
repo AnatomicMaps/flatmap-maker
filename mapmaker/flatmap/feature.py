@@ -27,6 +27,7 @@ from shapely.geometry.base import BaseGeometry
 
 from mapmaker.utils import log
 from mapmaker.knowledgebase import get_label
+from mapmaker.utils import FilePath
 
 #===============================================================================
 
@@ -118,7 +119,17 @@ class Feature(object):
 #===============================================================================
 
 class FeatureMap(object):
-    def __init__(self):
+    def __init__(self, connectivity_terms=None):
+        self.__connectivity_terms = {}
+        if connectivity_terms is not None:
+            equivalences = FilePath(connectivity_terms).get_json()
+            for equivalence in equivalences:
+                term = equivalence['id']
+                for alias in equivalence.get('aliases', []):
+                    if alias in self.__connectivity_terms:
+                        log.error(f'Connectivity term {alias} cannot map to both {self.__connectivity_terms[alias]} and {term}')
+                    else:
+                        self.__connectivity_terms[alias] = term
         self.__class_to_features = defaultdict(list)
         self.__id_to_feature = {}
         self.__model_to_features = defaultdict(list)
@@ -154,19 +165,22 @@ class FeatureMap(object):
 
     def find_path_features_by_anatomical_id(self, anatomical_id, anatomical_layers):
     #===============================================================================
+        def features_from_anatomical_id(term):
+            return set(self.__model_to_features.get(self.__connectivity_terms.get(term, term), []))
+
         if len(anatomical_layers) == 0:
-            return self.__model_to_features.get(anatomical_id, [])
+            return features_from_anatomical_id(anatomical_id)
         else:
-            features = self.__model_to_features.get(anatomical_id, [])
+            features = features_from_anatomical_id(anatomical_id)
             if len(features) == 1:
                 return features
             for anatomical_layer in anatomical_layers:
-                included_features = []
-                layer_features = self.__model_to_features.get(anatomical_layer, [])
+                included_features = set()
+                layer_features = features_from_anatomical_id(anatomical_layer)
                 for layer_feature in layer_features:
                     for feature in features:
                         if layer_feature.geometry.contains(feature.geometry.centroid):
-                            included_features.append(feature)
+                            included_features.add(feature)
                 anatomical_features = included_features
                 if len(included_features) == 1:
                     break

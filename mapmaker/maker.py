@@ -78,6 +78,8 @@ class Manifest(object):
                 raise ValueError('No sources given for manifest')
             if 'anatomicalMap' in self.__manifest:
                 self.__manifest['anatomicalMap'] = self.__path.join_url(self.__manifest['anatomicalMap'])
+            if 'connectivityTerms' in self.__manifest:
+                self.__manifest['connectivityTerms'] = self.__path.join_url(self.__manifest['connectivityTerms'])
             if 'properties' in self.__manifest:
                 self.__manifest['properties'] = self.__path.join_url(self.__manifest['properties'])
             for path in self.__manifest.get('connectivity', []):
@@ -106,6 +108,10 @@ class Manifest(object):
     @property
     def connectivity(self):
         return self.__connectivity
+
+    @property
+    def connectivity_terms(self):
+        return self.__manifest.get('connectivityTerms')
 
     @property
     def neuron_connectivity(self):
