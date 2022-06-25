@@ -151,9 +151,6 @@ class FlatMap(object):
         self.__set_feature_properties()
         # Initialise geographical search for annotated features
         self.__setup_feature_search()
-        # We now have an id to feature map so make it available
-        # for connectivity lookup
-        self.__map_properties.set_feature_map(self.__feature_map)
         # Generate metadata with connection information
         self.__resolve_connectivity()
         # Save all we know about the map
@@ -332,7 +329,7 @@ class FlatMap(object):
     def __resolve_connectivity(self):
     #================================
         # Route paths and set feature ids of path components
-        self.__map_properties.generate_connectivity()
+        self.__map_properties.generate_connectivity(self.__feature_map)
 
     def __setup_feature_search(self):
     #================================

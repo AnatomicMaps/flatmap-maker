@@ -537,9 +537,11 @@ class Pathways(object):
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
-    def __network_connectivity(self, network):
-    #=========================================
+    def __route_network_connectivity(self, network):
+    #===============================================
         log('Routing paths...')
+        # First assign feature properties to the nodes in the network's centreline graph
+        network.create_geometry()
         for connectivity_model in self.__connectivity_models:
             if connectivity_model.network == network.id:
                 layer = FeatureLayer('{}_routes'.format(connectivity_model.id), self.__flatmap, exported=True)
@@ -609,8 +611,7 @@ class Pathways(object):
                 errors = True
         for network in networks:
             if network.id is not None:
-                network.create_geometry()
-                self.__network_connectivity(network)
+                self.__route_network_connectivity(network)
         if errors:
             raise ValueError('Errors in mapping paths and routes')
 
