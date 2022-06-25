@@ -468,14 +468,31 @@ class Network(object):
     #===========================================================
         # Connectivity comes from SCKAN
 
-        def find_centreline_from_containers(features):
-        #=============================================
+        def nodes_from_dict(node_dict):
+        #==============================
+            nodes = set()
+            if (centreline := node_dict.get('centreline')) is not None:
+                nodes.update(self.__edges_by_id[centreline][0:2])
+            elif (feature_id := node_dict.get('feature-id')) is not None:
+                nodes.add(feature_id)
+            return nodes
+
+        def find_centreline_from_containers(start_dict, features, end_dict):
+        #===================================================================
+            end_nodes = nodes_from_dict(start_dict)
+            end_nodes.update(nodes_from_dict(end_dict))
             max_score = 0
             centreline_id = None
             for id, containing_features in self.__contained_by_id.items():
+                if len(end_nodes):
+                    edge_nodes = self.__edges_by_id[id][0:2]
+                    node_score = len(end_nodes.intersection(edge_nodes))/len(end_nodes)
+                else:
+                    node_score = 0
                 if common := len(containing_features.intersection(features)):
                     # Jaccard index
-                    score = common/(len(features) + len(containing_features) - common)
+                    jaccard_index = common/(len(features) + len(containing_features) - common)
+                    score = node_score + jaccard_index
                     if score > max_score:
                         max_score = score
                         centreline_id = id
