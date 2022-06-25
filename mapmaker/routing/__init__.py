@@ -180,7 +180,7 @@ class Network(object):
         if len(features) == 1:
             return features[0]
         elif len(features) == 0:
-            log.warning('Unknown network feature: {}'.format(id))
+            log.error('Cannot find network feature: {}'.format(id))
         else:
             log.warning('Multiple network features for: {}'.format(id))
         return None
