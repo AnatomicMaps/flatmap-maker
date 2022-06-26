@@ -175,18 +175,10 @@ class ExternalProperties(object):
                 labels.append(f'Label: {feature_properties.get("label")}')
             feature_properties['label'] = '\n'.join(labels)
 
-        # Hide unlabelled network features when not authoring or not a FC flatmap
-        hide_unlabelled_features = not (authoring or settings.get('functionalConnectivity', False))
-        for shape_type in NETWORK_SHAPE_TYPES:
-            if shape_type in feature_properties:
-                if 'models' in feature_properties:
-                    feature_properties['type'] = 'network'
-                elif hide_unlabelled_features:
-                    feature_properties['exclude'] = True
-                break
-        if hide_unlabelled_features and id is not None:
-            for network in self.__networks.values():
-                if network.contains(id) and 'label' not in feature_properties:
+        # Hide network features when not authoring or not a FC flatmap
+        if not (authoring or settings.get('functionalConnectivity', False)):
+            for shape_type in NETWORK_SHAPE_TYPES:
+                if shape_type in feature_properties:
                     feature_properties['exclude'] = True
                     break
         return feature_properties
