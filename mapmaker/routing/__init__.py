@@ -448,7 +448,9 @@ class Network(object):
             route_graph = self.__route_graph_from_connections(path)
         else:
             route_graph = self.__route_graph_from_connectivity(path)
+        route_graph.graph['path-id'] = path.id
         route_graph.graph['path-type'] = path.path_type
+        route_graph.graph['source'] = path.source
         return route_graph
 
     def layout(self, route_graphs: nx.Graph) -> dict:

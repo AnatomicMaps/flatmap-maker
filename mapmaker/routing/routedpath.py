@@ -66,6 +66,7 @@ class PathRouter(object):
     #================
         for path_id, route_graph in self.__route_graphs.items():
             nx.set_edge_attributes(route_graph, path_id, 'path-id')
+            nx.set_edge_attributes(route_graph, route_graph.graph['source'], 'source')
 
         # We match up paths that have pre- and post-ganglionic types and
         # pair them together if they are of the same type, share a
@@ -224,7 +225,8 @@ def join_geometry(node, node_dict, edge_dict_0, edge_dict_1):
         geometry.append(
             GeometricShape(bezier_to_linestring(bz), {
                 'nerve': edge_dict_0.get('nerve'),
-                'path-id': edge_dict_0.get('path-id')
+                'path-id': edge_dict_0.get('path-id'),
+                'source': edge_dict_0.get('source')
                 }))
     else:
         # The edges are from different paths so show a junction.
@@ -232,13 +234,18 @@ def join_geometry(node, node_dict, edge_dict_0, edge_dict_1):
         geometry.append(GeometricShape.circle(
             point_to_coords(mid_point),
             radius = 0.8*PATH_SEPARATION,
-            properties={'type': 'junction', 'path-id': edge_dict_0.get('path-id')}))
+            properties = {
+                'type': 'junction',
+                'path-id': edge_dict_0.get('path-id'),
+                'source': edge_dict_0.get('source')
+            }))
         edge_dicts = [edge_dict_0, edge_dict_1]
         for n, bz in enumerate(bz.splitAtTime(0.5)):
             geometry.append(
                 GeometricShape(bezier_to_linestring(bz), {
                     'nerve': edge_dicts[n].get('nerve'),
-                    'path-id': edge_dicts[n].get('path-id')
+                    'path-id': edge_dicts[n].get('path-id'),
+                    'source': edge_dicts[n].get('source')
                 }))
     return geometry
 
@@ -266,12 +273,16 @@ class IntermediateNode:
            log.error(f'Cannot get width of node {id}')
         self.__width_normal = mid_normal*width/2.0
 
-    def geometry(self, path_id, start_point, end_point, num_points=100, offset=0):
+    def geometry(self, path_source, path_id, start_point, end_point, num_points=100, offset=0):
         node_point = self.__mid_point + self.__width_normal*offset
         geometry = [GeometricShape.circle(
             point_to_coords(node_point),
             radius = 0.8*PATH_SEPARATION,
-            properties={'type': 'junction', 'path-id': path_id})]
+            properties = {
+                'type': 'junction',
+                'path-id': path_id,
+                'source': path_source
+            })]
         segs = [ bezier_connect(start_point, node_point, self.__start_angle, self.__mid_angle),
                  bezier_connect(node_point, end_point, self.__mid_angle, self.__end_angle) ]
         return (bezier_to_linestring(BezierPath.fromSegments(segs), num_points=num_points, offset=offset), geometry)
@@ -314,9 +325,11 @@ class RoutedPath(object):
         for node_0, node_1, edge_dict in self.__graph.edges.data():
             edge = (node_0, node_1)
             path_id = edge_dict.get('path-id')
+            path_source = edge_dict.get('source')
             properties = {
                 'nerve': edge_dict.get('nerve'),
-                'path-id': path_id
+                'path-id': path_id,
+                'source': path_source
             }
             path_components = edge_dict.get('path-components')
             if path_components is None:
@@ -331,7 +344,7 @@ class RoutedPath(object):
                 if isinstance(component, IntermediateNode):
                     component_num += 1
                     next_line_coords = bezier_to_linestring(path_components[component_num], offset=path_offset).coords
-                    intermediate_geometry = component.geometry(path_id, intermediate_start,
+                    intermediate_geometry = component.geometry(path_source, path_id, intermediate_start,
                                                                BezierPoint(*(next_line_coords[0] if path_offset >= 0 else next_line_coords[-1])),
                                                                offset=2*offset/edge_dict['max-paths'])
                     line_coords = intermediate_geometry[0].coords
@@ -373,11 +386,13 @@ class RoutedPath(object):
                 bz = bezier_connect(start_point, end_point, angle, heading)
                 geometry.append(GeometricShape(
                     bezier_to_linestring(bz), {
-                        'path-id': edge_dict.get('path-id')
+                        'path-id': edge_dict.get('path-id'),
+                        'source': edge_dict.get('source')
                     }))
                 geometry.append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties = {
                     'type': 'junction',
-                    'path-id': edge_dict.get('path-id')
+                    'path-id': edge_dict.get('path-id'),
+                    'source': edge_dict.get('source')
                 }))
 
         # Connect edges at branch nodes

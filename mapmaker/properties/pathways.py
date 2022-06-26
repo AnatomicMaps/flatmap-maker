@@ -297,7 +297,8 @@ class ResolvedPathways(object):
 #===============================================================================
 
 class Path(object):
-    def __init__(self, path):
+    def __init__(self, source, path):
+        self.__source = source
         self.__id = path['id']
         self.__connections = path.get('connects')
         self.__connectivity = None
@@ -369,6 +370,10 @@ class Path(object):
     def route(self):
         return self.__route
 
+    @property
+    def source(self):
+        return self.__source
+
 #===============================================================================
 
 class ConnectivityModel(object):
@@ -377,7 +382,7 @@ class ConnectivityModel(object):
         self.__network = description.get('network')
         self.__publications = description.get('publications', [])
         self.__source = description.get('source')
-        self.__paths = { path['id']: Path(path)
+        self.__paths = { path['id']: Path(self.__source, path)
                             for path in description.get('paths', []) }
 
     @property
