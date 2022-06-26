@@ -50,8 +50,6 @@ def arg_parser():
                         help="Remove all files from generated map's directory before generating new map")
     tile_options.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
                         help="Generate image tiles of map's layers (may take a while...)")
-    tile_options.add_argument('--show-centrelines',  dest='showCentrelines', action='store_true',
-                        help="Show centrelines and nodes on image tiles")
 
     debug_options = parser.add_argument_group('Diagnostics')
     debug_options.add_argument('--authoring', action='store_true',

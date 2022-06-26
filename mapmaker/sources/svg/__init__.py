@@ -110,14 +110,14 @@ class SVGSource(MapSource):
             self.__boundary_geometry = self.__layer.boundary_feature.geometry
         if not settings.get('authoring', False) and self.__exported:
             # Save a cleaned copy of the SVG in the map's output directory
-            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties)
+            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=True)
             cleaner.clean()
             with open(os.path.join(settings.get('output'),
                       self.flatmap.id,
                       '{}.svg'.format(self.flatmap.id)), 'wb') as fp:
                 cleaner.save(fp)
         if settings.get('backgroundTiles', False):
-            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=settings.get('showCentrelines', False))
+            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
             cleaner.clean()
             cleaned_svg = io.BytesIO()
             cleaner.save(cleaned_svg)

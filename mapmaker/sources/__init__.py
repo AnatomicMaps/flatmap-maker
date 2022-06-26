@@ -67,7 +67,15 @@ EXCLUDE_SHAPE_TYPES = NETWORK_SHAPE_TYPES + [
 
 # Shapes/paths in these layers are excluded from image tiling unless the
 # ``--show-centrelines`` option is set
-EXCLUDE_TILE_LAYERS = ['pathways']
+EXCLUDE_TILE_LAYERS = [
+    'pathways'      # All paths are in vector layers
+]
+
+# Features that have a `type` attribute in this list are excluded from image
+# tiling
+EXCLUDED_FEATURE_TYPES = [
+    'nerve'         # Nerve cuffs are in vector layers
+]
 
 #===============================================================================
 
