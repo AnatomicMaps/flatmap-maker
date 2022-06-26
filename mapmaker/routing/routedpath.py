@@ -68,46 +68,52 @@ class PathRouter(object):
             nx.set_edge_attributes(route_graph, path_id, 'path-id')
             nx.set_edge_attributes(route_graph, route_graph.graph['source'], 'source')
 
-        # We match up paths that have pre- and post-ganglionic types and
-        # pair them together if they are of the same type, share a
-        # terminal (i.e. degree one) node, and have different edges connected
-        # to the terminal node
-        pre_ganglionic_nodes = defaultdict(list)
-        post_ganglionic_nodes = defaultdict(list)
-        post_types = {}
-        # Find the paths and nodes we are interested in
-        for path_id, route_graph in self.__route_graphs.items():
-            if route_graph.graph.get('path-type') in PRE_GANGLIONIC_TYPES:
-                for node, degree in route_graph.degree():
-                    if degree == 1:
-                        pre_ganglionic_nodes[path_id].append((node, route_graph.graph.get('path-type')[:4]))
-            elif route_graph.graph.get('path-type') in POST_GANGLIONIC_TYPES:
-                for node, degree in route_graph.degree():
-                    if degree == 1:
-                        post_ganglionic_nodes[path_id].append(node)
-                        post_types[path_id] = route_graph.graph.get('path-type')[:4]
-        # Look for pairs and add them to the list of routes
-        routes = []
-        seen_paths = []
-        for pre_path, pre_nodes in pre_ganglionic_nodes.items():
-            matched = False
-            for node, path_type in pre_nodes:
-                for post_path, post_nodes in post_ganglionic_nodes.items():
-                    if (path_type == post_types[post_path] and node in post_nodes
-                      and list(self.__route_graphs[pre_path].neighbors(node))[0]
-                       != list(self.__route_graphs[post_path].neighbors(node))[0]):
-                        routes.append(nx.algorithms.compose(self.__route_graphs[pre_path], self.__route_graphs[post_path]))
-                        seen_paths.append(pre_path)
-                        seen_paths.append(post_path)
-                        matched = True
-                        break
-                if matched: break
+        # Within a connectivity model we pair together paths that have the same pre- and
+        # post-ganglionic type, share a terminal node (i.e. degree one) and are connected
+        # to the node by different edges
 
-        # Now add in the paths that haven't been paired
+        routes = []    # The resulting set of routes, across all models
+
+        routes_by_source = defaultdict(dict)
         for path_id, route_graph in self.__route_graphs.items():
-            if path_id not in seen_paths:
-                if len(route_graph):
-                    routes.append(route_graph)
+            routes_by_source[route_graph.graph['source']][path_id] = route_graph
+
+        for route_graphs in routes_by_source.values():
+            pre_ganglionic_nodes = defaultdict(list)
+            post_ganglionic_nodes = defaultdict(list)
+            post_types = {}
+            # Find the paths and nodes we are interested in
+            for path_id, route_graph in route_graphs.items():
+                if route_graph.graph.get('path-type') in PRE_GANGLIONIC_TYPES:
+                    for node, degree in route_graph.degree():
+                        if degree == 1:
+                            pre_ganglionic_nodes[path_id].append((node, route_graph.graph.get('path-type')[:4]))
+                elif route_graph.graph.get('path-type') in POST_GANGLIONIC_TYPES:
+                    for node, degree in route_graph.degree():
+                        if degree == 1:
+                            post_ganglionic_nodes[path_id].append(node)
+                            post_types[path_id] = route_graph.graph.get('path-type')[:4]
+            # Look for pairs and add them to the list of routes
+            seen_paths = []
+            for pre_path, pre_nodes in pre_ganglionic_nodes.items():
+                matched = False
+                for node, path_type in pre_nodes:
+                    for post_path, post_nodes in post_ganglionic_nodes.items():
+                        if (path_type == post_types[post_path]
+                        and node in post_nodes
+                        and list(route_graphs[pre_path].neighbors(node))[0]
+                           != list(route_graphs[post_path].neighbors(node))[0]):
+                            routes.append(nx.algorithms.compose(route_graphs[pre_path], route_graphs[post_path]))
+                            seen_paths.append(pre_path)
+                            seen_paths.append(post_path)
+                            matched = True
+                            break
+                    if matched: break
+            # Now add in the paths that haven't been paired
+            for path_id, route_graph in route_graphs.items():
+                if path_id not in seen_paths:
+                    if len(route_graph):
+                        routes.append(route_graph)
 
         # Identify shared sub-paths
         edges = set()
