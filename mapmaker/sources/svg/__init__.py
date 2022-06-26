@@ -28,6 +28,7 @@ import re
 # https://simoncozens.github.io/beziers.py/index.html
 from beziers.cubicbezier import CubicBezier
 from beziers.path import BezierPath
+from beziers.line import Line as BezierLine
 from beziers.point import Point as BezierPoint
 from beziers.quadraticbezier import QuadraticBezier
 
