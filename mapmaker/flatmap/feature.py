@@ -27,7 +27,7 @@ from shapely.geometry.base import BaseGeometry
 
 from mapmaker.utils import log
 from mapmaker.knowledgebase import get_label
-from mapmaker.knowledgebase.terms import *
+from mapmaker.knowledgebase.terms import GENERIC_ANATOMICAL_FEATURES
 from mapmaker.utils import FilePath
 
 #===============================================================================
@@ -171,10 +171,7 @@ class FeatureMap(object):
 
         # Filter out generic terms that don't locate any particular feature
         layers = list(anatomical_layers)
-        while len(layers) > 0 and anatomical_id in [TERM_CENTRAL_NERVOUS_SYSTEM,
-                                                    TERM_CNS_WHITE_MATTER,
-                                                    TERM_SPINAL_CORD_SEGMENT,
-                                                    TERM_SPINAL_CORD_WHITE_MATTER]:
+        while len(layers) > 0 and anatomical_id in GENERIC_ANATOMICAL_FEATURES:
             anatomical_id = layers.pop(0)
         if len(layers) == 0:
             return features_from_anatomical_id(anatomical_id)

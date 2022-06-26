@@ -18,9 +18,12 @@
 #
 #===============================================================================
 
-TERM_CENTRAL_NERVOUS_SYSTEM   = "UBERON:0001017"
-TERM_CNS_WHITE_MATTER         = "UBERON:0016549"
-TERM_SPINAL_CORD_SEGMENT      = "UBERON:0005844"
-TERM_SPINAL_CORD_WHITE_MATTER = "UBERON:0002318"
+GENERIC_ANATOMICAL_FEATURES = [
+    'UBERON:0001017',      # central nervous system
+    'UBERON:0001359',      # cerebrospinal fluid
+    'UBERON:0016549',      # cns white matter
+    'UBERON:0005844',      # spinal cord segment
+    'UBERON:0002318',      # spinal cord white matter
+]
 
 #===============================================================================
