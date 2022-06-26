@@ -500,8 +500,8 @@ class Network(object):
                         centreline_id = id
             return centreline_id
 
-        def find_feature_ids(connectivity_node):
-        #=======================================
+        def node_dict_for_feature(connectivity_node):
+        #============================================
             # First check if we can directly identify the centreline
             if (centreline := self.__models_to_id.get(connectivity_node[0])) is not None:
                 return {
@@ -681,29 +681,62 @@ class Network(object):
             # Find feature corresponding to each connectivity node and identify terminal nodes
             for node, node_dict in G.nodes(data=True):
                 node_dict.update(node_dict_for_feature(node))
-                if node_dict['degree'] == 1:
+                if G.degree(node) == 1:
                     node_dict['terminal'] = True
 
-            # And feature for each node on edge's smoothed path
-
+            path_edges = {}
+            # And find feature for each node on edge's smoothed path
             for (node_0, node_1, key, edge_dict) in G.edges(keys=True, data=True):
                 # ``path-features`` is a list parallel with ``path-nodes``
-                edge_dict['path-features'] = [find_feature_ids(node) for node in edge_dict['path-nodes']]
-                if len(path_features := edge_dict['path-features']):
+                edge_dict['path-features'] = [node_dict_for_feature(node) for node in edge_dict['path-nodes']]
+                path_edges[(node_0, node_1, key)] = edge_dict['path-features']  # we will add the reverse edges after iterating over all edges
+                if len(edge_dict['path-features']):
+                    node_dicts = [G.nodes[node_0]]
+                    node_dicts.extend(edge_dict['path-features'])
+                    node_dicts.append(G.nodes[node_1])
+
                     # split into segments delimited by path features that map to a centreline
-                    segment_boundaries = [-1]
-                    segment_boundaries.extend([n for (n, path_feature) in enumerate(path_features)
-                                                    if path_feature.get('centreline') is not None])
-                    segment_boundaries.append(len(path_features))
+                    segment_boundaries = [0]
+                    segment_boundaries.extend([n+1 for (n, path_feature) in enumerate(node_dicts[1:-1])
+                                                        if path_feature.get('centreline') is not None])
+                    segment_boundaries.append(len(node_dicts) - 1)
                     for start, end in pairwise(segment_boundaries):
                         if (end - start) > 1:
-                            centreline = find_centreline_from_containers([path_feature.get('feature-id')
-                                                                            for path_feature in path_features[start+1:end]
-                                                                                if path_feature.get('feature-id') is not None])
-                            for path_feature in path_features[start+1:end]:
-                                if path_feature.get('feature-id') is not None:
-                                    path_feature['centreline'] = centreline
-            seen_edges = []
+                            for dict_0, dict_1 in pairwise(node_dicts[start:end]):
+                                # Can have centreline/feature and feature/feature
+                                # but not centreline/centreline
+                                joined_features = None
+                                if (centreline := dict_0.get('centreline')) and dict_1.get('feature-id'):
+                                    feature_dict = dict_1
+                                    joined_features = join_centreline_to_node(centreline, dict_1)
+                                elif (centreline := dict_1.get('centreline')) and dict_0.get('feature-id'):
+                                    feature_dict = dict_0
+                                    joined_features = join_centreline_to_node(centreline, dict_0)
+                                elif dict_0.get('feature-id') and dict_1.get('feature-id'):
+                                    feature_dict = dict_0
+                                    joined_features = join_feature_nodes(dict_0, dict_1)
+                                if joined_features is not None and len(centrelines := joined_features['centrelines']):
+                                    feature_dict['centreline'] = centrelines.pop()
+
+                    segment_boundaries = [0]
+                    segment_boundaries.extend([n+1 for (n, path_feature) in enumerate(node_dicts[1:-1])
+                                                        if path_feature.get('centreline') is not None])
+                    segment_boundaries.append(len(node_dicts) - 1)
+                    for start, end in pairwise(segment_boundaries):
+                        if (end - start) > 1:
+                            centreline = find_centreline_from_containers(node_dicts[start],
+                                                                         [feature_dict.get('feature-id')
+                                                                            for feature_dict in node_dicts[start+1:end]
+                                                                                if feature_dict.get('feature-id') is not None],
+                                                                          node_dicts[end])
+                            for feature_dict in node_dicts[start+1:end]:
+                                if feature_dict.get('feature-id') is not None:
+                                    feature_dict['centreline'] = centreline
+
+            # Add reverse edges to the graph so we can traverse nodes in either direction
+            for edge, path_features in path_edges.items():
+                key = G.add_edge(edge[1], edge[0])
+                G.edges[(edge[1], edge[0], key)]['path-features'] = list(reversed(path_features))
             centreline_set = set()
             node_terminals = defaultdict(set)   # node --> terminals
             # Construct and extract centrelines from the features we've found, preserving

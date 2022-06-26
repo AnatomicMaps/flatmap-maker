@@ -55,7 +55,6 @@ def smooth_edges(G, end_nodes=None, path_attribute='path-nodes'):
     for (node, degree) in G.degree:
         if degree != 2 or node in end_nodes:
             R.add_node(node, **G.nodes[node])
-            R.nodes[node]['degree'] = degree
     seen_paths = defaultdict(set)
     for node in R:
         for path_node in G[node]:
@@ -63,8 +62,6 @@ def smooth_edges(G, end_nodes=None, path_attribute='path-nodes'):
                 path = follow_path(node, path_node)
                 key = R.add_edge(path[0], path[-1])
                 R.edges[path[0], path[-1], key][path_attribute] = path[1:-1]
-                key = R.add_edge(path[-1], path[0])
-                R.edges[path[-1], path[0], key][path_attribute] = reversed(path[1:-1])
                 seen_paths[path[0]].add(path[1])
                 seen_paths[path[-1]].add(path[-2])
     return R
