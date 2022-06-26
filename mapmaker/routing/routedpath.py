@@ -422,7 +422,8 @@ class RoutedPath(object):
                                          node_dict['centre'] + BezierPoint.fromAngle(edge_angle + math.pi/2)*offset)
                         geometry.append(GeometricShape(bezier_to_linestring(bz), {
                             'nerve': edge_dict.get('nerve'),
-                            'path-id': edge_dict.get('path-id')
+                            'path-id': edge_dict.get('path-id'),
+                            'source': edge_dict.get('source')
                         }))
                     except KeyError:
                         log.warning(f"{edge_dict.get('path-id')}: Missing geometry for {node} and/or {edge_nodes[0]}")
