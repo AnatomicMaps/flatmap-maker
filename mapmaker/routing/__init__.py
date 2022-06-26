@@ -839,8 +839,23 @@ class Network(object):
                     route_paths.nodes[end_node]['direction'] = list(route_paths.nodes[end_node]['edge-direction'].items())[0][1]
                     for terminal_id in terminal_nodes:
                         route_paths.add_edge(end_node, terminal_id, type='terminal')
-                        node = route_paths.nodes[terminal_id]
-                        self.__set_node_properties_from_feature(node, terminal_id)
+                        node_dict = route_paths.nodes[terminal_id]
+                        self.__set_node_properties_from_feature(node_dict, terminal_id)
 
-            return route_paths
+            # Add paths and nodes from connected connectivity sub-graph to result
+            route_graph.add_nodes_from(route_paths.nodes(data=True))
+            edge_key_count = defaultdict(int)
+            for node_0, node_1, key in route_paths.edges(keys=True):
+                edge_key_count[(node_0, node_1)] += 1
+            for node_0, node_1, edge_dict in route_paths.edges(data=True):
+                if edge_key_count[(node_0, node_1)] == 1 or edge_dict.get('id') in centreline_set:
+                    route_graph.add_edge(node_0, node_1, **edge_dict)
+                    edge_key_count[(node_0, node_1)] = 0
+
+            for (node_0, node_1), count in edge_key_count.items():
+                if count:
+                    log.warning(f'{path.id}: Multiple edges between nodes {node_0} and {node_1}')
+
+        return route_graph
+
 #===============================================================================
