@@ -151,8 +151,9 @@ class Network(object):
                         self.__contained_by_id[id] = containing_features
                     for container_id in containing_features:
                         self.__contained_centrelines[container_id].append(id)
-                        if external_properties.get_property(container_id, 'type') == 'nerve':
-                            edge_properties['nerve'] = container_id
+                        ## Need to identify nerves from centreline 'models' also having a feature with type 'nerve'
+                        ##if external_properties.get_property(container_id, 'type') == 'nerve':    ##  ??
+                        ##    edge_properties['nerve'] = container_id                              ##  ??
                     key = self.__centreline_graph.add_edge(nodes[0], nodes[-1], **edge_properties)
                     self.__edges_by_id[id] = (nodes[0], nodes[-1], key)
 
