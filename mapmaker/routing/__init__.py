@@ -288,7 +288,6 @@ class Network(object):
                 node_0_centre = self.__centreline_graph.nodes[node_0].get('centre')
                 node_1_centre = self.__centreline_graph.nodes[node_1].get('centre')
                 segments = feature.property('bezier-segments')
-
                 if node_0_centre is None or node_1_centre is None:
                     log.warning(f'Centreline {feature.id} nodes are missing ({node_0} and/or {node_1})')
                     if len(segments) == 0:
@@ -701,17 +700,14 @@ class Network(object):
                         log.warning(f'{path_id}: {warning}')
 
         # Connectivity graph must be undirected
-
         connectivity = path.connectivity
         if isinstance(connectivity, nx.DiGraph):
             connectivity = connectivity.to_undirected()
 
         # The resulting route graph
-
         route_graph = nx.MultiGraph()
 
         # Process each connected sub-graph
-
         for components in nx.connected_components(connectivity):
 
             # Simplify connectivity by collapsing consecutive degree 2 nodes
