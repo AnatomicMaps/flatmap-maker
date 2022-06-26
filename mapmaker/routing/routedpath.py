@@ -411,6 +411,10 @@ class RoutedPath(object):
                         edge_dicts.append(edge_dict)
                         edge_nodes.append(node_1)
                 if len(edge_nodes) == 1 and edge_nodes[0] not in terminal_nodes:
+                    pass
+                    """
+                    # TEMP: This produces visual artefacts so suppress...
+
                     # Draw path from node boundary to offsetted centre
                     edge_dict = edge_dicts[0]
                     try:
@@ -427,6 +431,7 @@ class RoutedPath(object):
                         }))
                     except KeyError:
                         log.warning(f"{edge_dict.get('path-id')}: Missing geometry for {node} and/or {edge_nodes[0]}")
+                    """
                 elif len(edge_dicts) == 2:
                     geometry.extend(join_geometry(node, node_dict, edge_dicts[0], edge_dicts[1]))
                 elif len(edge_dicts) == 3:  ## Generalise
