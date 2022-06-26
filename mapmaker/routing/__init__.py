@@ -505,12 +505,16 @@ class Network(object):
             # First check if we can directly identify the centreline
             if (centreline := self.__models_to_id.get(connectivity_node[0])) is not None:
                 return {
+                    'node': connectivity_node,
                     'feature-id': centreline,
                     'centreline': centreline
                 }
             features = self.__feature_map.find_path_features_by_anatomical_id(*connectivity_node)
             if len(features) == 0:
                 return {'warning': f'Cannot find feature: {full_node_name(*connectivity_node)}'}
+            result = {'node': connectivity_node}
+            if len(connectivity_node[1]):
+                result['organ'] = connectivity_node[1][-1]
             feature_ids = set(f.id if f.id is not None else f.property('class')    ## Class is deprecated as an identifier...
                                         for f in features)
             if len(feature_ids) > 1:
@@ -518,28 +522,29 @@ class Network(object):
                 # to see if we can find a unique feature
                 connected_features = feature_ids.intersection(self.__centreline_graph)
                 if len(connected_features) > 1:
-                    return {'error': f'Node {full_node_name(*connectivity_node)} has too many connected features: {feature_ids}'}
+                    result.update({'error': f'Node {full_node_name(*connectivity_node)} has too many connected features: {feature_ids}'})
                 elif len(connected_features):  # len(connected_features) == 1
-                    return {'feature-id': connected_features.pop()}
+                    result.update({'feature-id': connected_features.pop()})
                 else:                          # len(connected_features) == 0
                     # Multiple terminal nodes -- simply choose one
-                    return {
+                    result.update({
                         'warning': f'Node {full_node_name(*connectivity_node)} has multiple terminal features: {feature_ids}',
                         'feature-id': feature_ids.pop()
-                    }
+                    })
             elif len(feature_ids):
-                return {'feature-id': feature_ids.pop()}
-            print(f'{path.id}: Cannot find {connectivity_node}   <<<<<<<<<<<<<<<<<<<<<<')
-            return {}
+                result.update({'feature-id': feature_ids.pop()})
+            if len(result) == 0:
+                log.error(f'{path.id}: Cannot find {full_node_name(*connectivity_node)}   <<<<<<<<<<<<<<<<<<<<<<')
+            return result
 
-        def closest_node_to(feature_node, nodes):
-        #========================================
-            # Find closest adjacent node to feature_node
+        def closest_node_to(feature_node, centreline):
+        #=============================================
+            # Find closest centreline node to feature_node
             feature = self.__feature_map.get_feature(feature_node)
             feature_centre = feature.geometry.centroid
             closest_node = None
             closest_distance = -1
-            for node in nodes:
+            for node in self.__edges_by_id[centreline][0:2]:
                 node_centre = self.__centreline_graph.nodes[node]['geometry'].centroid
                 distance = feature_centre.distance(node_centre)
                 if closest_node is None or distance < closest_distance:
@@ -574,24 +579,22 @@ class Network(object):
             # A centreline and feature node. Either the feature
             # node is one of the centreline's nodes or there
             # should be a centreline connecting them
-            nodes = self.__edges_by_id[centreline][0:2]
+            centreline_nodes = self.__edges_by_id[centreline][0:2]
             result = {}
             centrelines = set()
             node = node_dict['feature-id']
-            if node not in nodes:
-                for n0 in nodes:
+            if node not in centreline_nodes:
+                for n0 in centreline_nodes:
                     if (n0, node) in self.__centreline_graph.edges:
                         for key in self.__centreline_graph[n0][node]:
                             centrelines.add(self.__centreline_graph.edges[n0, node, key]['id'])
+                        node_dict['centreline-node'] = True
                         break
                 if len(centrelines) > 1:
                     result['warning'] = f'Node {node} has several centrelines connecting it {centreline}: {centrelines}'
                 elif len(centrelines) == 0:
-                    if node_dict.get('terminal', False):
-                        # node is terminal of closest end of centreline
-                        closest_node = closest_node_to(node, nodes)
-                        result['node-terminals'] = {closest_node: node}
-                    else:
+                    if (not node_dict.get('terminal', False)
+                    and node_dict.get('node', False)):
                         result['warning'] = f'Centreline {centreline} has no path to node {node}'
             result['centrelines'] = centrelines
             return result
@@ -607,14 +610,14 @@ class Network(object):
             if (node_0, node_1) in self.__centreline_graph.edges:
                 for key in self.__centreline_graph[node_0][node_1]:
                     centrelines.add(self.__centreline_graph.edges[node_0, node_1, key]['id'])
+                node_dict_0['centreline-node'] = True
+                node_dict_1['centreline-node'] = True
             if len(centrelines) > 1:
                 result['warning'] = f'Nodes {node_0} and {node_1} have several centrelines connecting them: {centrelines}'
             elif len(centrelines) == 0:
-                if node_dict_0.get('terminal', False):
-                    result['node-terminals'] = {node_1: node_0}   # node_0 is terminal of node_1
-                elif node_dict_1.get('terminal', False):
-                    result['node-terminals'] = {node_0: node_1}   # node_1 is terminal of node_0
-                else:
+                if (not node_dict_0.get('terminal', False)
+                and not node_dict_1.get('terminal', False)
+                and (node_dict_0.get('node', False) or node_dict_1.get('node', False))):
                     result['warning'] = f'No centreline path between nodes {node_0} and {node_1}'
             result['centrelines'] = centrelines
             return result
@@ -622,26 +625,64 @@ class Network(object):
         def centrelines_from_node_dicts(dict_0, dict_1):
         #===============================================
             centrelines = set()
-            join_result = {}
+            result = {}
             if centreline_0 := dict_0.get('centreline'):
                 centrelines.add(centreline_0)
                 if centreline_1 := dict_1.get('centreline'):
-                    join_result = join_centrelines(centreline_0, centreline_1)
+                    result = join_centrelines(centreline_0, centreline_1)
                     centrelines.add(centreline_1)
                 elif dict_1.get('feature-id'):
-                    join_result = join_centreline_to_node(centreline_0, dict_1)
+                    result = join_centreline_to_node(centreline_0, dict_1)
             elif dict_0.get('feature-id'):
                 if centreline_1 := dict_1.get('centreline'):
                     centrelines.add(centreline_1)
-                    join_result = join_centreline_to_node(centreline_1, dict_0)
+                    result = join_centreline_to_node(centreline_1, dict_0)
                 elif dict_1.get('feature-id'):
-                    join_result = join_feature_nodes(dict_0, dict_1)
-            centrelines.update(join_result['centrelines'])
-            return {
-                'centrelines': centrelines,
-                'node-terminals': join_result.get('node-terminals', {}),
-                'warning': join_result.get('warning')
-            }
+                    result = join_feature_nodes(dict_0, dict_1)
+            result['centrelines'].update(centrelines)
+            return result
+
+        def get_closest_centreline_node(G, terminal_node, seen_terminals):
+        #=================================================================
+            organ_terminals = set()
+            terminal_dict = G.nodes[terminal_node]
+            if (organ_layer := terminal_dict.get('organ')) is not None:
+                terminal_feature = terminal_dict.get('feature-id')
+                organ_terminals.add(terminal_feature)
+                seen_edges = set()
+                connected_nodes = [terminal_node]
+                while len(connected_nodes):
+                    nodes = connected_nodes
+                    connected_nodes = []
+                    for start in nodes:
+                        for end, edge_data in G[start].items():
+                            for key in edge_data:
+                                edge = (start, end, key)
+                                if edge not in seen_edges:
+                                    seen_edges.add(edge)
+                                    node_dicts = G.edges[edge].get('path-features', []) + [G.nodes[end]]
+                                    for node_dict in node_dicts:
+                                        feature_id = node_dict.get('feature-id')
+                                        if organ_layer == node_dict.get('organ'):
+                                            if node_dict.get('terminal', False):
+                                                organ_terminals.add(feature_id)
+                                                terminal_feature = feature_id
+                                                seen_terminals.add(end)    # A path feature node can't be a terminal
+                                        if not node_dict.get('terminal', False) and node_dict.get('centreline-node', False):
+                                            closest_node = feature_id
+                                        elif (centreline := node_dict.get('centreline')) is not None:
+                                            closest_node = closest_node_to(terminal_feature, centreline)
+                                            if (closest := node_dict.get('closest-node')) is None:
+                                                node_dict['closest-node'] = closest_node
+                                            elif closest != closest_node:
+                                                result['warning'] = f'Node {feature_id} is close to both {closest_node} and {closest}'
+                                        else:
+                                            closest_node = node_dict.get('closest-node')
+                                        if closest_node is not None:
+                                            return (closest_node, organ_terminals)
+                                    if organ_layer == node_dicts[-1].get('organ'):
+                                        connected_nodes.append(end)
+            return(None, organ_terminals)
 
         def valid_feature_in_node_dicts(dicts, start_index):
         #===================================================
@@ -737,8 +778,9 @@ class Network(object):
             for edge, path_features in path_edges.items():
                 key = G.add_edge(edge[1], edge[0])
                 G.edges[(edge[1], edge[0], key)]['path-features'] = list(reversed(path_features))
+
+            seen_edges = set()
             centreline_set = set()
-            node_terminals = defaultdict(set)   # node --> terminals
             # Construct and extract centrelines from the features we've found, preserving
             # local connectedness
             for start_node, start_dict in G.nodes(data=True):
@@ -746,6 +788,7 @@ class Network(object):
                     for key in edge_data:
                         edge = (start_node, end_node, key)
                         if edge not in seen_edges:
+                            seen_edges.add(edge)
                             node_dicts = [start_dict]
                             node_dicts.extend(G.edges[edge].get('path-features', []))
                             node_dicts.append(G.nodes[end_node])
@@ -753,12 +796,9 @@ class Network(object):
                             while index < (len(node_dicts) - 1):
                                 next_index = valid_feature_in_node_dicts(node_dicts, index+1)
                                 if next_index < len(node_dicts):
-
                                     join_result = centrelines_from_node_dicts(node_dicts[index], node_dicts[next_index])
                                     centreline_set.update(join_result['centrelines'])
-                                    for node, terminal_node in join_result['node-terminals'].items():
-                                        node_terminals[node].add(terminal_node)
-                                    if (warning := join_result['warning']) is not None:
+                                    if (warning := join_result.get('warning')) is not None:
                                         log.warning(f'{path.id}: {warning}')
                                         for i in range(index, next_index):
                                             if (warning := node_dicts[i].get('warning')) is not None:
@@ -768,6 +808,21 @@ class Network(object):
             if len(centreline_set) == 0:
                 log.warning(f'{path.id}: No centrelines found...')
                 log_errors(path.id, G)
+            centreline_nodes = set()
+            for centreline in centreline_set:
+                centreline_nodes.update(self.__edges_by_id[centreline][0:2])
+
+            node_terminals = defaultdict(set)   # node --> terminals
+            seen_terminals = set()
+            # Find nearest centreline node to each terminal node
+            for terminal_node, node_dict in G.nodes(data=True):
+                if (node_dict.get('terminal', False)
+                and terminal_node not in seen_terminals
+                and node_dict.get('feature-id') not in centreline_nodes):
+                    (upstream_node, terminals) = get_closest_centreline_node(G, terminal_node, seen_terminals)
+                    if upstream_node is not None:
+                        node_terminals[upstream_node].update(terminals)
+
             # Construct the route graph from the centrelines that make it up
             route_paths = nx.MultiGraph()
             for centreline in centreline_set:
