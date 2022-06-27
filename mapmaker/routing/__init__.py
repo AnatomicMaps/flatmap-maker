@@ -675,7 +675,7 @@ class Network(object):
                                             if (closest := node_dict.get('closest-node')) is None:
                                                 node_dict['closest-node'] = closest_node
                                             elif closest != closest_node:
-                                                result['warning'] = f'Node {feature_id} is close to both {closest_node} and {closest}'
+                                                node_dict['warning'] = f'Node {feature_id} is close to both {closest_node} and {closest}'
                                         else:
                                             closest_node = node_dict.get('closest-node')
                                         if closest_node is not None:
