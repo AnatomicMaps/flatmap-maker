@@ -71,6 +71,16 @@ def bezier_to_linestring(bz, num_points=100, offset=0):
     else:
         return line.parallel_offset(abs(offset), 'left' if offset >= 0 else 'right')
 
+def bezier_to_line_coords(bz, num_points=100, offset=0):
+#=======================================================
+    line = bezier_to_linestring(bz, num_points=num_points, offset=offset)
+    if 'Multi' not in line.geom_type:
+        return line.coords
+    coords = []
+    for l in line.geoms:
+        coords.extend(l.coords if offset >= 0 else reversed(l.coords))
+    return coords
+
 def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle: float = None) -> CubicBezier:
 #==============================================================================================================
     # Connect points ``a`` and ``b`` with a Bezier curve with a slope

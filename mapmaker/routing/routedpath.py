@@ -40,7 +40,7 @@ import shapely.geometry
 
 #===============================================================================
 
-from mapmaker.geometry.beziers import bezier_connect, bezier_to_linestring
+from mapmaker.geometry.beziers import bezier_connect, bezier_to_line_coords, bezier_to_linestring
 from mapmaker.geometry.beziers import coords_to_point, point_to_coords, width_along_line
 from mapmaker.utils import log
 
@@ -291,7 +291,7 @@ class IntermediateNode:
             })]
         segs = [ bezier_connect(start_point, node_point, self.__start_angle, self.__mid_angle),
                  bezier_connect(node_point, end_point, self.__mid_angle, self.__end_angle) ]
-        return (bezier_to_linestring(BezierPath.fromSegments(segs), num_points=num_points, offset=offset), geometry)
+        return (bezier_to_line_coords(BezierPath.fromSegments(segs), num_points=num_points, offset=offset), geometry)
 
 #===============================================================================
 
@@ -349,17 +349,17 @@ class RoutedPath(object):
                 component = path_components[component_num]
                 if isinstance(component, IntermediateNode):
                     component_num += 1
-                    next_line_coords = bezier_to_linestring(path_components[component_num], offset=path_offset).coords
+                    next_line_coords = bezier_to_line_coords(path_components[component_num], offset=path_offset)
                     intermediate_geometry = component.geometry(path_source, path_id, intermediate_start,
                                                                BezierPoint(*(next_line_coords[0] if path_offset >= 0 else next_line_coords[-1])),
                                                                offset=2*offset/edge_dict['max-paths'])
-                    line_coords = intermediate_geometry[0].coords
+                    line_coords = intermediate_geometry[0]
                     geometry.extend(intermediate_geometry[1])
                     coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
                     line_coords = next_line_coords
                     intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
                 else:
-                    line_coords = bezier_to_linestring(component, offset=path_offset).coords
+                    line_coords = bezier_to_line_coords(component, offset=path_offset)
                     intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
                 coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
                 component_num += 1
