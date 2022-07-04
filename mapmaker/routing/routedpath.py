@@ -360,6 +360,9 @@ class RoutedPath(object):
                     intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
                 else:
                     line_coords = bezier_to_line_coords(component, offset=path_offset)
+                    if len(line_coords) == 0:
+                        log.warning(f'{path.id}: offset too big for parallel path...')
+                        line_coords = bezier_to_line_coords(component, offset=0)
                     intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
                 coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
                 component_num += 1
