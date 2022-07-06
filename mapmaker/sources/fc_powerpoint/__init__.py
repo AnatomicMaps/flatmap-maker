@@ -19,6 +19,7 @@
 #===============================================================================
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 #===============================================================================
@@ -31,6 +32,7 @@ import shapely.geometry             # type: ignore
 from mapmaker.settings import settings
 from mapmaker.utils import log, FilePath, TreeList
 
+from .. import RasterSource
 from ..powerpoint import PowerpointSource, PowerpointSlide
 from ..powerpoint.powerpoint import SHAPE_TYPE
 
@@ -87,6 +89,8 @@ class FCFeature:
 class FCPowerpoint(PowerpointSource):
     def __init__(self, flatmap, id, source_href, source_kind, source_range=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind, source_range=source_range, SlideClass=FCSlide)
+        svg_file = Path(source_href).with_suffix('.svg')
+        self.set_raster_source(RasterSource('svg', svg_file))
 
 #===============================================================================
 
