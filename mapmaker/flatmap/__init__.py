@@ -205,7 +205,7 @@ class FlatMap(object):
             self.__centre = ((self.__extent[0] + self.__extent[2])/2,
                              (self.__extent[1] + self.__extent[3])/2)
             self.__area = map_source.map_area()
-        elif map_source.kind not in ['details', 'image']:
+        elif map_source.kind not in ['details', 'image', 'fc_layer']:
             raise ValueError('Can only have a single base map')
 
     def layer_metadata(self):

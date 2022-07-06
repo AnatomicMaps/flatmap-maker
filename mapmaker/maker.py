@@ -279,9 +279,9 @@ class MapMaker(object):
             id = source.get('id')
             kind = source.get('kind')
             href = source['href']
-            if kind == 'fc_slides':
+            if kind in ['fc_base', 'fc_layer']:
                 settings['functionalConnectivity'] = True
-                source_layer = FCPowerpoint(self.__flatmap, id, href,
+                source_layer = FCPowerpoint(self.__flatmap, id, href, kind,
                                     source_range=get_range(source.get('slides')))
             elif kind == 'slides':
                 source_layer = PowerpointSource(self.__flatmap, id, href,

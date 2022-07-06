@@ -93,8 +93,8 @@ class PowerpointSlide(MapLayer):
 #===============================================================================
 
 class PowerpointSource(MapSource):
-    def __init__(self, flatmap, id, source_href, source_range=None, SlideClass=PowerpointSlide):
-        super().__init__(flatmap, id, source_href, 'slides', source_range=source_range)
+    def __init__(self, flatmap, id, source_href, source_kind='slides', source_range=None, SlideClass=PowerpointSlide):
+        super().__init__(flatmap, id, source_href, source_kind, source_range=source_range)
         self.__SlideClass = SlideClass
         self.__powerpoint = Powerpoint(source_href)
         self.bounds = self.__powerpoint.bounds   # Set bounds of MapSource

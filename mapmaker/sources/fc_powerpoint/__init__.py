@@ -85,8 +85,8 @@ class FCFeature:
 #===============================================================================
 
 class FCPowerpoint(PowerpointSource):
-    def __init__(self, flatmap, id, source_href, source_range=None):
-        super().__init__(flatmap, id, source_href, source_range=source_range, SlideClass=FCSlide)
+    def __init__(self, flatmap, id, source_href, source_kind, source_range=None):
+        super().__init__(flatmap, id, source_href, source_kind=source_kind, source_range=source_range, SlideClass=FCSlide)
 
 #===============================================================================
 
