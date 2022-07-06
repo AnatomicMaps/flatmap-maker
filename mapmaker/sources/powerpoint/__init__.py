@@ -37,7 +37,7 @@ class PowerpointSlide(MapLayer):
         if slide.id is not None:
             id = slide.id
         else:
-            id = 'slide-{:02d}'.format(slide_number)
+            id = f'{source.id}_slide-{slide_number:02d}'
         if source.source_range is None:
             exported = slide_number == 1
         else:
