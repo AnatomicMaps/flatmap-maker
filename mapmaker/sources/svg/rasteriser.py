@@ -171,6 +171,34 @@ class CanvasImage(CanvasDrawingObject):
 
 #===============================================================================
 
+class CanvasText(CanvasDrawingObject):
+    def __init__(self, text, attribs, parent_transform, transform_attribute, clip_path):
+        self.__text = text
+        self.__font = skia.Font(skia.Typeface('Calibri', skia.FontStyle.Bold()), 10)
+        self.__pos = [float(attribs['x']), float(attribs['y'])]
+        text_width = self.__font.measureText(text)
+        text_height = self.__font.getSpacing()
+        halign = attribs.get('text-anchor')  # end, middle, start
+        if halign == 'middle':
+            self.__pos[0] -= text_width/2
+        elif halign == 'end':
+            self.__pos[0] -= text_width
+        valign = attribs.get('dominant-baseline')  # auto, middle
+        if valign == 'middle':
+            self.__pos[1] += text_height/2
+        bounds = skia.Rect(self.__pos[0], self.__pos[1] - text_height,
+                           self.__pos[0] + text_width, self.__pos[1])
+        self.__paint = skia.Paint(AntiAlias=True, Color=skia.ColorBLACK)
+        super().__init__(None, bounds, parent_transform, transform_attribute, clip_path)
+
+    def draw_element(self, canvas, tile_bbox):
+    #=========================================
+        if self.intersects(tile_bbox):
+            with self.transformed_clipped_canvas(canvas):
+                canvas.drawString(self.__text, self.__pos[0], self.__pos[1], self.__font, self.__paint)
+
+#===============================================================================
+
 class CanvasGroup(CanvasDrawingObject):
     def __init__(self, drawing_objects, parent_transform, transform_attribute, clip_path, outermost=False):
         bbox = (shapely.ops.unary_union([element.bbox for element in drawing_objects]).envelope
@@ -268,7 +296,6 @@ class SVGTiler(object):
                          self.__pixel_offset[1] + (self.__tile_origin[1] - tile.y)*self.__tile_size[1])
         quadkey = mercantile.quadkey(tile)
         self.__svg_drawing.draw_element(canvas, self.__tile_bboxes.get(quadkey))
-
         image = surface.makeImageSnapshot()
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
@@ -498,9 +525,15 @@ class SVGTiler(object):
                     drawing_objects.append(CanvasImage(image, paint, parent_transform,
                         element.attrib.get('transform'),
                         self.__clip_paths.get_by_url(element_style.get('clip-path'))
-                        ))
+                    ))
 
-        elif element.tag not in [SVG_NS('style'), SVG_NS('text')]:
+        elif element.tag == SVG_NS('text'):
+            drawing_objects.append(CanvasText(element.text, element.attrib, parent_transform,
+                element.attrib.get('transform'),
+                self.__clip_paths.get_by_url(element_style.get('clip-path'))
+            ))
+
+        elif element.tag != SVG_NS('style'):
             log.warning("'{}' not supported...".format(element.tag))
 
         return drawing_objects
