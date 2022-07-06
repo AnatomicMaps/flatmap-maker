@@ -129,7 +129,7 @@ class Transform(object):
     def scale_length(self, length):
     #==============================
         scaling = transforms3d.affines.decompose(self.__matrix)[2]
-        return (scaling[0]*length[0], scaling[1]*length[1])
+        return (abs(scaling[0]*length[0]), abs(scaling[1]*length[1]))
 
     def transform_extent(self, extent):
     #==================================
