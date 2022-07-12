@@ -87,10 +87,24 @@ class FCFeature:
 #===============================================================================
 
 class FCPowerpoint(PowerpointSource):
-    def __init__(self, flatmap, id, source_href, source_kind, source_range=None):
+    def __init__(self, flatmap, id, source_href, source_kind, source_range=None, shape_filter=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind, source_range=source_range, SlideClass=FCSlide)
+        self.__shape_filter = shape_filter
+        self.__shapes = []
         svg_file = Path(source_href).with_suffix('.svg')
         self.set_raster_source(RasterSource('svg', svg_file))
+
+    def process(self):
+        super().process()
+        if self.__shape_filter is not None and self.kind == 'fc_base':
+            self.__shape_filter.add_shapes(self.__shapes)
+
+    def filter_shape(self, shape):
+        if self.__shape_filter is not None:
+            if self.kind == 'fc_base':
+                self.__shapes.append(shape)
+            elif self.kind == 'fc_layer':
+                self.__shape_filter.filter(shape)
 
 #===============================================================================
 
@@ -110,6 +124,10 @@ class FCSlide(PowerpointSlide):
         self.__extract_components(shapes)
         self.__label_connectors(shapes)
         for shape in shapes.flatten():
+            # Add the shape to the filter if we are processing a base map,
+            # or exclude it from the layer because it is similar to those
+            # in the base map
+            self.source.filter_shape(shape)
             if shape.id in self.__systems:
                 shape.properties.pop('label', None)  # We don't want System tooltips...
         return shapes

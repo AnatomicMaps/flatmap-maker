@@ -85,6 +85,8 @@ class PowerpointSlide(MapLayer):
                     pass
                 elif 'path' in properties:
                     pass
+                elif properties.get('exclude', False):
+                    pass
                 else:
                     feature = self.flatmap.new_feature(shape.geometry, shape.properties)
                     features.append(feature)

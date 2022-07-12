@@ -45,6 +45,7 @@ from .output.tilemaker import RasterTileMaker
 from .settings import settings
 
 from .sources import FCPowerpoint, MBFSource, PowerpointSource, SVGSource
+from .sources.shapefilter import ShapeFilter
 
 #===============================================================================
 
@@ -208,6 +209,9 @@ class MapMaker(object):
 
         settings['KNOWLEDGE_STORE'] = KnowledgeStore(map_base)
 
+        # Exclude shapes from a layer if they are in the base layer (FC maps)
+        self.__shape_filter = None
+
         # The map we are making
         self.__flatmap = FlatMap(self.__manifest, self)
 
@@ -280,9 +284,12 @@ class MapMaker(object):
             kind = source.get('kind')
             href = source['href']
             if kind in ['fc_base', 'fc_layer']:
+                if self.__shape_filter is None:
+                    self.__shape_filter = ShapeFilter()
                 settings['functionalConnectivity'] = True
                 source_layer = FCPowerpoint(self.__flatmap, id, href, kind,
-                                    source_range=get_range(source.get('slides')))
+                                    source_range=get_range(source.get('slides')),
+                                    shape_filter=self.__shape_filter)
             elif kind == 'slides':
                 source_layer = PowerpointSource(self.__flatmap, id, href,
                                     source_range=get_range(source.get('slides')))
