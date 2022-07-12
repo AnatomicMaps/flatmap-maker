@@ -161,6 +161,12 @@ class FCSlide(PowerpointSlide):
                     arrows = 0
                 else:
                     arrows = 1
+                line_style = shape.properties.pop('line-style', '').lower()
+                if 'dot' in line_style or 'dash' in line_style:
+                    shape.properties['type'] = 'line-dash'   # pre-ganglionic
+                else:
+                    shape.properties['type'] = 'line'        # post-ganglionic
+
                 self.__connectors.append(Connector(id, start_id, end_id, geometry, arrows, shape.properties))
 
 # ********               if start is None or end is None:
