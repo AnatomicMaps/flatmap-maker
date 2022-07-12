@@ -38,6 +38,15 @@ from ..powerpoint.powerpoint import SHAPE_TYPE
 
 #===============================================================================
 
+CONNECTOR_CLASSES = {
+    '#FF0000': 'symp',     # Source is in Brain/spinal cord
+    '#0070C0': 'sensory',  # Target is in Brain/spinal cord
+    '#4472C4': 'sensory',
+    '#548235': 'para',     # Source is in Brain/spinal cord
+}
+
+#===============================================================================
+
 @dataclass
 class Connector:
     id: str
@@ -236,25 +245,52 @@ class FCSlide(PowerpointSlide):
         self.__features[child].parents.append(parent)
         self.__features[parent].children.append(child)
 
-    def __find_ftu_label(self, id):
-    #==============================
+    def __ftu_label(self, id):
+    #=========================
         while (label := self.__features[id].label) == '':
             if id == 0 or id in self.__organs:
                 break
             id = self.__features[id].parents[0]
         return label
 
+    def __system_label(self, id):
+    #============================
+        while id != 0 and id not in self.__systems:
+            id = self.__features[id].parents[0]
+        return self.__features[id].label if id != 0 else ''
+
+    def __connector_class(self, id):
+    #===============================
+        return CONNECTOR_CLASSES.get(self.__features[id].colour, 'unknown')
+
+    def __connector_end_label(self, id, end):
+    #========================================
+        if id is not None:
+            if (label := self.__ftu_label(id)) != '':
+                if (system := self.__system_label(id)) != '':
+                    cls = self.__connector_class(id)
+                    if (cls != 'sensory') ^ system.startswith('BRAIN'):
+                        end = 'Target'
+                    else:
+                        end = 'Source'
+            return f'{end}: {label}'
+        return ''
+
     def __label_connectors(self, shapes):
     #====================================
         for shape in shapes.flatten():
             if shape.type == SHAPE_TYPE.CONNECTOR and 'label' not in shape.properties:
+                label_1 = self.__connector_end_label(shape.properties.pop('connection-start', None), 'Source')
+                label_2 = self.__connector_end_label(shape.properties.pop('connection-end', None), 'Target')
                 route_labels = []
-                if (id := shape.properties.pop('connection-start', None)) is not None:
-                    if (label := self.__find_ftu_label(id)) != '':
-                        route_labels.append(f'Source: {label}')
-                if (id := shape.properties.pop('connection-end', None)) is not None:
-                    if (label := self.__find_ftu_label(id)) != '':
-                        route_labels.append(f'Target: {label}')
+                if label_1.startswith('Source'):
+                    route_labels.append(label_1)
+                elif label_2.startswith('Source'):
+                    route_labels.append(label_2)
+                if label_1.startswith('Target'):
+                    route_labels.append(label_1)
+                elif label_2.startswith('Target'):
+                    route_labels.append(label_2)
                 if len(route_labels):
                     shape.properties['label'] = '<br/>'.join(route_labels)
 
