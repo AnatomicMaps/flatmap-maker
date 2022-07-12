@@ -83,7 +83,7 @@ class FCFeature:
 
     @property
     def label(self):
-        return self.properties.get('label', '').replace('\t', '|')
+        return self.properties.get('label', '').replace('\t', '|').strip()
 
     @property
     def models(self):
