@@ -492,6 +492,7 @@ class SVGTiler(object):
                 stroke_miterlimit = element_style.get('stroke-miterlimit')
                 if stroke_miterlimit is not None:
                     paint.setStrokeMiter(float(stroke_miterlimit))
+                path.close()   # The path must be closed when stroking the object's border
                 drawing_objects.append(CanvasPath(path, paint, parent_transform,
                     element.attrib.get('transform'),
                     self.__clip_paths.get_by_url(element.attrib.get('clip-path'))
