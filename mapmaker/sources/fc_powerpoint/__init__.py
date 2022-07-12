@@ -100,13 +100,6 @@ class FCPowerpoint(PowerpointSource):
         super().__init__(flatmap, id, source_href, source_kind=source_kind, source_range=source_range, SlideClass=FCSlide)
         self.__shape_filter = shape_filter
         self.__shapes = []
-        svg_file = Path(source_href).with_suffix('.svg')
-        self.set_raster_source(RasterSource('svg', svg_file))
-
-    def process(self):
-        super().process()
-        if self.__shape_filter is not None and self.kind == 'fc_base':
-            self.__shape_filter.add_shapes(self.__shapes)
 
     def filter_shape(self, shape):
         if self.__shape_filter is not None:
@@ -114,6 +107,17 @@ class FCPowerpoint(PowerpointSource):
                 self.__shapes.append(shape)
             elif self.kind == 'fc_layer':
                 self.__shape_filter.filter(shape)
+
+    def process(self):
+        super().process()
+        if self.__shape_filter is not None and self.kind == 'fc_base':
+            self.__shape_filter.add_shapes(self.__shapes)
+
+    def get_raster_source(self):
+    #===========================
+        ## This is where we can create the SVG (as BytesIO())
+        svg_file = Path(source_href).with_suffix('.svg')
+        return RasterSource('svg', svg_file)
 
 #===============================================================================
 

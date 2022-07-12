@@ -170,6 +170,8 @@ class MapSource(object):
 
     @property
     def raster_source(self):
+        if self.__raster_source is None:
+            self.__raster_source = self.get_raster_source()
         return self.__raster_source
 
     @property
@@ -218,9 +220,9 @@ class MapSource(object):
     #=================
         raise TypeError('`process()` must be implemented by `MapSource` sub-class')
 
-    def set_raster_source(self, source):
-    #===================================
-        self.__raster_source = source
+    def get_raster_source(self):
+    #===========================
+        return None
 
 #===============================================================================
 

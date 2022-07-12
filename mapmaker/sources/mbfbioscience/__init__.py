@@ -119,16 +119,6 @@ class MBFSource(MapSource):
     def species(self):
         return self.__species
 
-    def __set_raster_source(self, boundary_geometry):
-    #================================================
-        if boundary_geometry is not None and boundary_geometry.geom_type == 'Polygon':
-            # Save boundary in case transformed image is used for details
-            self.__boundary_geometry = boundary_geometry
-            # Mask image with boundary to remove artifacts
-            self.__image = mask_image(self.__image,
-                                      self.__world_to_image.transform_geometry(boundary_geometry))
-        self.set_raster_source(RasterSource('image', self.__image))
-
     def ns_tag(self, tag):
     #=====================
         return '{{{}}}{}'.format(self.__ns, tag)
@@ -165,7 +155,15 @@ class MBFSource(MapSource):
             if anatomical_id == self.__boundary_id:
                 boundary_geometry = feature.geometry
                 self.__layer.boundary_feature = feature
+        if boundary_geometry is not None and boundary_geometry.geom_type == 'Polygon':
+            # Save boundary in case transformed image is used for details
+            self.__boundary_geometry = boundary_geometry
+            # Mask image with boundary to remove artifacts
+            self.__image = mask_image(self.__image,
+                                      self.__world_to_image.transform_geometry(boundary_geometry))
 
-        self.__set_raster_source(boundary_geometry)
+    def get_raster_source(self):
+    #===========================
+        return RasterSource('image', self.__image)
 
 #===============================================================================

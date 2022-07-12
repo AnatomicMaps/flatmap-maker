@@ -116,15 +116,15 @@ class SVGSource(MapSource):
                       self.flatmap.id,
                       '{}.svg'.format(self.flatmap.id)), 'wb') as fp:
                 cleaner.save(fp)
-        if settings.get('backgroundTiles', False):
-            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
-            cleaner.clean()
-            cleaned_svg = io.BytesIO()
-            cleaner.save(cleaned_svg)
-            cleaned_svg.seek(0)
-        else:
-            cleaned_svg = None
-        self.set_raster_source(RasterSource('svg', cleaned_svg, source=self.__source_file))
+
+    def get_raster_source(self):
+    #===========================
+        cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
+        cleaner.clean()
+        cleaned_svg = io.BytesIO()
+        cleaner.save(cleaned_svg)
+        cleaned_svg.seek(0)
+        return RasterSource('svg', cleaned_svg, source=self.__source_file)
 
 #===============================================================================
 
