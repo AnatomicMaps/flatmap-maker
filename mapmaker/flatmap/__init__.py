@@ -191,21 +191,21 @@ class FlatMap(object):
         if layer.exported:
             self.__visible_layer_count += 1
 
-    def add_source_layers(self, layer_number, map_source):
-    #=====================================================
-        for layer in map_source.layers:
+    def add_source_layers(self, layer_number, source):
+    #=================================================
+        for layer in source.layers:
             self.add_layer(layer)
             if layer.exported:
-                layer.add_raster_layer(layer.id, map_source.extent, map_source, self.__min_zoom)
+                layer.add_raster_layer(layer.id, source.extent, source, self.__min_zoom)
         # The first layer is used as the base map
         if layer_number == 0:
-            if map_source.kind == 'details':
+            if source.kind == 'details':
                 raise ValueError('Details layer cannot be the base map')
-            self.__extent = map_source.extent
+            self.__extent = source.extent
             self.__centre = ((self.__extent[0] + self.__extent[2])/2,
                              (self.__extent[1] + self.__extent[3])/2)
-            self.__area = map_source.map_area()
-        elif map_source.kind not in ['details', 'image', 'fc_layer']:
+            self.__area = source.map_area()
+        elif source.kind not in ['details', 'image', 'fc_layer']:
             raise ValueError('Can only have a single base map')
 
     def layer_metadata(self):

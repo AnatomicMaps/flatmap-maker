@@ -171,7 +171,7 @@ class FCSlide(PowerpointSlide):
 #                    log.warning('{} has no direction'
 # *********                                .format(shape.properties['shape-name']))
 
-        # We use two passes to find the feature spatial hierarchy
+        # We use two passes to find the feature's spatial hierarchy
         non_system_features = {}
         for id, feature in self.__features.items():
             if id > 0:     # self.__features[0] == entire slide
