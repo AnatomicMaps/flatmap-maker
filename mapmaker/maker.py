@@ -206,8 +206,8 @@ class MapMaker(object):
 
         # Our source of knowledge, updated with information
         # about maps we've made, held in a global place
-
-        settings['KNOWLEDGE_STORE'] = KnowledgeStore(map_base)
+        settings['KNOWLEDGE_STORE'] = KnowledgeStore(map_base,
+                                        clean_connectivity=settings.get('cleanConnectivity', False))
 
         # Exclude shapes from a layer if they are in the base layer (FC maps)
         self.__shape_filter = None

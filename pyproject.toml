@@ -30,7 +30,7 @@ tinycss2 = "*"
 cssselect2 = "*"
 webcolors = "*"
 xmltodict = "^0.12.0"
-mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.10.2/mapknowledge-0.10.2-py3-none-any.whl"}
+flatmapknowledge = {url="https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.0.0/flatmapknowledge-1.0.0-py3-none-any.whl"}
 Pyomo = "^6.2"
 Rtree = "^0.9.7"
 

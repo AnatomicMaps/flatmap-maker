@@ -23,77 +23,11 @@ import sqlite3
 
 #===============================================================================
 
-import mapknowledge
+from flatmapknowledge import KnowledgeStore
+
+#===============================================================================
 
 from mapmaker.settings import settings
-
-#===============================================================================
-
-KNOWLEDGE_BASE = 'knowledgebase.db'
-
-LABELS_DB = 'labels.sqlite'
-
-#===============================================================================
-
-FLATMAP_SCHEMA = """
-    begin;
-    -- will auto convert datetime.datetime objects
-    create table flatmaps(id text primary key, models text, created timestamp);
-    create unique index flatmaps_index on flatmaps(id);
-    create index flatmaps_models_index on flatmaps(models);
-
-    create table flatmap_entities (flatmap text, entity text);
-    create index flatmap_entities_flatmap_index on flatmap_entities(flatmap);
-    create index flatmap_entities_entity_index on flatmap_entities(entity);
-    commit;
-"""
-
-#===============================================================================
-
-class KnowledgeStore(mapknowledge.KnowledgeStore):
-    def __init__(self, store_directory, knowledge_base=KNOWLEDGE_BASE, create=True, read_only=False):
-        new_db = not Path(store_directory, knowledge_base).resolve().exists()
-        if create and new_db:
-            super().__init__(store_directory,
-                             knowledge_base=knowledge_base,
-                             clean_connectivity=settings.get('cleanConnectivity', False),
-                             create=create,
-                             read_only=False)
-            self.db.executescript(FLATMAP_SCHEMA)
-            labels_db = Path(store_directory, LABELS_DB).resolve()
-            if labels_db.exists():
-                with self.db:
-                    self.db.executemany('insert into labels(entity, label) values (?, ?)',
-                        sqlite3.connect(labels_db).execute('select entity, label from labels').fetchall())
-            if read_only:
-                super().open(read_only=True)
-        else:
-            super().__init__(store_directory,
-                             knowledge_base=knowledge_base,
-                             clean_connectivity=settings.get('cleanConnectivity', False),
-                             create=create,
-                             read_only=read_only)
-
-    def add_flatmap(self, flatmap):
-    #==============================
-        self.db.execute('begin')
-        self.db.execute('replace into flatmaps(id, models, created) values (?, ?, ?)',
-            (flatmap.id, flatmap.models, flatmap.created))
-        self.db.execute('delete from flatmap_entities where flatmap=?', (flatmap.id, ))
-        self.db.executemany('insert into flatmap_entities(flatmap, entity) values (?, ?)',
-            ((flatmap.id, entity) for entity in flatmap.entities))
-        self.db.commit()
-
-    def flatmap_entities(self, flatmap):
-    #===================================
-        select = ['select distinct entity from flatmap_entities']
-        if flatmap is not None:
-            select.append('where flatmap=?')
-        select.append('order by entity')
-        if flatmap is not None:
-            return [row[0] for row in self.db.execute(' '.join(select), (flatmap,))]
-        else:
-            return [row[0] for row in self.db.execute(' '.join(select))]
 
 #===============================================================================
 
