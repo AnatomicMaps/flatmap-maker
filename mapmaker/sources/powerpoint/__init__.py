@@ -101,7 +101,7 @@ class PowerpointSource(MapSource):
         self.__powerpoint = Powerpoint(source_href)
         self.bounds = self.__powerpoint.bounds   # Set bounds of MapSource
         self.__slides = self.__powerpoint.slides
-        pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_href)[0]))
+        self.__pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_href)[0]))
 
     @property
     def transform(self):
@@ -131,6 +131,6 @@ class PowerpointSource(MapSource):
 
     def get_raster_source(self):
     #===========================
-        return RasterSource('pdf', None, file_path=pdf_source)
+        return RasterSource('pdf', self.__pdf_source.get_data())
 
 #===============================================================================

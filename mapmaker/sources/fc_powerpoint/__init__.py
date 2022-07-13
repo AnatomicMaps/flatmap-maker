@@ -116,7 +116,7 @@ class FCPowerpoint(PowerpointSource):
     def get_raster_source(self):
     #===========================
         ## This is where we can create the SVG (as BytesIO())
-        svg_file = Path(source_href).with_suffix('.svg')
+        svg_file = Path(self.source_href).with_suffix('.svg')
         return RasterSource('svg', svg_file)
 
 #===============================================================================
