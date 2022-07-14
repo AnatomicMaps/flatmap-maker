@@ -19,6 +19,7 @@
 #===============================================================================
 
 from dataclasses import dataclass, field
+from io import BytesIO, StringIO
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -35,6 +36,7 @@ from mapmaker.utils import log, FilePath, TreeList
 from .. import RasterSource
 from ..powerpoint import PowerpointSource, PowerpointSlide
 from ..powerpoint.powerpoint import SHAPE_TYPE
+from ..powerpoint.pptx2svg import Pptx2Svg
 
 #===============================================================================
 
@@ -122,9 +124,20 @@ class FCPowerpoint(PowerpointSource):
 
     def get_raster_source(self):
     #===========================
-        ## This is where we can create the SVG (as BytesIO())
-        svg_file = Path(self.source_href).with_suffix('.svg')
-        return RasterSource('svg', svg_file)
+        return RasterSource('svg', self.__get_raster_data)
+
+    def __get_raster_data(self):
+    #===========================
+        svg_extractor = Pptx2Svg(self.source_href,
+            kind=self.kind, shape_filter=self.__svg_shape_filter)
+        svg_extractor.slides_to_svg()
+        for layer in svg_extractor.svg_layers:
+            svg = StringIO()
+            layer.save(svg)
+            svg_bytes = BytesIO(svg.getvalue().encode('utf-8'))
+            svg.close()
+            svg_bytes.seek(0)
+            return svg_bytes
 
 #===============================================================================
 
