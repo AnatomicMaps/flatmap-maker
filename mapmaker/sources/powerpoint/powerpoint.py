@@ -101,7 +101,7 @@ class Shape:
 
     @property
     def label(self):
-        return self.properties.get('label')
+        return self.properties.get('label', '')
 
 #===============================================================================
 
