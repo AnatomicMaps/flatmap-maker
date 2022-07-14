@@ -287,25 +287,25 @@ class FCSlide(PowerpointSlide):
     #===============================
         return CONNECTOR_CLASSES.get(self.__features[id].colour, 'unknown')
 
-    def __connector_end_label(self, id, end):
-    #========================================
+    def __connector_end_label(self, id):
+    #===================================
         if id is not None:
             if (label := self.__ftu_label(id)) != '':
-                if (system := self.__system_label(id)) != '':
-                    cls = self.__connector_class(id)
-                    if (cls != 'sensory') ^ system.startswith('BRAIN'):
-                        end = 'Target'
-                    else:
-                        end = 'Source'
-            return f'{end}: {label}'
+                cls = self.__connector_class(id)
+                system = self.__system_label(id)
+                if (cls != 'sensory') ^ system.startswith('BRAIN'):
+                    end = 'Target'
+                else:
+                    end = 'Source'
+                return f'{end}: {label}'
         return ''
 
     def __label_connectors(self, shapes):
     #====================================
         for shape in shapes.flatten():
             if shape.type == SHAPE_TYPE.CONNECTOR and 'label' not in shape.properties:
-                label_1 = self.__connector_end_label(shape.properties.pop('connection-start', None), 'Source')
-                label_2 = self.__connector_end_label(shape.properties.pop('connection-end', None), 'Target')
+                label_1 = self.__connector_end_label(shape.properties.pop('connection-start', None))
+                label_2 = self.__connector_end_label(shape.properties.pop('connection-end', None))
                 route_labels = []
                 if label_1.startswith('Source'):
                     route_labels.append(label_1)
