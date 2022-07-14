@@ -99,6 +99,10 @@ class Manifest(object):
         return self.__manifest['id']
 
     @property
+    def kind(self):
+        return self.__manifest.get('kind', 'anatomical')
+
+    @property
     def models(self):
         return self.__manifest.get('models')
 
@@ -279,6 +283,7 @@ class MapMaker(object):
                     return [int(n) for n in source_range]
                 else:
                     return [int(source_range)]
+        settings['functionalConnectivity'] = (self.__manifest.kind == 'functional')
         for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
             id = source.get('id')
             kind = source.get('kind')
