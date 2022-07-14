@@ -292,11 +292,19 @@ class FCSlide(PowerpointSlide):
         if id is not None:
             if (label := self.__ftu_label(id)) != '':
                 cls = self.__connector_class(id)
-                system = self.__system_label(id)
-                if (cls != 'sensory') ^ system.startswith('BRAIN'):
-                    end = 'Target'
+                if cls == 'unknown':
+                    # NB. Some of these are have junction colours...
+                    log.warning(f'FTU {label} has unknown class for connector {id}, colour: {self.__features[id].colour}')
+                    return ''
+                system_label = self.__system_label(id)
+                if system_label == '':
+                    # NB. 'Breasts' are in three systems but none are assigned...
+                    log.warning(f'Cannot determine system for connector {id} in FTU {label}')
+                    return ''
+                if cls == 'sensory':
+                    end = 'Target' if system_label.startswith('BRAIN') else 'Source'
                 else:
-                    end = 'Source'
+                    end = 'Source' if system_label.startswith('BRAIN') else 'Target'
                 return f'{end}: {label}'
         return ''
 
