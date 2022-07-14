@@ -96,22 +96,29 @@ class FCFeature:
 #===============================================================================
 
 class FCPowerpoint(PowerpointSource):
-    def __init__(self, flatmap, id, source_href, source_kind, source_range=None, shape_filter=None):
+    def __init__(self, flatmap, id, source_href, source_kind, source_range=None, shape_filters=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind, source_range=source_range, SlideClass=FCSlide)
-        self.__shape_filter = shape_filter
-        self.__shapes = []
+        if shape_filters is not None:
+            self.__map_shape_filter = shape_filters.map_filter
+            self.__svg_shape_filter = shape_filters.svg_filter
+        else:
+            self.__map_shape_filter = None
+            self.__svg_shape_filter = None
 
-    def filter_shape(self, shape):
-        if self.__shape_filter is not None:
-            if self.kind == 'fc_base':
-                self.__shapes.append(shape)
-            elif self.kind == 'fc_layer':
-                self.__shape_filter.filter(shape)
+    def filter_map_shape(self, shape):
+    #=================================
+        # Called as each shape is extracted from a slide
+        if self.__map_shape_filter is not None:
+            if self.kind == 'base':
+                self.__map_shape_filter.add_shape(shape)
+            elif self.kind == 'layer':
+                self.__map_shape_filter.filter(shape)
 
     def process(self):
+    #=================
         super().process()
-        if self.__shape_filter is not None and self.kind == 'fc_base':
-            self.__shape_filter.add_shapes(self.__shapes)
+        if self.__map_shape_filter is not None and self.kind == 'base':
+            self.__map_shape_filter.create_filter()
 
     def get_raster_source(self):
     #===========================
@@ -140,7 +147,7 @@ class FCSlide(PowerpointSlide):
             # Add the shape to the filter if we are processing a base map,
             # or exclude it from the layer because it is similar to those
             # in the base map
-            self.source.filter_shape(shape)
+            self.source.filter_map_shape(shape)
             if shape.id in self.__systems:
                 shape.properties.pop('label', None)  # We don't want System tooltips...
         return shapes

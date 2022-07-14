@@ -45,7 +45,7 @@ from .output.tilemaker import RasterTileMaker
 from .settings import settings
 
 from .sources import FCPowerpoint, MBFSource, PowerpointSource, SVGSource
-from .sources.shapefilter import ShapeFilter
+from .sources.shapefilter import ShapeFilters
 
 #===============================================================================
 
@@ -214,7 +214,7 @@ class MapMaker(object):
                                         clean_connectivity=settings.get('cleanConnectivity', False))
 
         # Exclude shapes from a layer if they are in the base layer (FC maps)
-        self.__shape_filter = None
+        self.__shape_filters = None
 
         # The map we are making
         self.__flatmap = FlatMap(self.__manifest, self)
@@ -284,17 +284,19 @@ class MapMaker(object):
                 else:
                     return [int(source_range)]
         settings['functionalConnectivity'] = (self.__manifest.kind == 'functional')
+        if settings['functionalConnectivity']:
+            self.__shape_filters = ShapeFilters()
         for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
             id = source.get('id')
             kind = source.get('kind')
             href = source['href']
-            if kind in ['fc_base', 'fc_layer']:
-                if self.__shape_filter is None:
-                    self.__shape_filter = ShapeFilter()
-                settings['functionalConnectivity'] = True
-                source_layer = FCPowerpoint(self.__flatmap, id, href, kind,
-                                    source_range=get_range(source.get('slides')),
-                                    shape_filter=self.__shape_filter)
+            if settings['functionalConnectivity']:
+                if kind in ['base', 'layer']:
+                    source_layer = FCPowerpoint(self.__flatmap, id, href, kind,
+                                        source_range=get_range(source.get('slides')),
+                                        shape_filters=self.__shape_filters)
+                else:
+                    raise ValueError('Unsupported FC kind: {}'.format(kind))
             elif kind == 'slides':
                 source_layer = PowerpointSource(self.__flatmap, id, href,
                                     source_range=get_range(source.get('slides')))
