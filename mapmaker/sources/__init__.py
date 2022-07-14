@@ -227,16 +227,16 @@ class MapSource(object):
 #===============================================================================
 
 class RasterSource(object):
-    def __init__(self, kind, data, **kwds):
+    def __init__(self, kind, get_data, **kwds):
         self.__kind = kind
-        self.__data = data
-        self.__file_path = kwds.pop('file_path', None)
+        self.__get_data = get_data
+        self.__data = None
         self.__params = kwds
 
     @property
     def data(self):
-        if self.__data is None and self.__file_path is not None:
-            self.__data = self.__file_path.get_data()
+        if self.__data is None and self.__get_data is not None:
+            self.__data = self.__get_data()
         return self.__data
 
     @property

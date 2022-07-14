@@ -131,6 +131,6 @@ class PowerpointSource(MapSource):
 
     def get_raster_source(self):
     #===========================
-        return RasterSource('pdf', self.__pdf_source.get_data())
+        return RasterSource('pdf', lambda: self.__pdf_source.get_data())
 
 #===============================================================================

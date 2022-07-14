@@ -164,6 +164,6 @@ class MBFSource(MapSource):
 
     def get_raster_source(self):
     #===========================
-        return RasterSource('image', self.__image)
+        return RasterSource('image', lambda: self.__image)
 
 #===============================================================================

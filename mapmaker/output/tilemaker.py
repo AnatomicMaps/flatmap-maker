@@ -553,9 +553,9 @@ if __name__ == '__main__':
 
     if args.mode == 'PDF':
         with open(args.source, 'rb') as f:
-            source = RasterSource('pdf', f.read())
+            source = RasterSource('pdf', lambda: f.read())
     else:
-        source = RasterSource('image', Image.open(args.source))
+        source = RasterSource('image', lambda: Image.open(args.source))
 
     tile_layer = RasterLayer(args.map_id, map_extent, source)
     tile_maker = RasterTileMaker(tile_layer, args.map_base, args.max_zoom)
