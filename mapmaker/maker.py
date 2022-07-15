@@ -45,6 +45,7 @@ from .output.tilemaker import RasterTileMaker
 from .settings import settings
 
 from .sources import FCPowerpoint, MBFSource, PowerpointSource, SVGSource
+from .sources.fc_powerpoint.annotation import AnnotationSet
 from .sources.shapefilter import ShapeFilters
 
 #===============================================================================
@@ -79,6 +80,8 @@ class Manifest(object):
                 raise ValueError('No sources given for manifest')
             if 'anatomicalMap' in self.__manifest:
                 self.__manifest['anatomicalMap'] = self.__path.join_url(self.__manifest['anatomicalMap'])
+            if 'annotation' in self.__manifest:
+                self.__manifest['annotation'] = self.__path.join_url(self.__manifest['annotation'])
             if 'connectivityTerms' in self.__manifest:
                 self.__manifest['connectivityTerms'] = self.__path.join_url(self.__manifest['connectivityTerms'])
             if 'properties' in self.__manifest:
@@ -93,6 +96,10 @@ class Manifest(object):
     @property
     def anatomical_map(self):
         return self.__manifest.get('anatomicalMap')
+
+    @property
+    def annotation(self):
+        return self.__manifest.get('annotation')
 
     @property
     def id(self):
@@ -216,6 +223,9 @@ class MapMaker(object):
         # Exclude shapes from a layer if they are in the base layer (FC maps)
         self.__shape_filters = None
 
+        # For annotating functional connectivity diagrams
+        self.__annotation_set = None
+
         # The map we are making
         self.__flatmap = FlatMap(self.__manifest, self)
 
@@ -236,12 +246,18 @@ class MapMaker(object):
 
         # Finish off flatmap
         self.__flatmap.close()
+
+        # Save functional connectivity annotation
+        if self.__annotation_set is not None:
+            self.__annotation_set.save()
+
         # Output all features (as GeoJSON)
         self.__output_geojson()
         # Generate vector tiles from GeoJSON
         self.__make_vector_tiles()
         # Generate image tiles as needed
         self.__check_raster_tiles()
+
         # Save the flatmap's metadata
         self.__save_metadata()
 
@@ -286,6 +302,10 @@ class MapMaker(object):
         settings['functionalConnectivity'] = (self.__manifest.kind == 'functional')
         if settings['functionalConnectivity']:
             self.__shape_filters = ShapeFilters()
+            if self.__manifest.annotation is not None:
+                self.__annotation_set = AnnotationSet(self.__manifest.annotation)
+            else:
+                self.__annotation_set = None
         for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
             id = source.get('id')
             kind = source.get('kind')
@@ -294,7 +314,9 @@ class MapMaker(object):
                 if kind in ['base', 'layer']:
                     source_layer = FCPowerpoint(self.__flatmap, id, href, kind,
                                         source_range=get_range(source.get('slides')),
-                                        shape_filters=self.__shape_filters)
+                                        shape_filters=self.__shape_filters,
+                                        annotation_set=self.__annotation_set,
+                                        )
                 else:
                     raise ValueError('Unsupported FC kind: {}'.format(kind))
             elif kind == 'slides':

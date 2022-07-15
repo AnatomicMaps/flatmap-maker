@@ -34,6 +34,7 @@ flatmapknowledge = {url="https://github.com/AnatomicMaps/flatmap-knowledge/relea
 Pyomo = "^6.2"
 Rtree = "^0.9.7"
 svgwrite = "^1.4.2"
+XlsxWriter = "^3.0.3"
 
 [tool.poetry.dev-dependencies]
 sphinx = "4.0.3"

@@ -98,14 +98,38 @@ class FCFeature:
 #===============================================================================
 
 class FCPowerpoint(PowerpointSource):
-    def __init__(self, flatmap, id, source_href, source_kind, source_range=None, shape_filters=None):
+    def __init__(self, flatmap, id, source_href, source_kind, source_range=None, shape_filters=None, annotation_set=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind, source_range=source_range, SlideClass=FCSlide)
+        self.__annotation_set = annotation_set
         if shape_filters is not None:
             self.__map_shape_filter = shape_filters.map_filter
             self.__svg_shape_filter = shape_filters.svg_filter
         else:
             self.__map_shape_filter = None
             self.__svg_shape_filter = None
+
+    def annotate(self, slide):
+    #=========================
+        if self.__annotation_set is None:
+            return
+        for id in slide.systems:
+            self.__annotation_set.add_system(slide.fc_features[id].label, self.id)
+        for id in slide.organs:
+            self.__annotation_set.add_organ(slide.fc_features[id].label, self.id,
+                tuple(slide.fc_features[system_id].label for system_id in slide.fc_features[id].parents if system_id != 0)
+                )
+        for feature in slide.fc_features.values():
+            if feature.label != '':
+                organ_id = None
+                for parent in feature.parents:
+                    if parent in slide.organs:
+                        organ_id = parent
+                        break
+                if organ_id is not None:
+                    if len(feature.parents) > 1:
+                        log.warning(f'FTU {feature} in multiple organs')
+                    else:
+                        self.__annotation_set.add_ftu(slide.fc_features[organ_id].label, feature.label, self.id)
 
     def filter_map_shape(self, shape):
     #=================================
@@ -144,12 +168,33 @@ class FCPowerpoint(PowerpointSource):
 class FCSlide(PowerpointSlide):
     def __init__(self, source, slide, slide_number):
         super().__init__(source, slide, slide_number)
-        self.__features = {
+        self.__fc_features = {
             0: FCFeature(0, self.outer_geometry)
         }
         self.__connectors = []
         self.__systems = set()
         self.__organs = set()
+
+    @property
+    def connectors(self):
+        return self.__connectors
+
+    @property
+    def fc_features(self):
+        return self.__fc_features
+
+    @property
+    def organs(self):
+        return self.__organs
+
+    @property
+    def systems(self):
+        return self.__systems
+
+    def process(self):
+    #=================
+        super().process()
+        self.source.annotate(self)
 
     def _extract_shapes(self):
     #=========================
@@ -175,7 +220,7 @@ class FCSlide(PowerpointSlide):
             geometry = shape.geometry
             if shape.type == SHAPE_TYPE.FEATURE and shape.geometry.geom_type == 'Polygon':
                 idx.insert(id, geometry.bounds, obj=geometry)
-                self.__features[id] = FCFeature(id, geometry, shape.properties)
+                self.__fc_features[id] = FCFeature(id, geometry, shape.properties.copy())
             elif shape.type == SHAPE_TYPE.CONNECTOR:
                 start_id = shape.properties.get('connection-start')
                 end_id = shape.properties.get('connection-end')
@@ -212,8 +257,8 @@ class FCSlide(PowerpointSlide):
 
         # We use two passes to find the feature's spatial hierarchy
         non_system_features = {}
-        for id, feature in self.__features.items():
-            if id > 0:     # self.__features[0] == entire slide
+        for id, feature in self.__fc_features.items():
+            if id > 0:     # self.__fc_features[0] == entire slide
                 # List of spatial index items that intersect the feature
                 items = idx.intersection(feature.geometry.bounds, objects=True)
 
@@ -225,7 +270,7 @@ class FCSlide(PowerpointSlide):
 
                 # Exclude larger features we partially intersect
                 while parent_index < len(overlaps):
-                    parent_geometry = self.__features[overlaps[parent_index]].geometry
+                    parent_geometry = self.__fc_features[overlaps[parent_index]].geometry
                     if parent_geometry.intersection(feature.geometry).area >= 0.8*feature.geometry.area:
         ## smaller and >= 80% common area ==> containment
                         break
@@ -240,10 +285,10 @@ class FCSlide(PowerpointSlide):
 
         # Now find parents of the non-system features
         for id, overlaps in non_system_features.items():
-            feature = self.__features[id]
+            feature = self.__fc_features[id]
             parent_index = overlaps.index(id) + 1
             while parent_index < len(overlaps):
-                parent_geometry = self.__features[overlaps[parent_index]].geometry
+                parent_geometry = self.__fc_features[overlaps[parent_index]].geometry
                 assert parent_geometry.area >= feature.geometry.area
                 if parent_geometry.intersection(feature.geometry).area >= 0.8*feature.geometry.area:
                 #if parent_geometry.contains(feature.geometry):
@@ -257,7 +302,7 @@ class FCSlide(PowerpointSlide):
                 self.__set_relationships(id, parent_id)
                 for system_id in self.__systems:
                     if (system_id != parent_id
-                    and self.__features[system_id].geometry.contains(feature.geometry)):
+                    and self.__fc_features[system_id].geometry.contains(feature.geometry)):
                         self.__set_relationships(id, system_id)
             else:
                 if parent_id == 0 and feature.label != '':
@@ -266,26 +311,26 @@ class FCSlide(PowerpointSlide):
 
     def __set_relationships(self, child, parent):
     #============================================
-        self.__features[child].parents.append(parent)
-        self.__features[parent].children.append(child)
+        self.__fc_features[child].parents.append(parent)
+        self.__fc_features[parent].children.append(child)
 
     def __ftu_label(self, id):
     #=========================
-        while (label := self.__features[id].label) == '':
+        while (label := self.__fc_features[id].label) == '':
             if id == 0 or id in self.__organs:
                 break
-            id = self.__features[id].parents[0]
+            id = self.__fc_features[id].parents[0]
         return label
 
     def __system_label(self, id):
     #============================
         while id != 0 and id not in self.__systems:
-            id = self.__features[id].parents[0]
-        return self.__features[id].label if id != 0 else ''
+            id = self.__fc_features[id].parents[0]
+        return self.__fc_features[id].label if id != 0 else ''
 
     def __connector_class(self, id):
     #===============================
-        return CONNECTOR_CLASSES.get(self.__features[id].colour, 'unknown')
+        return CONNECTOR_CLASSES.get(self.__fc_features[id].colour, 'unknown')
 
     def __connector_end_label(self, id):
     #===================================
@@ -294,7 +339,7 @@ class FCSlide(PowerpointSlide):
                 cls = self.__connector_class(id)
                 if cls == 'unknown':
                     # NB. Some of these are have junction colours...
-                    log.warning(f'FTU {label} has unknown class for connector {id}, colour: {self.__features[id].colour}')
+                    log.warning(f'FTU {label} has unknown class for connector {id}, colour: {self.__fc_features[id].colour}')
                     return ''
                 system_label = self.__system_label(id)
                 if system_label == '':
