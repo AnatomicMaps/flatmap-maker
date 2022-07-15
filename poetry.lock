@@ -643,7 +643,7 @@ tinycss2 = ">=0.6.0"
 
 [[package]]
 name = "svgwrite"
-version = "1.4.2"
+version = "1.4.3"
 description = "A Python library to create SVG drawings."
 category = "main"
 optional = false
@@ -737,7 +737,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4.0"
-content-hash = "19ecaf599c10d6f1a7d0b6a58385d618c4b7caa1097961d2b2be81cad9d6c926"
+content-hash = "69b6805714286e4ff2012ba6f2300c3c96d364d71916446129145e0f8d0d8d41"
 
 [metadata.files]
 alabaster = [
@@ -1296,10 +1296,7 @@ sphinxcontrib-serializinghtml = [
 svglib = [
     {file = "svglib-1.3.0.tar.gz", hash = "sha256:a38998b95d1bb99564dc9dffaf15e4e9453761f2790d2dd4147a4ad5fbac1078"},
 ]
-svgwrite = [
-    {file = "svgwrite-1.4.2-py3-none-any.whl", hash = "sha256:ca63d76396d1f6f099a2b2d8cf1419e1c1de8deece9a2b7f4da0632067d71d43"},
-    {file = "svgwrite-1.4.2.zip", hash = "sha256:d304a929f197d31647c287c10eee0f64378058e1c83a9df83433a5980864e59f"},
-]
+svgwrite = []
 tinycss2 = [
     {file = "tinycss2-1.1.1-py3-none-any.whl", hash = "sha256:fe794ceaadfe3cf3e686b22155d0da5780dd0e273471a51846d0a02bc204fec8"},
     {file = "tinycss2-1.1.1.tar.gz", hash = "sha256:b2e44dd8883c360c35dd0d1b5aad0b610e5156c2cb3b33434634e539ead9d8bf"},
