@@ -321,37 +321,37 @@ class FCSlide(PowerpointSlide):
         self.__fc_features[child].parents.append(parent)
         self.__fc_features[parent].children.append(child)
 
-    def __ftu_label(self, id):
-    #=========================
-        while (label := self.__fc_features[id].label) == '':
-            if id == 0 or id in self.__organs:
+    def __ftu_label(self, shape_id):
+    #===============================
+        while (label := self.__fc_features[shape_id].label) == '':
+            if shape_id == 0 or shape_id in self.__organs:
                 break
-            id = self.__fc_features[id].parents[0]
+            shape_id = self.__fc_features[shape_id].parents[0]
         return label
 
-    def __system_label(self, id):
-    #============================
-        while id != 0 and id not in self.__systems:
-            id = self.__fc_features[id].parents[0]
-        return self.__fc_features[id].label if id != 0 else ''
+    def __system_label(self, shape_id):
+    #==================================
+        while shape_id != 0 and shape_id not in self.__systems:
+            shape_id = self.__fc_features[shape_id].parents[0]
+        return self.__fc_features[shape_id].label if shape_id != 0 else ''
 
-    def __connector_class(self, id):
-    #===============================
-        return CONNECTOR_CLASSES.get(self.__fc_features[id].colour, 'unknown')
+    def __connector_class(self, shape_id):
+    #=====================================
+        return CONNECTOR_CLASSES.get(self.__fc_features[shape_id].colour, 'unknown')
 
-    def __connector_end_label(self, id):
-    #===================================
-        if id is not None:
-            if (label := self.__ftu_label(id)) != '':
-                cls = self.__connector_class(id)
+    def __connector_end_label(self, shape_id):
+    #=========================================
+        if shape_id is not None:
+            if (label := self.__ftu_label(shape_id)) != '':
+                cls = self.__connector_class(shape_id)
                 if cls == 'unknown':
                     # NB. Some of these are have junction colours...
-                    log.warning(f'FTU {label} has unknown class for connector {id}, colour: {self.__fc_features[id].colour}')
+                    log.warning(f'FTU {label} has unknown class for connector {shape_id}, colour: {self.__fc_features[shape_id].colour}')
                     return ''
-                system_label = self.__system_label(id)
+                system_label = self.__system_label(shape_id)
                 if system_label == '':
                     # NB. 'Breasts' are in three systems but none are assigned...
-                    log.warning(f'Cannot determine system for connector {id} in FTU {label}')
+                    log.warning(f'Cannot determine system for connector {shape_id} in FTU {label}')
                     return ''
                 if cls == 'sensory':
                     end = 'Target' if system_label.startswith('BRAIN') else 'Source'
