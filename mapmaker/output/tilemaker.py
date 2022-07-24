@@ -27,6 +27,7 @@ import os
 import cv2
 import fitz
 import mercantile
+import multiprocess as mp
 import numpy as np
 import shapely.geometry
 from svglib.svglib import svg2rlg
@@ -438,6 +439,10 @@ class RasterTileMaker(object):
         self.__min_zoom = raster_layer.min_zoom
         self.__tile_set = TileSet(raster_layer.extent, max_zoom)
 
+    @property
+    def raster_layer(self):
+        return self.__raster_layer
+
     def __make_zoomed_tiles(self, tile_extractor):
     #=============================================
         mbtiles = MBTiles(self.__database_path, True, True)
@@ -506,7 +511,7 @@ class RasterTileMaker(object):
                 tile_extractor = SVGImageTiler(self.__raster_layer, self.__tile_set)
         else:
             raise TypeError('Unsupported kind of background tile source: {}'.format(source_kind))
-        self.__make_zoomed_tiles(tile_extractor)
+        return mp.Process(target=self.__make_zoomed_tiles, args=(tile_extractor, ), name=self.__id)
 
 #===============================================================================
 

@@ -21,6 +21,7 @@
 import json
 import os
 import pathlib
+import multiprocessing.connection
 import shutil
 import subprocess
 import sys
@@ -343,15 +344,25 @@ class MapMaker(object):
             raise ValueError('No map layers in sources...')
 
     def __check_raster_tiles(self):
-    #============================
+    #==============================
         log('Checking and making background tiles (may take a while...)')
+        maker_processes = {}
+        tilemakers = []
         for layer in self.__flatmap.layers:
             for raster_layer in layer.raster_layers:
                 tilemaker = RasterTileMaker(raster_layer, self.__map_dir, self.__zoom[1])
+                tilemakers.append(tilemaker)
                 if settings.get('backgroundTiles', False):
-                    tilemaker.make_tiles()
-                if tilemaker.have_tiles():
-                    self.__raster_layers.append(raster_layer)
+                    tilemaker_process = tilemaker.make_tiles()
+                    tilemaker_process.start()
+                    maker_processes[tilemaker_process.sentinel] = tilemaker_process
+        while len(maker_processes) > 0:
+            ended_processes = multiprocessing.connection.wait(maker_processes.keys())
+            for process in ended_processes:
+                maker_processes.pop(process)
+        for tilemaker in tilemakers:
+            if tilemaker.have_tiles():
+                self.__raster_layers.append(tilemaker.raster_layer)
 
     def __make_vector_tiles(self, compressed=True):
     #==============================================
