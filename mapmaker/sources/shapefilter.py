@@ -35,6 +35,8 @@ class ShapeFilter:
         self.__excluded_shape_attributes = {}
         self.__excluded_shape_geometries = []
         self.__excluded_shape_rtree = None
+        self.__warn_create = False
+        self.__warn_filter = False
 
     @staticmethod
     def __shape_attribs(shape):
@@ -47,13 +49,18 @@ class ShapeFilter:
     def add_shape(self, shape):
     #==========================
         geometry = shape.geometry
-        if 'Polygon' in geometry.geom_type:
-            self.__excluded_shape_geometries.append(geometry)
-            self.__excluded_shape_attributes[id(geometry)] = self.__shape_attribs(shape)
+        if self.__excluded_shape_rtree is None:
+            if 'Polygon' in geometry.geom_type:
+                self.__excluded_shape_geometries.append(geometry)
+                self.__excluded_shape_attributes[id(geometry)] = self.__shape_attribs(shape)
+        elif not self.__warn_create:
+            log.warning('Cannot add shapes to filter after it has been created...')
+            self.__warn_create = True
 
     def create_filter(self):
     #=======================
-        self.__excluded_shape_rtree = shapely.strtree.STRtree(self.__excluded_shape_geometries)
+        if self.__excluded_shape_rtree is None:
+            self.__excluded_shape_rtree = shapely.strtree.STRtree(self.__excluded_shape_geometries)
 
     def filter(self, shape):
     #=======================
@@ -64,6 +71,9 @@ class ShapeFilter:
                  or self.__shape_excluded(geometry, overlap=0.80)
                  or self.__shape_excluded(geometry, attributes=self.__shape_attribs(shape))):
                     shape.properties['exclude'] = True
+        elif not self.__warn_filter:
+            log.warning('Shape filter has not been created...')
+            self.__warn_filter = True
 
     def __shape_excluded(self, geometry, overlap=0.98, attributes=None, show=False):
     #===============================================================================
