@@ -25,9 +25,9 @@ from typing import Dict, List, Optional, Tuple
 
 #===============================================================================
 
-import rtree                        # type: ignore
 import shapely.geometry             # type: ignore
-
+import shapely.strtree              # type: ignore
+                                    #
 #===============================================================================
 
 from mapmaker.settings import settings
@@ -212,15 +212,15 @@ class FCSlide(PowerpointSlide):
 
     def __extract_components(self, shapes):
     #======================================
-        # Use a spatial index to find shape containment hierarchy
-        idx = rtree.index.Index()
-        idx.insert(0, self.bounds, obj=self.outer_geometry)
+        geometries = [self.outer_geometry]
+        shape_ids = {id(self.outer_geometry): 0}     # id(geometry) --> shape.id
         for shape in shapes.flatten():
-            id = shape.id
+            shape_id = shape.id
             geometry = shape.geometry
             if shape.type == SHAPE_TYPE.FEATURE and shape.geometry.geom_type == 'Polygon':
-                idx.insert(id, geometry.bounds, obj=geometry)
-                self.__fc_features[id] = FCFeature(id, geometry, shape.properties.copy())
+                geometries.append(geometry)
+                shape_ids[id(geometry)] = shape_id
+                self.__fc_features[shape_id] = FCFeature(shape_id, geometry, shape.properties.copy())
             elif shape.type == SHAPE_TYPE.CONNECTOR:
                 start_id = shape.properties.get('connection-start')
                 end_id = shape.properties.get('connection-end')
@@ -245,7 +245,7 @@ class FCSlide(PowerpointSlide):
                 else:
                     shape.properties['type'] = 'line'        # post-ganglionic
 
-                self.__connectors.append(Connector(id, start_id, end_id, geometry, arrows, shape.properties))
+                self.__connectors.append(Connector(shape_id, start_id, end_id, geometry, arrows, shape.properties))
 
 # ********               if start is None or end is None:
 #                    ## Still add as connector but use colour/width to highlight
@@ -255,18 +255,25 @@ class FCSlide(PowerpointSlide):
 #                    log.warning('{} has no direction'
 # *********                                .format(shape.properties['shape-name']))
 
+        # Use a spatial index to find shape containment hierarchy
+        idx = shapely.strtree.STRtree(geometries)
+
         # We use two passes to find the feature's spatial hierarchy
         non_system_features = {}
-        for id, feature in self.__fc_features.items():
-            if id > 0:     # self.__fc_features[0] == entire slide
-                # List of spatial index items that intersect the feature
-                items = idx.intersection(feature.geometry.bounds, objects=True)
+        for shape_id, feature in self.__fc_features.items():
+            if shape_id > 0:     # self.__fc_features[0] == entire slide
+                # List of geometries that intersect the feature
+                intersecting_geometries = idx.query(feature.geometry)
 
-                # Sort list by area, smallest item first
-                overlaps = [i[0] for i in sorted([(item.id, item.object.area) for item in items], key = lambda x: x[1])]
+                # Sort geometries by area, smallest item first
+                overlaps = [shape_ids[i[0]]
+                                for i in sorted([(id(geometry), geometry.area)
+                                                    for geometry in intersecting_geometries],
+                                                key = lambda x: x[1])
+                           ]
 
                 # Immediate parent is the object immediately larger than the feature
-                parent_index = overlaps.index(id) + 1
+                parent_index = overlaps.index(shape_id) + 1
 
                 # Exclude larger features we partially intersect
                 while parent_index < len(overlaps):
@@ -278,15 +285,15 @@ class FCSlide(PowerpointSlide):
                 if (overlaps[parent_index] == 0
                 and feature.label != ''
                 and feature.label[-1].isupper()):
-                    self.__systems.add(id)
-                    self.__set_relationships(id, 0)
+                    self.__systems.add(shape_id)
+                    self.__set_relationships(shape_id, 0)
                 else:
-                    non_system_features[id] = overlaps
+                    non_system_features[shape_id] = overlaps
 
         # Now find parents of the non-system features
-        for id, overlaps in non_system_features.items():
-            feature = self.__fc_features[id]
-            parent_index = overlaps.index(id) + 1
+        for shape_id, overlaps in non_system_features.items():
+            feature = self.__fc_features[shape_id]
+            parent_index = overlaps.index(shape_id) + 1
             while parent_index < len(overlaps):
                 parent_geometry = self.__fc_features[overlaps[parent_index]].geometry
                 assert parent_geometry.area >= feature.geometry.area
@@ -298,16 +305,16 @@ class FCSlide(PowerpointSlide):
             parent_id = overlaps[parent_index]
             if parent_id in self.__systems:
                 if feature.label != '':
-                    self.__organs.add(id)
-                self.__set_relationships(id, parent_id)
+                    self.__organs.add(shape_id)
+                self.__set_relationships(shape_id, parent_id)
                 for system_id in self.__systems:
                     if (system_id != parent_id
                     and self.__fc_features[system_id].geometry.contains(feature.geometry)):
-                        self.__set_relationships(id, system_id)
+                        self.__set_relationships(shape_id, system_id)
             else:
                 if parent_id == 0 and feature.label != '':
-                    self.__organs.add(id)
-                self.__set_relationships(id, parent_id)
+                    self.__organs.add(shape_id)
+                self.__set_relationships(shape_id, parent_id)
 
     def __set_relationships(self, child, parent):
     #============================================

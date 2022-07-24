@@ -24,8 +24,8 @@ from typing import Dict, List, Optional, Tuple
 
 #===============================================================================
 
-import rtree                        # type: ignore
 import shapely.geometry             # type: ignore
+import shapely.strtree              # type: ignore
 
 #===============================================================================
 
@@ -269,34 +269,40 @@ class CellDlLayer(MapLayer):
         features = {}
         source_geometry = self.__ppt.geometry
         features[0] = Feature(0, source_geometry)
-        idx = rtree.index.Index()
-        idx.insert(0, source_geometry.bounds, obj=source_geometry)
+        geometries = [source_geometry]
+        shape_ids = {id(source_geometry): 0}     # id(geometry) --> shape.id
         for shape in self.__ppt.process():
-            id = shape.id
+            shape_id = shape.id
             geometry = shape.geometry
             if shape.type == 'feature' and shape.geometry.geom_type == 'Polygon':
-                idx.insert(id, geometry.bounds, obj=geometry)
-                features[id] = Feature(id, geometry, shape.properties)
+                geometries.append(geometry)
+                shape_ids[id(geometry)] = shape_id
+                features[shape_id] = Feature(shape_id, geometry, shape.properties)
             elif shape.type == 'connector':
                 start = shape.properties.pop('connection-start', None)
                 end = shape.properties.pop('connection-end', None)
                 if start is not None and end is not None:
-                    connectors.append(Connector(id, (start, end), geometry, shape.properties))
+                    connectors.append(Connector(shape_id, (start, end), geometry, shape.properties))
                 else:
                     log.warning('Connector {} ({}) ignored -- ends are missing: {} --> {}'
-                                .format(id, shape.properties['shape-name'], start, end))
-        for id, feature in features.items():
-            if id > 0:     # features[0] == entire slide
-                items = idx.intersection(feature.geometry.bounds, objects=True)
-                overlaps = [i[0] for i in sorted([(item.id, item.object.area) for item in items], key = lambda x: x[1])]
-                parent_index = overlaps.index(id) + 1
+                                .format(shape_id, shape.properties['shape-name'], start, end))
+        idx = shapely.strtree.STRtree(geometries)
+        for shape_id, feature in features.items():
+            if shape_id > 0:     # features[0] == entire slide
+                intersecting_geometries = idx.query(feature.geometry)
+                overlaps = [shape_ids[i[0]]
+                                for i in sorted([(id(geometry), geometry.area)
+                                                    for geometry in intersecting_geometries],
+                                                key = lambda x: x[1])
+                           ]
+                parent_index = overlaps.index(shape_id) + 1
                 # Exclude larger features we partially intersect
                 while parent_index < len(overlaps) and not features[overlaps[parent_index]].geometry.contains(feature.geometry):
                     parent_index += 1
                 parent_id = overlaps[parent_index]
-                features[id].parent = parent_id
+                features[shape_id].parent = parent_id
                 if parent_id > 0:
-                    features[parent_id].children.append(id)
+                    features[parent_id].children.append(shape_id)
         celldl = CellDlDiagram(self.id, features, connectors)
 
 

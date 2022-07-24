@@ -32,7 +32,6 @@ webcolors = "^1.12"
 xmltodict = "^0.12.0"
 flatmapknowledge = {url="https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.0.0/flatmapknowledge-1.0.0-py3-none-any.whl"}
 Pyomo = "^6.2"
-Rtree = "^0.9.7"
 svgwrite = "^1.4.3"
 XlsxWriter = "^3.0.3"
 
