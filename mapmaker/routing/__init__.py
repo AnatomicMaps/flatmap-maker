@@ -26,18 +26,20 @@ wires are routed.
 
 #===============================================================================
 
+from __future__ import annotations
 from collections import Counter, defaultdict
 import itertools
 import math
 from functools import partial
+import sys
 
 
 #===============================================================================
 
-try:
+if sys.version_info >= (3, 10):
     # Python 3.10
     from itertools import pairwise
-except ImportError:
+else:
     # Python < 3.10
     from itertools import tee
 
@@ -113,12 +115,12 @@ class Network(object):
     def __init__(self, network: dict, external_properties):
         self.__id = network.get('id')
         self.__centreline_graph = nx.MultiGraph()   # Can have multiple paths between two nodes
-        self.__centreline_ids = []
+        self.__centreline_ids = [str]
         self.__contained_centrelines = defaultdict(list)    #! Feature id --> centrelines contained in feature
         self.__contained_by_id = {}                         #! Centreline id --> set of features that centreline is contained in
         self.__edges_by_id = {}                             #! Centreline id --> edge
-        self.__models_to_id = {}                            #! Ontological term --> centreline id
-        self.__feature_ids = set()
+        self.__models_to_id: dict[str, str] = {}                            #! Ontological term --> centreline id
+        self.__feature_ids: set[str] = set()
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
         for centreline in network.get('centrelines', []):
             id = centreline.get('id')
@@ -805,12 +807,12 @@ class Network(object):
             if len(centreline_set) == 0:
                 log.warning(f'{path.id}: No centrelines found...')
                 log_errors(path.id, G)
-            centreline_nodes = set()
+            centreline_nodes: set[str] = set()
             for centreline in centreline_set:
                 centreline_nodes.update(self.__edges_by_id[centreline][0:2])
 
-            node_terminals = defaultdict(set)   # node --> terminals
-            seen_terminals = set()
+            node_terminals: dict[str, set[str]] = defaultdict(set)   # node --> terminals
+            seen_terminals: set[str] = set()
             # Find nearest centreline node to each terminal node
             for terminal_node, node_dict in G.nodes(data=True):
                 if (node_dict.get('terminal', False)
@@ -841,7 +843,7 @@ class Network(object):
 
             # Add paths and nodes from connected connectivity sub-graph to result
             route_graph.add_nodes_from(route_paths.nodes(data=True))
-            edge_key_count = defaultdict(int)
+            edge_key_count: dict[tuple[str, str], int] = defaultdict(int)
             for node_0, node_1, key in route_paths.edges(keys=True):
                 edge_key_count[(node_0, node_1)] += 1
             for node_0, node_1, edge_dict in route_paths.edges(data=True):

@@ -210,16 +210,3 @@ class Geometry(object):
         return self.evaluate(element.attrib[attrib])
 
 #===============================================================================
-
-if __name__ == '__main__':
-    variables['x'] = '*/ 1 2 3'
-    print(value('val x'))
-    print(value('wd10'))
-    print(value('cos 1 0'))
-    print(value('at2 0 1'))
-    print(value('cat2 1 0 1'))
-    print(value('cat2 1 1 1'))
-    print(value('sat2 1 1 1'))
-    print(value('sat2 1 0 1'))
-
-#===============================================================================

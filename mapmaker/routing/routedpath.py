@@ -24,10 +24,10 @@ File doc...
 
 #===============================================================================
 
+from __future__ import annotations
 from collections import defaultdict
 import itertools
 import math
-from typing import Tuple
 
 #===============================================================================
 
@@ -174,11 +174,11 @@ class GeometricShape(object):
         return self.__properties
 
     @classmethod
-    def circle(cls, centre: Tuple[float], radius: float = 2000, properties: dict = None):
+    def circle(cls, centre: tuple[float], radius: float = 2000, properties: dict = None):
         return cls(shapely.geometry.Point(centre).buffer(radius), properties)
 
     @classmethod
-    def line(cls, start: Tuple[float], end: Tuple[float], properties: dict = None):
+    def line(cls, start: tuple[float], end: tuple[float], properties: dict = None):
         return cls(shapely.geometry.LineString([start, end]), properties)
 
     @classmethod
@@ -319,8 +319,8 @@ class RoutedPath(object):
             return shapely.geometry.LineString([
                 node_0['geometry'].centroid, node_1['geometry'].centroid])
 
-    def geometry(self) -> [GeometricShape]:
-    #======================================
+    def geometry(self) -> list[GeometricShape]:
+    #==========================================
         """
         Returns:
             A list of geometric objects. This are LineStrings describing paths
@@ -342,7 +342,7 @@ class RoutedPath(object):
                 continue
             offset = self.__graph.nodes[edge_dict['start-node']]['offsets'][edge_dict['end-node']]
             path_offset = PATH_SEPARATION*offset
-            intermediate_nodes = []
+            intermediate_start = None
             coords = []
             component_num = 0
             while component_num < len(path_components):
@@ -361,7 +361,7 @@ class RoutedPath(object):
                 else:
                     line_coords = bezier_to_line_coords(component, offset=path_offset)
                     if len(line_coords) == 0:
-                        log.warning(f'{path.id}: offset too big for parallel path...')
+                        log.warning(f'{path_id}: offset too big for parallel path...')
                         line_coords = bezier_to_line_coords(component, offset=0)
                     intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
                 coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))

@@ -18,8 +18,8 @@
 #
 #===============================================================================
 
+from __future__ import annotations
 from collections import defaultdict
-from typing import Dict, List
 
 #===============================================================================
 
@@ -132,7 +132,7 @@ class ResolvedPath(object):
         self.__models = None
 
     @property
-    def as_dict(self) -> Dict[str, List[int]] :
+    def as_dict(self) -> dict[str, list[int]] :
         """
         The numeric feature ids that make up a path.
         """
@@ -145,7 +145,7 @@ class ResolvedPath(object):
             path_dict['models'] = self.__models
         return path_dict
 
-    def extend_lines(self, feature_ids: List[int]):
+    def extend_lines(self, feature_ids: list[int]):
         """
         Associate line segments with the path.
 
@@ -156,7 +156,7 @@ class ResolvedPath(object):
         """
         self.__lines.update(feature_ids)
 
-    def extend_nerves(self, feature_ids: List[int]):
+    def extend_nerves(self, feature_ids: list[int]):
         """
         Associate nerve cuffs with the path.
 
@@ -167,7 +167,7 @@ class ResolvedPath(object):
         """
         self.__nerves.update(feature_ids)
 
-    def extend_nodes(self, feature_ids: List[int]):
+    def extend_nodes(self, feature_ids: list[int]):
         """
         Associate nodes with the path.
 
@@ -236,9 +236,9 @@ class ResolvedPathways(object):
     """
     def __init__(self, feature_map: FeatureMap):
         self.__feature_map = feature_map
-        self.__paths = defaultdict(ResolvedPath)  #! Paths by :class:`ResolvedPath`\ s
-        self.__node_paths = defaultdict(set)     #! Paths by node
-        self.__type_paths = defaultdict(set)     #! Paths by path type
+        self.__paths: dict[str, ResolvedPath] = defaultdict(ResolvedPath)  #! Paths by :class:`ResolvedPath`\ s
+        self.__node_paths: dict[int, set[str]] = defaultdict(set)     #! Paths by node
+        self.__type_paths: dict[str, set[str]] = defaultdict(set)     #! Paths by path type
 
     @property
     def node_paths(self):
@@ -270,7 +270,7 @@ class ResolvedPathways(object):
         return node_ids
 
     def add_connectivity(self, path_id: str, model: str, path_type: str,
-                         route_nodes: List[str], feature_id: int, nerve_features: List[Feature]):
+                         route_nodes: list[str], feature_id: int, nerve_features: list[Feature]):
         resolved_path = self.__paths[path_id]
         if model is not None:
             resolved_path.set_model_id(model)
@@ -281,7 +281,7 @@ class ResolvedPathways(object):
         resolved_path.extend_nerves([f.feature_id for f in nerve_features])
 
     def add_pathway(self, path_id: str, model: str, path_type:str,
-                    route: Route, lines: List[str], nerves: List[str]):
+                    route: Route, lines: list[str], nerves: list[str]):
         resolved_path = self.__paths[path_id]
         if model is not None:
             resolved_path.set_model_id(model)

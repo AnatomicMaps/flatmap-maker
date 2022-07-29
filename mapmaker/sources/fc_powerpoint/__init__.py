@@ -18,16 +18,16 @@
 #
 #===============================================================================
 
+from __future__ import annotations
 from dataclasses import dataclass, field
 from io import BytesIO, StringIO
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 #===============================================================================
 
-import shapely.geometry             # type: ignore
-import shapely.strtree              # type: ignore
-                                    #
+import shapely.geometry
+import shapely.strtree
+
 #===============================================================================
 
 from mapmaker.settings import settings
@@ -56,7 +56,7 @@ class Connector:
     target: int
     geometry: shapely.geometry.base.BaseGeometry
     arrows: int
-    properties: Dict[str, str] = field(default_factory=dict)
+    properties: dict[str, str] = field(default_factory=dict)
 
 #===============================================================================
 
@@ -64,9 +64,9 @@ class Connector:
 class FCFeature:
     id: int
     geometry: shapely.geometry.base.BaseGeometry
-    properties: Dict[str, str] = field(default_factory=dict)
-    children: List[int] = field(default_factory=list, init=False)
-    parents: List[int] = field(default_factory=list, init=False)
+    properties: dict[str, str] = field(default_factory=dict)
+    children: list[int] = field(default_factory=list, init=False)
+    parents: list[int] = field(default_factory=list, init=False)
 
     def __str__(self):
         return f'FCFeature(id={self.id}, children={self.children}, parents={self.parents}, properties={self.properties})'

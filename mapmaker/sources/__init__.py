@@ -18,12 +18,17 @@
 #
 #===============================================================================
 
-from typing import Callable
+from __future__ import annotations
+from typing import Callable, Optional
+
+#===============================================================================
+
 import cv2
 import numpy as np
 
 #===============================================================================
 
+from mapmaker.flatmap import FlatMap, MapLayer
 from mapmaker.geometry import bounds_to_extent
 from mapmaker.utils import FilePath
 
@@ -119,19 +124,19 @@ def not_empty(image):
 #===============================================================================
 
 class MapSource(object):
-    def __init__(self, flatmap, id, source_href, kind, source_range=None):
+    def __init__(self, flatmap: FlatMap, id: str, source_href: str, kind: str, source_range: tuple[int, int]=None):
         self.__flatmap = flatmap
         self.__id = id
         self.__source_href = source_href
         self.__kind = kind
         self.__source_range = source_range
-        self.__errors = []
-        self.__layers = []
-        self.__bounds = (0, 0, 0, 0)
+        self.__errors: list[tuple[str, str]] = []
+        self.__layers: list[MapLayer] = []
+        self.__bounds: tuple[float, float, float, float] = (0, 0, 0, 0)
         self.__raster_source = None
 
     @property
-    def bounds(self):
+    def bounds(self) -> tuple[float, float, float, float]:
         """
         :returns: The map's (SE, NW) bounds in WGS84 metres.
         :rtype: tuple(float, float, float, float)
@@ -139,15 +144,15 @@ class MapSource(object):
         return self.__bounds
 
     @bounds.setter
-    def bounds(self, bounds):
+    def bounds(self, bounds: tuple[float, float, float, float]):
         self.__bounds = bounds
 
     @property
-    def errors(self):
+    def errors(self) -> list[tuple[str, str]]:
         return self.__errors
 
     @property
-    def extent(self):
+    def extent(self) -> tuple[float, float, float, float]:
         """
         :returns: The map's (SE, NW) bounds as decimal latitude and longitude coordinates.
         :rtype: tuple(float, float, float, float)
@@ -155,19 +160,19 @@ class MapSource(object):
         return bounds_to_extent(self.__bounds)
 
     @property
-    def flatmap(self):
+    def flatmap(self) -> FlatMap:
         return self.__flatmap
 
     @property
-    def id(self):
+    def id(self) -> str:
         return self.__id
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         return self.__kind
 
     @property
-    def layers(self):
+    def layers(self) -> list[MapLayer]:
         return self.__layers
 
     @property
@@ -181,31 +186,31 @@ class MapSource(object):
         return self.__source_href
 
     @property
-    def source_range(self):
+    def source_range(self) -> Optional[tuple[int, int]]:
         return self.__source_range
 
-    def add_layer(self, layer):
-    #==========================
+    def add_layer(self, layer: MapLayer):
+    #====================================
         self.__layers.append(layer)
 
-    def error(self, kind, msg):
-    #==========================
+    def error(self, kind: str, msg: str):
+    #====================================
         self.__errors.append((kind, msg))
 
-    def map_area(self):
-    #==================
+    def map_area(self) -> float:
+    #===========================
         return abs(self.__bounds[2] - self.__bounds[0]) * (self.__bounds[3] - self.__bounds[1])
 
-    def properties_from_markup(self, markup):
-    #========================================
+    def properties_from_markup(self, markup: str) -> dict:
+    #=====================================================
         if not markup.startswith('.'):
             return {}
         properties = parse_markup(markup)
         self.check_markup_errors(properties)
         return properties
 
-    def check_markup_errors(self, properties):
-    #=========================================
+    def check_markup_errors(self, properties: dict):
+    #===============================================
         if 'error' in properties:
             self.error('error', '{}: {} in markup: {}'
                        .format(self.id, properties['error'], properties['markup']))

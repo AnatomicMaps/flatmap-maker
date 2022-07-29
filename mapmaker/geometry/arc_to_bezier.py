@@ -8,6 +8,7 @@
 #
 #===============================================================================
 
+from collections import namedtuple
 import math
 
 #===============================================================================
@@ -17,7 +18,10 @@ from beziers.point import Point as BezierPoint
 
 #===============================================================================
 
-from collections import namedtuple
+from . import Transform
+
+#===============================================================================
+
 tuple2 = namedtuple('tuple2', 'x y')
 
 #===============================================================================
@@ -140,7 +144,7 @@ if __name__ == '__main__':
     x1 = 185.684
     y1 = 0
 
-    beziers = cubic_beziers_from_arc(tuple2(rx, ry), phi*math.pi/180, fa, fs, tuple2(x, y), tuple2(x1, y1))
+    beziers = bezier_segments_from_arc_endpoints(tuple2(rx, ry), phi*math.pi/180, fa, fs, tuple2(x, y), tuple2(x1, y1), Transform.Identity)
     for bz in beziers:
         print(bz)
 

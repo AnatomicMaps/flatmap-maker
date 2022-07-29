@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from typing import List, Tuple
+from __future__ import annotations
 
 #===============================================================================
 
@@ -31,10 +31,10 @@ import shapely.geometry
 
 #===============================================================================
 
-def coords_to_point(pt: Tuple[float]) -> BezierPoint:
+def coords_to_point(pt: tuple[float]) -> BezierPoint:
     return BezierPoint(*pt)
 
-def point_to_coords(pt: BezierPoint) -> Tuple[float]:
+def point_to_coords(pt: BezierPoint) -> tuple[float, float]:
     return (pt.x, pt.y)
 
 #===============================================================================
@@ -93,7 +93,7 @@ def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle
     return CubicBezier(a, a + BezierPoint.fromAngle(start_angle)*d/3,
                        b - BezierPoint.fromAngle(end_angle)*d/3, b)
 
-def closest_time(bz: BezierPath, pt: BezierPoint, steps: int = 100) -> tuple:
+def closest_time(bz: BezierPath, pt: BezierPoint, steps: int = 100) -> float:
 #============================================================================
     def subdivide_search(t0, t1, steps):
         closest_d = None

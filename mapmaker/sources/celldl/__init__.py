@@ -18,14 +18,14 @@
 #
 #===============================================================================
 
+from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
 
 #===============================================================================
 
-import shapely.geometry             # type: ignore
-import shapely.strtree              # type: ignore
+import shapely.geometry
+import shapely.strtree
 
 #===============================================================================
 
@@ -69,10 +69,10 @@ CELLDL_ORDERED_PATHS = [
 class Feature:
     id: int
     geometry: shapely.geometry.base.BaseGeometry
-    properties: Dict[str, str] = field(default_factory=dict)
-    children: List[int] = field(default_factory=list, init=False)
+    properties: dict[str, str] = field(default_factory=dict)
+    children: list[int] = field(default_factory=list, init=False)
     parent: int = field(default=-1, init=False)
-    node: Tuple[int, list] = field(init=False)
+    node: tuple[int, list] = field(init=False)
 
     def __post_init__(self):
         self.node = (self.id, [])
@@ -94,9 +94,9 @@ class Feature:
 @dataclass
 class Connector:
     id: str
-    connection: Tuple[int, int]
+    connection: tuple[int, int]
     geometry: shapely.geometry.base.BaseGeometry
-    properties: Dict[str, str] = field(default_factory=dict)
+    properties: dict[str, str] = field(default_factory=dict)
 
 #===============================================================================
 
@@ -104,10 +104,10 @@ class Connector:
 class Connection:
     id: str
     geometry: shapely.geometry.LineString
-    properties: Dict[str, str] = field(default_factory=dict)
-    organ_ids: Tuple[int] = field(default_factory=tuple)
-    system_ids: Tuple[int] = field(default_factory=tuple)
-    terminals: List[Feature] = field(default_factory=list)
+    properties: dict[str, str] = field(default_factory=dict)
+    organ_ids: tuple[int] = field(default_factory=tuple)
+    system_ids: tuple[int] = field(default_factory=tuple)
+    terminals: list[Feature] = field(default_factory=list)
     # type
 
 #===============================================================================

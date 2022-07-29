@@ -22,7 +22,6 @@ from collections.abc import Iterable
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from itertools import permutations, product
-from typing import List
 
 from pprint import pprint
 

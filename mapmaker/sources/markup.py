@@ -181,18 +181,19 @@ if __name__ == '__main__':
         parsed = method(text)
         print('{} --> {}'.format(text, parsed))
 
-    test(Parser.layer_directive, '.id(LAYER) models(NCBITaxon:1)')
-    test(Parser.layer_directive, '.selected')
-    test(Parser.shape_properties, '.boundary')
-    test(Parser.shape_properties, '.id(ID) class(FEATURE)')
-    test(Parser.shape_properties, '.models(FM:1)')
-    test(Parser.shape_properties, '.models(FMA:1)')
-    test(Parser.shape_properties, '.models(UBERON:1)')
-    test(Parser.shape_properties, '.models (N1)')
+    test(parse_layer_directive, '.id(LAYER) models(NCBITaxon:1)')
+    test(parse_layer_directive, '.selected')
 
-    test(Parser.shape_properties, '.path(P1, P2, P3, P4, P5, P6, P7, P8)')
-    test(Parser.shape_properties, '.route(urinary_5, keast_2, S50_L6_B, S50_L6_T, S45_L6, C1, S44_L6)')
-    test(Parser.shape_properties, '.route(urinary_5, keast_2, S50_L6_B, S50_L6_T, S45_L6, C1, S44_L6, (S42_L6, S38_L6, S37_L6, S34_L6, S33_L6, S42_L6))')
-    test(Parser.shape_properties, '.path(P1, P2, P3, P4, P5, P6, P7, P8) route (urinary_5, keast_2, S50_L6_B, S50_L6_T, S45_L6, C1, S44_L6, (S42_L6, S38_L6, S37_L6, S34_L6, S33_L6, S42_L6))')
+    test(parse_markup, '.boundary')
+    test(parse_markup, '.id(ID) class(FEATURE)')
+    test(parse_markup, '.models(FM:1)')
+    test(parse_markup, '.models(FMA:1)')
+    test(parse_markup, '.models(UBERON:1)')
+    test(parse_markup, '.models (N1)')
+
+    test(parse_markup, '.path(P1, P2, P3, P4, P5, P6, P7, P8)')
+    test(parse_markup, '.route(urinary_5, keast_2, S50_L6_B, S50_L6_T, S45_L6, C1, S44_L6)')
+    test(parse_markup, '.route(urinary_5, keast_2, S50_L6_B, S50_L6_T, S45_L6, C1, S44_L6, (S42_L6, S38_L6, S37_L6, S34_L6, S33_L6, S42_L6))')
+    test(parse_markup, '.path(P1, P2, P3, P4, P5, P6, P7, P8) route (urinary_5, keast_2, S50_L6_B, S50_L6_T, S45_L6, C1, S44_L6, (S42_L6, S38_L6, S37_L6, S34_L6, S33_L6, S42_L6))')
 
 #===============================================================================

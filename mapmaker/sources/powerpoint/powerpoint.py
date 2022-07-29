@@ -18,23 +18,23 @@
 #
 #===============================================================================
 
+from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
 
 #===============================================================================
 
-from lxml import etree              # type: ignore
+from lxml import etree
 import numpy as np
-import shapely.geometry             # type: ignore
-import shapely.ops                  # type: ignore
+import shapely.geometry
+import shapely.ops
 
-from pptx import Presentation       # type: ignore
+from pptx import Presentation
 from pptx.dml.fill import FillFormat
 from pptx.enum.dml import MSO_COLOR_TYPE, MSO_FILL_TYPE, MSO_THEME_COLOR   # type: ignore
-from pptx.enum.shapes import MSO_SHAPE_TYPE              # type: ignore
-from pptx.enum.text import MSO_ANCHOR, PP_ALIGN          # type: ignore
-import pptx.shapes.connector                             # type: ignore
+from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+import pptx.shapes.connector
 
 #===============================================================================
 
@@ -93,7 +93,7 @@ class Shape:
     type: SHAPE_TYPE
     id: int
     geometry: shapely.geometry.base.BaseGeometry
-    properties: Dict[str, str] = field(default_factory=dict)
+    properties: dict[str, str] = field(default_factory=dict)
 
     @property
     def colour(self):

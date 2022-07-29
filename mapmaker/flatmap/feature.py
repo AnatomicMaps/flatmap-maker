@@ -18,8 +18,9 @@
 #
 #===============================================================================
 
+from __future__ import annotations
 from collections import defaultdict
-from typing import Any
+from typing import Any, Optional
 
 from shapely.geometry.base import BaseGeometry
 
@@ -53,7 +54,7 @@ def full_node_name(anatomical_id, anatomical_layers):
 class Feature(object):
     def __init__(self, feature_id: int,
                        geometry: BaseGeometry,
-                       properties: dict,
+                       properties: dict[str, Any],
                        has_children:bool=False):
         self.__feature__id = feature_id     # Must be numeric for tipeecanoe
         self.__geometry = geometry
@@ -87,15 +88,15 @@ class Feature(object):
         return self.__has_children
 
     @property
-    def id(self) -> str:
+    def id(self) -> Optional[str]:
         return self.__properties.get('id')
 
     @property
-    def models(self) -> str:
+    def models(self) -> Optional[str]:
         return self.__properties.get('models')
 
     @property
-    def properties(self) -> dict:
+    def properties(self) -> dict[str, Any]:
         return self.__properties
 
     def visible(self) -> bool:

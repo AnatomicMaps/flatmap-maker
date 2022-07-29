@@ -19,6 +19,7 @@
 #===============================================================================
 
 from datetime import datetime, timezone
+from typing import BinaryIO
 
 #===============================================================================
 
@@ -28,6 +29,7 @@ from lxml import etree
 
 from mapmaker import __version__
 from mapmaker.settings import settings
+from mapmaker.utils import FilePath
 
 from .. import EXCLUDED_FEATURE_TYPES, NETWORK_SHAPE_TYPES, EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
 from ..markup import parse_markup
@@ -36,7 +38,7 @@ from .utils import adobe_decode_markup
 #===============================================================================
 
 class SVGCleaner(object):
-    def __init__(self, svg_file, map_properties, all_layers=True):
+    def __init__(self, svg_file: FilePath, map_properties: dict, all_layers: bool=True):
         self.__svg = etree.parse(svg_file.get_fp())
         self.__map_properties = map_properties
         self.__all_layers = all_layers
@@ -45,8 +47,8 @@ class SVGCleaner(object):
     #===============
         self.__filter(self.__svg.getroot())
 
-    def save(self, file_object):
-    #===========================
+    def save(self, file_object: BinaryIO):
+    #=====================================
         header = ' Generator: mapmaker {} at {} '.format(__version__, datetime.now(timezone.utc).isoformat())
         comments = self.__svg.xpath('/comment()')
         if len(comments):
