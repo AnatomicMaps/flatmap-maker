@@ -18,12 +18,14 @@
 #
 #===============================================================================
 
+from typing import Callable
 import cv2
 import numpy as np
 
 #===============================================================================
 
 from mapmaker.geometry import bounds_to_extent
+from mapmaker.utils import FilePath
 
 from .markup import parse_markup
 
@@ -227,11 +229,11 @@ class MapSource(object):
 #===============================================================================
 
 class RasterSource(object):
-    def __init__(self, kind, get_data, **kwds):
+    def __init__(self, kind: str, get_data: Callable[[], bytes], source_path: FilePath=None):
         self.__kind = kind
         self.__get_data = get_data
         self.__data = None
-        self.__params = kwds
+        self.__source_path = source_path
 
     @property
     def data(self):
@@ -244,8 +246,8 @@ class RasterSource(object):
         return self.__kind
 
     @property
-    def params(self):
-        return self.__params
+    def source_path(self):
+        return self.__source_path
 
 #===============================================================================
 
