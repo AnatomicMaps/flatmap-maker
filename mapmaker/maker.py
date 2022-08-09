@@ -89,6 +89,9 @@ class Manifest(object):
                 self.__manifest['properties'] = self.__path.join_url(self.__manifest['properties'])
             for path in self.__manifest.get('connectivity', []):
                 self.__connectivity.append(self.__path.join_url(path))
+
+            if self.__manifest.get('sckan-version', 'production') not in ['production', 'staging']:
+                raise ValueError("'sckan-version' in manifest must be `production' or 'staging'")
             for model in self.__manifest.get('neuronConnectivity', []):
                 self.__neuron_connectivity.append(model)
             for source in self.__manifest['sources']:
@@ -133,6 +136,10 @@ class Manifest(object):
     @property
     def properties(self):
         return self.__manifest.get('properties')
+
+    @property
+    def sckan_version(self):
+        return self.__manifest.get('sckan_version', 'production')
 
     @property
     def sources(self):
@@ -219,7 +226,8 @@ class MapMaker(object):
         # Our source of knowledge, updated with information
         # about maps we've made, held in a global place
         settings['KNOWLEDGE_STORE'] = KnowledgeStore(map_base,
-                                        clean_connectivity=settings.get('cleanConnectivity', False))
+                                        clean_connectivity=settings.get('cleanConnectivity', False),
+                                        sckan_version=self.__manifest.sckan_version)
 
         # Exclude shapes from a layer if they are in the base layer (FC maps)
         self.__shape_filters = None
