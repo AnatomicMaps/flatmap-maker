@@ -19,7 +19,7 @@
 #===============================================================================
 
 from __future__ import annotations
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 
 #===============================================================================
 
@@ -28,7 +28,6 @@ import numpy as np
 
 #===============================================================================
 
-from mapmaker.flatmap import FlatMap, MapLayer
 from mapmaker.geometry import bounds_to_extent
 from mapmaker.utils import FilePath
 
@@ -124,6 +123,9 @@ def not_empty(image):
 #===============================================================================
 
 class MapSource(object):
+    if TYPE_CHECKING:
+        from mapmaker.flatmap import FlatMap, MapLayer
+
     def __init__(self, flatmap: FlatMap, id: str, source_href: str, kind: str, source_range: tuple[int, int]=None):
         self.__flatmap = flatmap
         self.__id = id
