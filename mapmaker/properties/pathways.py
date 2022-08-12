@@ -116,8 +116,6 @@ def path_type_from_phenotypes(phenotypes):
         if phenotype in PATH_ORDER:
             path_type.append(PATH_ORDER[phenotype])
             break
-    if len(path_type) == 0:         ## <<<<<<<<<<<<<<<<<
-        path_type.append('cns')     ## <<<<<<<<<<<<<<<<<
     return '-'.join(path_type)
 
 #===============================================================================
@@ -326,6 +324,9 @@ class Path(object):
             and 'path' not in path):   # Use SciCrunch knowledge
                 # Construct a graph of SciCrunch's connected pairs
                 self.__path_type = path_type_from_phenotypes(knowledge.get('phenotypes', []))
+                if self.__path_type == '':
+                    log.warning(f'Path {self.__id} has no phenotype, defaulting to CNS')
+                    self.__path_type = 'cns'
                 G = nx.Graph()
                 for node in knowledge.get('connectivity'):
                     G.add_edge(tuple((node[0][0], tuple(node[0][1]))),
