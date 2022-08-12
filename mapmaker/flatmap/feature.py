@@ -170,17 +170,13 @@ class FeatureMap(object):
         def features_from_anatomical_id(term):
             return set(self.__model_to_features.get(self.__connectivity_terms.get(term, term), []))
 
-        # Filter out generic terms that don't locate any particular feature
-        layers = list(anatomical_layers)
-        while len(layers) > 0 and anatomical_id in GENERIC_ANATOMICAL_FEATURES:
-            anatomical_id = layers.pop(0)
-        if len(layers) == 0:
+        if len(anatomical_layers) == 0:
             return features_from_anatomical_id(anatomical_id)
         else:
             features = features_from_anatomical_id(anatomical_id)
             if len(features) == 1:
                 return features
-            for anatomical_layer in layers:
+            for anatomical_layer in anatomical_layers:
                 included_features = set()
                 layer_features = features_from_anatomical_id(anatomical_layer)
                 for layer_feature in layer_features:
@@ -199,5 +195,13 @@ class FeatureMap(object):
     def has_feature(self, id):
     #=========================
         return id in self.__id_to_feature
+
+    def remove_generic_terms(self, anatomical_id, anatomical_layers):
+    #==================================================================
+        # Filter out generic terms that don't locate any particular feature
+        layers = list(anatomical_layers)
+        while len(layers) > 0 and anatomical_id in GENERIC_ANATOMICAL_FEATURES:
+            anatomical_id = layers.pop(0)
+        return (anatomical_id, tuple(layers))
 
 #===============================================================================
