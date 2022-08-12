@@ -97,6 +97,7 @@ PATH_TYPES = {
     'ilxtr:ParasympatheticPhenotype': 'para',
     'ilxtr:SensoryPhenotype': 'sensory',
     'ilxtr:SympatheticPhenotype': 'symp',
+    'ilxtr:IntrinsicPhenotype': 'lcn',
 }
 
 PATH_ORDER = {
