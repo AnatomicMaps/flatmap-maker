@@ -19,6 +19,7 @@
 #===============================================================================
 
 GENERIC_ANATOMICAL_FEATURES = [
+    'UBERON:0000178',      # blood
     'UBERON:0001017',      # central nervous system
     'UBERON:0001359',      # cerebrospinal fluid
     'UBERON:0016549',      # cns white matter
