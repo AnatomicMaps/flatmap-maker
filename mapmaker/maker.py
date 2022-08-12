@@ -139,7 +139,7 @@ class Manifest(object):
 
     @property
     def sckan_version(self):
-        return self.__manifest.get('sckan_version', 'production')
+        return self.__manifest.get('sckan-version', 'production')
 
     @property
     def sources(self):
