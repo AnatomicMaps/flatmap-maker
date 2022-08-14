@@ -499,16 +499,17 @@ class Pathways(object):
                 properties['tile-layer'] = 'pathways'
                 self.__layer_paths.add(path_id)
 
-    def add_connectivity_model(self, model_uri, properties_data):
-    #============================================================
+    def add_connectivity_model(self, model_uri, properties_data, path_filter=None):
+    #==============================================================================
         connectivity = {
             'source': model_uri,
             'network': 'neural',
             'paths': []
         }
         connectivity.update(get_knowledge(model_uri))
-        ## <<<<<<<<<<<<<<<<<<<<<
-        ## <<<<<<<<<<<<<<<<<<<<<
+        if path_filter is not None:
+            connectivity['paths'] = list(filter(lambda path: path_filter(path['id']), connectivity['paths']))
+
         # External properties overrides knowledge base
         for path in connectivity['paths']:
             path.update(properties_data.properties(path.get('models')))

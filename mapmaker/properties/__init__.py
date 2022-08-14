@@ -47,13 +47,27 @@ class ExternalProperties(object):
 
         # Load path definitions in properties' file
         self.__pathways = Pathways(flatmap, properties_dict.get('paths', []))
+
         # Connectivity defined in JSON
         for connectivity_source in manifest.connectivity:
             connectivity = FilePath(connectivity_source).get_json()
             self.__pathways.add_connectivity(connectivity)
+
         # Connectivity from SciCrunch
         for connectivity_model in manifest.neuron_connectivity:
-            self.__pathways.add_connectivity_model(connectivity_model, self)
+            if isinstance(connectivity_model, dict):
+                model_uri = connectivity_model['uri']
+                if (filter_lists := connectivity_model.get('filter')) is not None:
+                    include_ids = filter_lists['include'] if 'include' in filter_lists else None
+                    exclude_ids = filter_lists['exclude'] if 'exclude' in filter_lists else None
+                    path_filter = lambda path_id: ((include_ids is None or include_ids is not None and path_id in include_ids)
+                                               and (exclude_ids is None or exclude_ids is not None and path_id not in exclude_ids))
+                else:
+                    path_filter = None
+            else:
+                model_uri = connectivity_model
+                path_filter = None
+            self.__pathways.add_connectivity_model(model_uri, self, path_filter=path_filter)
 
         # Load network centreline definitions
         self.__networks = { network.get('id'): Network(network, self)
