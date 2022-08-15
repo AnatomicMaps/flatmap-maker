@@ -142,6 +142,9 @@ class TransitMap:
 
         #======================================================================
 
+        # This makes sure that lines radiating from a node preserve the geomteric order of
+        # the drawn centrelines.
+
         # n_n1_n2_n3_A_B
         # (n, n1), (n, n2), (n, n3) are in counter-clockwise order
         # A, B both in L((n, n1)) s.th. neither A nor B in both L((n, n2)), L((n, n3))
@@ -151,7 +154,7 @@ class TransitMap:
         def n_n1_n2_n3_A_B_set():
             for node, degree in self.__graph.degree:
                 if degree > 2 and node in node_ordering:
-                    ordered_nodes = node_ordering[node]
+                    ordered_nodes = [n for n in node_ordering[node] if [node, n] in self.__graph.edges]
                     for i, n1 in enumerate(ordered_nodes):
                         nodes = ordered_nodes[i+1:] + ordered_nodes[:i]
                         e1_lines = self.__graph.edges[node, n1]['lines']
