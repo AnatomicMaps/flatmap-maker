@@ -19,12 +19,14 @@
 #===============================================================================
 
 GENERIC_ANATOMICAL_FEATURES = [
+    'UBERON:0000010',      # peripheral nervous system
     'UBERON:0000178',      # blood
     'UBERON:0001017',      # central nervous system
     'UBERON:0001359',      # cerebrospinal fluid
     'UBERON:0016549',      # cns white matter
     'UBERON:0005844',      # spinal cord segment
     'UBERON:0002318',      # spinal cord white matter
+    'UBERON:0015129',      # epicardial fat
 ]
 
 #===============================================================================
