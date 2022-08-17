@@ -229,7 +229,6 @@ class MapMaker(object):
         knowledge_store = KnowledgeStore(map_base,
                                          clean_connectivity=settings.get('cleanConnectivity', False),
                                          sckan_version=sckan_version)
-        log.info(f'SCKAN: {sckan_version}, {knowledge_store.scicrunch.sparc_api_endpoint}')
         settings['KNOWLEDGE_STORE'] = knowledge_store
 
         # Exclude shapes from a layer if they are in the base layer (FC maps)
