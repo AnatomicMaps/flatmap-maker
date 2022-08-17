@@ -809,6 +809,9 @@ class Network(object):
             if len(centreline_set) == 0:
                 log.warning(f'{path.id}: No centrelines found...')
                 log_errors(path.id, G)
+            elif path.trace:
+                log.info(f'{path.id}: Centrelines {sorted(centreline_set)}')
+
             centreline_nodes: set[str] = set()
             for centreline in centreline_set:
                 centreline_nodes.update(self.__edges_by_id[centreline][0:2])

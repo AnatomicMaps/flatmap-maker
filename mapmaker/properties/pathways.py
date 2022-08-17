@@ -296,7 +296,7 @@ class ResolvedPathways(object):
 #===============================================================================
 
 class Path(object):
-    def __init__(self, source, path):
+    def __init__(self, source, path, trace=False):
         self.__source = source
         self.__id = path['id']
         self.__connections = path.get('connects')
@@ -307,6 +307,7 @@ class Path(object):
         self.__nerves = list(parse_nerves(path.get('nerves')))
         self.__path_type = path.get('type')
         self.__route = None
+        self.__trace = trace
 
         if 'path' in path:  # Manual path specification
             for line_group in parse_path_lines(path['path']):
@@ -376,6 +377,10 @@ class Path(object):
     def source(self):
         return self.__source
 
+    @property
+    def trace(self):
+        return self.__trace
+
 #===============================================================================
 
 class ConnectivityModel(object):
@@ -384,7 +389,8 @@ class ConnectivityModel(object):
         self.__network = description.get('network')
         self.__publications = description.get('publications', [])
         self.__source = description.get('source')
-        self.__paths = { path['id']: Path(self.__source, path)
+        traced_paths = description.get('traced-paths', [])
+        self.__paths = { path['id']: Path(self.__source, path, path['id'] in traced_paths)
                             for path in description.get('paths', []) }
 
     @property
@@ -499,8 +505,8 @@ class Pathways(object):
                 properties['tile-layer'] = 'pathways'
                 self.__layer_paths.add(path_id)
 
-    def add_connectivity_model(self, model_uri, properties_data, path_filter=None):
-    #==============================================================================
+    def add_connectivity_model(self, model_uri, properties_data, path_filter=None, traced_paths=None):
+    #=================================================================================================
         connectivity = {
             'source': model_uri,
             'network': 'neural',
@@ -509,6 +515,8 @@ class Pathways(object):
         connectivity.update(get_knowledge(model_uri))
         if path_filter is not None:
             connectivity['paths'] = list(filter(lambda path: path_filter(path['id']), connectivity['paths']))
+        if traced_paths is not None:
+            connectivity['traced-paths'] = traced_paths
 
         # External properties overrides knowledge base
         for path in connectivity['paths']:
