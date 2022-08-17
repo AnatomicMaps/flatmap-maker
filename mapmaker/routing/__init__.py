@@ -515,7 +515,7 @@ class Network(object):
                 }
             features = self.__feature_map.find_path_features_by_anatomical_id(*connectivity_node)
             if len(features) == 0:
-                return {'warning': f'Cannot find feature: {full_node_name(*connectivity_node)}'}
+                return {'warning': f'Cannot find connectivity node: {full_node_name(*connectivity_node)}'}
             result = {'node': connectivity_node}
             if len(connectivity_node[1]):
                 result['organ'] = connectivity_node[1][-1]
