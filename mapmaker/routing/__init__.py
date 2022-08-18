@@ -204,6 +204,7 @@ class Network(object):
                 node_dict['radii'] = (0.999*radius, 1.001*radius)
             else:
                 log.warning(f'Centreline node {node_dict.get("id")} has no geometry')
+        return feature
 
     def __node_centre(self, node):
     #=============================
@@ -274,15 +275,21 @@ class Network(object):
         def time_scale(scale, T, x):
             return (scale(x) - T)/(1.0 - T)
 
-        for node_id, degree in self.__centreline_graph.degree():
+        nodes = list(self.__centreline_graph.nodes)  # Take a copy, as nodes might be removed
+        for node_id in nodes:
             node_dict = self.__centreline_graph.nodes[node_id]
-            node_dict['degree'] = degree
+            # Try setting node attributes from its feature's geometry
+            feature = self.__set_node_properties_from_feature(node_dict, node_id)
+            if feature is None:
+                # Delete the node if there's no corresponding feature
+                self.__centreline_graph.remove_node(node_id)
+
+        for node_id, node_dict in self.__centreline_graph.nodes(data=True):
+            node_dict['degree'] = self.__centreline_graph.degree(node_id)
             # Direction of a path at the node boundary, going towards the centre (radians)
             node_dict['edge-direction'] = {}
             # Angle of the radial line from the node's centre to a path's intersection with the boundary (radians)
             node_dict['edge-node-angle'] = {}
-            # Set additional node attributes from its feature's geometry
-            self.__set_node_properties_from_feature(node_dict, node_id)
 
         for node_0, node_1, edge_dict in self.__centreline_graph.edges(data=True):
             edge_id = edge_dict.get('id')
