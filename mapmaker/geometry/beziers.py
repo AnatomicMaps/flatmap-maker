@@ -113,3 +113,28 @@ def closest_time(bz: BezierPath, pt: BezierPoint, steps: int = 100) -> float:
 
 #===============================================================================
 
+def set_bezier_path_end_to_point(bz_path: BezierPath, point: BezierPoint) -> float:
+    segments = bz_path.asSegments()
+    # Find path end closest to point
+    if point.distanceFrom(bz_path.pointAtTime(0.0)) < point.distanceFrom(bz_path.pointAtTime(1.0)):
+        # Start is closest
+        segments[0][0] = point
+        return 0.0
+    else:
+        # End is closest
+        segments[-1][-1] = point
+        return 1.0
+
+#===============================================================================
+
+def split_bezier_path_at_point(bz_path: BezierPath, point: BezierPoint):
+    segments = bz_path.asSegments()
+    for n, segment in enumerate(segments):
+        if (t := closest_time(segment, point)) < 1.0:
+            (s0, s1) = segment.splitAtTime(t)
+            return (BezierPath.fromSegments(segments[:n] + [s0]),
+                    BezierPath.fromSegments([s1] + segments[n+1:]))
+    return (bz_path,
+            BezierPath.fromSegments(segments[-1].splitAtTime(1.0)[1:]))
+
+#===============================================================================
