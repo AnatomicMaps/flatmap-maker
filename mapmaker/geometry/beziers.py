@@ -81,8 +81,9 @@ def bezier_to_line_coords(bz, num_points=100, offset=0):
         coords.extend(l.coords if offset >= 0 else reversed(l.coords))
     return coords
 
+#===============================================================================
+
 def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle: float = None) -> CubicBezier:
-#==============================================================================================================
     # Connect points ``a`` and ``b`` with a Bezier curve with a slope
     # at ``a`` of ``theta`` and a slope at ''b'' of ``pi + theta``.
     d = a.distanceFrom(b)
@@ -93,8 +94,9 @@ def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle
     return CubicBezier(a, a + BezierPoint.fromAngle(start_angle)*d/3,
                        b - BezierPoint.fromAngle(end_angle)*d/3, b)
 
-def closest_time(bz: BezierPath, pt: BezierPoint, steps: int = 100) -> float:
-#============================================================================
+#===============================================================================
+
+def closest_time(bz: BezierSegment | BezierPath, pt: BezierPoint, steps: int = 100) -> float:
     def subdivide_search(t0, t1, steps):
         closest_d = None
         closest_t = t0
