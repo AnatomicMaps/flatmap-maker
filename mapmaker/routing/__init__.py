@@ -63,12 +63,13 @@ import shapely.geometry
 from mapmaker.flatmap.feature import full_node_name
 from mapmaker.geometry.beziers import bezier_to_linestring, closest_time
 from mapmaker.geometry.beziers import coords_to_point, point_to_coords
+from mapmaker.geometry.beziers import set_bezier_path_end_to_point, split_bezier_path_at_point
 from mapmaker.settings import settings
 from mapmaker.utils import log
 import mapmaker.utils.graph as graph_utils
 
 from .options import MIN_EDGE_JOIN_RADIUS
-from .routedpath import IntermediateNode, PathRouter
+from .routedpath import PathRouter
 
 #===============================================================================
 
@@ -114,50 +115,82 @@ def get_connected_subgraph(path_id, graph, v_prime):
 class Network(object):
     def __init__(self, network: dict, external_properties):
         self.__id = network.get('id')
-        self.__centreline_graph = nx.MultiGraph()   # Can have multiple paths between two nodes
-        self.__centreline_ids = [str]
+        self.__centreline_graph = None                      # Assigned once we have feature geometry
+        self.__centreline_nodes: dict[str, list[str]] = {}  #! Centreline id --> [Node ids]
+        self.__segments_by_centreline_node = {}             #! (Centreline id, node id) --> Segment edge id
         self.__contained_centrelines = defaultdict(list)    #! Feature id --> centrelines contained in feature
         self.__contained_by_id = {}                         #! Centreline id --> set of features that centreline is contained in
-        self.__edges_by_id = {}                             #! Centreline id --> edge
-        self.__models_to_id: dict[str, str] = {}                            #! Ontological term --> centreline id
+        self.__edges_by_id = {}                             #! Edge id --> edge
+        self.__models_to_id: dict[str, str] = {}            #! Ontological term --> centreline id
         self.__feature_ids: set[str] = set()
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
+        self.__ids_with_error = set()
+
+        end_nodes_to_centrelines = defaultdict(list)
+        intermediate_nodes_to_centrelines = defaultdict(list)
+
+        # First pass to check validity and collect centreline and end node identifiers
         for centreline in network.get('centrelines', []):
-            id = centreline.get('id')
-            if id is None:
+            centreline_id = centreline.get('id')
+            if centreline_id is None:
                 log.error(f'Centreline in network {self.__id} does not have an id')
-            elif id in self.__centreline_ids:
-                log.error(f'Centreline {id} in network {self.__id} has a duplicated id')
+            elif centreline_id in self.__centreline_nodes:
+                log.error(f'Centreline {centreline_id} in network {self.__id} has a duplicate id')
             else:
-                self.__feature_ids.add(id)
+                self.__feature_ids.add(centreline_id)
                 if (models := centreline.get('models')) is not None:
                     if models in self.__models_to_id:
-                        log.warning(f'Centrelines `{id}` and `{self.__models_to_id[models]}` both model {models}')
+                        log.warning(f'Centrelines `{centreline_id}` and `{self.__models_to_id[models]}` both model {models}')
                     else:
-                        self.__models_to_id[models] = id
-                        if external_properties.get_property(id, 'models') is None:
-                            external_properties.set_property(id, 'models', models)
+                        self.__models_to_id[models] = centreline_id
+                        if external_properties.get_property(centreline_id, 'models') is None:
+                            external_properties.set_property(centreline_id, 'models', models)
                 nodes = centreline.get('connects', [])
                 if len(nodes) < 2:
-                    log.warning(f'Centreline {id} in network {self.__id} has too few nodes')
+                    log.warning(f'Centreline {centreline_id} in network {self.__id} has too few nodes')
                 else:
-                    self.__feature_ids.update(nodes)
-                    self.__centreline_ids.append(id)
-                    edge_properties = {'id': id}
-                    if len(nodes) > 2:
-                        edge_properties['intermediates'] = nodes[1:-1]
+                    self.__feature_ids.add(nodes[0])
+                    self.__feature_ids.add(nodes[-1])
+                    self.__centreline_nodes[centreline_id] = nodes
+                    # Track how nodes are asscociated with centrelines
+                    end_nodes_to_centrelines[nodes[0]].append(centreline_id)
+                    end_nodes_to_centrelines[nodes[-1]].append(centreline_id)
+                    for node in nodes[1:-1]:
+                        intermediate_nodes_to_centrelines[node].append(centreline_id)
+                    # Remember containing features for pass 2
                     containing_features = set(centreline.get('contained-in', []))
-                    self.__feature_ids.update(containing_features)
-                    containing_features.update(nodes[1:-1])
                     if len(containing_features):
-                        self.__contained_by_id[id] = containing_features
-                    for container_id in containing_features:
-                        self.__contained_centrelines[container_id].append(id)
-                        ## Need to identify nerves from centreline 'models' also having a feature with type 'nerve'
-                        ##if external_properties.get_property(container_id, 'type') == 'nerve':    ##  ??
-                        ##    edge_properties['nerve'] = container_id                              ##  ??
-                    key = self.__centreline_graph.add_edge(nodes[0], nodes[-1], **edge_properties)
-                    self.__edges_by_id[id] = (nodes[0], nodes[-1], key)
+                        self.__contained_by_id[centreline_id] = containing_features
+
+        # Check for multiple branches and crossings
+        for node, centrelines in intermediate_nodes_to_centrelines.items():
+            if len(centrelines) > 1:
+                log.error(f'Node {node} is intermediate node for more than several centrelines: {centrelines}')
+            if len(centrelines := end_nodes_to_centrelines.get(node, [])) > 1:
+                log.error(f'Intermediate node {node} branches to several centrelines: {centrelines}')
+
+        # Second pass to construct segmented centreline graph
+        for centreline_id, nodes in self.__centreline_nodes.items():
+            last_i = 0
+            next_i = 1
+            node_0 = nodes[last_i]
+            actual_nodes = [node_0]
+            while next_i < len(nodes):
+                if (node_1 := nodes[next_i]) in self.__feature_ids:
+                    actual_nodes.append(node_1)
+                    last_i = next_i
+                    node_0 = node_1
+                next_i += 1
+            # We have removed intermediate nodes that didn't have a branch
+            self.__centreline_nodes[centreline_id] = actual_nodes
+            # Update the containing feature set for the centreline
+            if len(containing_features := self.__contained_by_id.get(centreline_id, [])):
+                self.__feature_ids.update(containing_features)
+                containing_features.update(actual_nodes[1:-1])
+            if len(containing_features):
+                self.__contained_by_id[centreline_id] = containing_features
+            for container_id in containing_features:
+                self.__contained_centrelines[container_id].append(centreline_id)
 
     @property
     def id(self):
@@ -179,32 +212,32 @@ class Network(object):
 
     def __find_feature(self, id):
     #============================
-        features = self.__feature_map.features(id)
-        if len(features) == 1:
-            return features[0]
-        elif len(features) == 0:
-            log.error('Cannot find network feature: {}'.format(id))
-        else:
-            log.warning('Multiple network features for: {}'.format(id))
+        if id not in self.__ids_with_error:
+            features = self.__feature_map.features(id)
+            if len(features) == 1:
+                return features[0]
+            elif len(features) == 0:
+                log.error('Cannot find network feature: {}'.format(id))
+            else:
+                log.warning('Multiple network features for: {}'.format(id))
+            self.__ids_with_error.add(id)
         return None
 
-    def __set_node_properties_from_feature(self, node_dict, feature_id):
-    #===================================================================
+    def __node_properties_from_feature(self, feature_id):
+    #====================================================
         feature = self.__find_feature(feature_id)
+        node_dict = {}
         if feature is not None:
-            if 'geometry' not in node_dict:
-                for key, value in feature.properties.items():
-                    node_dict[key] = value
-                node_dict['geometry'] = feature.geometry
-            geometry = node_dict.get('geometry')
-            if geometry is not None:
-                centre = geometry.centroid
+            node_dict.update(feature.properties)
+            node_dict['geometry'] = feature.geometry
+            if feature.geometry is not None:
+                centre = feature.geometry.centroid
                 node_dict['centre'] = BezierPoint(centre.x, centre.y)
-                radius = max(math.sqrt(geometry.area/math.pi), MIN_EDGE_JOIN_RADIUS)
+                radius = max(math.sqrt(feature.geometry.area/math.pi), MIN_EDGE_JOIN_RADIUS)
                 node_dict['radii'] = (0.999*radius, 1.001*radius)
             else:
                 log.warning(f'Centreline node {node_dict.get("id")} has no geometry')
-        return feature
+        return node_dict
 
     def __node_centre(self, node):
     #=============================
@@ -216,214 +249,97 @@ class Network(object):
 
     def create_geometry(self):
     #=========================
-        def truncate_segments_start(segs, node):
-            # This assumes node centre is close to segs[0].start
-            node_centre = self.__node_centre(node)
-            radii = self.__node_radii(node)
-            if segs[0].start.distanceFrom(node_centre) > radii[0]:
-                return segs
-            n = 0
-            while n < len(segs) and segs[n].end.distanceFrom(node_centre) < radii[0]:
-                n += 1
-            if n >= len(segs):
-                return segs
-            bz = segs[n]
-            u = 0.0
-            v = 1.0
-            while True:
-                t = (u + v)/2.0
-                point = bz.pointAtTime(t)
-                if point.distanceFrom(node_centre) > radii[1]:
-                    v = t
-                elif point.distanceFrom(node_centre) < radii[0]:
-                    u = t
-                else:
-                    break
-            # Drop 0 -- t at front of bezier
-            split = bz.splitAtTime(t)
-            segs[n] = split[1]
-            return segs[n:]
-
-        def truncate_segments_end(segs, node):
-            # This assumes node centre is close to segs[-1].end
-            node_centre = self.__node_centre(node)
-            radii = self.__node_radii(node)
-            if segs[-1].end.distanceFrom(node_centre) > radii[0]:
-                return segs
-            n = len(segs) - 1
-            while n >= 0 and segs[n].start.distanceFrom(node_centre) < radii[0]:
-                n -= 1
-            if n < 0:
-                return segs
-            bz = segs[n]
-            u = 0.0
-            v = 1.0
-            while True:
-                t = (u + v)/2.0
-                point = bz.pointAtTime(t)
-                if point.distanceFrom(node_centre) > radii[1]:
-                    u = t
-                elif point.distanceFrom(node_centre) < radii[0]:
-                    v = t
-                else:
-                    break
-            # Drop t -- 1 at end of bezier
-            split = bz.splitAtTime(t)
-            segs[n] = split[0]
-            return segs[:n+1]
-
-        def time_scale(scale, T, x):
-            return (scale(x) - T)/(1.0 - T)
-
-        nodes = list(self.__centreline_graph.nodes)  # Take a copy, as nodes might be removed
-        for node_id in nodes:
-            node_dict = self.__centreline_graph.nodes[node_id]
-            # Try setting node attributes from its feature's geometry
-            feature = self.__set_node_properties_from_feature(node_dict, node_id)
-            if feature is None:
-                # Delete the node if there's no corresponding feature
-                self.__centreline_graph.remove_node(node_id)
-
-        for node_id, node_dict in self.__centreline_graph.nodes(data=True):
-            node_dict['degree'] = self.__centreline_graph.degree(node_id)
+        def update_edge_dict(node_0, node_1, bz_path, path_reversed):
+            (cl_path, bz_path) = split_bezier_path_at_point(bz_path, self.__node_centre(node_1))
+            segments = cl_path.asSegments()
+            edge_key = self.__segments_by_centreline_node[(centreline_id, node_0)]
+            edge_dict = self.__centreline_graph.edges[edge_key]
+            edge_dict['path-segments'] = segments
+            edge_dict['length'] = cl_path.length
+            if not path_reversed:
+                start_node = node_0
+                end_node = node_1
+            else:
+                start_node = node_1
+                end_node = node_0
+            edge_id = edge_dict['id']
+            edge_dict['start-node'] = start_node
             # Direction of a path at the node boundary, going towards the centre (radians)
-            node_dict['edge-direction'] = {}
+            self.__centreline_graph.nodes[start_node]['edge-direction'][edge_id] = segments[0].startAngle + math.pi
             # Angle of the radial line from the node's centre to a path's intersection with the boundary (radians)
-            node_dict['edge-node-angle'] = {}
+            self.__centreline_graph.nodes[start_node]['edge-node-angle'][end_node] = (
+                                    (segments[0].pointAtTime(0.0) - self.__node_centre(start_node)).angle)
+            edge_dict['end-node'] = end_node
+            # Direction of a path at the node boundary, going towards the centre (radians)
+            self.__centreline_graph.nodes[end_node]['edge-direction'][edge_id] = segments[-1].endAngle
+            # Angle of the radial line from the node's centre to a path's intersection with the boundary (radians)
+            self.__centreline_graph.nodes[end_node]['edge-node-angle'][start_node] = (
+                                    # why segments[0].pointAtTime(0.0) ??
+                                    (segments[-1].pointAtTime(1.0) - self.__node_centre(end_node)).angle)
+            return bz_path
 
-        for node_0, node_1, edge_dict in self.__centreline_graph.edges(data=True):
-            edge_id = edge_dict.get('id')
-            feature = self.__find_feature(edge_id)
-            if feature is not None:
-                node_0_centre = self.__centreline_graph.nodes[node_0].get('centre')
-                node_1_centre = self.__centreline_graph.nodes[node_1].get('centre')
-                segments = feature.property('bezier-segments')
-                if node_0_centre is None or node_1_centre is None:
-                    log.warning(f'Centreline {feature.id} nodes are missing ({node_0} and/or {node_1})')
-                    if len(segments) == 0:
-                        log.warning(f'Centreline {feature.id} has no Bezier path')
-                    segments = []
-                elif len(segments) == 0:
-                    log.warning(f'Centreline {feature.id} has no Bezier path')
-                    segments = [ BezierLine(node_0_centre, node_1_centre) ]
-                    start_node = node_0
-                    end_node = node_1
+        # Construct centreline graph, removing nodes that don't have a feature
+        self.__centreline_graph = nx.MultiGraph()           # Can have multiple paths between two nodes
+        for centreline_id, nodes in self.__centreline_nodes.items():
+            nodes = [node_id for node_id in nodes if self.__find_feature(node_id) is not None]
+            for n, (node_0, node_1) in enumerate(pairwise(nodes)):
+                edge_id = f'{centreline_id}/{n}'
+                key = self.__centreline_graph.add_edge(node_0, node_1, id=edge_id)
+                self.__edges_by_id[edge_id] = (node_0, node_1, key)
+                self.__segments_by_centreline_node[(centreline_id, node_0)] = (node_0, node_1, key)
+            self.__centreline_nodes[centreline_id] = nodes
+
+        # Set node attributes from its feature's geometry
+        for node_id, node_dict in self.__centreline_graph.nodes(data=True):
+            properties = self.__node_properties_from_feature(node_id)
+            properties['degree'] = self.__centreline_graph.degree(node_id)
+            # Direction of a path at the node boundary, going towards the centre (radians)
+            properties['edge-direction'] = {}
+            # Angle of the radial line from the node's centre to a path's intersection with the boundary (radians)
+            properties['edge-node-angle'] = {}
+            node_dict.update(properties)
+
+        # Ensure all intermediate node centres are on their centreline
+        centreline_paths = {}
+        for centreline_id, nodes in self.__centreline_nodes.items():
+            if len(nodes) < 2:
+                log.warning(f'Centreline {centreline_id} has insufficient nodes...')
+                continue
+            feature = self.__find_feature(centreline_id)
+            if feature is None:
+                log.warning(f'No feature for centreline {centreline_id}...')
+                continue
+            bz_path = BezierPath.fromSegments(feature.property('bezier-segments'))
+            node_0_centre = self.__node_centre(nodes[0])
+            path_reversed = (node_0_centre.distanceFrom(bz_path.pointAtTime(0.0)) >
+                             node_0_centre.distanceFrom(bz_path.pointAtTime(1.0)))
+            centreline_paths[centreline_id] = (bz_path, path_reversed)
+            last_t = 0.0 if not path_reversed else 1.0
+            for node in nodes[1:-1]:
+                # Set node centre to the closest point on the centreline's path
+                t = closest_time(bz_path, self.__node_centre(node))
+                if (not path_reversed and t <= last_t
+                 or     path_reversed and t >= last_t):
+                    log.error(f'Centreline {centreline_id} nodes are out of sequence...')
                 else:
-                    start = segments[0].pointAtTime(0.0)
-                    if start.distanceFrom(node_0_centre) <= start.distanceFrom(node_1_centre):
-                        start_node = node_0
-                        end_node = node_1
-                    else:
-                        start_node = node_1
-                        end_node = node_0
-                if segments:
-                    if self.__centreline_graph.degree(node_0) >= 2:
-                        if start_node == node_0:
-                            # This assumes node_0 centre is close to segments[0].start
-                            segments = truncate_segments_start(segments, node_0)
-                        else:
-                            # This assumes node_1 centre is close to segments[-1].end
-                            segments = truncate_segments_end(segments, node_0)
-                    if self.__centreline_graph.degree(node_1) >= 2:
-                        if start_node == node_0:
-                            # This assumes node_0 centre is close to segments[-1].end
-                            segments = truncate_segments_end(segments, node_1)
-                        else:
-                            # This assumes node_1 centre is close to segments[0].start
-                            segments = truncate_segments_start(segments, node_1)
+                    self.__centreline_graph.nodes[node]['centre'] = bz_path.pointAtTime(t)
+                last_t = t
 
-                    # Save centreline geometry at its ends for use in drawing paths
-                    edge_dict['start-node'] = start_node
-                    # Direction is towards node
-                    self.__centreline_graph.nodes[start_node]['edge-direction'][edge_id] = segments[0].startAngle + math.pi
-                    self.__centreline_graph.nodes[start_node]['edge-node-angle'][end_node] = (
-                                            (segments[0].pointAtTime(0.0) - self.__node_centre(start_node)).angle)
-
-                    edge_dict['end-node'] = end_node
-                    self.__centreline_graph.nodes[end_node]['edge-direction'][edge_id] = segments[-1].endAngle
-                    self.__centreline_graph.nodes[end_node]['edge-node-angle'][start_node] = (
-                                            (segments[0].pointAtTime(0.0) - self.__node_centre(end_node)).angle)
-
-                    # Get the geometry of any intermediate nodes along an edge
-                    intermediates = {}
-                    for intermediate in edge_dict.get('intermediates', []):
-                        feature = self.__find_feature(intermediate)
-                        if feature is not None:
-                            intermediates[intermediate] = feature.geometry
-
-                    # Find where the centreline's segments cross intermediate nodes
-                    intersection_times = {}
-                    for seg_num, bz in enumerate(segments):
-                        line = bezier_to_linestring(bz)
-                        time_points = []
-                        for node_id, geometry in intermediates.items():
-                            if geometry.intersects(line):
-                                intersection = geometry.boundary.intersection(line)
-                                if isinstance(intersection, shapely.geometry.Point):
-                                    time_points.append(((closest_time(bz, coords_to_point((intersection.x, intersection.y))), ),
-                                                        node_id))
-                                else:
-                                    intersecting_points = intersection.geoms
-                                    if len(intersecting_points) > 2:
-                                        log.warning(f"Intermediate node {node_id} has multiple intersections with centreline {edge_id}")
-                                    else:
-                                        time_points.append((sorted((closest_time(bz, coords_to_point((pt.x, pt.y)))
-                                                                                    for pt in intersecting_points)), node_id))
-                        if len(time_points) > 0:
-                            intersection_times[seg_num] = sorted(time_points)
-                    if len(intermediates) > 0 and len(intersection_times) == 0:
-                        log.warning(f"Intermediate node {node_id} doesn't intersect centreline {edge_id}")
-
-                    path_components = []
-                    last_intersection = None
-                    for seg_num in range(len(segments)):
-                        prev_intersection = None
-                        bz = segments[seg_num]
-                        scale = partial(time_scale, lambda x: x, 0.0)
-                        node_intersections = intersection_times.get(seg_num, [])
-                        intersection_num = 0
-                        while intersection_num < len(node_intersections):
-                            times, node_id = node_intersections[intersection_num]
-                            if len(times) == 0:
-                                continue
-                            geometry = intermediates[node_id]
-                            time_0 = scale(times[0])
-                            if len(times) == 1:
-                                if last_intersection is not None:
-                                    assert node_id == last_intersection[1]
-                                    # check times[0] < 0.5  ??
-                                    parts = bz.splitAtTime(time_0)
-                                    path_components.append(IntermediateNode(node_id, geometry, last_intersection[0].startAngle, parts[0].endAngle))
-                                    bz = parts[1]
-                                    scale = partial(time_scale, scale, time_0)
-                                    last_intersection = None
-                                elif (intersection_num + 1) == len(node_intersections):
-                                    # check times[0] > 0.5 ??
-                                    parts = bz.splitAtTime(time_0)
-                                    path_components.append(parts[0])
-                                    last_intersection = (parts[1], node_id)
-                                else:
-                                    log.error(f'Node {node_id} only intersects once with centreline {edge_id}')
-                            else:
-                                if prev_intersection is not None and prev_intersection[0] >= times[0]:
-                                    log.error(f'Intermediate nodes {prev_intersection[1]} and {node_id} overlap on centreline {edge_id}')
-                                else:
-                                    parts = bz.splitAtTime(time_0)
-                                    path_components.append(parts[0])
-                                    bz = parts[1]
-                                    scale = partial(time_scale, scale, time_0)
-                                    time_1 = scale(times[1])
-                                    parts = bz.splitAtTime(time_1)
-                                    path_components.append(IntermediateNode(node_id, geometry, parts[0].startAngle, parts[0].endAngle))
-                                    bz = parts[1]
-                                    scale = partial(time_scale, scale, time_1)
-                                prev_intersection = (times[1], node_id)
-                            intersection_num += 1
-                        if last_intersection is None:
-                            path_components.append(bz)
-                    if last_intersection is not None:
-                        log.error(f'Last intermediate node {last_intersection[1]} on centreline {edge_id} only intersects once')
-                    edge_dict['path-components'] = path_components
+        # Split each the Bezier path of each centreline into segments
+        # and assign them to graph edges
+        for centreline_id, (bz_path, path_reversed) in centreline_paths.items():
+            nodes = self.__centreline_nodes[centreline_id]
+            if len(nodes) < 2:
+                # Nodes have been deleted...
+                continue
+            # Set ends of path centres of end nodes
+            set_bezier_path_end_to_point(bz_path, self.__node_centre(nodes[0]))
+            set_bezier_path_end_to_point(bz_path, self.__node_centre(nodes[-1]))
+            node_0 = nodes[0]
+            for node_1 in nodes[1:-1]:
+                update_edge_dict(node_0, node_1, bz_path, path_reversed)
+                node_0 = node_1
+            update_edge_dict(node_0, nodes[-1], bz_path, path_reversed)
 
     def __route_graph_from_connections(self, path) -> nx.Graph:
     #==========================================================
@@ -446,8 +362,8 @@ class Network(object):
         for end_node, terminal_nodes in terminals.items():
             for terminal_id in terminal_nodes:
                 route_graph.add_edge(end_node, terminal_id)
-                node = route_graph.nodes[terminal_id]
-                self.__set_node_properties_from_feature(node, terminal_id)
+                node_dict = route_graph.nodes[terminal_id]
+                node_dict.update(self.__node_properties_from_feature(terminal_id))
                 route_graph.edges[end_node, terminal_id]['type'] = 'terminal'
         return route_graph
 
@@ -851,7 +767,7 @@ class Network(object):
                     for terminal_id in terminal_nodes:
                         route_paths.add_edge(end_node, terminal_id, type='terminal')
                         node_dict = route_paths.nodes[terminal_id]
-                        self.__set_node_properties_from_feature(node_dict, terminal_id)
+                        node_dict.update(self.__node_properties_from_feature(terminal_id))
 
             # Add paths and nodes from connected connectivity sub-graph to result
             route_graph.add_nodes_from(route_paths.nodes(data=True))

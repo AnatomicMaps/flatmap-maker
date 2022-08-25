@@ -264,37 +264,6 @@ def smooth_join(e0, a0, a1, e1):
 
 #===============================================================================
 
-class IntermediateNode:
-#======================
-    def __init__(self, id, geometry, start_angle, end_angle):
-        self.__id = id
-        self.__start_angle = start_angle
-        self.__mid_angle = (start_angle + end_angle)/2.0
-        self.__end_angle = end_angle
-        centre = geometry.centroid
-        self.__mid_point = BezierPoint(centre.x, centre.y)
-        mid_normal = BezierPoint.fromAngle(self.__mid_angle + math.pi/2)
-        width = width_along_line(geometry, self.__mid_point, mid_normal)
-        if width == 0:
-           log.error(f'Cannot get width of node {id}')
-        self.__width_normal = mid_normal*width/2.0
-
-    def geometry(self, path_source, path_id, start_point, end_point, num_points=100, offset=0):
-        node_point = self.__mid_point + self.__width_normal*offset
-        geometry = [GeometricShape.circle(
-            point_to_coords(node_point),
-            radius = 0.8*PATH_SEPARATION,
-            properties = {
-                'type': 'junction',
-                'path-id': path_id,
-                'source': path_source
-            })]
-        segs = [ bezier_connect(start_point, node_point, self.__start_angle, self.__mid_angle),
-                 bezier_connect(node_point, end_point, self.__mid_angle, self.__end_angle) ]
-        return (bezier_to_line_coords(BezierPath.fromSegments(segs), num_points=num_points, offset=offset), geometry)
-
-#===============================================================================
-
 class RoutedPath(object):
     def __init__(self, route_graph: nx.Graph, number: int):
         self.__graph = route_graph
@@ -337,35 +306,20 @@ class RoutedPath(object):
                 'path-id': path_id,
                 'source': path_source
             }
-            path_components = edge_dict.get('path-components')
-            if path_components is None:
+            path_segments = edge_dict.get('path-segments')
+            if path_segments is None:
                 continue
             offset = self.__graph.nodes[edge_dict['start-node']]['offsets'][edge_dict['end-node']]
             path_offset = PATH_SEPARATION*offset
             intermediate_start = None
             coords = []
-            component_num = 0
-            while component_num < len(path_components):
-                component = path_components[component_num]
-                if isinstance(component, IntermediateNode):
-                    component_num += 1
-                    next_line_coords = bezier_to_line_coords(path_components[component_num], offset=path_offset)
-                    intermediate_geometry = component.geometry(path_source, path_id, intermediate_start,
-                                                               BezierPoint(*(next_line_coords[0] if path_offset >= 0 else next_line_coords[-1])),
-                                                               offset=2*offset/edge_dict['max-paths'])
-                    line_coords = intermediate_geometry[0]
-                    geometry.extend(intermediate_geometry[1])
-                    coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
-                    line_coords = next_line_coords
-                    intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
-                else:
-                    line_coords = bezier_to_line_coords(component, offset=path_offset)
-                    if len(line_coords) == 0:
-                        log.warning(f'{path_id}: offset too big for parallel path...')
-                        line_coords = bezier_to_line_coords(component, offset=0)
-                    intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
+            for segment in path_segments:
+                line_coords = bezier_to_line_coords(segment, offset=path_offset)
+                if len(line_coords) == 0:
+                    log.warning(f'{path_id}: offset too big for parallel path...')
+                    line_coords = bezier_to_line_coords(segment, offset=0)
+                intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
                 coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
-                component_num += 1
                 path_line = shapely.geometry.LineString(coords)
             if path_line is not None:
                 # Draw path line
