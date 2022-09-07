@@ -192,6 +192,9 @@ class MapMaker(object):
             options['clean'] = True
             options['showDeprecated'] = True
 
+        # Remember our options to add to metadata
+        self.__options = options
+
         # Save options into global ``settings`` dict
         settings.update(options)
 
@@ -434,7 +437,9 @@ class MapMaker(object):
 
         # Save flatmap's metadata
         metadata = self.__flatmap.metadata
+        metadata['settings'] = self.__options
         tile_db.add_metadata(metadata=json.dumps(metadata))
+
         ## Backwards compatibility...
         # NB: we need to set version and if newer just save with name `metadata`
         # The map server needs to recognise the new way of doing things...
