@@ -110,18 +110,57 @@ def get_connected_subgraph(path_id, graph, v_prime):
             log.warning(f'{path_id}: No network connection between {source} and {target}')
     return graph.subgraph(vpp)
 
+def expand_graph(graph: nx.MultiGraph) -> nx.Graph:
+#==================================================
+    G = nx.Graph()
+    for node_0, node_1, key, edge_dict in graph.edges(keys=True, data=True):
+        G.add_node(node_0, node_type='node', **graph.nodes[node_0])
+        G.add_node(node_1, node_type='node', **graph.nodes[node_1])
+        G.add_node((node_0, node_1, key), node_type='edge', **edge_dict)
+        G.add_edge(node_0, (node_0, node_1, key))
+        G.add_edge((node_0, node_1, key), node_1)
+    return G
+
+def collapse_graph(graph: nx.Graph) -> nx.Graph:
+#===============================================
+    G = nx.Graph()
+    seen_edges = set()
+    for node, node_dict in graph.nodes(data=True):
+        node_type = node_dict.pop('node_type')
+        if node_type == 'edge':
+            if node[0:2] in seen_edges:
+                log.warn(f'Edge {node} ignored as it is already in the route graph')
+            else:
+                G.add_edge(*node[0:2], **node_dict)
+                seen_edges.add(node[0:2])
+        elif node_type == 'node':
+            G.add_node(node, **node_dict)
+    return G
+
 #===============================================================================
 
 class Network(object):
     def __init__(self, network: dict, external_properties):
         self.__id = network.get('id')
-        self.__centreline_graph = None                      # Assigned once we have feature geometry
-        self.__centreline_nodes: dict[str, list[str]] = {}  #! Centreline id --> [Node ids]
+        self.__centreline_graph = None                      #! Edges are centreline segments between intermediate nodes.
+                                                            #! Assigned once we have feature geometry
+        self.__expanded_centreline_graph                    #! Expanded version of centreline graph
+        self.__centreline_edges = defaultdict(list)         #! Centreline id --> [Edge keys in centreline graph]
+
+        self.__centreline_nodes: dict[str, list[str]] = {}  #! Centreline id --> [Node feature ids]
+
         self.__segments_by_centreline_node = {}             #! (Centreline id, node id) --> Segment edge id
+
+
         self.__contained_centrelines = defaultdict(list)    #! Feature id --> centrelines contained in feature
-        self.__contained_by_id = {}                         #! Centreline id --> set of features that centreline is contained in
-        self.__edges_by_id = {}                             #! Edge id --> edge
+        self.__containers_by_centreline = {}                #! Centreline id --> set of features that centreline is contained in
+        self.__centrelines_by_container = defaultdict(set)  #! Containing feature id --> set of centrelines contained in feature
+
+        self.__edges_by_segment_id = {}                     #! Edge id --> edge key
+                                                            ## vs segmented centreline id???
+
         self.__models_to_id: dict[str, str] = {}            #! Ontological term --> centreline id
+
         self.__feature_ids: set[str] = set()
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
         self.__ids_with_error = set()
