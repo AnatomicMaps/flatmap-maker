@@ -164,12 +164,21 @@ class FeatureMap(object):
         def features_from_anatomical_id(term):
             return set(self.__model_to_features.get(self.__connectivity_terms.get(term, term), []))
 
+        anatomical_layers = list(anatomical_layers)
         if len(anatomical_layers) == 0:
             return features_from_anatomical_id(anatomical_id)
         else:
             features = features_from_anatomical_id(anatomical_id)
-            if len(features) == 1:
+            if len(features) == 0:
+                while len(anatomical_layers) > 0:
+                    substitute_id = anatomical_layers.pop(0)
+                    features = features_from_anatomical_id(substitute_id)
+                    if len(features):
+                        log.warning(f'Cannot find feature for {entity_name(anatomical_id)}, substituted containing {entity_name(substitute_id)} region')
+                        break
+            if len(anatomical_layers) == 0:
                 return features
+            # Check feature is contained in specified layers
             for anatomical_layer in anatomical_layers:
                 included_features = set()
                 layer_features = features_from_anatomical_id(anatomical_layer)
