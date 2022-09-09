@@ -28,7 +28,6 @@ from shapely.geometry.base import BaseGeometry
 
 from mapmaker.utils import log
 from mapmaker.knowledgebase import get_label
-from mapmaker.knowledgebase.terms import GENERIC_ANATOMICAL_FEATURES
 from mapmaker.utils import FilePath
 
 #===============================================================================
@@ -195,13 +194,5 @@ class FeatureMap(object):
     def has_feature(self, id):
     #=========================
         return id in self.__id_to_feature
-
-    def remove_generic_terms(self, anatomical_id, anatomical_layers):
-    #==================================================================
-        # Filter out generic terms that don't locate any particular feature
-        layers = list(anatomical_layers)
-        while len(layers) > 0 and anatomical_id in GENERIC_ANATOMICAL_FEATURES:
-            anatomical_id = layers.pop(0)
-        return (anatomical_id, tuple(layers))
 
 #===============================================================================
