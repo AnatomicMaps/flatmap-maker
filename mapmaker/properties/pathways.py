@@ -98,6 +98,8 @@ PATH_TYPES = {
     'ilxtr:SensoryPhenotype': 'sensory',
     'ilxtr:SympatheticPhenotype': 'symp',
     'ilxtr:IntrinsicPhenotype': 'lcn',
+    'ilxtr:SpinalCordAscendingProjectionPhenotype': 'cns',
+    'ilxtr:SpinalCordDescendingProjectionPhenotype': 'cns',
 }
 
 PATH_ORDER = {
