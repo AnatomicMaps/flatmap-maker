@@ -441,10 +441,6 @@ class MapMaker(object):
         # Save flatmap's metadata
         metadata = self.__flatmap.metadata
         tile_db.add_metadata(metadata=json.dumps(metadata))
-        ## Backwards compatibility...
-        # NB: we need to set version and if newer just save with name `metadata`
-        # The map server needs to recognise the new way of doing things...
-        tile_db.add_metadata(**metadata)
 
         # Save layer details in metadata
         tile_db.add_metadata(layers=json.dumps(self.__flatmap.layer_metadata()))
