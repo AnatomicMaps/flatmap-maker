@@ -26,9 +26,8 @@ from shapely.geometry.base import BaseGeometry
 
 #===============================================================================
 
-from mapmaker.utils import log
 from mapmaker.knowledgebase import get_label
-from mapmaker.utils import FilePath
+from mapmaker.utils import log, FilePath
 
 #===============================================================================
 
