@@ -252,6 +252,9 @@ class MapMaker(object):
     #==============
         self.__begin_make()
 
+        # Initialise flatmap
+        self.__flatmap.initialise()
+
         # Process flatmap's sources to create MapLayers
         self.__process_sources()
 
