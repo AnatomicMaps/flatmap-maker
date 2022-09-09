@@ -45,6 +45,7 @@ from .layers import MapLayer
 class FlatMap(object):
     def __init__(self, manifest, maker):
         self.__id = maker.id
+        self.__manifest = manifest
         self.__local_id = manifest.id
         self.__models = manifest.models
         self.__map_area = None
