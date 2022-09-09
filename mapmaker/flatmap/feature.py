@@ -34,11 +34,7 @@ from mapmaker.utils import log, FilePath
 def entity_name(entity):
     if entity is None:
         return 'None'
-    label = get_label(entity)
-    if label == entity:
-        return entity
-    else:
-        return f'{label} ({entity})'
+    return get_label(entity)
 
 def full_node_name(anatomical_id, anatomical_layers):
     if len(anatomical_layers) == 0:
