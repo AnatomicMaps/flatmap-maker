@@ -258,8 +258,12 @@ class MapMaker(object):
         # Process flatmap's sources to create MapLayers
         self.__process_sources()
 
-        # Finish off flatmap
+        # Finish flatmap processing (path routing, etc)
         self.__flatmap.close()
+
+        # Do have any map layers?
+        if len(self.__flatmap) == 0:
+            raise ValueError('No map layers in sources...')
 
         # Save functional connectivity annotation
         if self.__annotation_set is not None:
@@ -313,6 +317,7 @@ class MapMaker(object):
                     return [int(n) for n in source_range]
                 else:
                     return [int(source_range)]
+
         settings['functionalConnectivity'] = (self.__manifest.kind == 'functional')
         if settings['functionalConnectivity']:
             self.__shape_filters = ShapeFilters()
@@ -353,8 +358,6 @@ class MapMaker(object):
                 else:
                     log.warning(msg)
             self.__flatmap.add_source_layers(layer_number, source_layer)
-        if len(self.__flatmap) == 0:
-            raise ValueError('No map layers in sources...')
 
     def __check_raster_tiles(self):
     #==============================
