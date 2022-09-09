@@ -192,6 +192,9 @@ class MapMaker(object):
             options['clean'] = True
             options['showDeprecated'] = True
 
+        # Save options to add to map's metadata
+        self.__options = options
+
         # Save options into global ``settings`` dict
         settings.update(options)
 
@@ -440,6 +443,7 @@ class MapMaker(object):
 
         # Save flatmap's metadata
         metadata = self.__flatmap.metadata
+        metadata['options'] = self.__options
         tile_db.add_metadata(metadata=json.dumps(metadata))
 
         # Save layer details in metadata
