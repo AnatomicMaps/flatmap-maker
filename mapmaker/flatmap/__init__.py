@@ -158,8 +158,6 @@ class FlatMap(object):
         self.__setup_feature_search()
         # Generate metadata with connection information
         self.__resolve_connectivity()
-        # Save all we know about the map
-        self.__map_properties.save_knowledge()
         # Set creation time
         self.__created = datetime.datetime.utcnow()
         self.__metadata['created'] = self.__created.isoformat()

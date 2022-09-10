@@ -22,7 +22,7 @@ from collections import defaultdict
 
 #===============================================================================
 
-from mapmaker.knowledgebase import get_knowledge, update_references
+from mapmaker.knowledgebase import get_knowledge
 from mapmaker.routing import Network
 from mapmaker.settings import settings
 from mapmaker.sources import NETWORK_SHAPE_TYPES
@@ -137,15 +137,6 @@ class ExternalProperties(object):
             properties = self.__properties_by_class.get(id, {})
         # Remove above when all maps converted
         return properties
-
-    def save_knowledge(self):
-    #========================
-        if self.__pathways is not None:
-            # Save publications that have come from JSON connectivity data
-            knowledge = self.__pathways.knowledge()
-            if 'publications' in knowledge:
-                for source, publication in knowledge.get('publications'):
-                    update_references(source, publication)
 
     def update_properties(self, feature_properties):
     #===============================================
