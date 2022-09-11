@@ -345,7 +345,7 @@ class Path(object):
 
     @property
     def connectivity(self):
-        return self.__connectivity
+        return nx.Graph(self.__connectivity)
 
     @property
     def id(self):
