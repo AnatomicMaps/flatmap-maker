@@ -26,21 +26,15 @@ from shapely.geometry.base import BaseGeometry
 
 #===============================================================================
 
-from mapmaker.utils import log
 from mapmaker.knowledgebase import get_label
-from mapmaker.knowledgebase.terms import GENERIC_ANATOMICAL_FEATURES
-from mapmaker.utils import FilePath
+from mapmaker.utils import log, FilePath
 
 #===============================================================================
 
 def entity_name(entity):
     if entity is None:
         return 'None'
-    label = get_label(entity)
-    if label == entity:
-        return entity
-    else:
-        return f'{label} ({entity})'
+    return get_label(entity)
 
 def full_node_name(anatomical_id, anatomical_layers):
     if len(anatomical_layers) == 0:
@@ -170,12 +164,21 @@ class FeatureMap(object):
         def features_from_anatomical_id(term):
             return set(self.__model_to_features.get(self.__connectivity_terms.get(term, term), []))
 
+        anatomical_layers = list(anatomical_layers)
         if len(anatomical_layers) == 0:
             return features_from_anatomical_id(anatomical_id)
         else:
             features = features_from_anatomical_id(anatomical_id)
-            if len(features) == 1:
+            if len(features) == 0:
+                while len(anatomical_layers) > 0:
+                    substitute_id = anatomical_layers.pop(0)
+                    features = features_from_anatomical_id(substitute_id)
+                    if len(features):
+                        log.warning(f'Cannot find feature for {entity_name(anatomical_id)}, substituted containing {entity_name(substitute_id)} region')
+                        break
+            if len(anatomical_layers) == 0:
                 return features
+            # Check feature is contained in specified layers
             for anatomical_layer in anatomical_layers:
                 included_features = set()
                 layer_features = features_from_anatomical_id(anatomical_layer)
@@ -195,13 +198,5 @@ class FeatureMap(object):
     def has_feature(self, id):
     #=========================
         return id in self.__id_to_feature
-
-    def remove_generic_terms(self, anatomical_id, anatomical_layers):
-    #==================================================================
-        # Filter out generic terms that don't locate any particular feature
-        layers = list(anatomical_layers)
-        while len(layers) > 0 and anatomical_id in GENERIC_ANATOMICAL_FEATURES:
-            anatomical_id = layers.pop(0)
-        return (anatomical_id, tuple(layers))
 
 #===============================================================================

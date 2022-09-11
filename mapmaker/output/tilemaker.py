@@ -25,7 +25,6 @@ import os
 #===============================================================================
 
 import cv2
-import fitz
 import mercantile
 import multiprocess as mp
 import numpy as np
@@ -382,36 +381,6 @@ class SVGImageTiler(RasterImageTiler):
 
 #===============================================================================
 
-class PDFTiler(RasterTiler):
-    def __init__(self, raster_layer, tile_set):
-        # Tile the first page of a PDF
-        self.__pdf = fitz.Document(stream=raster_layer.source_data, filetype='application/pdf')
-        if raster_layer.source_range is None:
-            self.__page = self.__pdf[0]
-        else:
-            self.__page = self.__pdf[raster_layer.source_range[0] - 1]
-        super().__init__(raster_layer, tile_set, self.__page.rect)
-
-    def get_scaling(self, image_tile_rect):
-    #======================================
-        return ((TILE_SIZE[0] - 1)/image_tile_rect.width,    # Fitz includes RH edge pixel
-                (TILE_SIZE[1] - 1)/image_tile_rect.height)   # so scale to 1px smaller...
-
-    def extract_tile_as_image(self, image_tile_rect):
-    #================================================
-        scaling = self.get_scaling(image_tile_rect)
-        # We now clip to avoid a black line if region outside of page...
-        width = min(image_tile_rect.x1, self.image_rect.width - 1)
-        height = min(image_tile_rect.y1, self.image_rect.height - 1)
-        pixmap = self.__page.get_pixmap(clip=fitz.Rect(image_tile_rect.x0, image_tile_rect.y0,
-                                                       width, height),
-                                        matrix=fitz.Matrix(*scaling),
-                                        alpha=False)
-        image = np.frombuffer(pixmap.samples, 'B').reshape(pixmap.height, pixmap.width, pixmap.n)
-        return cv2.cvtColor(image, cv2.COLOR_BGR2RGBA)
-
-#===============================================================================
-
 class RasterTileMaker(object):
     """
     A class for generating image tiles for a map
@@ -502,8 +471,6 @@ class RasterTileMaker(object):
         kind = self.__raster_layer.source_kind
         if kind == 'image':
             tile_extractor = ImageTiler(self.__raster_layer, self.__tile_set)
-        elif kind == 'pdf':
-            tile_extractor = PDFTiler(self.__raster_layer, self.__tile_set)
         elif kind == 'svg':
             if self.__raster_layer.local_world_to_base is None:
                 tile_extractor = SVGTiler(self.__raster_layer, self.__tile_set)
@@ -534,10 +501,10 @@ if __name__ == '__main__':
                         help='base directory for generated flatmaps')
     parser.add_argument('--id', dest='map_id', metavar='MAP_ID', required=True,
                         help='a unique identifier for the map')
-    parser.add_argument('--mode', default='PDF', choices=['PDF', 'JPEG'],
+    parser.add_argument('--mode', default='SVG', choices=['SVG', 'JPEG'],
                         help='Type of SOURCE file')
     parser.add_argument('source', metavar='SOURCE',
-                        help='PDF or JPEG file')
+                        help='SVG or JPEG file')
 
     args = parser.parse_args()
 
@@ -556,9 +523,9 @@ if __name__ == '__main__':
 
     map_extent = [-10, -20, 10, 20]
 
-    if args.mode == 'PDF':
+    if args.mode == 'SVG':
         with open(args.source, 'rb') as f:
-            source = RasterSource('pdf', lambda: f.read())
+            source = RasterSource('svg', lambda: f.read(), source_path=args.source)
     else:
         source = RasterSource('image', lambda: cv2.imread(args.source))
 

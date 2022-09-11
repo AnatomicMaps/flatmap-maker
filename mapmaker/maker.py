@@ -192,7 +192,7 @@ class MapMaker(object):
             options['clean'] = True
             options['showDeprecated'] = True
 
-        # Remember our options to add to metadata
+        # Save options to add to map's metadata
         self.__options = options
 
         # Save options into global ``settings`` dict
@@ -255,11 +255,18 @@ class MapMaker(object):
     #==============
         self.__begin_make()
 
+        # Initialise flatmap
+        self.__flatmap.initialise()
+
         # Process flatmap's sources to create MapLayers
         self.__process_sources()
 
-        # Finish off flatmap
+        # Finish flatmap processing (path routing, etc)
         self.__flatmap.close()
+
+        # Do have any map layers?
+        if len(self.__flatmap) == 0:
+            raise ValueError('No map layers in sources...')
 
         # Save functional connectivity annotation
         if self.__annotation_set is not None:
@@ -313,6 +320,7 @@ class MapMaker(object):
                     return [int(n) for n in source_range]
                 else:
                     return [int(source_range)]
+
         settings['functionalConnectivity'] = (self.__manifest.kind == 'functional')
         if settings['functionalConnectivity']:
             self.__shape_filters = ShapeFilters()
@@ -353,8 +361,6 @@ class MapMaker(object):
                 else:
                     log.warning(msg)
             self.__flatmap.add_source_layers(layer_number, source_layer)
-        if len(self.__flatmap) == 0:
-            raise ValueError('No map layers in sources...')
 
     def __check_raster_tiles(self):
     #==============================
@@ -435,15 +441,10 @@ class MapMaker(object):
         log('Creating index and style files...')
         tile_db = MBTiles(self.__mbtiles_file)
 
-        # Save flatmap's metadata
+        # Save flatmap's metadata, including settings used to generate map
         metadata = self.__flatmap.metadata
         metadata['settings'] = self.__options
         tile_db.add_metadata(metadata=json.dumps(metadata))
-
-        ## Backwards compatibility...
-        # NB: we need to set version and if newer just save with name `metadata`
-        # The map server needs to recognise the new way of doing things...
-        tile_db.add_metadata(**metadata)
 
         # Save layer details in metadata
         tile_db.add_metadata(layers=json.dumps(self.__flatmap.layer_metadata()))

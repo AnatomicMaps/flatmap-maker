@@ -45,44 +45,14 @@ from .layers import MapLayer
 class FlatMap(object):
     def __init__(self, manifest, maker):
         self.__id = maker.id
+        self.__manifest = manifest
         self.__local_id = manifest.id
-        self.__created = None   # Set when map closed
-        self.__metadata = {
-            'id': self.__id,
-            'name': self.__local_id,
-            # Who made the map
-            'creator': 'mapmaker {}'.format(__version__),
-            # The URL of the map's manifest
-            'source': manifest.url,
-            'version': FLATMAP_VERSION
-        }
         self.__models = manifest.models
-        if self.__models is not None:
-            self.__metadata['taxon'] = self.__models
-            knowledge = get_knowledge(self.__models)
-            if 'label' in knowledge:
-                self.__metadata['describes'] = knowledge['label']
-
-        self.__entities = set()
-
-        # Properties about map features
-        self.__map_properties = ExternalProperties(self, manifest)
-
-        self.__layer_dict = OrderedDict()
-        self.__visible_layer_count = 0
-
-        self.__annotations = {}
         self.__map_area = None
         self.__extent = None
         self.__centre = None
         self.__min_zoom = maker.zoom[0]
-
-        self.__feature_map = FeatureMap(manifest.connectivity_terms)
-        self.__features = OrderedDict()
-        self.__last_feature_id = 0
-
-        # Used to find annotated features containing a region
-        self.__feature_search = None
+        self.initialise()
 
     def __len__(self):
         return self.__visible_layer_count
@@ -143,6 +113,41 @@ class FlatMap(object):
     def models(self):
         return self.__models
 
+    def initialise(self):
+    #====================
+        self.__created = None   # Set when map closed
+        self.__metadata = {
+            'id': self.__id,
+            'name': self.__local_id,
+            # Who made the map
+            'creator': 'mapmaker {}'.format(__version__),
+            # The URL of the map's manifest
+            'source': self.__manifest.url,
+            'version': FLATMAP_VERSION
+        }
+        if self.__models is not None:
+            self.__metadata['taxon'] = self.__models
+            knowledge = get_knowledge(self.__models)
+            if 'label' in knowledge:
+                self.__metadata['describes'] = knowledge['label']
+
+        self.__entities = set()
+
+        # Properties about map features
+        self.__map_properties = ExternalProperties(self, self.__manifest)
+
+        self.__layer_dict = OrderedDict()
+        self.__visible_layer_count = 0
+
+        self.__annotations = {}
+
+        self.__feature_map = FeatureMap(self.__manifest.connectivity_terms)
+        self.__features = OrderedDict()
+        self.__last_feature_id = 0
+
+        # Used to find annotated features containing a region
+        self.__feature_search = None
+
     def close(self):
     #===============
         # Add high-resolution features showing details
@@ -153,8 +158,6 @@ class FlatMap(object):
         self.__setup_feature_search()
         # Generate metadata with connection information
         self.__resolve_connectivity()
-        # Save all we know about the map
-        self.__map_properties.save_knowledge()
         # Set creation time
         self.__created = datetime.datetime.utcnow()
         self.__metadata['created'] = self.__created.isoformat()

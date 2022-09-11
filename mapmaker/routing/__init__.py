@@ -466,8 +466,6 @@ class Network(object):
 
         def node_dict_for_feature(connectivity_node):
         #============================================
-            # Remove any generic anatomical terms from node's identifiers
-            connectivity_node = self.__feature_map.remove_generic_terms(*connectivity_node)
             # Check if we can directly identify the centreline
             if (centreline := self.__models_to_id.get(connectivity_node[0])) is not None:
                 return {
