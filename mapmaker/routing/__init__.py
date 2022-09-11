@@ -126,15 +126,17 @@ def collapse_graph(graph: nx.Graph) -> nx.Graph:
     G = nx.Graph()
     seen_edges = set()
     for node, node_dict in graph.nodes(data=True):
-        node_type = node_dict.pop('node_type')
+        node_type = node_dict.pop('node_type', None)
         if node_type == 'edge':
             if node[0:2] in seen_edges:
-                log.warn(f'Edge {node} ignored as it is already in the route graph')
+                log.warning(f'Edge {node} ignored as it is already in the route graph')
             else:
                 G.add_edge(*node[0:2], **node_dict)
                 seen_edges.add(node[0:2])
         elif node_type == 'node':
             G.add_node(node, **node_dict)
+        else:
+            log.warning(f'Expanded graph {node} ignored as it has no `node_type`')
     return G
 
 #===============================================================================
