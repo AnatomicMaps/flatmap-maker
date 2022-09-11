@@ -193,7 +193,7 @@ class Network(object):
                     self.__feature_ids.add(nodes[0])
                     self.__feature_ids.add(nodes[-1])
                     self.__centreline_nodes[centreline_id] = nodes
-                    # Track how nodes are asscociated with centrelines
+                    # Track how nodes are associated with centrelines
                     end_nodes_to_centrelines[nodes[0]].append(centreline_id)
                     end_nodes_to_centrelines[nodes[-1]].append(centreline_id)
                     for node in nodes[1:-1]:
