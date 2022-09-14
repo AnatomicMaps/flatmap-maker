@@ -175,6 +175,10 @@ class FeatureMap(object):
                     break
         return anatomical_features
 
+    def geojson_ids(self, ids):
+    #==========================
+        return [f.geojson_id for id in ids if (f := self.__id_to_feature.get(id)) is not None]
+
     def get_feature(self, id):
     #=========================
         return self.__id_to_feature.get(id)
