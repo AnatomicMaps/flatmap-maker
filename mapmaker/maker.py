@@ -469,7 +469,7 @@ class MapMaker(object):
             'max-zoom': self.__zoom[1],
             'bounds': self.__flatmap.extent,
             'version': FLATMAP_VERSION,
-            'image_layer': len(self.__raster_layers) > 0
+            'image-layers': len(self.__raster_layers) > 0
         }
         if self.__flatmap.models is not None:
             map_index['describes'] = self.__flatmap.models

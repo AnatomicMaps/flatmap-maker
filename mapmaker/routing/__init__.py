@@ -253,16 +253,9 @@ class Network(object):
 
     def __find_feature(self, id):
     #============================
-        if id not in self.__ids_with_error:
-            features = self.__feature_map.features(id)
-            if len(features) == 1:
-                return features[0]
-            elif len(features) == 0:
-                log.error('Cannot find network feature: {}'.format(id))
-            else:
-                log.warning('Multiple network features for: {}'.format(id))
-            self.__ids_with_error.add(id)
-        return None
+        if (feature := self.__feature_map.get_feature(id)) is None:
+            log.error('Cannot find network feature: {}'.format(id))
+        return feature
 
     def __node_properties_from_feature(self, feature_id):
     #====================================================

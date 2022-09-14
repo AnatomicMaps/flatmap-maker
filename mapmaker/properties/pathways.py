@@ -146,38 +146,38 @@ class ResolvedPath(object):
             path_dict['models'] = self.__models
         return path_dict
 
-    def extend_lines(self, feature_ids: list[int]):
+    def extend_lines(self, geojson_ids: list[int]):
         """
         Associate line segments with the path.
 
         Arguments:
         ----------
-        feature_ids
-            Line segment numeric feature ids
+        geojson_ids
+            Line segment numeric GeoJSON ids
         """
-        self.__lines.update(feature_ids)
+        self.__lines.update(geojson_ids)
 
-    def extend_nerves(self, feature_ids: list[int]):
+    def extend_nerves(self, geojson_ids: list[int]):
         """
         Associate nerve cuffs with the path.
 
         Arguments:
         ----------
-        feature_ids
-            Nerve cuff numeric feature ids
+        geojson_ids
+            Nerve cuff numeric GeoJSON ids
         """
-        self.__nerves.update(feature_ids)
+        self.__nerves.update(geojson_ids)
 
-    def extend_nodes(self, feature_ids: list[int]):
+    def extend_nodes(self, geojson_ids: list[int]):
         """
         Associate nodes with the path.
 
         Arguments:
         ----------
-        feature_ids
-            Node numeric feature ids
+        geojson_ids
+            Node numeric GeoJSON ids
         """
-        self.__nodes.update(feature_ids)
+        self.__nodes.update(geojson_ids)
 
     def set_model_id(self, model_id: str):
         """
@@ -258,28 +258,26 @@ class ResolvedPathways(object):
     def __resolve_nodes_for_path(self, path_id, nodes):
         node_ids = []
         for id in nodes:
-            node_count = 0
-            for feature in self.__feature_map.features(id):
-                if not feature.property('exclude'):
-                    node_id = feature.feature_id
-                    feature.set_property('nodeId', node_id)
-                    self.__node_paths[node_id].add(path_id)
-                    node_ids.append(node_id)
-                    node_count += 1
-            if node_count == 0:
+            if ((feature := self.__feature_map.get_feature(id)) is not None
+             and not feature.property('exclude')):
+                node_id = feature.geojson_id
+                feature.set_property('nodeId', node_id)
+                self.__node_paths[node_id].add(path_id)
+                node_ids.append(node_id)
+            else:
                 log.warning(f'Cannot find feature for node: {id}')
         return node_ids
 
     def add_connectivity(self, path_id: str, model: str, path_type: str,
-                         route_nodes: list[str], feature_id: int, nerve_features: list[Feature]):
+                         route_nodes: list[str], geojson_id: int, nerve_features: list[Feature]):
         resolved_path = self.__paths[path_id]
         if model is not None:
             resolved_path.set_model_id(model)
         if path_type is not None:
             self.__type_paths[path_type].add(path_id)
         resolved_path.extend_nodes(self.__resolve_nodes_for_path(path_id, route_nodes))
-        resolved_path.extend_lines([feature_id])
-        resolved_path.extend_nerves([f.feature_id for f in nerve_features])
+        resolved_path.extend_lines([geojson_id])
+        resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
 
     def add_pathway(self, path_id: str, model: str, path_type:str,
                     route: Route, lines: list[str], nerves: list[str]):
@@ -292,8 +290,8 @@ class ResolvedPathways(object):
             self.__resolve_nodes_for_path(path_id, route.start_nodes)
           + self.__resolve_nodes_for_path(path_id, route.through_nodes)
           + self.__resolve_nodes_for_path(path_id, route.end_nodes))
-        resolved_path.extend_lines(self.__feature_map.feature_ids(lines))
-        resolved_path.extend_nerves(self.__feature_map.feature_ids(nerves))
+        resolved_path.extend_lines(self.__feature_map.geojson_ids(lines))
+        resolved_path.extend_nerves(self.__feature_map.geojson_ids(nerves))
 
 #===============================================================================
 
@@ -606,7 +604,7 @@ class Pathways(object):
                                                                       path.models,  ## This is properties['models']...
                                                                       path.path_type,  ## This is properties['type']...
                                                                       routed_path.node_set,
-                                                                      feature.feature_id,
+                                                                      feature.geojson_id,
                                                                       nerve_features)
 
     def generate_connectivity(self, networks):

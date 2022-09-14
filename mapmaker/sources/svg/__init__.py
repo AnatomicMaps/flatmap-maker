@@ -149,37 +149,43 @@ class SVGLayer(MapLayer):
     def __process_group(self, wrapped_group, properties, transform, parent_style):
     #=============================================================================
         group = wrapped_group.etree_element
-        children = wrapped_group.etree_children
-        if len(children) == 0:
+        if len(group) == 0:
             return None
-        elif (len(children) == 1
+        children = wrapped_group.etree_children
+        while (len(children) == 1
           and children[0].tag == SVG_NS('g')
           and len(children[0].attrib) == 0):
-            # If a group only has a single group element with no attributes
-            # then don't skip processing of the outer group after copying
-            # its attributes to the child.
+            # Ignore nested groups with only a single group element with no attributes
             for k, v in group.items():
                 children[0].set(k, v)
             group = children[0]
             wrapped_group = wrap_element(group)
+            children = wrapped_group.etree_children
         group_style = self.__style_matcher.element_style(wrapped_group, parent_style)
         group_clip_path = group_style.pop('clip-path', None)
         clipped = self.__clip_geometries.get_by_url(group_clip_path)
         if clipped is not None:
             # Replace any features inside a clipped group with just the clipped outline
-            features = [self.flatmap.new_feature(clipped, properties)]
+            group_feature = self.flatmap.new_feature(clipped, properties)
         else:
             features = self.__process_element_list(wrapped_group,
                 transform@SVGTransform(group.attrib.get('transform')),
                 properties,
                 group_style)
-            properties.pop('tile-layer', None)
-            if len(properties):
+            properties.pop('tile-layer', None)  # Don't count ``tile-layer``
+            if (len(properties)
+             and len(geometries := [f.geometry for f in features if f.geometry.is_valid])):
                 # If the group element has markup and contains geometry then add it as a feature
-                geometries = [f.geometry for f in features if f.geometry.is_valid]
-                if len(geometries):
-                    features.append(self.flatmap.new_feature(shapely.ops.unary_union(geometries), properties))
-        return self.add_features(adobe_decode_markup(group), features)
+                group_feature = self.flatmap.new_feature(shapely.ops.unary_union(geometries), properties)
+            else:
+                group_feature = None
+            group_name = adobe_decode_markup(group)
+            if (feature_group := self.add_features(group_name, features)) is not None:
+                if 'id' not in properties:
+                    group_feature = feature_group
+                else:
+                    log.warning(f'SVG group `{group_name}` with id cannot also contain a `.group` marker')
+        return group_feature
 
     def __process_element_list(self, elements, transform, parent_properties, parent_style, show_progress=False):
     #===========================================================================================================
@@ -203,7 +209,8 @@ class SVGLayer(MapLayer):
             if element.tag == SVG_NS('clipPath'):
                 self.__add_clip_geometry(wrapped_element, transform)
             else:
-                self.__process_element(wrapped_element, transform, features, parent_properties, parent_style)
+                if (feature := self.__process_element(wrapped_element, transform, parent_properties, parent_style)) is not None:
+                    features.append(feature)
         progress_bar.close()
         return features
 
@@ -229,15 +236,14 @@ class SVGLayer(MapLayer):
         if len(geometries):
             self.__clip_geometries.add(clip_id, shapely.ops.unary_union(geometries))
 
-    def __process_element(self, wrapped_element, transform, features, parent_properties, parent_style):
-    #==================================================================================================
+    def __process_element(self, wrapped_element, transform, parent_properties, parent_style):
+    #========================================================================================
         element = wrapped_element.etree_element
         element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
         markup = adobe_decode_markup(element)
         properties_from_markup = self.source.properties_from_markup(markup)
         properties = parent_properties.copy()
-        if 'id' in properties_from_markup:   # We don't inherit `id`
-            properties.pop('id', None)
+        properties.pop('id', None)   # We don't inherit `id`
         properties.update(properties_from_markup)
         if 'error' in properties:
             pass
@@ -250,24 +256,21 @@ class SVGLayer(MapLayer):
                              SVG_NS('polygon'), SVG_NS('rect')]:
             geometry = self.__get_geometry(element, properties, transform)
             if geometry is None:
-                return
-
+                return None
             # Ignore element if fill is none and no stroke is specified
-            if (element_style.get('fill', '#FFF') == 'none'
+            elif (element_style.get('fill', '#FFF') == 'none'
             and element_style.get('stroke', 'none') == 'none'
             and 'id' not in properties):
-                return
-
-            feature = self.flatmap.new_feature(geometry, properties)
-            features.append(feature)
+                return None
+            else:
+                return self.flatmap.new_feature(geometry, properties)
         elif element.tag == SVG_NS('g'):
-            grouped_feature = self.__process_group(wrapped_element, properties, transform, parent_style)
-            if grouped_feature is not None:
-                features.append(grouped_feature)
+            return self.__process_group(wrapped_element, properties, transform, parent_style)
         elif element.tag in IGNORED_SVG_TAGS:
             pass
         else:
-            log.warning('"{}" {} not processed...'.format(markup, element.tag))
+            log.warning(f'SVG element {element.tag} "{markup}" not processed...')
+        return None
 
     def __get_geometry(self, element, properties, transform):
     #=======================================================

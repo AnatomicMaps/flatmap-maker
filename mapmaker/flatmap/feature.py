@@ -46,14 +46,14 @@ def full_node_name(anatomical_id, anatomical_layers):
 #===============================================================================
 
 class Feature(object):
-    def __init__(self, feature_id: int,
+    def __init__(self, geojson_id: int,
                        geometry: BaseGeometry,
                        properties: dict[str, Any],
                        has_children:bool=False):
-        self.__feature__id = feature_id     # Must be numeric for tipeecanoe
+        self.__geojson_id = geojson_id     # Must be numeric for tipeecanoe
         self.__geometry = geometry
         self.__properties = properties.copy()
-        self.__properties['featureId'] = feature_id   # Used by flatmap viewer
+        self.__properties['featureId'] = geojson_id   # Used by flatmap viewer
         self.__properties['geometry'] = geometry.geom_type
         self.__has_children = has_children
 
@@ -62,8 +62,8 @@ class Feature(object):
             { k:v for k, v in self.__properties.items() if k != 'bezier-segments'})
 
     @property
-    def feature_id(self) -> int:
-        return self.__feature__id
+    def geojson_id(self) -> int:
+        return self.__geojson_id
 
     @property
     def geom_type(self) -> str:
@@ -126,38 +126,22 @@ class FeatureMap(object):
                         log.error(f'Connectivity term {alias} cannot map to both {self.__connectivity_terms[alias]} and {term}')
                     else:
                         self.__connectivity_terms[alias] = term
-        self.__class_to_features = defaultdict(list)
         self.__id_to_feature = {}
         self.__model_to_features = defaultdict(list)
 
     def add_feature(self, feature):
     #==============================
         if feature.id is not None:
-            self.__id_to_feature[feature.id] = feature
-        if feature.has_property('class'):
-            classes = feature.property('class').split()
-            for cls in classes:
-                self.__class_to_features[cls].append(feature)
+            if feature.id in self.__id_to_feature:
+                log.error(f'Duplicate feature id: {feature.id}')
+            else:
+                self.__id_to_feature[feature.id] = feature
         if feature.models is not None:
             self.__model_to_features[feature.models].append(feature)
 
     def duplicate_id(self, id):
     #==========================
         return self.__id_to_feature.get(id, None) is not None
-
-    def features(self, id):
-    #======================
-        feature = self.__id_to_feature.get(id)
-        if feature is None:
-            return self.__class_to_features.get(id, [])
-        return [feature]
-
-    def feature_ids(self, ids):
-    #==========================
-        feature_ids = []
-        for id in ids:
-            feature_ids.extend([f.feature_id for f in self.features(id)])
-        return feature_ids
 
     def find_path_features_by_anatomical_id(self, anatomical_id, anatomical_layers):
     #===============================================================================
@@ -174,7 +158,7 @@ class FeatureMap(object):
                     substitute_id = anatomical_layers.pop(0)
                     features = features_from_anatomical_id(substitute_id)
                     if len(features):
-                        log.warning(f'Cannot find feature for {entity_name(anatomical_id)}, substituted containing {entity_name(substitute_id)} region')
+                        log.warning(f'Cannot find feature for {entity_name(anatomical_id)} ({anatomical_id}), substituted containing `{entity_name(substitute_id)}` region')
                         break
             if len(anatomical_layers) == 0:
                 return features

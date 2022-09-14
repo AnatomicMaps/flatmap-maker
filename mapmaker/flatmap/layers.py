@@ -78,7 +78,7 @@ class FeatureLayer(object):
 
     def annotate(self, feature, properties):
     #=======================================
-        self.__annotations[feature.feature_id] = properties
+        self.__annotations[feature.geojson_id] = properties
 
     def set_feature_properties(self, map_properties):
     #===============================================
@@ -167,11 +167,13 @@ class MapLayer(FeatureLayer):
             if feature.property('type') == 'nerve':
                 feature.set_property('tile-layer', 'pathways')
                 if not feature.has_property('nerveId'):
-                    feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
+                    feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                 if feature.geom_type == 'LineString':
+                    properties = feature.properties.copy()
+                    properties.pop('id', None)   # Otherwise we will have a duplicate id...
                     nerve_polygon_feature = self.__source.flatmap.new_feature(
-                        shapely.geometry.Polygon(feature.geometry.coords), feature.properties)
-                    nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
+                        shapely.geometry.Polygon(feature.geometry.coords), properties)
+                    nerve_polygon_feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
                     self.flatmap.save_feature_for_lookup(nerve_polygon_feature)
@@ -324,18 +326,6 @@ class MapLayer(FeatureLayer):
             for feature in layer_features:
                 grouped_polygon_features.append(feature)
 
-            grouped_lines = []
-            for feature in grouped_polygon_features:
-                if feature.property('tile-layer') != 'pathways':
-                    if feature.geom_type == 'LineString':
-                        grouped_lines.append(feature.geometry)
-                    elif feature.geom_type == 'MultiLineString':
-                        grouped_lines.extend(list(feature.geometry.geoms))
-            if len(grouped_lines):
-                feature_group = self.flatmap.new_feature(
-                      shapely.geometry.MultiLineString(grouped_lines),
-                      grouped_properties, True)
-                layer_features.append(feature_group)
             grouped_polygons = []
             for feature in grouped_polygon_features:
                 if feature.geom_type == 'Polygon':
@@ -347,14 +337,30 @@ class MapLayer(FeatureLayer):
                         shapely.geometry.MultiPolygon(grouped_polygons).buffer(0),
                         grouped_properties, True)
                 layer_features.append(feature_group)
+                # So that any grouped lines don't have a duplicate id
+                grouped_properties.pop('id', None)
+
+            grouped_lines = []
+            for feature in grouped_polygon_features:
+                if feature.property('tile-layer') != 'pathways':
+                    if feature.geom_type == 'LineString':
+                        grouped_lines.append(feature.geometry)
+                    elif feature.geom_type == 'MultiLineString':
+                        grouped_lines.extend(list(feature.geometry.geoms))
+            if len(grouped_lines):  ## should polygons take precedence over lines???
+                                    ## at least for assigning ID...
+                feature_group = self.flatmap.new_feature(
+                      shapely.geometry.MultiLineString(grouped_lines),
+                      grouped_properties, True)
+                layer_features.append(feature_group)
 
         # Feature specific properties have precedence over group's
-
         default_properties = base_properties.copy()
         if child_class is not None:
             # Default class for all of the group's child shapes
             default_properties['class'] = child_class
 
+        # Actually add the features to the layer
         for feature in layer_features:
             if feature.geometry is not None:
                 for (key, value) in default_properties.items():
