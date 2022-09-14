@@ -326,18 +326,6 @@ class MapLayer(FeatureLayer):
             for feature in layer_features:
                 grouped_polygon_features.append(feature)
 
-            grouped_lines = []
-            for feature in grouped_polygon_features:
-                if feature.property('tile-layer') != 'pathways':
-                    if feature.geom_type == 'LineString':
-                        grouped_lines.append(feature.geometry)
-                    elif feature.geom_type == 'MultiLineString':
-                        grouped_lines.extend(list(feature.geometry.geoms))
-            if len(grouped_lines):
-                feature_group = self.flatmap.new_feature(
-                      shapely.geometry.MultiLineString(grouped_lines),
-                      grouped_properties, True)
-                layer_features.append(feature_group)
             grouped_polygons = []
             for feature in grouped_polygon_features:
                 if feature.geom_type == 'Polygon':
@@ -352,13 +340,27 @@ class MapLayer(FeatureLayer):
                 # So that any grouped lines don't have a duplicate id
                 grouped_properties.pop('id', None)
 
-        # Feature specific properties have precedence over group's
+            grouped_lines = []
+            for feature in grouped_polygon_features:
+                if feature.property('tile-layer') != 'pathways':
+                    if feature.geom_type == 'LineString':
+                        grouped_lines.append(feature.geometry)
+                    elif feature.geom_type == 'MultiLineString':
+                        grouped_lines.extend(list(feature.geometry.geoms))
+            if len(grouped_lines):  ## should polygons take precedence over lines???
+                                    ## at least for assigning ID...
+                feature_group = self.flatmap.new_feature(
+                      shapely.geometry.MultiLineString(grouped_lines),
+                      grouped_properties, True)
+                layer_features.append(feature_group)
 
+        # Feature specific properties have precedence over group's
         default_properties = base_properties.copy()
         if child_class is not None:
             # Default class for all of the group's child shapes
             default_properties['class'] = child_class
 
+        # Actually add the features to the layer
         for feature in layer_features:
             if feature.geometry is not None:
                 for (key, value) in default_properties.items():
