@@ -44,3 +44,11 @@ Running
 
     $ python runmaker.py ARGUMENTS
 
+
+Updating
+--------
+
+From the checked-out directory and with the Conda environment active::
+
+    $  git pull
+    $  conda env update -f conda/M1Mac.yaml
