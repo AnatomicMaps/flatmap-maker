@@ -145,13 +145,6 @@ class FeatureMap(object):
     #==========================
         return self.__id_to_feature.get(id, None) is not None
 
-    def features(self, id):
-    #======================
-        feature = self.__id_to_feature.get(id)
-        if feature is None:
-            return self.__class_to_features.get(id, [])
-        return [feature]
-
     def find_path_features_by_anatomical_id(self, anatomical_id, anatomical_layers):
     #===============================================================================
         def features_from_anatomical_id(term):
