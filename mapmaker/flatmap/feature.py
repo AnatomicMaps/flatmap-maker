@@ -126,18 +126,16 @@ class FeatureMap(object):
                         log.error(f'Connectivity term {alias} cannot map to both {self.__connectivity_terms[alias]} and {term}')
                     else:
                         self.__connectivity_terms[alias] = term
-        self.__class_to_features = defaultdict(list)
         self.__id_to_feature = {}
         self.__model_to_features = defaultdict(list)
 
     def add_feature(self, feature):
     #==============================
         if feature.id is not None:
-            self.__id_to_feature[feature.id] = feature
-        if feature.has_property('class'):
-            classes = feature.property('class').split()
-            for cls in classes:
-                self.__class_to_features[cls].append(feature)
+            if feature.id in self.__id_to_feature:
+                log.error(f'Duplicate feature id: {feature.id}')
+            else:
+                self.__id_to_feature[feature.id] = feature
         if feature.models is not None:
             self.__model_to_features[feature.models].append(feature)
 
