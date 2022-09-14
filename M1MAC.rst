@@ -4,34 +4,43 @@ Installation and running on an M1 Mac
 Prerequisites
 -------------
 
-* XCode command line tools::
+*   XCode command line tools. Check to see if the command line tools are installed by running::
+
+    $  xcode-select -p
+
+
+    and if they are not, install them by running::
 
     $ xcode-select --install
 
-* Miniforge, including latest Python 3::
+
+*   Miniforge, including latest Python 3::
 
     $ curl -L -O  "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh"
     $ sh Miniforge3-MacOSX-arm64.sh
 
-Reply ``yes`` when asked to initialise Miniforge3. Then create a new shell (e.g. logout and back in again).
+
+    Reply ``yes`` when asked to initialise Miniforge3. Then create a new shell (e.g. logout and back in again).
+
 
 Installation
 ------------
 
-* Mapmaker::
+*   Mapmaker::
 
     $ git clone https://github.com/AnatomicMaps/flatmap-maker.git mapmaker
     $ cd mapmaker
     $ conda env create -f conda/M1Mac.yaml
 
+
 Running
 -------
 
-* Activate ``mapmaker``'s environment::
+*   Activate ``mapmaker``'s environment::
 
     $ conda activate mapmaker
 
-* Run::
+*   Run::
 
     $ python runmaker.py ARGUMENTS
 
