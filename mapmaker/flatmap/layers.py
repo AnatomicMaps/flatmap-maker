@@ -78,7 +78,7 @@ class FeatureLayer(object):
 
     def annotate(self, feature, properties):
     #=======================================
-        self.__annotations[feature.feature_id] = properties
+        self.__annotations[feature.geojson_id] = properties
 
     def set_feature_properties(self, map_properties):
     #===============================================
@@ -167,11 +167,11 @@ class MapLayer(FeatureLayer):
             if feature.property('type') == 'nerve':
                 feature.set_property('tile-layer', 'pathways')
                 if not feature.has_property('nerveId'):
-                    feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
+                    feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                 if feature.geom_type == 'LineString':
                     nerve_polygon_feature = self.__source.flatmap.new_feature(
                         shapely.geometry.Polygon(feature.geometry.coords), feature.properties)
-                    nerve_polygon_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
+                    nerve_polygon_feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
                     self.flatmap.save_feature_for_lookup(nerve_polygon_feature)
