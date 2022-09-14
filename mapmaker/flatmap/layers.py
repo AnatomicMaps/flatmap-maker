@@ -169,8 +169,10 @@ class MapLayer(FeatureLayer):
                 if not feature.has_property('nerveId'):
                     feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                 if feature.geom_type == 'LineString':
+                    properties = feature.properties.copy()
+                    properties.pop('id', None)   # Otherwise we will have a duplicate id...
                     nerve_polygon_feature = self.__source.flatmap.new_feature(
-                        shapely.geometry.Polygon(feature.geometry.coords), feature.properties)
+                        shapely.geometry.Polygon(feature.geometry.coords), properties)
                     nerve_polygon_feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                     nerve_polygon_feature.set_property('tile-layer', 'pathways')
                     nerve_polygons.append(nerve_polygon_feature)
@@ -347,6 +349,8 @@ class MapLayer(FeatureLayer):
                         shapely.geometry.MultiPolygon(grouped_polygons).buffer(0),
                         grouped_properties, True)
                 layer_features.append(feature_group)
+                # So that any grouped lines don't have a duplicate id
+                grouped_properties.pop('id', None)
 
         # Feature specific properties have precedence over group's
 
