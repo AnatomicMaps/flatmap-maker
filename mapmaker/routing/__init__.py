@@ -179,14 +179,9 @@ class Network(object):
 
     def __find_feature(self, id):
     #============================
-        features = self.__feature_map.features(id)
-        if len(features) == 1:
-            return features[0]
-        elif len(features) == 0:
+        if (feature := self.__feature_map.get_feature(id)) is None:
             log.error('Cannot find network feature: {}'.format(id))
-        else:
-            log.warning('Multiple network features for: {}'.format(id))
-        return None
+        return feature
 
     def __set_node_properties_from_feature(self, node_dict, feature_id):
     #===================================================================

@@ -87,7 +87,7 @@ class GeoJSONOutput(object):
             tile_layer = properties['tile-layer']
             geojson = {
                 'type': 'Feature',
-                'id': feature.feature_id,
+                'id': feature.geojson_id,
                 'tippecanoe' : {
                     'layer' : f'{self.__layer.id}_{tile_layer}'
                 },
