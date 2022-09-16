@@ -155,10 +155,14 @@ def collapse_centreline_graph(graph: nx.Graph) -> nx.Graph:
 
 @dataclass
 class NetworkNode:
-    feature_id: str
+    full_id: str
     intermediate: bool = False
     map_feature: Feature = None
+    feature_id: str = field(init=False)
     properties: dict = field(default_factory=dict, init=False)
+
+    def __post_init__(self):
+        self.feature_id = self.full_id.rsplit('/', 1)[-1]
 
     def __eq__(self, other):
         return self.feature_id == other.feature_id
@@ -213,6 +217,7 @@ class Network(object):
         self.__models_to_id: dict[str, str] = {}            #! Ontological term --> centreline id
 
         self.__feature_ids: set[str] = set()
+        self.__full_ids: set[str] = set()                   #! A ``full id`` is a slash-separated list of feature ids
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
         self.__missing_feature_ids = set()
 
@@ -227,7 +232,7 @@ class Network(object):
             elif centreline_id in self.__centreline_nodes:
                 log.error(f'Centreline {centreline_id} in network {self.__id} has a duplicate id')
             else:
-                self.__feature_ids.add(centreline_id)
+                self.__add_full_id(centreline_id)
                 if (models := centreline.get('models')) is not None:
                     if models in self.__models_to_id:
                         log.warning(f'Centrelines `{centreline_id}` and `{self.__models_to_id[models]}` both model {models}')
@@ -235,17 +240,17 @@ class Network(object):
                         self.__models_to_id[models] = centreline_id
                         if external_properties.get_property(centreline_id, 'models') is None:
                             external_properties.set_property(centreline_id, 'models', models)
-                nodes = centreline.get('connects', [])
-                if len(nodes) < 2:
+                connected_nodes = centreline.get('connects', [])
+                if len(connected_nodes) < 2:
                     log.warning(f'Centreline {centreline_id} in network {self.__id} has too few nodes')
                 else:
-                    self.__feature_ids.add(nodes[0])
-                    self.__feature_ids.add(nodes[-1])
-                    self.__centreline_nodes[centreline_id] = [NetworkNode(n) for n in nodes]
-                    end_nodes_to_centrelines[nodes[0]].append(centreline_id)
-                    end_nodes_to_centrelines[nodes[-1]].append(centreline_id)
-                    for node in nodes[1:-1]:
-                        intermediate_nodes_to_centrelines[node].append(centreline_id)
+                    self.__add_full_id(connected_nodes[0])
+                    self.__add_full_id(connected_nodes[-1])
+                    self.__centreline_nodes[centreline_id] = [NetworkNode(node_id) for node_id in connected_nodes]
+                    end_nodes_to_centrelines[connected_nodes[0]].append(centreline_id)
+                    end_nodes_to_centrelines[connected_nodes[-1]].append(centreline_id)
+                    for node_id in connected_nodes[1:-1]:
+                        intermediate_nodes_to_centrelines[node_id].append(centreline_id)
 
         # Check for multiple branches and crossings
         for node, centrelines in intermediate_nodes_to_centrelines.items():
@@ -257,11 +262,17 @@ class Network(object):
         # Separate out branch nodes that make up the segmented centreline graph from intermediate nodes
         for centreline_id, nodes in self.__centreline_nodes.items():
             for node in nodes:
-                node.intermediate = (node.feature_id not in self.__feature_ids)
+                node.intermediate = (node.full_id not in self.__full_ids)
 
     @property
     def id(self):
         return self.__id
+
+    def __add_full_id(self, full_id):
+    #================================
+        self.__full_ids.add(full_id)
+        for id in full_id.split('/'):
+            self.__feature_ids.add(id)
 
     def set_feature_map(self, feature_map):
     #======================================
