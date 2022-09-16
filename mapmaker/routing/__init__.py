@@ -238,7 +238,9 @@ class Network(object):
                         log.warning(f'Centrelines `{centreline_id}` and `{self.__models_to_id[models]}` both model {models}')
                     else:
                         self.__models_to_id[models] = centreline_id
-                        if external_properties.get_property(centreline_id, 'models') is None:
+                        # If we have ``external_properties`` without ``models`` annotation for the centreline then set it
+                        if (external_properties is not None
+                        and external_properties.get_property(centreline_id, 'models') is None):
                             external_properties.set_property(centreline_id, 'models', models)
                 connected_nodes = centreline.get('connects', [])
                 if len(connected_nodes) < 2:
