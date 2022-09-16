@@ -96,13 +96,17 @@ def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle
 
 #===============================================================================
 
-def closest_time(bz: BezierSegment | BezierPath, pt: BezierPoint, steps: int = 100) -> float:
+def closest_time(bz: BezierSegment | BezierPath, pt: BezierPoint, steps: int=100) -> float:
     def subdivide_search(t0, t1, steps):
         closest_d = None
         closest_t = t0
         delta_t = (t1 - t0)/steps
         for step in range(steps+1):
             t = t0 + step*delta_t
+            if t > 1.0:
+                t = 1.0
+            elif t < 0.0:
+                t = 0.0
             d = bz.pointAtTime(t).distanceFrom(pt)
             if closest_d is None or d < closest_d:
                 closest_t = t
