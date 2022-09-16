@@ -73,6 +73,10 @@ import mapmaker.utils.graph as graph_utils
 from .options import MIN_EDGE_JOIN_RADIUS
 from .routedpath import PathRouter
 
+if TYPE_CHECKING:
+    from mapmaker.properties import ExternalProperties
+    from mapmaker.properties.pathways import Path
+
 #===============================================================================
 
 """
@@ -191,7 +195,7 @@ class NetworkNode:
 #===============================================================================
 
 class Network(object):
-    def __init__(self, network: dict, external_properties):
+    def __init__(self, network: dict, external_properties: ExternalProperties=None):
         self.__id = network.get('id')
         self.__centreline_graph = None                      #! Edges are centreline segments between intermediate nodes.
                                                             #! Assigned once we have feature geometry
@@ -430,14 +434,14 @@ class Network(object):
                 last_t = t
 
             nodes = self.__centreline_nodes[centreline_id]
-    def __route_graph_from_connections(self, path) -> nx.Graph:
-    #==========================================================
         self.__expanded_centreline_graph = expand_centreline_graph(self.__centreline_graph)
 
         self.__expanded_centreline_nodes = { centreline_id: node for node, node_dict
                                                 in self.__expanded_centreline_graph.nodes(data=True)
                                                     if (centreline_id := node_dict.get('centreline')) is not None}
 
+    def __route_graph_from_connections(self, path: Path) -> nx.Graph:
+    #================================================================
         # This is when the paths are manually specified and don't come from SciCrunch
         end_nodes = []
         terminals = {}
@@ -462,8 +466,8 @@ class Network(object):
                 route_graph.edges[end_node, terminal_id]['type'] = 'terminal'
         return route_graph
 
-    def route_graph_from_path(self, path):
-    #=====================================
+    def route_graph_from_path(self, path: Path):
+    #===========================================
         if path.connections is not None:
             route_graph = self.__route_graph_from_connections(path)
         else:
@@ -486,8 +490,8 @@ class Network(object):
         return (id in self.__centreline_ids
              or id in self.__centreline_graph)
 
-    def __route_graph_from_connectivity(self, path) -> nx.Graph:
-    #===========================================================
+    def __route_graph_from_connectivity(self, path: Path) -> nx.Graph:
+    #=================================================================
         # Connectivity comes from SCKAN
 
         def nodes_from_dict(node_dict):
