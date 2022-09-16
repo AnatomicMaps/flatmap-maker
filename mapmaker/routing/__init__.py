@@ -110,33 +110,39 @@ def get_connected_subgraph(path_id, graph, v_prime):
             log.warning(f'{path_id}: No network connection between {source} and {target}')
     return graph.subgraph(vpp)
 
-def expand_graph(graph: nx.MultiGraph) -> nx.Graph:
-#==================================================
+def expand_centreline_graph(graph: nx.Graph) -> nx.Graph:
+#========================================================
     G = nx.Graph()
-    for node_0, node_1, key, edge_dict in graph.edges(keys=True, data=True):
+    for node_0, node_1, edge_dict in graph.edges(data=True):
         G.add_node(node_0, node_type='node', **graph.nodes[node_0])
         G.add_node(node_1, node_type='node', **graph.nodes[node_1])
-        G.add_node((node_0, node_1, key), node_type='edge', **edge_dict)
-        G.add_edge(node_0, (node_0, node_1, key))
-        G.add_edge((node_0, node_1, key), node_1)
+        if (segment_id := edge_dict.get('segment')) is not None:
+            edge_node = segment_id
+        else:
+            edge_node = (node_0, node_1)
+        G.add_node(edge_node, node_type='edge', node_ends=(node_0, node_1), **edge_dict)
+        G.add_edge(node_0, edge_node, node_type='node')
+        G.add_edge(edge_node, node_1, node_type='node')
     return G
 
-def collapse_graph(graph: nx.Graph) -> nx.Graph:
-#===============================================
+def collapse_centreline_graph(graph: nx.Graph) -> nx.Graph:
+#==========================================================
     G = nx.Graph()
     seen_edges = set()
     for node, node_dict in graph.nodes(data=True):
-        node_type = node_dict.pop('node_type', None)
+        new_dict = node_dict.copy()
+        node_type = new_dict.pop('node_type', None)
         if node_type == 'edge':
-            if node[0:2] in seen_edges:
-                log.warning(f'Edge {node} ignored as it is already in the route graph')
+            end_nodes = new_dict.pop('node_ends')
+            if end_nodes in seen_edges:
+                log.warning(f'Edge `{node}` ignored as it is already in the route graph')
             else:
-                G.add_edge(*node[0:2], **node_dict)
-                seen_edges.add(node[0:2])
+                G.add_edge(*end_nodes, **new_dict)
+                seen_edges.add(end_nodes)
         elif node_type == 'node':
-            G.add_node(node, **node_dict)
+            G.add_node(node, **new_dict)
         else:
-            log.warning(f'Expanded graph {node} ignored as it has no `node_type`')
+            log.warning(f'Expanded graph node `{node}` ignored as it has no `node_type`')
     return G
 
 #===============================================================================
