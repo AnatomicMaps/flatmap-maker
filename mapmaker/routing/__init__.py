@@ -120,15 +120,15 @@ def expand_centreline_graph(graph: nx.Graph) -> nx.Graph:
 #========================================================
     G = nx.Graph()
     for node_0, node_1, edge_dict in graph.edges(data=True):
-        G.add_node(node_0, node_type='node', **graph.nodes[node_0])
-        G.add_node(node_1, node_type='node', **graph.nodes[node_1])
+        G.add_node(node_0, graph_object='node', **graph.nodes[node_0])
+        G.add_node(node_1, graph_object='node', **graph.nodes[node_1])
         if (segment_id := edge_dict.get('segment')) is not None:
             edge_node = segment_id
         else:
             edge_node = (node_0, node_1)
-        G.add_node(edge_node, node_type='edge', node_ends=(node_0, node_1), **edge_dict)
-        G.add_edge(node_0, edge_node, node_type='node')
-        G.add_edge(edge_node, node_1, node_type='node')
+        G.add_node(edge_node, graph_object='edge', node_ends=(node_0, node_1), **edge_dict)
+        G.add_edge(node_0, edge_node, graph_object='node')
+        G.add_edge(edge_node, node_1, graph_object='node')
     return G
 
 def collapse_centreline_graph(graph: nx.Graph) -> nx.Graph:
@@ -137,18 +137,18 @@ def collapse_centreline_graph(graph: nx.Graph) -> nx.Graph:
     seen_edges = set()
     for node, node_dict in graph.nodes(data=True):
         new_dict = node_dict.copy()
-        node_type = new_dict.pop('node_type', None)
-        if node_type == 'edge':
+        graph_object = new_dict.pop('graph_object', None)
+        if graph_object == 'edge':
             end_nodes = new_dict.pop('node_ends')
             if end_nodes in seen_edges:
                 log.warning(f'Edge `{node}` ignored as it is already in the route graph')
             else:
                 G.add_edge(*end_nodes, **new_dict)
                 seen_edges.add(end_nodes)
-        elif node_type == 'node':
+        elif graph_object == 'node':
             G.add_node(node, **new_dict)
         else:
-            log.warning(f'Expanded graph node `{node}` ignored as it has no `node_type`')
+            log.warning(f'Expanded graph node `{node}` ignored as it has no `graph type`')
     return G
 
 #===============================================================================
