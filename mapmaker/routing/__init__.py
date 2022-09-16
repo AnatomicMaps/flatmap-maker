@@ -399,7 +399,7 @@ class Network(object):
                 end_index = start_index + 1
                 # Loop must terminate as nodes[-1] is a map feature from above
                 end_node = nodes[end_index]
-                while node.map_feature is None or end_node.intermediate:
+                while end_node.map_feature is None or end_node.intermediate:
                     end_node.intermediate = True  # Nodes without a feature become intermediate nodes
                     end_index += 1
                     end_node = nodes[end_index]
