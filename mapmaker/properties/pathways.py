@@ -295,6 +295,54 @@ class ResolvedPathways(object):
 
 #===============================================================================
 
+class NodeTypeFinder:
+    def __init__(self, axon_nodes, dendrite_nodes, path_id):
+        self.__axon_nodes = axon_nodes
+        self.__dendrite_nodes = dendrite_nodes
+        self.__path_id = path_id
+
+    def node_type(self, node):
+        node_type = None
+        if node in self.__axon_nodes:
+            node_type = 'axon'
+        if node in self.__dendrite_nodes:
+            if node_type is None:
+                node_type = 'dendrite'
+            else:
+                log(f'Node {node} in {self.__path_id} is both axon and dendrite')
+        return node_type
+
+    ## Keeping this for reference until can clarify meaning of axon/dendrite
+    ## lists with TG.
+    @staticmethod
+    def matched_term(node, region_layer_terms):
+        i = 0
+        n = len(node[1])
+        layer_or_region, regions = node
+        if (layer_or_region, None) in region_layer_terms:
+            # sometimes it is region, regions when you
+            # have internalIn nesting
+            return True
+        if regions:  # this is regions and parents so have to start with None
+            region = regions[i]
+            layer = layer_or_region
+        else:
+            region = layer_or_region
+            layer = None
+        while True:
+            if (region, layer) in region_layer_terms:
+                return True
+            #elif (region, None) in region_layer_terms:
+                # on the very off chance
+                #return True
+            elif i >= n:
+                return False
+            else:
+                region = regions[i]
+                i += 1
+
+#===============================================================================
+
 class Path(object):
     def __init__(self, source, path, trace=False):
         self.__source = source
@@ -329,9 +377,17 @@ class Path(object):
                     log.warning(f'Path {self.__id} has no phenotype, defaulting to CNS')
                     self.__path_type = 'cns'
                 G = nx.Graph()
+                node_type_finder = NodeTypeFinder(knowledge.get('axons', []),
+                                                  knowledge.get('dendrites', []),
+                                                  self.__id)
                 for node in knowledge.get('connectivity'):
-                    G.add_edge(tuple((node[0][0], tuple(node[0][1]))),
-                               tuple((node[1][0], tuple(node[1][1]))))
+                    node_0 = tuple((node[0][0], tuple(node[0][1])))
+                    node_1 = tuple((node[1][0], tuple(node[1][1])))
+                    G.add_edge(node_0, node_1)
+                    if 'node-type' not in G.nodes[node_0]:
+                        G.nodes[node_0]['node-type'] = node_type_finder.node_type(node_0)
+                    if 'node-type' not in G.nodes[node_1]:
+                        G.nodes[node_1]['node-type'] = node_type_finder.node_type(node_1)
                 self.__connectivity = G
 
         if self.__route is None and self.__connections is None and self.__connectivity is None:
