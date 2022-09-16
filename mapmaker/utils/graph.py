@@ -26,15 +26,15 @@ import networkx as nx
 
 #===============================================================================
 
-def smooth_edges(G, end_nodes=None, path_attribute='path-nodes'):
+def smooth_edges(G, end_nodes=None, edge_nodes_attribute='edge-nodes'):
     """
     Return a networkx.MultiDiGraph copy of G with all degree 2 nodes removed.
 
     Each edge of the resulting graph has a list attribute, whose name is given by
-    ``path_attribute``, containing any nodes removed along the original edge.
+    ``edge_nodes_attribute``, containing any nodes removed along the original edge.
     """
-    def follow_path(start_node, path_node):
-        path = [start_node, path_node]
+    def follow_edge_path(start_node, path_node):
+        edge_nodes = [start_node, path_node]
         prev_node = start_node
         while G.degree(path_node) == 2 and path_node not in end_nodes:
             for node in G[path_node]:
@@ -44,10 +44,10 @@ def smooth_edges(G, end_nodes=None, path_attribute='path-nodes'):
                     prev_node = path_node
                     path_node = node
                     break
-            path.append(path_node)
-        return path
+            edge_nodes.append(path_node)
+        return edge_nodes
 
-    # Directed to match removed node order in the resulting path attribute
+    # Directed to match removed node order in the resulting edge nodes attribute
     # Multi- because there may be more than one smoothed edge between nodes
     R = nx.MultiDiGraph()
     if end_nodes is None:
@@ -59,11 +59,11 @@ def smooth_edges(G, end_nodes=None, path_attribute='path-nodes'):
     for node in R:
         for path_node in G[node]:
             if path_node not in seen_paths[node]:
-                path = follow_path(node, path_node)
-                key = R.add_edge(path[0], path[-1])
-                R.edges[path[0], path[-1], key][path_attribute] = path[1:-1]
-                seen_paths[path[0]].add(path[1])
-                seen_paths[path[-1]].add(path[-2])
+                edge_nodes = follow_edge_path(node, path_node)
+                key = R.add_edge(edge_nodes[0], edge_nodes[-1])
+                R.edges[edge_nodes[0], edge_nodes[-1], key][edge_nodes_attribute] = edge_nodes[1:-1]
+                seen_paths[edge_nodes[0]].add(edge_nodes[1])
+                seen_paths[edge_nodes[-1]].add(edge_nodes[-2])
     return R
 
 #===============================================================================
