@@ -63,7 +63,7 @@ import shapely.geometry
 #===============================================================================
 
 from mapmaker.flatmap.feature import Feature, full_node_name
-from mapmaker.geometry.beziers import bezier_to_linestring, closest_time
+from mapmaker.geometry.beziers import bezier_to_linestring, closest_time_distance
 from mapmaker.geometry.beziers import coords_to_point, point_to_coords
 from mapmaker.geometry.beziers import set_bezier_path_end_to_point, split_bezier_path_at_point
 from mapmaker.settings import settings
@@ -438,7 +438,7 @@ class Network(object):
             last_t = 0.0 if not path_reversed else 1.0
             for node in nodes[1:-1]:
                 # Set node centre to the closest point on the centreline's path
-                t = closest_time(bz_path, node.centre)
+                t = closest_time_distance(bz_path, node.centre)[0]
                 if (not path_reversed and t <= last_t
                  or     path_reversed and t >= last_t):
                     log.error(f'Centreline {segment_id} nodes are out of sequence...')

@@ -96,7 +96,7 @@ def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle
 
 #===============================================================================
 
-def closest_time(bz: BezierSegment | BezierPath, pt: BezierPoint, steps: int=100) -> float:
+def closest_time_distance(bz, pt: BezierPoint, steps: int=100) -> float:
     def subdivide_search(t0, t1, steps):
         closest_d = None
         closest_t = t0
@@ -114,8 +114,10 @@ def closest_time(bz: BezierSegment | BezierPath, pt: BezierPoint, steps: int=100
         return (closest_t, delta_t, closest_d)
     (t, delta_t) = (0.5, 0.5)
     for n in range(4):
-        (t, delta_t, closest) = subdivide_search(t - delta_t, t + delta_t, steps)
-    return t
+        (t, delta_t, distance) = subdivide_search(t - delta_t, t + delta_t, steps)
+        if distance == 0:
+            break
+    return (t, distance)
 
 #===============================================================================
 
@@ -135,12 +137,24 @@ def set_bezier_path_end_to_point(bz_path: BezierPath, point: BezierPoint) -> flo
 
 def split_bezier_path_at_point(bz_path: BezierPath, point: BezierPoint):
     segments = bz_path.asSegments()
+    # Find segment that is closest to the point
+    closest_distance = None
+    closest_seg_index = None
+    closest_time = None
     for n, segment in enumerate(segments):
-        if (t := closest_time(segment, point)) < 1.0:
-            (s0, s1) = segment.splitAtTime(t)
-            return (BezierPath.fromSegments(segments[:n] + [s0]),
-                    BezierPath.fromSegments([s1] + segments[n+1:]))
-    return (bz_path,
-            BezierPath.fromSegments(segments[-1].splitAtTime(1.0)[1:]))
-
+        if (time_distance := closest_time_distance(segment, point, 10))[0] <= 1.0:
+            if closest_distance is None or time_distance[1] < closest_distance:
+                (closest_time, closest_distance) = time_distance
+                closest_seg_index = n
+                if closest_distance == 0.0:
+                    break
+    if (closest_seg_index is None
+    or (closest_seg_index == (len(segments) - 1) and closest_time == 1.0)):
+        return (bz_path,
+                BezierPath.fromSegments(segments[-1].splitAtTime(1.0)[1:]))
+    else:
+        segment = segments[closest_seg_index]
+        (s0, s1) = segment.splitAtTime(closest_time)
+        return (BezierPath.fromSegments(segments[:closest_seg_index] + [s0]),
+                BezierPath.fromSegments([s1] + segments[closest_seg_index+1:]))
 #===============================================================================
