@@ -716,7 +716,7 @@ class Network(object):
                             edge = (start, end, key)
                             if edge not in seen_edges:
                                 seen_edges.add(edge)
-                                node_dicts = G.edges[edge].get('path-features', []) + [G.nodes[end]]
+                                node_dicts = G.edges[edge].get('edge-features', []) + [G.nodes[end]]
                                 for node_dict in node_dicts:
                                     feature_id = node_dict.get('feature-id')
                                     if ftu_layer == node_dict.get('ftu'):
