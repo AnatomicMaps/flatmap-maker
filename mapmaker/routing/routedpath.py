@@ -306,14 +306,14 @@ class RoutedPath(object):
                 'path-id': path_id,
                 'source': path_source
             }
-            path_segments = edge_dict.get('path-segments')
-            if path_segments is None:
+            bezier_segments = edge_dict.get('bezier-segments')
+            if bezier_segments is None:
                 continue
             offset = self.__graph.nodes[edge_dict['start-node']]['offsets'][edge_dict['end-node']]
             path_offset = PATH_SEPARATION*offset
             intermediate_start = None
             coords = []
-            for segment in path_segments:
+            for segment in bezier_segments:
                 line_coords = bezier_to_line_coords(segment, offset=path_offset)
                 if len(line_coords) == 0:
                     log.warning(f'{path_id}: offset too big for parallel path...')
