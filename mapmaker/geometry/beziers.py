@@ -155,6 +155,6 @@ def split_bezier_path_at_point(bz_path: BezierPath, point: BezierPoint):
     else:
         segment = segments[closest_seg_index]
         (s0, s1) = segment.splitAtTime(closest_time)
-        return (BezierPath.fromSegments(segments[:closest_seg_index] + [s0]),
-                BezierPath.fromSegments([s1] + segments[closest_seg_index+1:]))
+        return (BezierPath.fromSegments(list(segments[:closest_seg_index]) + [s0]),
+                BezierPath.fromSegments([s1] + list(segments[closest_seg_index+1:])))
 #===============================================================================
