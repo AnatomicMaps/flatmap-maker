@@ -58,7 +58,7 @@ class Feature(object):
         self.__has_children = has_children
 
     def __str__(self):
-        return 'Feature {}: {}'.format(self.__geometry.geom_type,
+        return 'Feature: {}, {}'.format(self.__geometry.geom_type,
             { k:v for k, v in self.__properties.items() if k != 'bezier-segments'})
 
     @property
