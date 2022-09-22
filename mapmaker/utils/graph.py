@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 #===============================================================================
 
@@ -26,15 +26,17 @@ import networkx as nx
 
 #===============================================================================
 
-def smooth_edges(G, end_nodes=None, edge_nodes_attribute='edge-nodes'):
+def smooth_edges(G: nx.Graph, end_nodes: list=None, edge_nodes_attribute: str='edge-nodes') -> nx.MultiDiGraph:
     """
-    Return a networkx.MultiDiGraph copy of G with all degree 2 nodes removed.
+    Return a networkx.MultiGraph copy of G with all degree 2 nodes removed.
 
-    Each edge of the resulting graph has a list attribute, whose name is given by
-    ``edge_nodes_attribute``, containing any nodes removed along the original edge.
+    Each edge of the resulting graph has an OrderedDict attribute, whose name is given by
+    ``edge_nodes_attribute``, containing nodes and their attributes for all nodes removed
+    from the original edge.
     """
-    def follow_edge_path(start_node, path_node):
-        edge_nodes = [start_node, path_node]
+    def follow_edge_path(start_node, path_node) -> OrderedDict:
+        edge_nodes = OrderedDict({start_node: G.nodes[start_node],
+                                  path_node: G.nodes[path_node]})
         prev_node = start_node
         while G.degree(path_node) == 2 and path_node not in end_nodes:
             for node in G[path_node]:
@@ -44,10 +46,10 @@ def smooth_edges(G, end_nodes=None, edge_nodes_attribute='edge-nodes'):
                     prev_node = path_node
                     path_node = node
                     break
-            edge_nodes.append(path_node)
+            edge_nodes[path_node] = G.nodes[path_node]
         return edge_nodes
 
-    # Directed to match removed node order in the resulting edge nodes attribute
+    # Directed to match removed node order in the resulting path attribute
     # Multi- because there may be more than one smoothed edge between nodes
     R = nx.MultiDiGraph()
     if end_nodes is None:
@@ -60,10 +62,13 @@ def smooth_edges(G, end_nodes=None, edge_nodes_attribute='edge-nodes'):
         for path_node in G[node]:
             if path_node not in seen_paths[node]:
                 edge_nodes = follow_edge_path(node, path_node)
-                key = R.add_edge(edge_nodes[0], edge_nodes[-1])
-                R.edges[edge_nodes[0], edge_nodes[-1], key][edge_nodes_attribute] = edge_nodes[1:-1]
-                seen_paths[edge_nodes[0]].add(edge_nodes[1])
-                seen_paths[edge_nodes[-1]].add(edge_nodes[-2])
+                node_ids = list(edge_nodes)
+                seen_paths[node_ids[0]].add(node_ids[1])
+                seen_paths[node_ids[-1]].add(node_ids[-2])
+                (node_0, _) = edge_nodes.popitem(last=False)
+                (node_1, _) = edge_nodes.popitem(last=True)
+                key = R.add_edge(node_0, node_1)
+                R.edges[node_0, node_1, key][edge_nodes_attribute] = edge_nodes
     return R
 
 #===============================================================================
