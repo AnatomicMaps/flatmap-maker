@@ -347,7 +347,6 @@ class Path(object):
     def __init__(self, source, path, trace=False):
         self.__source = source
         self.__id = path['id']
-        self.__connections = path.get('connects')
         self.__connectivity = None
         self.__lines = []
         self.__label = None
@@ -357,20 +356,10 @@ class Path(object):
         self.__route = None
         self.__trace = trace
 
-        if 'path' in path:  # Manual path specification
-            for line_group in parse_path_lines(path['path']):
-                self.__lines.extend(Pathways.make_list(line_group))
-            if 'route' not in path:
-                raise ValueError("Path '{}' doesn't have a route".format(self.__id))
-            self.__route = Route(self.__id, path['route'])
-            if self.__connections is not None:
-                log.error(f'Path {self.__id} is specified multiple ways...')
-
         if self.__models is not None:
             knowledge = get_knowledge(self.__models)
             self.__label = knowledge.get('label')
-            if (self.__connections is None and 'connectivity' in knowledge
-            and 'path' not in path):   # Use SciCrunch knowledge
+            if 'connectivity' in knowledge:   # Use SciCrunch knowledge
                 # Construct a graph of SciCrunch's connected pairs
                 self.__path_type = path_type_from_phenotypes(knowledge.get('phenotypes', []))
                 if self.__path_type == '':
@@ -390,15 +379,11 @@ class Path(object):
                         G.nodes[node_1]['node-type'] = node_type_finder.node_type(node_1)
                 self.__connectivity = G
 
-        if self.__route is None and self.__connections is None and self.__connectivity is None:
-            log.error(f'Path {self.__id} has no route or known connectivity...')
+        if self.__connectivity is None:
+            log.error(f'Path {self.__id} has no known connectivity...')
 
     @property
-    def connections(self):
-        return self.__connections
-
-    @property
-    def connectivity(self):
+    def connectivity(self) -> nx.Graph:
         return nx.Graph(self.__connectivity)
 
     @property
