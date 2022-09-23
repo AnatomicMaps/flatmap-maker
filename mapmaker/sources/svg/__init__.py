@@ -529,6 +529,14 @@ class SVGLayer(MapLayer):
             geometry = shapely.geometry.LineString(coordinates)
         else:
             geometry = None
+
+        if geometry is not None and not geometry.is_valid:
+            if geometry.geom_type == 'Polygon':
+                # Try smoothing out boundary irregularities
+                geometry = geometry.buffer(20)
+            if not geometry.is_valid:
+                log.warning(f'Invalid geometry for {geometry.geom_type}, shape properties: {properties}')
+
         return geometry
 
 #===============================================================================
