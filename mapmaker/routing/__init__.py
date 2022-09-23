@@ -366,7 +366,7 @@ class Network(object):
             edge_dict['reversed'] = path_reversed
             edge_dict['length'] = cl_path.length  # Use in finding shortest route
 
-            segment_id = edge_dict['segment']  ##
+            segment_id = edge_dict['segment']
 
             edge_dict['start-node'] = start_node_id
             # Direction of a path at the node boundary, going towards the centre (radians)
@@ -705,9 +705,9 @@ class Network(object):
         ftu_terminals = set()
         terminal_dict = G.nodes[terminal_node]
         print('TD', terminal_dict)
-        if (ftu_layer := terminal_dict.get('ftu')) is not None:
-            if (terminal_feature := terminal_dict.get('feature-id')) is not None:
-                ftu_terminals.add(terminal_feature)
+        if ((ftu_layer := terminal_dict.get('ftu')) is not None
+        and (terminal_feature := terminal_dict.get('feature-id')) is not None):
+            ftu_terminals.add(terminal_feature)
             seen_edges = set()
             connected_nodes = [terminal_node]
             while len(connected_nodes):
@@ -787,7 +787,9 @@ class Network(object):
         for (node_0, node_1, key, edge_dict) in G.edges(keys=True, data=True):
             # ``edge-features`` is a list parallel with ``edge-nodes``
             edge_dict['edge-features'] = list(edge_dict['edge-nodes'].values())
-            path_edges[(node_0, node_1, key)] = edge_dict['edge-features']  # we will add the reverse edges after iterating over all edges
+
+            # We add the reverse edges after iterating over all edges
+            path_edges[(node_0, node_1, key)] = edge_dict['edge-features']
             if len(edge_dict['edge-features']):
                 node_dicts = [G.nodes[node_0]]
                 node_dicts.extend(edge_dict['edge-features'])
