@@ -220,11 +220,11 @@ def join_geometry(node, node_dict, edge_dict_0, edge_dict_1):
     geometry = []
     try:
         bz = smooth_join(edge_dict_0['path-end'][node],
-                            node_dict['edge-direction'][edge_dict_0['id']],
-                            node_dict['edge-direction'][edge_dict_1['id']] + math.pi,
+                            node_dict['edge-direction'][edge_dict_0['segment']],
+                            node_dict['edge-direction'][edge_dict_1['segment']] + math.pi,
                          edge_dict_1['path-end'][node])
     except KeyError:
-        log.warning(f"{edge_dict_0['path-id']}: Missing edge direction for {node} with {edge_dict_0['id']} and/or {edge_dict_1['id']}")
+        log.warning(f"{edge_dict_0['path-id']}: Missing edge direction for {node} with {edge_dict_0['segment']} and/or {edge_dict_1['segment']}")
         return geometry
 
     if edge_dict_0.get('path-id') == edge_dict_1.get('path-id'):
