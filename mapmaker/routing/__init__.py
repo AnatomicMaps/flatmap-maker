@@ -355,8 +355,9 @@ class Network(object):
 
             (cl_path, bz_path) = split_bezier_path_at_point(bz_path, end_node.centre)
 
-            # Set the end of the segment's centreline to the center of the end node
-            set_bezier_path_end_to_point(cl_path, end_node.centre)
+            # Set the end of the segment's centreline to the center of the end node for actual ``.node`` features
+            if end_node.properties.get('node', False):
+                set_bezier_path_end_to_point(cl_path, end_node.centre)
 
             segments = cl_path.asSegments()
             edge_dict['bezier-path'] = cl_path
@@ -417,8 +418,9 @@ class Network(object):
             while start_index < len(nodes) - 1:
                 seg_no += 1
                 start_node = nodes[start_index]
-                # Set the start of the centreline to the center of next start node
-                set_bezier_path_end_to_point(bz_path, start_node.centre)
+                # Set the start of the centreline to the center of next start node for actual ``.node`` features
+                if start_node.properties.get('node', False):
+                    set_bezier_path_end_to_point(bz_path, start_node.centre)
 
                 end_index = start_index + 1
                 # Loop must terminate as nodes[-1] is a map feature from above
