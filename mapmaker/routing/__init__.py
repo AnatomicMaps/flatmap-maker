@@ -641,8 +641,10 @@ class Network(object):
         # connecting them.
         result = {}
         segments = set()
-        node_0 = node_dict_0['feature-id']
-        node_1 = node_dict_1['feature-id']
+        node_0 = node_dict_0.get('feature-id')
+        node_1 = node_dict_1.get('feature-id')
+        if node_0 is None or node_1 is None:
+            return {'segments': segments}
         if (node_0, node_1) in self.__centreline_graph.edges:
             for key in self.__centreline_graph[node_0][node_1]:
                 segments.add(self.__centreline_graph.edges[node_0, node_1, key]['segment'])
@@ -675,7 +677,10 @@ class Network(object):
                 result = self.__join_segment_to_node(segment_1, dict_0)
             elif dict_1.get('feature-id'):
                 result = self.__join_feature_nodes(dict_0, dict_1)
-        result['segments'].update(segments)
+        if 'segments' in result:
+            result['segments'].update(segments)
+        else:
+            result['segments'] = segments
         return result
 
     def __closest_node_to(self, feature_node, segment_id):
@@ -861,6 +866,10 @@ class Network(object):
             for end_node, edge_data in G[start_node].items():
                 if edge_data[0].get('back-link'):
                     continue
+                direct_link = self.__join_feature_nodes(start_dict, G.nodes[end_node])
+                if len(direct_link['segments']):
+                    segment_set.update(direct_link['segments'])
+                    break
                 for key in edge_data:
                     edge = (start_node, end_node, key)
                     if edge not in seen_edges:
