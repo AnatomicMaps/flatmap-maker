@@ -596,20 +596,20 @@ class Network(object):
         segment_nodes = self.__segment_edge_by_segment[segment_id][0:2]
         result = {}
         segments = set()
-        node = node_dict['feature-id']
-        if node not in segment_nodes:
+        feature_id = node_dict['feature-id']
+        if feature_id not in segment_nodes:
             for n0 in segment_nodes:
-                if (n0, node) in self.__centreline_graph.edges:
-                    for key in self.__centreline_graph[n0][node]:
-                        segments.add(self.__centreline_graph.edges[n0, node, key]['segment'])
+                if (n0, feature_id) in self.__centreline_graph.edges:
+                    for key in self.__centreline_graph[n0][feature_id]:
+                        segments.add(self.__centreline_graph.edges[n0, feature_id, key]['segment'])
                     node_dict['segment-node'] = True
                     break
             if len(segments) > 1:
-                result['warning'] = f'Node {node} has several centreline segments connecting it {segment_id}: {segments}'
+                result['warning'] = f'Node {feature_id} has several centreline segments connecting it {segment_id}: {segments}'
             elif len(segments) == 0:
                 if (not node_dict.get('terminal', False)
                 and node_dict.get('node', False)):
-                    result['warning'] = f'Centreline segment {segment_id} has no path to node {node}'
+                    result['warning'] = f'Centreline segment {segment_id} has no path to node {feature_id}'
         result['segments'] = segments
         return result
 
