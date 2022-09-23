@@ -830,7 +830,10 @@ class Network(object):
         # Add reverse edges to the graph so we can traverse nodes in either direction
         for edge, path_features in path_edges.items():
             key = G.add_edge(edge[1], edge[0])
-            G.edges[(edge[1], edge[0], key)]['edge-features'] = list(reversed(path_features))
+            G.edges[(edge[1], edge[0], key)].update({
+                'edge-features': list(reversed(path_features)),
+                'back-link': True
+            })
 
         # Helper function used below
         def valid_feature_in_node_dicts(dicts, start_index):
@@ -856,6 +859,8 @@ class Network(object):
             if (segment_id := start_dict.get('segment-id')) is not None:
                 segment_set.add(segment_id)
             for end_node, edge_data in G[start_node].items():
+                if edge_data[0].get('back-link'):
+                    continue
                 for key in edge_data:
                     edge = (start_node, end_node, key)
                     if edge not in seen_edges:
