@@ -368,12 +368,8 @@ class Network(object):
             segment_id = edge_dict['segment']  ##
 
             edge_dict['start-node'] = start_node_id
-            try:
-                # Direction of a path at the node boundary, going towards the centre (radians)
-                self.__centreline_graph.nodes[start_node_id]['edge-direction'][segment_id] = segments[0].startAngle + math.pi
-            except KeyError:
-                print(start_node_id, end_node_id)
-                raise
+            # Direction of a path at the node boundary, going towards the centre (radians)
+            self.__centreline_graph.nodes[start_node_id]['edge-direction'][segment_id] = segments[0].startAngle + math.pi
             # Angle of the radial line from the node's centre to a path's intersection with the boundary (radians)
             self.__centreline_graph.nodes[start_node_id]['edge-node-angle'][end_node_id] = (
                                     (segments[0].pointAtTime(0.0) - start_node.centre).angle)
