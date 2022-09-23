@@ -160,8 +160,9 @@ class FeatureMap(object):
                     if len(features):
                         log.warning(f'Cannot find feature for {entity_name(anatomical_id)} ({anatomical_id}), substituted containing `{entity_name(substitute_id)}` region')
                         break
-            if len(anatomical_layers) == 0:
+            if len(features) == 1 or len(anatomical_layers) == 0:
                 return features
+
             # Check feature is contained in specified layers
             for anatomical_layer in anatomical_layers:
                 included_features = set()
