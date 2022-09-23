@@ -896,10 +896,10 @@ class Network(object):
         seen_terminals: set[str] = set()
         # Find nearest segment node to each terminal node
         for terminal_node, node_dict in G.nodes(data=True):
-            if (node_dict.get('terminal', False)
-            and terminal_node not in seen_terminals
-            and node_dict.get('feature-id') in segment_nodes):
                 (upstream_node, terminals) = self.__get_closest_segment_node(G, terminal_node, seen_terminals)
+            if (node_dict.get('terminal', False)                      # A terminal node
+            and terminal_node not in seen_terminals                   # not already processed
+            and node_dict.get('feature-id') not in segment_nodes):    # and not at the end of a centreline
                 if upstream_node is not None:
                     node_terminals[upstream_node].update(terminals)
 
