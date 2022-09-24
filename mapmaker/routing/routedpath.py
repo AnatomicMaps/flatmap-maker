@@ -366,7 +366,7 @@ class RoutedPath(object):
                     intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
                 coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
                 component_num += 1
-                path_line = shapely.geometry.LineString(coords)
+            path_line = shapely.geometry.LineString(coords)
             if path_line is not None:
                 # Draw path line
                 path_line = path_line.simplify(SMOOTHING_TOLERANCE, preserve_topology=False)
