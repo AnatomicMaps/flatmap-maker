@@ -553,12 +553,13 @@ class Network(object):
                 if feature_id in self.__expanded_centreline_graph:
                     result['cl-node'] = feature_id
                 if len(nodes := self.__nodes_by_ftu.get(feature_id, [])) > 0:
-                    result['ftu-ids'] = [node.feature_id for node in nodes]
+                    result['ftu-connections'] = [node.feature_id for node in nodes]
+                    result['ftu'] = connectivity_node[0]
+                elif len(connectivity_node[1]):
+                    result['ftu'] = connectivity_node[1][-1]  # Unused at present but useful for FC integration
             else:
                 log.warning(f'Cannot find feature for connectivity node {connectivity_node} ({full_node_name(*connectivity_node)})')
 
-        if len(connectivity_node[1]):
-            result['ftu'] = connectivity_node[1][-1]  # Unused at present but useful for FC integration
         return result
 
     def __segment_from_containers(self, start_dict, features, end_dict):
@@ -757,8 +758,8 @@ class Network(object):
             node_dict['terminal'] = (connectivity_graph.degree(node) == 1)
 
         for node, node_dict in connectivity_graph.nodes(data=True):
-            if (feature_ids := node_dict.get('ftu-ids')) is not None:
-                for cl_node in feature_ids:
+            if len(ftu_connections := node_dict.get('ftu-connections', [])):
+                for cl_node in ftu_connections:
                     count = 0
                     for connected_node in nx.dfs_preorder_nodes(connectivity_graph, source=node, depth_limit=3):
                         if (connected_cl_node := connectivity_graph.nodes[connected_node].get('cl-node')) is not None:
