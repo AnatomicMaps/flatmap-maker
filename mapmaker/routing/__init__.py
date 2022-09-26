@@ -744,6 +744,66 @@ class Network(object):
                                     connected_nodes.append(end)
         return(None, ftu_terminals)
 
+    def __terminal_graph(self, G: nx.MultiDiGraph, start_node, seen_terminals) -> nx.graph:
+    #======================================================================================
+        # Returns a graph of terminal features that are connected to the
+        # ``start_node``'s feature, with those features connected to the
+        # centreline network having an ``upstream`` attribute, giving
+        # the end feature of the centreline segment.
+
+        seen_nodes = set()
+        terminal_network = nx.Graph()
+
+        start_dict = G.nodes[start_node]
+        ftu_layer = start_dict.get('ftu')
+        last_feature = start_dict.get('feature-id')
+
+        def walk_paths_from_node(start_node, start_dict):
+            nonlocal last_feature
+            if start_node in seen_terminals:
+                return
+            if (start_feature := start_dict.get('feature-id')) is not None:
+                if len(ftu_connections := start_dict.get('ftu-connections', [])) == 0:
+                    # Not a connection to the c/l network so node is local to the FTU
+                    terminal_network.add_node(start_feature)
+                    seen_terminals.add(start_node)
+
+                for next_node, key_dicts in G[start_node].items():
+                    next_dict = G.nodes[next_node]
+                    if len(ftu_connections):
+                        # We have a connection to c/l network
+                        if ftu_layer == next_dict.get('ftu'):
+                            # Don't link to other terminals (besides how we've got to the connector)
+                            continue
+                    else:
+                       last_feature = start_feature
+
+                    for key, edge_dict in key_dicts.items():
+                        node_dicts = edge_dict.get('edge-features', []) + [next_dict]
+                        for node_dict in node_dicts:
+                            feature_id = node_dict.get('feature-id')
+                            closest_node = node_dict.get('closest-node')
+                            if node_dict.get('terminal', False):
+                                terminal_network.add_edge(last_feature, feature_id)
+                                last_feature = feature_id
+                            elif node_dict.get('segment-node', False):
+                                closest_node = feature_id
+                            elif (segment_id := node_dict.get('segment-id')) is not None:
+                                # We've reached a node that represents a centreline segment so
+                                # see which end of it is geometrically closest to the terminal
+                                closest_node = self.__closest_node_to(last_feature, segment_id)
+                                if (closest := node_dict.get('closest-node')) is None:
+                                    node_dict['closest-node'] = closest_node
+                                elif closest != closest_node:
+                                    node_dict['warning'] = f'Node {feature_id} is close to both {closest_node} and {closest}'
+                            if closest_node is not None:
+                                terminal_network.nodes[last_feature]['upstream'] = closest_node
+                                break
+                    walk_paths_from_node(next_node, next_dict)
+
+        walk_paths_from_node(start_node, start_dict)
+        return terminal_network
+
     def __route_graph_from_connectivity(self, path: Path, debug=False) -> tuple(nx.Graph, nx.Graph):
     #===============================================================================================
         connectivity_graph = path.connectivity
