@@ -155,6 +155,7 @@ class PathRouter(object):
                         offset = len(ordering)//2 - ((len(ordering)+1)%2)/2
                         route_graph.nodes[node_0]['offsets'][node_1] = route_index - offset
                         route_graph.nodes[node_1]['offsets'][node_0] = len(ordering) - route_index - 1 - offset
+
         return { route_number: RoutedPath(route_graph, route_number)
             for route_number, route_graph in enumerate(routes) }
 
@@ -360,7 +361,7 @@ class RoutedPath(object):
                         'path-id': edge_dict.get('path-id'),
                         'source': edge_dict.get('source')
                     }))
-                geometry.append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties = {
+                geometry.append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
                     'type': 'junction',
                     'path-id': edge_dict.get('path-id'),
                     'source': edge_dict.get('source')
