@@ -206,13 +206,8 @@ class Network(object):
 
         self.__centreline_nodes: dict[str, list[NetworkNode]] = defaultdict(list)  #! Centreline id --> [Network nodes]
         self.__nodes_by_ftu: dict[str, list[NetworkNode]] = defaultdict(list)      #! FTU id id --> {Network nodes}
-
-
         self.__containers_by_centreline = {}                #! Centreline id --> set of features that centreline is contained in
-
-
         self.__models_to_id: dict[str, str] = {}            #! Ontological term --> centreline id
-
         self.__feature_ids: set[str] = set()
         self.__full_ids: set[str] = set()                   #! A ``full id`` is a slash-separated list of feature ids
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
