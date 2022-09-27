@@ -126,7 +126,7 @@ class PathRouter(object):
                     # sorted list of edges in counter-clockwise order
                     node_edge_order[node] =  tuple(x[0] for x in sorted(node_data.get('edge-node-angle').items(), key=lambda x: x[1]))
             for node_0, node_1, edge_dict in route_graph.edges(data=True):
-                if edge_dict.get('type') != 'terminal':
+                if edge_dict.get('type') not in ['terminal', 'upstream']:
                     edge = (node_0, node_1)
                     shared_paths[edge].add(route_number)
                     edges.add(edge)
@@ -143,7 +143,7 @@ class PathRouter(object):
             for _, node_dict in route_graph.nodes(data=True):
                 node_dict['offsets'] = {}
             for node_0, node_1, edge_dict in route_graph.edges(data=True):
-                if edge_dict.get('type') != 'terminal':
+                if edge_dict.get('type') not in ['terminal', 'upstream']:
                     if (node_0, node_1) in edge_order:
                         ordering = edge_order[(node_0, node_1)]
                     else:
@@ -325,7 +325,7 @@ class RoutedPath(object):
                 # Draw path line
                 path_line = path_line.simplify(SMOOTHING_TOLERANCE, preserve_topology=False)
                 geometry.append(GeometricShape(path_line, properties))
-                if edge_dict.get('type') != 'terminal':
+                if edge_dict.get('type') not in ['terminal', 'upstream']:
                     # Save where branch node edges will connect to offsetted path line
                     edge_dict['path-end'] = {
                         edge_dict['start-node']: BezierPoint(*path_line.coords[0]),
@@ -337,8 +337,16 @@ class RoutedPath(object):
 
         # Draw paths to terminal nodes
         terminal_nodes = set()
-        for node_0, node_1, edge_dict in self.__graph.edges.data():
-            if edge_dict.get('type') == 'terminal':
+        for node_0, node_1, edge_dict in self.__graph.edges.data():    ## This assumes node_1 is the terminal...
+            if (edge_type := edge_dict.get('type')) == 'terminal':
+                ## Draw straight lines...
+                start_coords = self.__graph.nodes[node_0]['geometry'].centroid.coords[0]
+                end_coords = self.__graph.nodes[node_1]['geometry'].centroid.coords[0]
+                geometry.append(GeometricShape.line(start_coords, end_coords, properties={
+                        'path-id': edge_dict.get('path-id'),
+                        'source': edge_dict.get('source')
+                    }))
+            elif edge_type == 'upstream':
                 terminal_nodes.update([node_0, node_1])
                 start_point = self.__graph.nodes[node_0]['start-point']
                 angle = self.__graph.nodes[node_0]['direction']
@@ -364,7 +372,7 @@ class RoutedPath(object):
                 edge_dicts = []
                 edge_nodes = []
                 for node_0, node_1, edge_dict in self.__graph.edges(node, data=True):
-                    if edge_dict.get('type') != 'terminal':
+                    if edge_dict.get('type') not in ['terminal', 'upstream']:
                         edge_dicts.append(edge_dict)
                         edge_nodes.append(node_1)
                 if len(edge_nodes) == 1 and edge_nodes[0] not in terminal_nodes:
