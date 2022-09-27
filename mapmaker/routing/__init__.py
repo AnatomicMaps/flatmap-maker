@@ -751,15 +751,17 @@ class Network(object):
         # centreline network having an ``upstream`` attribute, giving
         # the end feature of the centreline segment.
 
-        seen_nodes = set()
         terminal_network = nx.Graph()
-
         start_dict = G.nodes[start_node]
+        if not start_dict.get('terminal', False):
+            return terminal_network
+
         ftu_layer = start_dict.get('ftu')
         last_feature = start_dict.get('feature-id')
 
         def walk_paths_from_node(start_node, start_dict):
             nonlocal last_feature
+
             if start_node in seen_terminals:
                 return
             if (start_feature := start_dict.get('feature-id')) is not None:
@@ -777,29 +779,30 @@ class Network(object):
                             continue
                     else:
                        last_feature = start_feature
-
-                    for key, edge_dict in key_dicts.items():
+                    for nk, (key, edge_dict) in enumerate(key_dicts.items()):
                         node_dicts = edge_dict.get('edge-features', []) + [next_dict]
                         for node_dict in node_dicts:
                             feature_id = node_dict.get('feature-id')
-                            closest_node = node_dict.get('closest-node')
-                            if node_dict.get('terminal', False):
-                                terminal_network.add_edge(last_feature, feature_id)
-                                last_feature = feature_id
-                            elif node_dict.get('segment-node', False):
-                                closest_node = feature_id
-                            elif (segment_id := node_dict.get('segment-id')) is not None:
+                            if (segment_id := node_dict.get('segment-id')) is not None:
                                 # We've reached a node that represents a centreline segment so
                                 # see which end of it is geometrically closest to the terminal
                                 closest_node = self.__closest_node_to(last_feature, segment_id)
-                                if (closest := node_dict.get('closest-node')) is None:
-                                    node_dict['closest-node'] = closest_node
-                                elif closest != closest_node:
-                                    node_dict['warning'] = f'Node {feature_id} is close to both {closest_node} and {closest}'
+                                node_dict['closest-node'] = closest_node
+
+                            elif feature_id is not None:
+                                closest_node = node_dict.get('closest-node')
+                                if (closest_node := node_dict.get('closest-node')) is not None:
+                                    pass
+                                elif node_dict.get('segment-node', False):
+                                    closest_node = feature_id
+                                elif len(node_dict.get('ftu-connections', [])) == 0:
+                                    terminal_network.add_edge(last_feature, feature_id)
+                                    last_feature = feature_id
                             if closest_node is not None:
                                 terminal_network.nodes[last_feature]['upstream'] = closest_node
                                 break
-                    walk_paths_from_node(next_node, next_dict)
+                    if not next_dict.get('segment-node', False):
+                        walk_paths_from_node(next_node, next_dict)
 
         walk_paths_from_node(start_node, start_dict)
         return terminal_network
