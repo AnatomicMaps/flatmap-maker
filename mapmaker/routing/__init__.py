@@ -530,6 +530,8 @@ class Network(object):
                 result['segment-id'] = segment_id
                 if segment_id in self.__expanded_centreline_graph:
                     result['cl-node'] = segment_id
+                else:
+                    log.error(f'Centreline segment {segment_id} missing from expanded graph...')
         else:
             feature_id = None
             features = self.__feature_map.find_path_features_by_anatomical_id(*connectivity_node)
