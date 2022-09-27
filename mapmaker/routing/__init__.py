@@ -211,7 +211,7 @@ class Network(object):
         self.__feature_ids: set[str] = set()
         self.__full_ids: set[str] = set()                   #! A ``full id`` is a slash-separated list of feature ids
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
-        self.__missing_feature_ids = set()
+        self.__missing_identifiers = set()
 
         # The following are assigned once we have feature geometry
         self.__centreline_graph = None                      #! Edges are centreline segments between intermediate nodes.
@@ -303,11 +303,11 @@ class Network(object):
 
     def __map_feature(self, feature_id):
     #===================================
-        if feature_id not in self.__missing_feature_ids:
+        if feature_id not in self.__missing_identifiers:
             if (feature := self.__feature_map.get_feature(feature_id)) is not None:
                 return feature
             log.error('Cannot find network feature: {}'.format(feature_id))
-            self.__missing_feature_ids.add(feature_id)
+            self.__missing_identifiers.add(feature_id)
         return None
 
     def __set_properties_from_feature(self, feature_id):
@@ -554,8 +554,9 @@ class Network(object):
                     result['ftu'] = connectivity_node[0]
                 elif len(connectivity_node[1]):
                     result['ftu'] = connectivity_node[1][-1]  # Unused at present but useful for FC integration
-            else:
+            elif connectivity_node not in self.__missing_identifiers:
                 log.warning(f'Cannot find feature for connectivity node {connectivity_node} ({full_node_name(*connectivity_node)})')
+                self.__missing_identifiers.add(connectivity_node)
 
         return result
 
