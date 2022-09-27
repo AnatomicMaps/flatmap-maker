@@ -699,49 +699,6 @@ class Network(object):
                 closest_node = node
         return closest_node
 
-    def __get_closest_segment_node(self, G, terminal_node, seen_terminals):
-    #======================================================================
-        ftu_terminals = set()
-        terminal_dict = G.nodes[terminal_node]
-        print('TD', terminal_dict)
-        if ((ftu_layer := terminal_dict.get('ftu')) is not None
-        and (terminal_feature := terminal_dict.get('feature-id')) is not None):
-            ftu_terminals.add(terminal_feature)
-            seen_edges = set()
-            connected_nodes = [terminal_node]
-            while len(connected_nodes):
-                nodes = connected_nodes
-                connected_nodes = []
-                for start in nodes:
-                    for end, edge_data in G[start].items():
-                        for key in edge_data:
-                            edge = (start, end, key)
-                            if edge not in seen_edges:
-                                seen_edges.add(edge)
-                                node_dicts = G.edges[edge].get('edge-features', []) + [G.nodes[end]]
-                                for node_dict in node_dicts:
-                                    feature_id = node_dict.get('feature-id')
-                                    if ftu_layer == node_dict.get('ftu'):
-                                        if node_dict.get('terminal', False):
-                                            ftu_terminals.add(feature_id)
-                                            terminal_feature = feature_id
-                                            seen_terminals.add(end)    # A path feature node can't be a terminal
-                                    if not node_dict.get('terminal', False) and node_dict.get('segment-node', False):
-                                        closest_node = feature_id
-                                    elif (segment_id := node_dict.get('segment-id')) is not None:
-                                        closest_node = self.__closest_node_to(terminal_feature, segment_id)
-                                        if (closest := node_dict.get('closest-node')) is None:
-                                            node_dict['closest-node'] = closest_node
-                                        elif closest != closest_node:
-                                            node_dict['warning'] = f'Node {feature_id} is close to both {closest_node} and {closest}'
-                                    else:
-                                        closest_node = node_dict.get('closest-node')
-                                    if closest_node is not None:
-                                        return (closest_node, ftu_terminals)
-                                if ftu_layer == node_dicts[-1].get('ftu'):
-                                    connected_nodes.append(end)
-        return(None, ftu_terminals)
-
     def __terminal_graph(self, G: nx.MultiDiGraph, start_node, seen_terminals) -> nx.graph:
     #======================================================================================
         # Returns a graph of terminal features that are connected to the
@@ -971,18 +928,14 @@ class Network(object):
         for segment_id in segment_set:
             segment_nodes.update(self.__segment_edge_by_segment[segment_id][0:2])
 
-
-        node_terminals: dict[str, set[str]] = defaultdict(set)   # node --> terminals
-        seen_terminals: set[str] = set()
+        terminal_graphs: [nx.Graph] = []
+        seen_terminals: set[tuple] = set()
         # Find nearest segment node to each terminal node
         for terminal_node, node_dict in G.nodes(data=True):
-                (upstream_node, terminals) = self.__get_closest_segment_node(G, terminal_node, seen_terminals)
             if (node_dict.get('terminal', False)                      # A terminal node
             and terminal_node not in seen_terminals                   # not already processed
             and node_dict.get('feature-id') not in segment_nodes):    # and not at the end of a centreline
-                if upstream_node is not None:
-                    node_terminals[upstream_node].update(terminals)
-
+                terminal_graphs.append(self.__terminal_graph(G, terminal_node, seen_terminals))
 
         # Construct the route graph from the centreline segments that make it up
         route_graph = nx.MultiGraph()
@@ -993,15 +946,18 @@ class Network(object):
             route_graph.add_edge(node_0, node_1, **self.__centreline_graph.edges[node_0, node_1, key])
 
         # Add edges to terminal nodes that aren't part of the centreline network
-        for end_node, terminal_nodes in node_terminals.items():
-            #assert route_graph.nodes[end_node]['degree'] == 1  ## May not be true...
-            # This will be used when drawing path to terminal node
-            if end_node in route_graph:
-                route_graph.nodes[end_node]['direction'] = list(route_graph.nodes[end_node]['edge-direction'].items())[0][1]
-                for terminal_id in terminal_nodes:
-                    route_graph.add_edge(end_node, terminal_id, type='terminal')
-                    node_dict = route_graph.nodes[terminal_id]
-                    node_dict.update(self.__set_properties_from_feature(terminal_id))
+        for terminal_graph in terminal_graphs:
+            for n0, n1 in terminal_graph.edges:
+                route_graph.add_edge(n0, n1, type='terminal')
+            for terminal_id, upstream in terminal_graph.nodes(data='upstream'):
+                if upstream is not None:
+                    route_graph.add_edge(upstream, terminal_id, type='upstream')
+                    route_graph.nodes[upstream]['direction'] = list(route_graph.nodes[upstream]['edge-direction'].items())[0][1]
+                if terminal_id not in route_graph:
+                    log.error(path.id, ' terminal ', terminal_id, ' missing from route graph...')
+                    continue
+                node_dict = route_graph.nodes[terminal_id]
+                node_dict.update(self.__set_properties_from_feature(terminal_id))
 
         if debug:
             return (route_graph, G, connectivity_graph)
