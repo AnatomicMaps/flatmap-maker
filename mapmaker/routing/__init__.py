@@ -658,6 +658,7 @@ class Network(object):
         elif len(segments) == 0:
             if (not node_dict_0.get('terminal', False)
             and not node_dict_1.get('terminal', False)
+            and ((ftu := node_dict_0.get('ftu')) != node_dict_1.get('ftu') or ftu is None)
             and (node_dict_0.get('node', False) or node_dict_1.get('node', False))):
                 result['warning'] = f'No centreline segment between nodes {node_0} and {node_1}'
         result['segments'] = segments
