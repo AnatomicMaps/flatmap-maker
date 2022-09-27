@@ -937,7 +937,7 @@ class Network(object):
                 direct_link = self.__join_feature_nodes(start_dict, G.nodes[end_node])
                 if len(direct_link['segments']):
                     segment_set.update(direct_link['segments'])
-                    break
+                    continue
                 for key in edge_data:
                     edge = (start_node, end_node, key)
                     if edge not in seen_edges:
