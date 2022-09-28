@@ -754,6 +754,9 @@ class Network(object):
                                 elif len(node_dict.get('ftu-connections', [])) == 0:
                                     terminal_network.add_edge(last_feature, feature_id)
                                     last_feature = feature_id
+                            else:
+                                closest_node = None
+
                             if closest_node is not None:
                                 terminal_network.nodes[last_feature]['upstream'] = closest_node
                                 break
