@@ -17,12 +17,12 @@ dependencies:
   - requests>=2.28.1,<3.0.0
   - pyparsing>=3.0.9,<4.0.0
   - pyyaml>=6.0,<7.0
-  - rdflib>=6.1.1,<7.0.0
+  - rdflib>=6.2.0,<7.0.0
   - shapely>=1.8.2,<2.0.0
   - pyproj>=3.3.1,<4.0.0
   - mercantile>=1.2.1,<2.0.0
   - mbutil>=0.3.0,<0.4.0
-  - networkx>=2.8.4,<3.0.0
+  - networkx>=2.8.6,<3.0.0
   - openpyxl>=3.0.10,<4.0.0
   - tqdm>=4.64.0,<5.0.0
   - lxml>=4.9.1,<5.0.0
@@ -39,7 +39,7 @@ dependencies:
   - conda-forge::coincbc
   - pip
   - pip:
-      - https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.1.1/flatmapknowledge-1.1.1-py3-none-any.whl
+      - https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.1.4/flatmapknowledge-1.1.4-py3-none-any.whl
       - opencv-python-headless>=4.6.0.66,<4.7.0.0
       - skia-python>=87.4,<88.0
       - cssselect2>=0.6.0,<0.7.0
