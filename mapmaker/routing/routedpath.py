@@ -335,35 +335,76 @@ class RoutedPath(object):
                     self.__graph.nodes[edge_dict['end-node']]['start-point'] = BezierPoint(*path_line.coords[-1])
 
         # Draw paths to terminal nodes
+
+        def draw_arrow(start_point, end_point):
+            heading = (end_point - start_point).angle
+            end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
+            geometry.append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
+                'type': 'junction',
+                'path-id': edge_dict.get('path-id'),
+                'source': edge_dict.get('source')
+            }))
+
         terminal_nodes = set()
         for node_0, node_1, edge_dict in self.__graph.edges.data():    ## This assumes node_1 is the terminal...
             if (edge_type := edge_dict.get('type')) == 'terminal':
-                ## Draw straight lines...
+                # Draw straight lines...
+                terminal_nodes.update([node_0, node_1])
                 start_coords = self.__graph.nodes[node_0]['geometry'].centroid.coords[0]
                 end_coords = self.__graph.nodes[node_1]['geometry'].centroid.coords[0]
                 geometry.append(GeometricShape.line(start_coords, end_coords, properties={
                         'path-id': edge_dict.get('path-id'),
                         'source': edge_dict.get('source')
                     }))
+                if self.__graph.degree(node_0) == 1:
+                    draw_arrow(coords_to_point(end_coords), coords_to_point(start_coords))
+                if self.__graph.degree(node_1) == 1:
+                    draw_arrow(coords_to_point(start_coords), coords_to_point(end_coords))
+
             elif edge_type == 'upstream':
                 terminal_nodes.update([node_0, node_1])
-                start_point = self.__graph.nodes[node_0]['start-point']
-                angle = self.__graph.nodes[node_0]['direction']
-                end_coords = self.__graph.nodes[node_1]['geometry'].centroid.coords[0]
-                end_point = coords_to_point(end_coords)
-                heading = (end_point - start_point).angle
-                end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
-                bz = bezier_connect(start_point, end_point, angle, heading)
-                geometry.append(GeometricShape(
-                    bezier_to_linestring(bz), {
+                if self.__graph.nodes[node_0].get('type') == 'upstream':
+                    terminal_node = node_1
+                    upstream_node = node_0
+                elif self.__graph.nodes[node_1].get('type') == 'upstream':
+                    terminal_node = node_0
+                    upstream_node = node_1
+                else:
+                    raise ValueError(f'>>>>>>>>>>>>> Missing upstream node... {self.__path_id} {node_0} {node_1}')
+                # assert self.__graph.nodes[terminal_node]['type'] == 'terminal'
+
+                if (start_point := self.__graph.nodes[upstream_node].get('start-point')) is not None:
+                    start_point = self.__graph.nodes[upstream_node]['start-point']
+                    angle = self.__graph.nodes[upstream_node]['direction']
+                    end_coords = self.__graph.nodes[terminal_node]['geometry'].centroid.coords[0]
+                    end_point = coords_to_point(end_coords)
+                    heading = (end_point - start_point).angle
+                    end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
+                    bz = bezier_connect(start_point, end_point, angle, heading)
+                    geometry.append(GeometricShape(
+                        bezier_to_linestring(bz), {
+                            'path-id': edge_dict.get('path-id'),
+                            'source': edge_dict.get('source')
+                        }))
+                    # Draw arrow iff degree(node_1) == 1
+                    if self.__graph.degree(terminal_node) == 1:
+                        geometry.append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
+                            'type': 'junction',
+                            'path-id': edge_dict.get('path-id'),
+                            'source': edge_dict.get('source')
+                        }))
+                else:
+                    # This is when the upstream node doesn't have an ongoing centreline
+                    start_coords = self.__graph.nodes[upstream_node]['geometry'].centroid.coords[0]
+                    end_coords = self.__graph.nodes[terminal_node]['geometry'].centroid.coords[0]
+                    geometry.append(GeometricShape.line(start_coords, end_coords, properties={
                         'path-id': edge_dict.get('path-id'),
                         'source': edge_dict.get('source')
                     }))
-                geometry.append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
-                    'type': 'junction',
-                    'path-id': edge_dict.get('path-id'),
-                    'source': edge_dict.get('source')
-                }))
+                    if self.__graph.degree(upstream_node) == 1:
+                        draw_arrow(coords_to_point(end_coords), coords_to_point(start_coords))
+                    if self.__graph.degree(terminal_node) == 1:
+                        draw_arrow(coords_to_point(start_coords), coords_to_point(end_coords))
 
         # Connect edges at branch nodes
         for node, node_dict in self.__graph.nodes(data=True):
