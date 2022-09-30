@@ -121,7 +121,7 @@ class PathRouter(object):
             for node, node_data in route_graph.nodes(data=True):
                 if node not in node_edge_order and node_data.get('degree', 0) > 2:
                     # sorted list of edges in counter-clockwise order
-                    node_edge_order[node] =  tuple(x[0] for x in sorted(node_data.get('edge-node-angle').items(), key=lambda x: x[1]))
+                    node_edge_order[node] = tuple(x[0] for x in sorted(node_data.get('edge-node-angle').items(), key=lambda x: x[1]))
             for node_0, node_1, edge_dict in route_graph.edges(data=True):
                 if edge_dict.get('type') not in ['terminal', 'upstream']:
                     edge = (node_0, node_1)
