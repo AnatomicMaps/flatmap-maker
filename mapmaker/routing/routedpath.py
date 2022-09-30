@@ -110,14 +110,14 @@ class PathRouter(object):
             for path_id, route_graph in route_graphs.items():
                 if path_id not in seen_paths:
                     if len(route_graph):
-                        routes.append(route_graph)
+                        routes.append((path_id, route_graph))
 
         # Identify shared sub-paths
         edges = set()
         node_edge_order = {}
         shared_paths = defaultdict(set)
 
-        for route_number, route_graph in enumerate(routes):
+        for route_number, (_, route_graph) in enumerate(routes):
             for node, node_data in route_graph.nodes(data=True):
                 if node not in node_edge_order and node_data.get('degree', 0) > 2:
                     # sorted list of edges in counter-clockwise order
@@ -136,7 +136,7 @@ class PathRouter(object):
         else:
             edge_order = { edge: list(route) for edge, route in shared_paths.items() }
 
-        for route_number, route_graph in enumerate(routes):
+        for route_number, (_, route_graph) in enumerate(routes):
             for _, node_dict in route_graph.nodes(data=True):
                 node_dict['offsets'] = {}
             for node_0, node_1, edge_dict in route_graph.edges(data=True):
@@ -153,8 +153,8 @@ class PathRouter(object):
                         route_graph.nodes[node_0]['offsets'][node_1] = route_index - offset
                         route_graph.nodes[node_1]['offsets'][node_0] = len(ordering) - route_index - 1 - offset
 
-        return { route_number: RoutedPath(route_graph, route_number)
-            for route_number, route_graph in enumerate(routes) }
+        return { route_number: RoutedPath(path_id, route_graph, route_number)
+            for route_number, (path_id, route_graph) in enumerate(routes) }
 
 #===============================================================================
 
@@ -263,7 +263,8 @@ def smooth_join(e0, a0, a1, e1):
 #===============================================================================
 
 class RoutedPath(object):
-    def __init__(self, route_graph: nx.Graph, number: int):
+    def __init__(self, path_id: str, route_graph: nx.Graph, number: int):
+        self.__path_id = path_id
         self.__graph = route_graph
         self.__number = number
         self.__node_set = {node for node, data in route_graph.nodes(data=True)
