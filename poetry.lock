@@ -118,11 +118,11 @@ optional = false
 python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.11.1/mapknowledge-0.11.1-py3-none-any.whl"}
+mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.11.5/mapknowledge-0.11.5-py3-none-any.whl"}
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.1.1/flatmapknowledge-1.1.1-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.1.4/flatmapknowledge-1.1.4-py3-none-any.whl"
 [[package]]
 name = "idna"
 version = "3.4"
