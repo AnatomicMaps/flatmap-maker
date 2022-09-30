@@ -687,7 +687,7 @@ class Network(object):
 
     def __closest_node_to(self, feature_node, segment_id):
     #=====================================================
-        # Find closest segment node to feature_node
+        # Find segment's node that is closest to ``feature_node``.
         feature = self.__feature_map.get_feature(feature_node)
         feature_centre = feature.geometry.centroid
         closest_node = None
@@ -742,24 +742,25 @@ class Network(object):
                             if (segment_id := node_dict.get('segment-id')) is not None:
                                 # We've reached a node that represents a centreline segment so
                                 # see which end of it is geometrically closest to the terminal
-                                closest_node = self.__closest_node_to(last_feature, segment_id)
-                                node_dict['closest-node'] = closest_node
-
+                                upstream_node = self.__closest_node_to(last_feature, segment_id)
+                                node_dict['upstream-node'] = upstream_node
                             elif feature_id is not None:
-                                closest_node = node_dict.get('closest-node')
-                                if (closest_node := node_dict.get('closest-node')) is not None:
+                                if (upstream_node := node_dict.get('upstream-node')) is not None:
                                     pass
                                 elif node_dict.get('segment-node', False):
-                                    closest_node = feature_id
+                                    upstream_node = feature_id
                                 elif len(node_dict.get('ftu-connections', [])) == 0:
                                     terminal_network.add_edge(last_feature, feature_id)
                                     last_feature = feature_id
                             else:
-                                closest_node = None
-
-                            if closest_node is not None:
-                                terminal_network.nodes[last_feature]['upstream'] = closest_node
+                                upstream_node = None
+                            if upstream_node is not None and upstream_node != last_feature:
+                                if 'upstream' in terminal_network.nodes[last_feature]:
+                                    terminal_network.nodes[last_feature]['upstream'].add(upstream_node)
+                                else:
+                                    terminal_network.nodes[last_feature]['upstream'] = {upstream_node}
                                 break
+
                     if not next_dict.get('segment-node', False):
                         walk_paths_from_node(next_node, next_dict)
 
@@ -932,14 +933,14 @@ class Network(object):
         for segment_id in segment_set:
             segment_nodes.update(self.__segment_edge_by_segment[segment_id][0:2])
 
-        terminal_graphs: [nx.Graph] = []
+        terminal_graphs: {tuple: nx.Graph} = {}
         seen_terminals: set[tuple] = set()
         # Find nearest segment node to each terminal node
         for terminal_node, node_dict in G.nodes(data=True):
             if (node_dict.get('terminal', False)                      # A terminal node
             and terminal_node not in seen_terminals                   # not already processed
             and node_dict.get('feature-id') not in segment_nodes):    # and not at the end of a centreline
-                terminal_graphs.append(self.__terminal_graph(G, terminal_node, seen_terminals))
+                terminal_graphs[terminal_node] = self.__terminal_graph(G, terminal_node, seen_terminals)
 
         # Construct the route graph from the centreline segments that make it up
         route_graph = nx.MultiGraph()
@@ -950,21 +951,27 @@ class Network(object):
             route_graph.add_edge(node_0, node_1, **self.__centreline_graph.edges[node_0, node_1, key])
 
         # Add edges to terminal nodes that aren't part of the centreline network
-        for terminal_graph in terminal_graphs:
-            for n0, n1 in terminal_graph.edges:
-                route_graph.add_edge(n0, n1, type='terminal')
-            for terminal_id, upstream in terminal_graph.nodes(data='upstream'):
-                if upstream is not None:
-                    route_graph.add_edge(upstream, terminal_id, type='upstream')
-                    route_graph.nodes[upstream]['direction'] = list(route_graph.nodes[upstream]['edge-direction'].items())[0][1]
-                if terminal_id not in route_graph:
-                    log.error(path.id, ' terminal ', terminal_id, ' missing from route graph...')
-                    continue
+        for terminal_graph in terminal_graphs.values():
+            for terminal_id, upstream_nodes in terminal_graph.nodes(data='upstream'):
+                # Each local node is a ``terminal`` node in the route graph
+                route_graph.add_node(terminal_id, type='terminal')
                 node_dict = route_graph.nodes[terminal_id]
                 node_dict.update(self.__set_properties_from_feature(terminal_id))
+                # Add links to upstream nodes in the c/l network
+                if upstream_nodes is not None:
+                    for upstream_node in upstream_nodes:
+                        if upstream_node not in route_graph:
+                            # This is the case when the upstream node's centreline hasn't been found
+                            route_graph.add_node(upstream_node, **self.__centreline_graph.nodes[upstream_node])
+                        route_graph.add_edge(upstream_node, terminal_id, type='upstream')
+                        route_graph.nodes[upstream_node]['type'] = 'upstream'
+                        route_graph.nodes[upstream_node]['direction'] = list(route_graph.nodes[upstream_node]['edge-direction'].items())[0][1]
+            # Now add edges between local nodes in FTU
+            for n0, n1 in terminal_graph.edges:
+                route_graph.add_edge(n0, n1, type='terminal')
 
         if debug:
-            return (route_graph, G, connectivity_graph)
+            return (route_graph, G, connectivity_graph, terminal_graphs)
         else:
             return route_graph
 
