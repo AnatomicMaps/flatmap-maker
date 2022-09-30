@@ -25,7 +25,7 @@ ARROW_LENGTH = 4500
 MIN_EDGE_JOIN_RADIUS = 6000     ## needs to be some fraction of map size...
 
 # Path separation gap
-PATH_SEPARATION = 0.2*MIN_EDGE_JOIN_RADIUS
+PATH_SEPARATION = 0.3*MIN_EDGE_JOIN_RADIUS
 
 # Tolerance used when simplifying Shapely objects
 SMOOTHING_TOLERANCE = 10
