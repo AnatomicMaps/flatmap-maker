@@ -101,6 +101,10 @@ class PathRouter(object):
                             routes.append((f'{pre_path}/{post_path}', joined_paths))
                             seen_paths.append(pre_path)
                             seen_paths.append(post_path)
+                            # Make sure nodes marked as upstream are still flagged in joined graph
+                            if 'upstream' in [route_graphs[pre_path].nodes[join_node].get('type'),
+                                              route_graphs[post_path].nodes[join_node].get('type')]:
+                                joined_paths.nodes[join_node]['type'] = 'upstream'
                             break
             # Now add in the paths that haven't been paired
             for path_id, route_graph in route_graphs.items():
