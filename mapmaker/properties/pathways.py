@@ -309,7 +309,7 @@ class NodeTypeFinder:
             if node_type is None:
                 node_type = 'dendrite'
             else:
-                log(f'Node {node} in {self.__path_id} is both axon and dendrite')
+                log.warning(f'SCKAN knowledge error: node {node} in {self.__path_id} is both axon and dendrite')
         return node_type
 
     ## Keeping this for reference until can clarify meaning of axon/dendrite
@@ -363,7 +363,7 @@ class Path(object):
                 # Construct a graph of SciCrunch's connected pairs
                 self.__path_type = path_type_from_phenotypes(knowledge.get('phenotypes', []))
                 if self.__path_type == '':
-                    log.warning(f'Path {self.__id} has no phenotype, defaulting to CNS')
+                    log.warning(f'SCKAN knowledge error: {self.__id} path has no phenotype, defaulting to CNS')
                     self.__path_type = 'cns'
                 G = nx.Graph()
                 node_type_finder = NodeTypeFinder(knowledge.get('axons', []),
