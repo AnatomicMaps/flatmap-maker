@@ -79,33 +79,29 @@ class PathRouter(object):
             routes_by_source[route_graph.graph['source']][path_id] = route_graph
 
         for route_graphs in routes_by_source.values():
-            pre_ganglionic_nodes = defaultdict(set)
             pre_types = {}
-            post_ganglionic_nodes = defaultdict(set)
             post_paths = defaultdict(set)
             # Find the paths and nodes we are interested in
             for path_id, route_graph in route_graphs.items():
                 if route_graph.graph.get('path-type') in PRE_GANGLIONIC_TYPES:
-                    for node, degree in route_graph.degree():
-                        if degree == 1:
-                            pre_ganglionic_nodes[path_id].add(node)
-                            pre_types[path_id] = route_graph.graph.get('path-type')[:4]
+                    pre_types[path_id] = route_graph.graph.get('path-type')[:4]
                 elif route_graph.graph.get('path-type') in POST_GANGLIONIC_TYPES:
                     for node, degree in route_graph.degree():
-                        if degree == 1:
-                            post_ganglionic_nodes[path_id].add(node)
-                            post_paths[route_graph.graph.get('path-type')[:4]].add(path_id)
+                        post_paths[route_graph.graph.get('path-type')[:4]].add(path_id)
             # Look for pairs and add them to the list of routes
             seen_paths = []
             for pre_path, path_type in pre_types.items():
-                pre_nodes = pre_ganglionic_nodes[pre_path]
+                pre_nodes = set(route_graphs[pre_path].nodes)
                 for post_path in post_paths[path_type]:
-                    if len(pre_nodes & post_ganglionic_nodes[post_path]) == 1:
-                        routes.append((f'{pre_path}/{post_path}',
-                            nx.algorithms.compose(route_graphs[pre_path], route_graphs[post_path])))
-                        seen_paths.append(pre_path)
-                        seen_paths.append(post_path)
-                        break
+                    if len(join_nodes := (pre_nodes & set(route_graphs[post_path].nodes))) == 1:
+                        join_node = join_nodes.pop()
+                        if (route_graphs[pre_path].degree(join_node) == 1
+                        and route_graphs[post_path].degree(join_node) == 1):
+                            joined_paths = nx.algorithms.compose(route_graphs[pre_path], route_graphs[post_path])
+                            routes.append((f'{pre_path}/{post_path}', joined_paths))
+                            seen_paths.append(pre_path)
+                            seen_paths.append(post_path)
+                            break
             # Now add in the paths that haven't been paired
             for path_id, route_graph in route_graphs.items():
                 if path_id not in seen_paths:
