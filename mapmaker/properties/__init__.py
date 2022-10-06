@@ -171,9 +171,9 @@ class ExternalProperties(object):
                 feature_properties['kind'] = 'scaffold'
             elif 'simulations' in feature_properties:
                 feature_properties['kind'] = 'simulation'
-        if 'models' in feature_properties:
+        if (entity := feature_properties.get('models')) is not None and entity.strip() != '':
             # Make sure our knowledgebase knows about the anatomical object
-            knowledge = get_knowledge(feature_properties['models'])
+            knowledge = get_knowledge(entity)
             if 'label' not in feature_properties:
                 feature_properties['label'] = knowledge.get('label')
         elif 'label' not in feature_properties and 'name' in feature_properties:
