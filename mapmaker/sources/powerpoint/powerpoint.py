@@ -21,6 +21,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import NewType, Optional
 
 #===============================================================================
 
@@ -34,6 +35,12 @@ from pptx.dml.fill import FillFormat
 from pptx.enum.dml import MSO_COLOR_TYPE, MSO_FILL_TYPE, MSO_THEME_COLOR   # type: ignore
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.shapes.base import BaseShape as PptxShape
+from pptx.shapes.group import GroupShape as PptxGroupShape
+from pptx.shapes.shapetree import GroupShapes as PptxGroupShapes
+from pptx.shapes.shapetree import SlideShapes as PptxSlideShapes
+
+from pptx.slide import Slide as PptxSlide
 import pptx.shapes.connector
 
 #===============================================================================
@@ -129,7 +136,7 @@ class Powerpoint():
         return self.__bounds
 
     @property
-    def slides(self):
+    def slides(self) -> list[Slide]:
         return self.__slides
 
     @property
@@ -139,7 +146,7 @@ class Powerpoint():
 #===============================================================================
 
 class Slide():
-    def __init__(self, slide, theme, transform):
+    def __init__(self, index: int, slide:PptxSlide, theme, transform):
         self.__id = None
         # Get any layer directives
         if slide.has_notes_slide:
@@ -155,7 +162,7 @@ class Slide():
         self.__colour_map = ColourMap(theme, slide)
         self.__slide = slide
         self.__transform = transform
-        self.__shapes_by_id = {}
+        self.__shapes_by_id: dict[int, Shape] = {}
 
     @property
     def id(self):
@@ -169,17 +176,17 @@ class Slide():
     def slide_id(self):
         return self.__slide.slide_id
 
-    def shape(self, id):
-    #===================
+    def shape(self, id: int) -> Optional[Shape]:
+    #===========================================
         return self.__shapes_by_id.get(id)
 
-    def process(self):
-    #=================
+    def process(self) -> TreeList:
+    #=============================
         # Return the slide's group structure as a nested list of Shapes
         return self.__process_pptx_shapes(self.__slide.shapes, self.__transform, show_progress=True)
 
-    def __get_colour(self, shape, group_colour=None):
-    #================================================
+    def __get_colour(self, shape: PptxShape, group_colour=None):
+    #===========================================================
         def colour_from_fill(shape, fill):
             if fill.type == MSO_FILL_TYPE.SOLID:
                 return (self.__colour_map.lookup(fill.fore_color),
@@ -213,8 +220,8 @@ class Slide():
             log.warning(f'{shape.name}: unsupported line fill type: {shape.line.fill.type}')
         return (colour, alpha)
 
-    def __process_group(self, group, transform):
-    #===========================================
+    def __process_group(self, group: PptxGroupShape, transform) -> TreeList:
+    #=======================================================================
         return self.__process_pptx_shapes(group.shapes, transform@DrawMLTransform(group),
                                           group_colour=self.__get_colour(group))
 
@@ -248,8 +255,9 @@ class Slide():
                         'text-align': alignment
                        })
 
-    def __process_pptx_shapes(self, pptx_shapes, transform, group_colour=None, show_progress=False):
-    #===============================================================================================
+    def __process_pptx_shapes(self, pptx_shapes: "PptxGroupShapes | PptxSlideShapes" ,
+                              transform, group_colour=None, show_progress=False) -> TreeList:
+    #========================================================================================
         progress_bar = ProgressBar(show=show_progress,
             total=len(pptx_shapes),
             unit='shp', ncols=40,

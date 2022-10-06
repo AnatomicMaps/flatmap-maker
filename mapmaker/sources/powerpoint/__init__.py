@@ -22,13 +22,14 @@ import os
 
 #===============================================================================
 
+from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import MapLayer
 from mapmaker.settings import settings
 from mapmaker.utils import log, FilePath, TreeList
 
 from .. import MapSource, RasterSource
 
-from .powerpoint import Powerpoint, SHAPE_TYPE
+from .powerpoint import Powerpoint, Shape, SHAPE_TYPE
 
 #===============================================================================
 
@@ -54,8 +55,8 @@ class PowerpointSlide(MapLayer):
     def slide_number(self):
         return self.__slide_number
 
-    def _extract_shapes(self):              # Override in sub-class
-    #=========================
+    def _extract_shapes(self) -> TreeList:              # Override in sub-class
+    #=====================================
         return self.__slide.process()
 
     def process(self):
@@ -64,8 +65,8 @@ class PowerpointSlide(MapLayer):
         features = self.__process_shape_list(shapes)
         self.add_features('Slide', features, outermost=True)
 
-    def __process_shape_list(self, shapes):
-    #======================================
+    def __process_shape_list(self, shapes: TreeList) -> list[Feature]:
+    #=================================================================
         features = []
         for shape in shapes:
             if isinstance(shape, TreeList):

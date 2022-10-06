@@ -35,7 +35,7 @@ from mapmaker.utils import log, FilePath, TreeList
 
 from .. import RasterSource
 from ..powerpoint import PowerpointSource, PowerpointSlide
-from ..powerpoint.powerpoint import SHAPE_TYPE
+from ..powerpoint.powerpoint import Shape, SHAPE_TYPE
 from ..powerpoint.pptx2svg import Pptx2Svg
 
 #===============================================================================
@@ -196,8 +196,8 @@ class FCSlide(PowerpointSlide):
         super().process()
         self.source.annotate(self)
 
-    def _extract_shapes(self):
-    #=========================
+    def _extract_shapes(self) -> TreeList:
+    #=====================================
         shapes = super()._extract_shapes()
         self.__extract_components(shapes)
         self.__label_connectors(shapes)
@@ -210,8 +210,8 @@ class FCSlide(PowerpointSlide):
                 shape.properties.pop('label', None)  # We don't want System tooltips...
         return shapes
 
-    def __extract_components(self, shapes):
-    #======================================
+    def __extract_components(self, shapes: TreeList):
+    #================================================
         geometries = [self.outer_geometry]
         shape_ids = {id(self.outer_geometry): 0}     # id(geometry) --> shape.id
         for shape in shapes.flatten():
