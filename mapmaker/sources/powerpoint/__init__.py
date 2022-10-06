@@ -29,12 +29,12 @@ from mapmaker.utils import log, FilePath, TreeList
 
 from .. import MapSource, RasterSource
 
-from .powerpoint import Powerpoint, Shape, SHAPE_TYPE
+from .powerpoint import Powerpoint, Shape, Slide, SHAPE_TYPE
 
 #===============================================================================
 
 class PowerpointSlide(MapLayer):
-    def __init__(self, source, slide, slide_number):
+    def __init__(self, source: PowerpointSource, slide, slide_number):
         if slide.id is not None:
             id = slide.id
         else:
@@ -101,7 +101,7 @@ class PowerpointSource(MapSource):
         self.__SlideClass = SlideClass
         self.__powerpoint = Powerpoint(source_href)
         self.bounds = self.__powerpoint.bounds   # Set bounds of MapSource
-        self.__slides = self.__powerpoint.slides
+        self.__slides: list[Slide] = self.__powerpoint.slides
         self.__pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_href)[0]))
 
     @property

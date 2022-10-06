@@ -22,6 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from io import BytesIO, StringIO
 from pathlib import Path
+from typing import Optional
 
 #===============================================================================
 
@@ -35,7 +36,7 @@ from mapmaker.utils import log, FilePath, TreeList
 
 from .. import RasterSource
 from ..powerpoint import PowerpointSource, PowerpointSlide
-from ..powerpoint.powerpoint import Shape, SHAPE_TYPE
+from ..powerpoint.powerpoint import Shape, Slide, SHAPE_TYPE
 from ..powerpoint.pptx2svg import Pptx2Svg
 
 #===============================================================================
@@ -166,29 +167,29 @@ class FCPowerpoint(PowerpointSource):
 #===============================================================================
 
 class FCSlide(PowerpointSlide):
-    def __init__(self, source, slide, slide_number):
+    def __init__(self, source: FCPowerpoint, slide: Slide, slide_number: int):
         super().__init__(source, slide, slide_number)
-        self.__fc_features = {
+        self.__fc_features: dict[int, FCFeature] = {
             0: FCFeature(0, self.outer_geometry)
         }
-        self.__connectors = []
-        self.__systems = set()
-        self.__organs = set()
+        self.__connectors: list[Connector] = []
+        self.__systems: set[int] = set()
+        self.__organs: set[int] = set()
 
     @property
-    def connectors(self):
+    def connectors(self) -> list[Connector]:
         return self.__connectors
 
     @property
-    def fc_features(self):
+    def fc_features(self) -> dict[int, FCFeature]:
         return self.__fc_features
 
     @property
-    def organs(self):
+    def organs(self) -> set[int]:
         return self.__organs
 
     @property
-    def systems(self):
+    def systems(self) -> set[int]:
         return self.__systems
 
     def process(self):
@@ -316,31 +317,31 @@ class FCSlide(PowerpointSlide):
                     self.__organs.add(shape_id)
                 self.__set_relationships(shape_id, parent_id)
 
-    def __set_relationships(self, child, parent):
-    #============================================
+    def __set_relationships(self, child: int, parent: int):
+    #======================================================
         self.__fc_features[child].parents.append(parent)
         self.__fc_features[parent].children.append(child)
 
-    def __ftu_label(self, shape_id):
-    #===============================
+    def __ftu_label(self, shape_id: int) -> str:
+    #===========================================
         while (label := self.__fc_features[shape_id].label) == '':
             if shape_id == 0 or shape_id in self.__organs:
                 break
             shape_id = self.__fc_features[shape_id].parents[0]
         return label
 
-    def __system_label(self, shape_id):
-    #==================================
+    def __system_label(self, shape_id: int) -> str:
+    #==============================================
         while shape_id != 0 and shape_id not in self.__systems:
             shape_id = self.__fc_features[shape_id].parents[0]
         return self.__fc_features[shape_id].label if shape_id != 0 else ''
 
-    def __connector_class(self, shape_id):
-    #=====================================
+    def __connector_class(self, shape_id: int) -> str:
+    #=================================================
         return CONNECTOR_CLASSES.get(self.__fc_features[shape_id].colour, 'unknown')
 
-    def __connector_end_label(self, shape_id):
-    #=========================================
+    def __connector_end_label(self, shape_id: Optional[int]) -> str:
+    #===============================================================
         if shape_id is not None:
             if (label := self.__ftu_label(shape_id)) != '':
                 cls = self.__connector_class(shape_id)
@@ -360,8 +361,8 @@ class FCSlide(PowerpointSlide):
                 return f'{end}: {label}'
         return ''
 
-    def __label_connectors(self, shapes):
-    #====================================
+    def __label_connectors(self, shapes: TreeList):
+    #==============================================
         for shape in shapes.flatten():
             if shape.type == SHAPE_TYPE.CONNECTOR and 'label' not in shape.properties:
                 label_1 = self.__connector_end_label(shape.properties.pop('connection-start', None))

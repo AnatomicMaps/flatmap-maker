@@ -36,7 +36,7 @@ from .treelist import TreeList
 
 #===============================================================================
 
-def relative_path(path):
+def relative_path(path: str) -> bool:
     return path.split(':', 1)[0] not in ['file', 'http', 'https']
 
 #===============================================================================
@@ -47,7 +47,7 @@ class FilePathError(IOError):
 #===============================================================================
 
 class FilePath(object):
-    def __init__(self, path):
+    def __init__(self, path: str):
         if relative_path(path):
             self.__url = pathlib.Path(path).absolute().resolve().as_uri()
         else:

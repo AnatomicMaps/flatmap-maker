@@ -18,6 +18,10 @@
 #
 #===============================================================================
 
+from typing import TYPE_CHECKING, Optional
+
+#===============================================================================
+
 import shapely.geometry
 
 #===============================================================================
@@ -28,6 +32,11 @@ from mapmaker.geometry import connect_dividers, extend_line, make_boundary
 from mapmaker.geometry import save_geometry
 from mapmaker.utils import log
 
+if TYPE_CHECKING:
+    from mapmaker.sources import MapSource
+
+from .feature import Feature
+
 #===============================================================================
 
 class FeatureLayer(object):
@@ -37,7 +46,7 @@ class FeatureLayer(object):
         self.__annotations = {}
         self.__exported = exported
         self.__description = 'Layer {}'.format(id)
-        self.__features = []
+        self.__features: list[Feature] = []
 
     @property
     def annotations(self):
@@ -71,13 +80,13 @@ class FeatureLayer(object):
     def raster_layers(self):
         return []
 
-    def add_feature(self, feature):
-    #==============================
+    def add_feature(self, feature: Feature):
+    #=======================================
         if self.__flatmap.feature_exported(feature):
             self.__features.append(feature)
 
-    def annotate(self, feature, properties):
-    #=======================================
+    def annotate(self, feature: Feature, properties: dict):
+    #======================================================
         self.__annotations[feature.geojson_id] = properties
 
     def set_feature_properties(self, map_properties):
@@ -92,16 +101,16 @@ class FeatureLayer(object):
 #===============================================================================
 
 class MapLayer(FeatureLayer):
-    def __init__(self, id, source, exported=False):
+    def __init__(self, id: str, source: MapSource, exported=False):
         super().__init__(id, source.flatmap, exported)
         self.__source = source
         self.__boundary_feature = None
         self.__bounds = source.bounds
         self.__outer_geometry = shapely.geometry.box(*source.bounds)
-        self.__detail_features = []
+        self.__detail_features: list[Feature] = []
 #*        self.__ontology_data = self.options.ontology_data
-        self.__nerve_tracks = []
-        self.__raster_layers = []
+        self.__nerve_tracks: list[Feature] = []
+        self.__raster_layers: list[RasterLayer] = []
         self.__zoom = None
 
     @property
@@ -148,8 +157,8 @@ class MapLayer(FeatureLayer):
     def zoom(self, value):
         self.__zoom = value
 
-    def add_feature(self, feature):
-    #==============================
+    def add_feature(self, feature: Feature):
+    #=======================================
         super().add_feature(feature)
         if feature.has_property('details'):
             self.__detail_features.append(feature)

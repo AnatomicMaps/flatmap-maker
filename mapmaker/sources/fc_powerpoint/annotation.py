@@ -20,6 +20,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Iterable
 
 #===============================================================================
 
@@ -36,41 +37,44 @@ from mapmaker.utils import log, relative_path
 class Annotation:
     identifier: str = field(default_factory=str)
     term: str = field(default_factory=str)
-    sources: set = field(default_factory=set)
+    sources: set[str] = field(default_factory=set)
+
+#===============================================================================
+
 
 #===============================================================================
 
 class AnnotationSet:
-    def __init__(self, spreadsheet):
+    def __init__(self, spreadsheet: str):
         if not relative_path(spreadsheet):
             if spreadsheet.startswith('file:'):
                 spreadsheet = spreadsheet[5:]
             else:
                 log.warning(f'Remote FC annotation at {spreadsheet} will not be updated')
         self.__spreadsheet = Path(spreadsheet)
-        self.__system_labels = {}
-        self.__organ_system_labels = {}
-        self.__organ_ftu_labels = {}
-        self.__connectivity = []  ## networkx.Graph()   ???
+        self.__system_labels: dict[str, Annotation] = {}
+        self.__organ_system_labels: dict[str, tuple[Annotation, set[str]]] = {}
+        self.__organ_ftu_labels: dict[tuple[str, str], Annotation] = {}
+        self.__connectivity: list = []  ## networkx.Graph()   ???
         self.__load()
 
-    def add_ftu(self, organ_label, ftu_label, source):
-    #=================================================
+    def add_ftu(self, organ_label: str, ftu_label: str, source: str):
+    #================================================================
         key = (organ_label, ftu_label)
         if key not in self.__organ_ftu_labels:
             self.__organ_ftu_labels[key] = Annotation()
         self.__organ_ftu_labels[key].sources.add(source)
 
-    def add_organ(self, label, source, system_labels):
-    #=================================================
+    def add_organ(self, label: str, source: str, system_labels: Iterable[str]):
+    #==========================================================================
         if label in self.__organ_system_labels:
             self.__organ_system_labels[label][1].update(system_labels)
         else:
             self.__organ_system_labels[label] = (Annotation(), set(system_labels))
         self.__organ_system_labels[label][0].sources.add(source)
 
-    def add_system(self, label, source):
-    #===================================
+    def add_system(self, label: str, source: str):
+    #=============================================
         if label != '':
             if label not in self.__system_labels:
                 self.__system_labels[label] = Annotation()
