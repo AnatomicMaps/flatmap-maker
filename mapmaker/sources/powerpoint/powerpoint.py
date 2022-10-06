@@ -225,35 +225,6 @@ class Slide():
         return self.__process_pptx_shapes(group.shapes, transform@DrawMLTransform(group),
                                           group_colour=self.__get_colour(group))
 
-        if len(shapes) < 2:  ## shapes[0] might be a TreeList ##
-                             ## or shapes[0].type != SHAPE_TYPE.FEATURE:
-            return shapes
-
-        colour = shapes[0].properties['colour']
-        label = shapes[0].label
-        alignment = shapes[0].properties.get('align')
-        geometry = [shapes[0].geometry]
-        for shape in shapes[1:]:
-            if shape.type != SHAPE_TYPE.FEATURE or colour != shape.properties['colour']:
-                return shapes
-            if label == '':
-                label = shape.label
-                alignment = shape.properties.get('align')
-            elif shape.label != '':
-                return shapes
-            geometry.append(shape.geometry)
-        if label == '':
-            return shapes
-
-        # Merge a group of shapes that are all the same colour and with only
-        # one having a label into a single shape
-        return Shape(SHAPE_TYPE.FEATURE, group.shape_id,
-                      shapely.ops.unary_union(geometry), {
-                        'colour': colour,
-                        'label': label,
-                        'shape-name': group.name,
-                        'text-align': alignment
-                       })
 
     def __process_pptx_shapes(self, pptx_shapes: "PptxGroupShapes | PptxSlideShapes" ,
                               transform, group_colour=None, show_progress=False) -> TreeList:
