@@ -313,7 +313,7 @@ class Network(object):
         return None
 
     def __set_properties_from_feature(self, feature_id):
-    #====================================================
+    #===================================================
         feature = self.__map_feature(feature_id)
         node_dict = {}
         if feature is not None:
@@ -777,7 +777,7 @@ class Network(object):
             log.info(f'{path.id}: Edges {connectivity_graph.edges}')
 
         # Find feature corresponding to each connectivity node and identify
-        # terminal nodes and those that are part of the centreline network
+        # terminal nodes that are not part of the centreline network
 
         path_nerve_ids = set()
         for node, node_dict in connectivity_graph.nodes(data=True):
