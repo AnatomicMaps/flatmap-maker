@@ -351,7 +351,10 @@ class RoutedPath(object):
 
         terminal_nodes = set()
         for node_0, node_1, edge_dict in self.__graph.edges.data():    ## This assumes node_1 is the terminal...
-            if (edge_type := edge_dict.get('type')) == 'terminal':
+            if ((edge_type := edge_dict.get('type')) == 'terminal'
+             or (edge_type == 'upstream'
+              and 'upstream' not in [self.__graph.nodes[node_0].get('type'),
+                                     self.__graph.nodes[node_1].get('type')])):
                 # Draw straight lines...
                 terminal_nodes.update([node_0, node_1])
                 start_coords = self.__graph.nodes[node_0]['geometry'].centroid.coords[0]
