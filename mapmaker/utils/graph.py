@@ -19,6 +19,7 @@
 #===============================================================================
 
 from collections import defaultdict, OrderedDict
+from typing import Hashable, Union
 
 #===============================================================================
 
@@ -26,7 +27,7 @@ import networkx as nx
 
 #===============================================================================
 
-def smooth_edges(G: nx.Graph, end_nodes: list=None, edge_nodes_attribute: str='edge-nodes') -> nx.MultiDiGraph:
+def smooth_edges(G: nx.Graph, end_nodes: Union[list, set]=None, edge_nodes_attribute: str='edge-nodes') -> nx.MultiDiGraph:
     """
     Return a networkx.MultiGraph copy of G with all degree 2 nodes removed.
 
@@ -38,7 +39,7 @@ def smooth_edges(G: nx.Graph, end_nodes: list=None, edge_nodes_attribute: str='e
         edge_nodes = OrderedDict({start_node: G.nodes[start_node],
                                   path_node: G.nodes[path_node]})
         prev_node = start_node
-        while G.degree(path_node) == 2 and path_node not in end_nodes:
+        while G.degree(path_node) == 2 and path_node not in end_nodes:    # type: ignore
             for node in G[path_node]:
                 # This will loop a maximum of two times (since degree == 2) and
                 # find the next node going forward on the path
@@ -57,7 +58,7 @@ def smooth_edges(G: nx.Graph, end_nodes: list=None, edge_nodes_attribute: str='e
     for (node, degree) in G.degree:
         if degree != 2 or node in end_nodes:
             R.add_node(node, **G.nodes[node])
-    seen_paths = defaultdict(set)
+    seen_paths: dict[Hashable, set] = defaultdict(set)
     for node in R:
         for path_node in G[node]:
             if path_node not in seen_paths[node]:

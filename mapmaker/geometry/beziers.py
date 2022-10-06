@@ -96,7 +96,7 @@ def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle
 
 #===============================================================================
 
-def closest_time_distance(bz, pt: BezierPoint, steps: int=100) -> float:
+def closest_time_distance(bz, pt: BezierPoint, steps: int=100) -> tuple[float, float]:
     def subdivide_search(t0, t1, steps):
         closest_d = None
         closest_t = t0

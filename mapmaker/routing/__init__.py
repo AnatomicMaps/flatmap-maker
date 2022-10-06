@@ -33,7 +33,7 @@ from functools import partial
 import itertools
 import math
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 
 #===============================================================================
@@ -116,8 +116,8 @@ def get_connected_subgraph(path_id, graph, v_prime):
             log.warning(f'{path_id}: No network connection between {source} and {target}')
     return graph.subgraph(vpp)
 
-def expand_centreline_graph(graph: nx.Graph) -> nx.Graph:
-#========================================================
+def expand_centreline_graph(graph: nx.MultiGraph) -> nx.Graph:
+#=============================================================
     G = nx.Graph()
     for node_0, node_1, edge_dict in graph.edges(data=True):
         G.add_node(node_0, graph_object='node', **graph.nodes[node_0])
@@ -157,7 +157,7 @@ def collapse_centreline_graph(graph: nx.Graph) -> nx.Graph:
 class NetworkNode:
     full_id: str
     intermediate: bool = False
-    map_feature: Feature = None
+    map_feature: Optional[Feature] = None
     feature_id: str = field(init=False)
     ftu_id: str = field(init=False)
     properties: dict = field(default_factory=dict, init=False)
@@ -211,14 +211,14 @@ class Network(object):
         self.__feature_ids: set[str] = set()
         self.__full_ids: set[str] = set()                   #! A ``full id`` is a slash-separated list of feature ids
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
-        self.__missing_identifiers = set()
+        self.__missing_identifiers: set[str] = set()
 
         # The following are assigned once we have feature geometry
-        self.__centreline_graph = None                      #! Edges are centreline segments between intermediate nodes.
-        self.__containers_by_segment = None                 #! Segment id --> set of features that segment is contained in
-        self.__expanded_centreline_graph = None             #! Expanded version of centreline graph
-        self.__segment_edge_by_segment = None               #! Segment id --> segment edge
-        self.__segment_ids_by_centreline = None             #! Centreline id --> segment ids of the centreline
+        self.__centreline_graph: nx.MultiGraph = None                               #! Edges are centreline segments between intermediate nodes.
+        self.__containers_by_segment: dict[str, set[str]] = defaultdict(set)        #! Segment id --> set of features that segment is contained in
+        self.__expanded_centreline_graph: nx.Graph = None                           #! Expanded version of centreline graph
+        self.__segment_edge_by_segment: dict[str, tuple] = {}                       #! Segment id --> segment edge
+        self.__segment_ids_by_centreline: dict[str, list[str]] = defaultdict(list)  #! Centreline id --> segment ids of the centreline
 
         # Track how nodes are associated with centrelines
         end_nodes_to_centrelines = defaultdict(list)
@@ -770,7 +770,7 @@ class Network(object):
         walk_paths_from_node(start_node, start_dict)
         return terminal_network
 
-    def __route_graph_from_connectivity(self, path: Path, debug=False) -> tuple(nx.Graph, nx.Graph):
+    def __route_graph_from_connectivity(self, path: Path, debug=False) -> tuple[nx.Graph, nx.Graph]:
     #===============================================================================================
         connectivity_graph = path.connectivity
         if path.trace:
@@ -923,7 +923,7 @@ class Network(object):
         elif path.trace:
             log.info(f'{path.id}: Centreline segments {sorted(segment_set)}')
 
-        joining_segments = set()
+        joining_segments: set[str] = set()
         for seg_0, seg_1 in itertools.combinations(segment_set, 2):
             joins = self.__join_segments(seg_0, seg_1)['segments']
             if len(joins) and joins.isdisjoint(segment_set) and joins.isdisjoint(joining_segments):
@@ -934,7 +934,7 @@ class Network(object):
         for segment_id in segment_set:
             segment_nodes.update(self.__segment_edge_by_segment[segment_id][0:2])
 
-        terminal_graphs: {tuple: nx.Graph} = {}
+        terminal_graphs: dict[tuple, nx.Graph] = {}
         seen_terminals: set[tuple] = set()
         # Find nearest segment node to each terminal node
         for terminal_node, node_dict in G.nodes(data=True):
@@ -978,7 +978,7 @@ class Network(object):
         route_graph.graph['nerve-features'] = [feature for nerve_id in path_nerve_ids
                                                 if (feature := self.__map_feature(nerve_id)) is not None]
         if debug:
-            return (route_graph, G, connectivity_graph, terminal_graphs)
+            return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
         else:
             return route_graph
 

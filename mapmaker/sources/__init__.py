@@ -33,6 +33,9 @@ from mapmaker.utils import FilePath
 
 from .markup import parse_markup
 
+if TYPE_CHECKING:
+    from mapmaker.flatmap import FlatMap, MapLayer
+
 #===============================================================================
 
 # Internal PPT units are EMUs (English Metric Units)
@@ -123,9 +126,6 @@ def not_empty(image):
 #===============================================================================
 
 class MapSource(object):
-    if TYPE_CHECKING:
-        from mapmaker.flatmap import FlatMap, MapLayer
-
     def __init__(self, flatmap: FlatMap, id: str, source_href: str, kind: str, source_range: tuple[int, int]=None):
         self.__flatmap = flatmap
         self.__id = id
