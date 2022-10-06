@@ -935,7 +935,9 @@ class Network(object):
 
         joining_segments = set()
         for seg_0, seg_1 in itertools.combinations(segment_set, 2):
-            joining_segments.update(self.__join_segments(seg_0, seg_1)['segments'])
+            joins = self.__join_segments(seg_0, seg_1)['segments']
+            if len(joins) and joins.isdisjoint(segment_set) and joins.isdisjoint(joining_segments):
+                joining_segments.update(joins)
         segment_set.update(joining_segments)
 
         segment_nodes: set[str] = set()
