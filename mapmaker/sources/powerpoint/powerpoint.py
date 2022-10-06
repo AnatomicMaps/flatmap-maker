@@ -129,7 +129,7 @@ class Powerpoint():
         self.__bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
         theme = Theme(ppt_bytes)
-        self.__slides = [Slide(slide, theme, self.__transform) for slide in pptx.slides]
+        self.__slides: list[Slide] = [Slide(n, slide, theme, self.__transform) for n, slide in enumerate(pptx.slides)]
 
     @property
     def bounds(self):
@@ -155,8 +155,8 @@ class Slide():
             if notes_text.startswith('.'):
                 layer_directive = parse_layer_directive(notes_text)
                 if 'error' in layer_directive:
-                    source.error('error', 'Slide {}: invalid layer directive: {}'
-                                 .format(slide_number, notes_text))
+                    log.error('error', 'Slide {}: invalid layer directive: {}'
+                                 .format(index+1, notes_text))
                 if 'id' in layer_directive:
                     self.__id = layer_directive['id']
         self.__colour_map = ColourMap(theme, slide)
