@@ -26,7 +26,7 @@ from mapmaker.knowledgebase import get_knowledge
 from mapmaker.routing import Network
 from mapmaker.settings import settings
 from mapmaker.sources import NETWORK_SHAPE_TYPES
-from mapmaker.utils import FilePath
+from mapmaker.utils import FilePath, log
 
 from .anatomicalmap import AnatomicalMap
 from .pathways import Pathways
@@ -38,6 +38,7 @@ class ExternalProperties(object):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
         self.__properties_by_class = defaultdict(dict)
         self.__properties_by_id = defaultdict(dict)
+        self.__nerve_ids_by_model = {}
         if manifest.properties is None:
             properties_dict = {}
         else:
@@ -79,6 +80,10 @@ class ExternalProperties(object):
     def connectivity(self):
         return self.__pathways.connectivity
 
+    @property
+    def nerve_ids_by_model(self):
+        return self.__nerve_ids_by_model
+
     def network_feature(self, feature):
     #==================================
         # Is the ``feature`` included in some network?
@@ -98,6 +103,12 @@ class ExternalProperties(object):
         if isinstance(features, dict):
             for id, properties in features.items():
                 self.__properties_by_id[id].update(properties)
+                if (properties.get('type') == 'nerve'
+                and (entity := properties.get('models')) is not None):
+                    if entity in self.__nerve_ids_by_model:
+                        log.error(f'Nerve {entity} has already been assigned')
+                    else:
+                        self.__nerve_ids_by_model[entity] = id
         elif features is not None:
             # ``Old`` style of properties
             for feature in features:
@@ -181,6 +192,9 @@ class ExternalProperties(object):
             if 'label' in feature_properties or len(labels) == 0:
                 labels.append(f'Label: {feature_properties.get("label")}')
             feature_properties['label'] = '\n'.join(labels)
+            # All nerve cuffs are visible
+            if feature_properties.get('type') == 'nerve':
+                feature_properties['active'] = True
 
         # Hide network features when not authoring or not a FC flatmap
         if not (authoring or settings.get('functionalConnectivity', False)):

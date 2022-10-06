@@ -239,9 +239,11 @@ class Network(object):
                     else:
                         self.__models_to_id[models] = centreline_id
                         # If we have ``external_properties`` without ``models`` annotation for the centreline then set it
-                        if (external_properties is not None
-                        and external_properties.get_property(centreline_id, 'models') is None):
-                            external_properties.set_property(centreline_id, 'models', models)
+                        if external_properties is not None:
+                            if external_properties.get_property(centreline_id, 'models') is None:
+                                external_properties.set_property(centreline_id, 'models', models)
+                            if (nerve_id := external_properties.nerve_ids_by_model.get(models)) is not None:
+                                external_properties.set_property(centreline_id, 'nerve', nerve_id)
                 connected_nodes = centreline.get('connects', [])
                 if len(connected_nodes) < 2:
                     log.error(f'Centreline {centreline_id} in network {self.__id} has too few nodes')
@@ -497,11 +499,7 @@ class Network(object):
 
     def route_graph_from_path(self, path: Path):
     #===========================================
-        route_graph = self.__route_graph_from_connectivity(path)
-        route_graph.graph['path-id'] = path.id
-        route_graph.graph['path-type'] = path.path_type
-        route_graph.graph['source'] = path.source
-        return route_graph
+        return self.__route_graph_from_connectivity(path)
 
     def layout(self, route_graphs: nx.Graph) -> dict:
     #================================================
@@ -527,6 +525,9 @@ class Network(object):
                     result['cl-node'] = segment_id
                 else:
                     log.error(f'Centreline segment {segment_id} missing from expanded graph...')
+                if ((feature := self.__map_feature(centreline_id)) is not None
+                and (nerve_id := feature.properties.get('nerve')) is not None):
+                    result['nerve'] = nerve_id
         else:
             feature_id = None
             features = self.__feature_map.find_path_features_by_anatomical_id(*connectivity_node)
@@ -776,9 +777,12 @@ class Network(object):
         # Find feature corresponding to each connectivity node and identify
         # terminal nodes and those that are part of the centreline network
 
+        path_nerve_ids = set()
         for node, node_dict in connectivity_graph.nodes(data=True):
             node_dict.update(self.__node_dict_for_feature(node))
             node_dict['terminal'] = (connectivity_graph.degree(node) == 1)
+            if (nerve_id := node_dict.pop('nerve', None)) is not None:
+                path_nerve_ids.add(nerve_id)
 
         for node, node_dict in connectivity_graph.nodes(data=True):
             if len(ftu_connections := node_dict.get('ftu-connections', [])):
@@ -970,6 +974,11 @@ class Network(object):
             for n0, n1 in terminal_graph.edges:
                 route_graph.add_edge(n0, n1, type='terminal')
 
+        route_graph.graph['path-id'] = path.id
+        route_graph.graph['path-type'] = path.path_type
+        route_graph.graph['source'] = path.source
+        route_graph.graph['nerve-features'] = [feature for nerve_id in path_nerve_ids
+                                                if (feature := self.__map_feature(nerve_id)) is not None]
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)
         else:
