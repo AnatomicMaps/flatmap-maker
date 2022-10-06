@@ -738,6 +738,7 @@ class Network(object):
                        last_feature = start_feature
                     for nk, (key, edge_dict) in enumerate(key_dicts.items()):
                         node_dicts = edge_dict.get('edge-features', []) + [next_dict]
+                        # Walk along an edge path
                         for node_dict in node_dicts:
                             feature_id = node_dict.get('feature-id')
                             if (segment_id := node_dict.get('segment-id')) is not None:
@@ -762,7 +763,8 @@ class Network(object):
                                     terminal_network.nodes[last_feature]['upstream'] = {upstream_node}
                                 break
 
-                    if not next_dict.get('segment-node', False):
+                    if (next_dict.get('cl-node') is None
+                    and not next_dict.get('segment-node', False)):
                         walk_paths_from_node(next_node, next_dict)
 
         walk_paths_from_node(start_node, start_dict)
@@ -780,7 +782,8 @@ class Network(object):
         path_nerve_ids = set()
         for node, node_dict in connectivity_graph.nodes(data=True):
             node_dict.update(self.__node_dict_for_feature(node))
-            node_dict['terminal'] = (connectivity_graph.degree(node) == 1)
+            node_dict['terminal'] = (node_dict.get('cl-node') is None
+                                 and connectivity_graph.degree(node) == 1)
             if (nerve_id := node_dict.pop('nerve', None)) is not None:
                 path_nerve_ids.add(nerve_id)
 
@@ -874,7 +877,9 @@ class Network(object):
 
         # Helper function used below
         def valid_feature_in_node_dicts(dicts, start_index):
-            while start_index < len(dicts) and dicts[start_index].get('feature-id') is None:
+            while (start_index < len(dicts)
+               and dicts[start_index].get('cl-node') is None
+               and dicts[start_index].get('feature-id') is None):
                 start_index += 1
             return start_index
 
@@ -972,7 +977,8 @@ class Network(object):
                         route_graph.nodes[upstream_node]['direction'] = list(route_graph.nodes[upstream_node]['edge-direction'].items())[0][1]
             # Now add edges between local nodes in FTU
             for n0, n1 in terminal_graph.edges:
-                route_graph.add_edge(n0, n1, type='terminal')
+                if not route_graph.has_edge(n0, n1):
+                    route_graph.add_edge(n0, n1, type='terminal')
 
         route_graph.graph['path-id'] = path.id
         route_graph.graph['path-type'] = path.path_type
