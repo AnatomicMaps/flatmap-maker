@@ -796,16 +796,6 @@ class Network(object):
                             if connected_cl_node != cl_node and nx.has_path(self.__expanded_centreline_graph, cl_node, connected_cl_node):
                                 count += 1
 
-        # Disconnect any nodes that are close in the connectivity graph but apart in the centreline graph
-        for node, cl_node in connectivity_graph.nodes(data='cl-node'):
-            if cl_node is not None:
-                count = 0
-                for connected_node in nx.dfs_preorder_nodes(connectivity_graph, source=node, depth_limit=2):
-                    if (connected_cl_node := connectivity_graph.nodes[connected_node].get('cl-node')) is not None:
-                        if connected_cl_node != cl_node and nx.has_path(self.__expanded_centreline_graph, cl_node, connected_cl_node):
-                            count += 1
-                if count == 0:
-                    connectivity_graph.nodes[node]['cl-node'] = None
 
         # Simplify connectivity by collapsing consecutive degree 2 nodes
         # into a single edge, returning a nx.MultiDiGraph. Each node has
