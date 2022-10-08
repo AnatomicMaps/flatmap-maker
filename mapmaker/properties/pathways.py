@@ -628,10 +628,10 @@ class Pathways(object):
                             path_model = path.models
                             if settings.get('authoring', False):
                                 labels = []
-                                labels.append(f'Number: {route_number}')
                                 if path_model is not None:
                                     labels.append(f'Models: {path_model}')
                                     labels.append(f'Label: {path.label}')
+                                labels.append(f'Number: {route_number}')
                                 properties['label'] = '\n'.join(labels)
                             elif path_model is not None:
                                 properties['label'] = path.label

@@ -183,15 +183,16 @@ class ExternalProperties(object):
         if authoring:
             # Show id and classes in label if authoring
             labels = []
-            if id is not None:
-                labels.append(f'Id: {id}')
+            if (model := feature_properties.get('models')) is not None:
+                labels.append(f'Models: {model}')
+            if (label := feature_properties.get('label')) is not None:
+                labels.append(f'Label: {label}')
             if len(classes):
                 labels.append(f'Class: {", ".join(classes)}')
-            if 'models' in feature_properties:
-                labels.append(f'Models: {feature_properties.get("models")}')
-            if 'label' in feature_properties or len(labels) == 0:
-                labels.append(f'Label: {feature_properties.get("label")}')
-            feature_properties['label'] = '\n'.join(labels)
+            if id is not None:
+                labels.append(f'Id: {id}')
+            if len(labels):  # We don't want empty tooltips
+                feature_properties['label'] = '\n'.join(labels)
             # All nerve cuffs are visible
             if feature_properties.get('type') == 'nerve':
                 feature_properties['active'] = True
