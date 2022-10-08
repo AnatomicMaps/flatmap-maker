@@ -599,53 +599,60 @@ class Pathways(object):
 
     def __route_network_connectivity(self, network):
     #===============================================
-        log('Routing paths...')
-        # First assign feature properties to the nodes in the network's centreline graph
+        log.info('Routing paths...')
+
+        # First find route graphs for each path in each connectivity model
+        paths_by_id = {}
+        route_graphs = {}
         network.create_geometry()
         for connectivity_model in self.__connectivity_models:
             if connectivity_model.network == network.id:
                 layer = FeatureLayer('{}_routes'.format(connectivity_model.id), self.__flatmap, exported=True)
                 self.__flatmap.add_layer(layer)
-                route_graphs = {}
                 for path in connectivity_model.paths.values():
+                    paths_by_id[path.id] = path
                     route_graphs[path.id] = network.route_graph_from_path(path)
-                routed_paths = network.layout(route_graphs)
 
-                for route_number, routed_path in routed_paths.items():
-                    for geometric_shape in routed_path.geometry():
-                        properties = {
-                            'layout': 'auto',
-                            'tile-layer': 'pathways',
-                        }
-                        properties.update(geometric_shape.properties)
-                        path_id = properties.pop('path-id', None)
-                        if properties.get('type') == 'junction':
-                            if path_id in self.__type_by_path_id:
-                                properties['kind'] = self.__type_by_path_id[path_id]
-                        elif path_id is not None:
-                            path = connectivity_model.paths[path_id]
-                            properties.update(self.__line_properties(path_id))
-                            path_model = path.models
-                            if settings.get('authoring', False):
-                                labels = []
-                                if path_model is not None:
-                                    labels.append(f'Models: {path_model}')
-                                    labels.append(f'Label: {path.label}')
-                                labels.append(f'Number: {route_number}')
-                                properties['label'] = '\n'.join(labels)
-                            elif path_model is not None:
-                                properties['label'] = path.label
-                        feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
-                        layer.add_feature(feature)
-                        nerve_features = routed_path.nerve_features
-                        self.__active_nerve_ids.update(feature.id for feature in nerve_features)
-                        if path_id is not None:
-                            self.__resolved_pathways.add_connectivity(path_id,
-                                                                      path.models,  ## This is properties['models']...
-                                                                      path.path_type,  ## This is properties['type']...
-                                                                      routed_path.node_set,
-                                                                      feature.geojson_id,
-                                                                      nerve_features)
+        # Now find a way to order them across shared centrelines
+        routed_paths = network.layout(route_graphs)
+
+        # Add features to the map for the geometric objects that make up each path
+        for route_number, routed_path in routed_paths.items():
+            for geometric_shape in routed_path.geometry():
+                properties = {
+                    'layout': 'auto',
+                    'tile-layer': 'pathways',
+                }
+                properties.update(geometric_shape.properties)
+                path_id = properties.pop('path-id', None)
+                if properties.get('type') == 'junction':
+                    if path_id in self.__type_by_path_id:
+                        properties['kind'] = self.__type_by_path_id[path_id]
+                elif path_id is not None:
+                    path = paths_by_id[path_id]
+                    properties.update(self.__line_properties(path_id))
+                    path_model = path.models
+                    if settings.get('authoring', False):
+                        labels = []
+                        if path_model is not None:
+                            labels.append(f'Models: {path_model}')
+                            labels.append(f'Label: {path.label}')
+                        labels.append(f'Number: {route_number}')
+                        properties['label'] = '\n'.join(labels)
+                    elif path_model is not None:
+                        properties['label'] = path.label
+                ## ardell-13 is somehow doubled...
+                feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
+                layer.add_feature(feature)
+                nerve_features = routed_path.nerve_features
+                self.__active_nerve_ids.update(feature.id for feature in nerve_features)
+                if path_id is not None:
+                    self.__resolved_pathways.add_connectivity(path_id,
+                                                              path.models,  ## This is properties['models']...
+                                                              path.path_type,  ## This is properties['type']...
+                                                              routed_path.node_set,
+                                                              feature.geojson_id,
+                                                              nerve_features)
 
     def generate_connectivity(self, networks):
     #=========================================
