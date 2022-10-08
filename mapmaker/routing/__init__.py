@@ -763,8 +763,7 @@ class Network(object):
                                     terminal_network.nodes[last_feature]['upstream'] = {upstream_node}
                                 break
 
-                    if (next_dict.get('cl-node') is None
-                    and not next_dict.get('segment-node', False)):
+                    if not next_dict.get('segment-node', False):
                         walk_paths_from_node(next_node, next_dict)
 
         walk_paths_from_node(start_node, start_dict)
