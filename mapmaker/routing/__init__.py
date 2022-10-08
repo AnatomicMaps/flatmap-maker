@@ -824,7 +824,7 @@ class Network(object):
                 # First traversal of edge to see if feature nodes and segments can be joined
                 for start, end in pairwise(part_boundaries):
                     if (end - start) > 1:
-                        for dict_0, dict_1 in pairwise(node_dicts[start:end]):
+                        for dict_0, dict_1 in pairwise(node_dicts[start:end+1]):
                             # Can have segment/feature and feature/feature
                             # but not segment/segment
                             joined_features = None
