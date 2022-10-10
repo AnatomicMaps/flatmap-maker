@@ -71,7 +71,7 @@ from mapmaker.utils import log
 import mapmaker.utils.graph as graph_utils
 
 from .options import MIN_EDGE_JOIN_RADIUS
-from .routedpath import PathRouter
+from .routedpath import IntermediateNode, PathRouter
 
 if TYPE_CHECKING:
     from mapmaker.properties import ExternalProperties
@@ -179,6 +179,10 @@ class NetworkNode:
     @centre.setter
     def centre(self, value):
         self.properties['centre'] = value
+
+    @property
+    def geometry(self):
+        return self.properties.get('geometry')
 
     @property
     def radii(self):
@@ -391,6 +395,9 @@ class Network(object):
 
             return bz_path
 
+        def time_scale(scale, T, x):
+            return (scale(x) - T)/(1.0 - T)
+
         # Initialise
         self.__centreline_graph = nx.MultiGraph()           #! Can have multiple paths between nodes which will be contained in different features
         self.__containers_by_segment = defaultdict(set)     #! Segment id --> set of features that segment is contained in
@@ -464,8 +471,10 @@ class Network(object):
         for feature_id, node_dict in self.__centreline_graph.nodes(data=True):
             node_dict['degree'] = self.__centreline_graph.degree(feature_id)
 
+        # Process intermediate nodes
         for node_0, node_1, edge_dict in self.__centreline_graph.edges(data=True):
             bz_path = edge_dict['bezier-path']
+            bz_segments = edge_dict['bezier-segments']
             path_reversed = edge_dict['reversed']
             segment_id = edge_dict['segment']
 
@@ -479,6 +488,88 @@ class Network(object):
                 else:
                     network_node.centre = bz_path.pointAtTime(t)
                 last_t = t
+
+            # Find where the centreline's segments cross intermediate nodes
+            intermediate_geometry = {}
+            intersection_times = {}
+            for seg_num, bz_segment in enumerate(bz_segments):
+                line = bezier_to_linestring(bz_segment)
+                time_points = []
+                for network_node in edge_dict['network_nodes'][1:-1]:
+                    if not network_node.properties.get('node', False):
+                        node_id = network_node.feature_id
+                        intermediate_geometry[node_id] = network_node.geometry
+                        intersection_points = []
+                        if network_node.geometry.intersects(line):
+                            intersection = network_node.geometry.boundary.intersection(line)
+                            if isinstance(intersection, shapely.geometry.Point):
+                                intersection_points.append((closest_time_distance(bz_segment, coords_to_point((intersection.x, intersection.y)))[0], ))
+                            else:
+                                intersecting_points = intersection.geoms
+                                if len(intersecting_points) > 2:
+                                    log.warning(f"Intermediate node {node_id} has multiple intersections with centreline {segment_id}")
+                                else:
+                                    intersection_points.append(sorted((closest_time_distance(bz_segment, coords_to_point((pt.x, pt.y)))[0]
+                                                                                for pt in intersecting_points)))
+                        if len(intersection_points) == 0:
+                            log.warning(f"Intermediate node `{node_id}` doesn't intersect centreline `{segment_id}`")
+                        else:
+                            time_points.extend(((pts, node_id) for pts in intersection_points))
+                intersection_times[seg_num] = sorted(time_points)
+
+            # Break the centreline up into components, consisting of Bezier segments and intermediate nodes.
+            # This is what is used for rendering paths along the centreline
+            path_components = []
+            last_intersection = None
+            for seg_num, bz_segment in enumerate(bz_segments):
+                prev_intersection = None
+                scale = partial(time_scale, lambda x: x, 0.0)
+                node_intersections = intersection_times[seg_num]
+                intersection_num = 0
+                while intersection_num < len(node_intersections):
+                    times, node_id = node_intersections[intersection_num]
+                    if len(times) == 0:
+                        continue
+                    node_geometry = intermediate_geometry[node_id]
+                    time_0 = scale(times[0])
+                    if len(times) == 1:
+                        # path touches feature
+                        if last_intersection is not None:
+                            assert node_id == last_intersection[1]
+                            # check times[0] < 0.5  ??
+                            bz_parts = bz_segment.splitAtTime(time_0)
+                            path_components.append(IntermediateNode(node_geometry, last_intersection[0].startAngle, bz_parts[0].endAngle))
+                            bz_segment = bz_parts[1]
+                            scale = partial(time_scale, scale, time_0)
+                            last_intersection = None
+                        elif (intersection_num + 1) == len(node_intersections):
+                            # check times[0] > 0.5 ??
+                            bz_parts = bz_segment.splitAtTime(time_0)
+                            path_components.append(bz_parts[0])
+                            last_intersection = (bz_parts[1], node_id)
+                        else:
+                            log.error(f'Node {node_id} only intersects once with centreline {edge_id}')
+                    else:
+                        # path crosses feature
+                        if prev_intersection is not None and prev_intersection[0] >= times[0]:
+                            log.error(f'Intermediate nodes {prev_intersection[1]} and {node_id} overlap on centreline {edge_id}')
+                        else:
+                            bz_parts = bz_segment.splitAtTime(time_0)
+                            path_components.append(bz_parts[0])
+                            bz_segment = bz_parts[1]
+                            scale = partial(time_scale, scale, time_0)
+                            time_1 = scale(times[1])
+                            bz_parts = bz_segment.splitAtTime(time_1)
+                            path_components.append(IntermediateNode(node_geometry, bz_parts[0].startAngle, bz_parts[0].endAngle))
+                            bz_segment = bz_parts[1]
+                            scale = partial(time_scale, scale, time_1)
+                        prev_intersection = (times[1], node_id)
+                    intersection_num += 1
+                if last_intersection is None:
+                    path_components.append(bz_segment)
+            if last_intersection is not None:
+                log.error(f'Last intermediate node {last_intersection[1]} on centreline {edge_id} only intersects once')
+            edge_dict['path-components'] = path_components
 
         # Map container features to their centreline segments
         for centreline_id, feature_ids in self.__containers_by_centreline.items():
