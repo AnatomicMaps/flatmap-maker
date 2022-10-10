@@ -474,7 +474,7 @@ class RoutedPath(object):
                 if len(edge_nodes) == 1 and edge_nodes[0] not in terminal_nodes:
                     pass
                     """
-                    # TEMP: This produces visual artefacts so suppress...
+                    # TEMP: This produces visual artifacts so suppress...
 
                     # Draw path from node boundary to offsetted centre
                     edge_dict = edge_dicts[0]
