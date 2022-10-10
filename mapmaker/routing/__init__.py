@@ -279,6 +279,15 @@ class Network(object):
                     if node not in self.__nodes_by_ftu[node.feature_id]:
                         self.__nodes_by_ftu[node.feature_id].append(node)
 
+        # Check containing features of a centreline are only for that centreline
+        centrelines_by_containing_feature = defaultdict(set)
+        for centreline_id, containing_features in self.__containers_by_centreline.items():
+            for feature_id in containing_features:
+                centrelines_by_containing_feature[feature_id].add(centreline_id)
+        for feature_id, centrelines in centrelines_by_containing_feature.items():
+            if len(centrelines) > 1:
+                log.warning(f'Feature `{feature_id}` is container for multiple centrelines: {centrelines}')
+
     @property
     def id(self):
         return self.__id
