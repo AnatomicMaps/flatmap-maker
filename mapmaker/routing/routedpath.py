@@ -237,7 +237,7 @@ def join_geometry(node, node_dict, edge_dict_0, edge_dict_1):
         mid_point = bz.pointAtTime(0.5)
         geometry.append(GeometricShape.circle(
             point_to_coords(mid_point),
-            radius = 0.8*PATH_SEPARATION,
+            radius = 1.2*PATH_SEPARATION,
             properties = {
                 'type': 'junction',
                 'path-id': edge_dict_0.get('path-id'),
