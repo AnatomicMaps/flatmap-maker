@@ -254,9 +254,6 @@ class MapMaker(object):
     #==============
         self.__begin_make()
 
-        # Initialise flatmap
-        self.__flatmap.initialise()
-
         # Process flatmap's sources to create MapLayers
         self.__process_sources()
 
@@ -286,6 +283,10 @@ class MapMaker(object):
 
     def __begin_make(self):
     #======================
+        # Initialise flatmap
+        self.__flatmap.initialise()
+
+        # Reinitialise lists we use
         self.__geojson_files = []
         self.__tippe_inputs = []
 

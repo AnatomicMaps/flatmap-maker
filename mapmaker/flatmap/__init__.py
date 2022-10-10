@@ -52,7 +52,6 @@ class FlatMap(object):
         self.__extent = None
         self.__centre = None
         self.__min_zoom = maker.zoom[0]
-        self.initialise()
 
     def __len__(self):
         return self.__visible_layer_count
