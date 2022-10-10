@@ -19,6 +19,7 @@
 #===============================================================================
 
 from __future__ import annotations
+import math
 
 #===============================================================================
 
@@ -92,6 +93,9 @@ def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle
         return
     if end_angle is None:
         end_angle = start_angle
+    elif abs(start_angle - end_angle) > math.pi/2:
+        # Make sure ``start_angle`` and ``end_angle`` are pointing the same way
+        start_angle += math.pi
     return CubicBezier(a, a + BezierPoint.fromAngle(start_angle)*d/3,
                        b - BezierPoint.fromAngle(end_angle)*d/3, b)
 
