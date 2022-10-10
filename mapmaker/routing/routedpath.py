@@ -312,6 +312,10 @@ class RoutedPath(object):
     def node_set(self):
         return self.__node_set
 
+    @property
+    def path_id(self):
+        return self.__path_id
+
     def __line_from_edge(self, edge):
         node_0 = self.__graph.nodes[edge[0]]
         node_1 = self.__graph.nodes[edge[1]]
