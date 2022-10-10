@@ -618,7 +618,7 @@ class Network(object):
         # Check if we can directly identify the centreline
         if (centreline_id := self.__models_to_id.get(connectivity_node[0])) is not None:
             if len(segment_ids := self.__segment_ids_by_centreline[centreline_id]) > 1:
-                log.warning(f'Connectivity node {full_node_name(*connectivity_node)} has found segmented centreline: {centreline_id}')
+                log.warning(f'Connectivity node `{full_node_name(*connectivity_node)}` has found segmented centreline: {centreline_id}')
             else:
                 segment_id = segment_ids[0]
                 result['segment-id'] = segment_id
