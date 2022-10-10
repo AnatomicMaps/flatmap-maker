@@ -27,6 +27,7 @@ from beziers.path import BezierPath
 from beziers.point import Point as BezierPoint
 from beziers.segment import Segment as BezierSegment
 
+from shapely.geometry.base import BaseGeometry
 import shapely.geometry
 
 #===============================================================================
@@ -39,8 +40,8 @@ def point_to_coords(pt: BezierPoint) -> tuple[float, float]:
 
 #===============================================================================
 
-def width_along_line(geometry, point: BezierPoint, dirn: BezierPoint) -> float:
-#==============================================================================
+def width_along_line(geometry: BaseGeometry, point: BezierPoint, dirn: BezierPoint) -> float:
+#============================================================================================
     """
     Find the width of a node by getting the length of the line through an internal
     point in a given direction.
@@ -55,7 +56,7 @@ def width_along_line(geometry, point: BezierPoint, dirn: BezierPoint) -> float:
             intersecting_points = intersection.geoms
             if len(intersecting_points) == 2:
                 return intersecting_points[0].distance(intersecting_points[1])
-    return 0
+    return 0.0
 
 #===============================================================================
 
@@ -96,7 +97,7 @@ def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle
 
 #===============================================================================
 
-def closest_time_distance(bz, pt: BezierPoint, steps: int=100) -> tuple[float, float]:
+def closest_time_distance(bz: 'BezierPath | BezierSegment', pt: BezierPoint, steps: int=100) -> tuple[float, float]:
     def subdivide_search(t0, t1, steps):
         closest_d = None
         closest_t = t0
@@ -157,4 +158,5 @@ def split_bezier_path_at_point(bz_path: BezierPath, point: BezierPoint):
         (s0, s1) = segment.splitAtTime(closest_time)
         return (BezierPath.fromSegments(list(segments[:closest_seg_index]) + [s0]),
                 BezierPath.fromSegments([s1] + list(segments[closest_seg_index+1:])))
+
 #===============================================================================
