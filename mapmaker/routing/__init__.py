@@ -352,40 +352,101 @@ class Network(object):
                 # Angle of the radial line from the node's centre to a path's intersection with the boundary (radians)
                 self.__centreline_graph.nodes[feature_id]['edge-node-angle'] = {}
 
-        def split_path_and_update_centreline_graph(network_node_0, network_node_1, key, bz_path, path_reversed):
-            # Split Bezier path at ``node_1``, assigning the front portion to the
-            # ``(node_0, node_1)`` edge and return the remainder.
+        def truncate_segments_at_start(segments, network_node):
+            # This assumes node centre is close to segments[0].start
+            node_centre = network_node.centre
+            radii = network_node.radii
+            if segments[0].start.distanceFrom(node_centre) > radii[0]:
+                return segments
+            n = 0
+            while n < len(segments) and segments[n].end.distanceFrom(node_centre) < radii[0]:
+                n += 1
+            if n >= len(segments):
+                return segments
+            bz = segments[n]
+            u = 0.0
+            v = 1.0
+            while True:
+                t = (u + v)/2.0
+                point = bz.pointAtTime(t)
+                if point.distanceFrom(node_centre) > radii[1]:
+                    v = t
+                elif point.distanceFrom(node_centre) < radii[0]:
+                    u = t
+                else:
+                    break
+            # Drop 0 -- t at front of bezier
+            split = bz.splitAtTime(t)
+            segments[n] = split[1]
+            return segments[n:]
 
-            if not path_reversed:
-                (start_node, end_node) = (network_node_0, network_node_1)
-            else:
-                (start_node, end_node) = (network_node_1, network_node_0)
-            (start_node_id, end_node_id) = (start_node.feature_id, end_node.feature_id)
-            edge_dict = self.__centreline_graph.edges[start_node_id, end_node_id, key]
+        def truncate_segments_at_end(segments, network_node):
+            # This assumes node centre is close to segments[-1].end
+            node_centre = network_node.centre
+            radii = network_node.radii
+            if segments[-1].end.distanceFrom(node_centre) > radii[0]:
+                return segments
+            n = len(segments) - 1
+            while n >= 0 and segments[n].start.distanceFrom(node_centre) < radii[0]:
+                n -= 1
+            if n < 0:
+                return segments
+            bz = segments[n]
+            u = 0.0
+            v = 1.0
+            while True:
+                t = (u + v)/2.0
+                point = bz.pointAtTime(t)
+                if point.distanceFrom(node_centre) > radii[1]:
+                    u = t
+                elif point.distanceFrom(node_centre) < radii[0]:
+                    v = t
+                else:
+                    break
+            # Drop t -- 1 at end of bezier
+            split = bz.splitAtTime(t)
+            segments[n] = split[0]
+            return segments[:n+1]
 
-            (cl_path, bz_path) = split_bezier_path_at_point(bz_path, end_node.centre)
-
-            # Set the end of the segment's centreline to the center of the end node for actual ``.node`` features
-            if end_node.properties.get('node', False):
-                set_bezier_path_end_to_point(cl_path, end_node.centre)
-
-            segments = cl_path.asSegments()
-            edge_dict['bezier-path'] = cl_path
-            edge_dict['bezier-segments'] = segments
-            edge_dict['geometry'] = bezier_to_linestring(cl_path) ##, num_points=50)
-            edge_dict['reversed'] = path_reversed
-            edge_dict['length'] = cl_path.length  # Use in finding shortest route
-
+        def set_segment_geometry(node_id_0, node_1, edge_dict):
+            segments = edge_dict.pop('bezier-path').asSegments()
             segment_id = edge_dict['segment']
+            network_nodes = edge_dict['network-nodes']
 
+            start_node = edge_dict.pop('path-start-node')
+            end_node = edge_dict.pop('path-end-node')
+            (start_node_id, end_node_id) = (start_node.feature_id, end_node.feature_id)
             edge_dict['start-node'] = start_node_id
+            edge_dict['end-node'] = end_node_id
+
+            # Truncate the path at brannch nodes
+            if self.__centreline_graph.degree(node_0) >= 2:
+                if start_node_id == node_id_0:
+                    # This assumes network_nodes[0] centre is close to segments[0].start
+                    segments = truncate_segments_at_start(segments, network_nodes[0])
+                else:
+                    # This assumes network_nodes[-1] centre is close to segments[-1].end
+                    segments = truncate_segments_at_end(segments, network_nodes[-1])
+            if self.__centreline_graph.degree(node_1) >= 2:
+                if start_node_id == node_id_0:
+                    # This assumes network_nodes[0] centre is close to segments[-1].end
+                    segments = truncate_segments_at_end(segments, network_nodes[0])
+                else:
+                    # This assumes network_nodes[-1] centre is close to segments[0].start
+                    segments = truncate_segments_at_start(segments, network_nodes[-1])
+
+            # We've now have the possibly truncated path of the centreline segment
+            # so save it along with geometric information about its end points
+            edge_dict['bezier-segments'] = segments
+            bz_path = BezierPath.fromSegments(segments)
+            edge_dict['geometry'] = bezier_to_linestring(bz_path)
+
             # Direction of a path at the node boundary, going towards the centre (radians)
             self.__centreline_graph.nodes[start_node_id]['edge-direction'][segment_id] = segments[0].startAngle + math.pi
             # Angle of the radial line from the node's centre to a path's intersection with the boundary (radians)
             self.__centreline_graph.nodes[start_node_id]['edge-node-angle'][end_node_id] = (
                                     (segments[0].pointAtTime(0.0) - start_node.centre).angle)
 
-            edge_dict['end-node'] = end_node_id
             # Direction of a path at the node boundary, going towards the centre (radians)
             self.__centreline_graph.nodes[end_node_id]['edge-direction'][segment_id] = segments[-1].endAngle
             # Angle of the radial line from the node's centre to a path's intersection with the boundary (radians)
@@ -393,7 +454,6 @@ class Network(object):
                                     # why segments[0].pointAtTime(0.0) ??
                                     (segments[-1].pointAtTime(1.0) - end_node.centre).angle)
 
-            return bz_path
 
         def time_scale(scale, T, x):
             return (scale(x) - T)/(1.0 - T)
@@ -431,9 +491,6 @@ class Network(object):
             while start_index < len(network_nodes) - 1:
                 seg_no += 1
                 start_node = network_nodes[start_index]
-                # Set the start of the centreline to the center of next start node for actual ``.node`` features
-                if start_node.properties.get('node', False):
-                    set_bezier_path_end_to_point(bz_path, start_node.centre)
 
                 end_index = start_index + 1
                 # Loop must terminate as network_nodes[-1] is a map feature from above
@@ -454,13 +511,22 @@ class Network(object):
                 # Add an edge to the segmented centreline graph
                 edge_feature_ids = (start_node.feature_id, end_node.feature_id)
                 key = self.__centreline_graph.add_edge(*edge_feature_ids, id=edge_feature_ids,
-                                                       centreline=centreline_id, segment=segment_id,
-                                                       network_nodes=network_nodes[start_index:end_index+1])
-                edge_id = (*edge_feature_ids, key)
+                                                       centreline=centreline_id, segment=segment_id)
 
-                # Split Bezier path at segment boundary and return the remainder.
-                # NB. this also sets the end of the segment's centerline to the centre if the end node
-                bz_path = split_path_and_update_centreline_graph(start_node, end_node, key, bz_path, path_reversed)
+                path_start_node = end_node if path_reversed else start_node
+                path_end_node = start_node if path_reversed else end_node
+
+                # Split the current Bezier path at the segment boundary and return the remainder
+                (cl_path, bz_path) = split_bezier_path_at_point(bz_path, path_end_node.centre)
+
+                # Save properties for later
+                edge_id = (*edge_feature_ids, key)
+                edge_dict = self.__centreline_graph.edges[edge_id]
+                edge_dict['bezier-path'] = cl_path
+                edge_dict['reversed'] = path_reversed
+                edge_dict['path-start-node'] = path_start_node
+                edge_dict['path-end-node'] = path_end_node
+                edge_dict['network-nodes'] = network_nodes[start_index:end_index+1]
 
                 segment_edge_ids_by_centreline[centreline_id].append(edge_id)
                 self.__segment_edge_by_segment[segment_id] = edge_id
@@ -471,16 +537,18 @@ class Network(object):
         for feature_id, node_dict in self.__centreline_graph.nodes(data=True):
             node_dict['degree'] = self.__centreline_graph.degree(feature_id)
 
+        for node_0, node_1, edge_dict in self.__centreline_graph.edges(data=True):
+            set_segment_geometry(node_0, node_1, edge_dict)
+
         # Process intermediate nodes
         for node_0, node_1, edge_dict in self.__centreline_graph.edges(data=True):
-            bz_path = edge_dict['bezier-path']
-            bz_segments = edge_dict['bezier-segments']
+            bz_segments = edge_dict.pop('bezier-segments')
+            bz_path = BezierPath.fromSegments(bz_segments)
             path_reversed = edge_dict['reversed']
             segment_id = edge_dict['segment']
-
             # Set intermediate node centres to their closest point on the centreline's path
             last_t = 0.0 if not path_reversed else 1.0
-            for network_node in edge_dict['network_nodes'][1:-1]:
+            for network_node in edge_dict['network-nodes'][1:-1]:
                 t = closest_time_distance(bz_path, network_node.centre)[0]
                 if (not path_reversed and t <= last_t
                  or     path_reversed and t >= last_t):
@@ -495,7 +563,7 @@ class Network(object):
             for seg_num, bz_segment in enumerate(bz_segments):
                 line = bezier_to_linestring(bz_segment)
                 time_points = []
-                for network_node in edge_dict['network_nodes'][1:-1]:
+                for network_node in edge_dict['network-nodes'][1:-1]:
                     if not network_node.properties.get('node', False):
                         node_id = network_node.feature_id
                         intermediate_geometry[node_id] = network_node.geometry
@@ -517,8 +585,8 @@ class Network(object):
                             time_points.extend(((pts, node_id) for pts in intersection_points))
                 intersection_times[seg_num] = sorted(time_points)
 
-            # Break the centreline up into components, consisting of Bezier segments and intermediate nodes.
-            # This is what is used for rendering paths along the centreline
+            # Break the centreline segment into components, consisting of Bezier segments and intermediate
+            # nodes. This is what is used for rendering paths along the centreline segment
             path_components = []
             last_intersection = None
             for seg_num, bz_segment in enumerate(bz_segments):
