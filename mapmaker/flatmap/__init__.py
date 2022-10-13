@@ -142,7 +142,7 @@ class FlatMap(object):
 
         self.__feature_map = FeatureMap(self.__manifest.connectivity_terms)
         self.__features = OrderedDict()
-        self.__last_feature_id = 0
+        self.__last_geojson_id = 0
 
         # Used to find annotated features containing a region
         self.__feature_search = None
@@ -175,9 +175,9 @@ class FlatMap(object):
 
     def new_feature(self, geometry, properties, has_children=False):
     #===============================================================
-        self.__last_feature_id += 1
-        feature = Feature(self.__last_feature_id, geometry, properties, has_children)
-        self.__features[self.__last_feature_id] = feature
+        self.__last_geojson_id += 1
+        feature = Feature(self.__last_geojson_id, geometry, properties, has_children)
+        self.__features[self.__last_geojson_id] = feature
         return feature
 
     def feature_exported(self, feature):
