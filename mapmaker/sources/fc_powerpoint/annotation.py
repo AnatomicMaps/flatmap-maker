@@ -45,7 +45,7 @@ class Annotation:
 
 #===============================================================================
 
-class AnnotationSet:
+class Annotator:
     def __init__(self, spreadsheet: str):
         if not relative_path(spreadsheet):
             if spreadsheet.startswith('file:'):
