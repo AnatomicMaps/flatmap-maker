@@ -100,6 +100,8 @@ PATH_TYPES = {
     'ilxtr:IntrinsicPhenotype': 'lcn',
     'ilxtr:SpinalCordAscendingProjectionPhenotype': 'cns',
     'ilxtr:SpinalCordDescendingProjectionPhenotype': 'cns',
+    'ilxtr:EntericPhenotype': 'enteric',
+    'ilxtr:IntestinoFugalProjectionPhenotype': 'intestine',
 }
 
 PATH_ORDER = {
@@ -361,9 +363,10 @@ class Path(object):
             self.__label = knowledge.get('label')
             if 'connectivity' in knowledge:   # Use SciCrunch knowledge
                 # Construct a graph of SciCrunch's connected pairs
-                self.__path_type = path_type_from_phenotypes(knowledge.get('phenotypes', []))
+                phenotypes = knowledge.get('phenotypes', [])
+                self.__path_type = path_type_from_phenotypes(phenotypes)
                 if self.__path_type == '':
-                    log.warning(f'SCKAN knowledge error: {self.__id} path has no phenotype, defaulting to CNS')
+                    log.warning(f'SCKAN knowledge error: {self.__id} phenotype {phenotypes} is unknown, defaulting to CNS')
                     self.__path_type = 'cns'
                 G = nx.Graph()
                 node_type_finder = NodeTypeFinder(knowledge.get('axons', []),
