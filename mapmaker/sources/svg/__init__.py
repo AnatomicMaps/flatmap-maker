@@ -46,7 +46,7 @@ from .cleaner import SVGCleaner
 from .definitions import DefinitionStore, ObjectStore
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import adobe_decode_markup, length_as_pixels, parse_svg_path, SVG_NS
+from .utils import svg_markup, length_as_pixels, parse_svg_path, SVG_NS
 
 from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import Transform, reflect_point
@@ -66,6 +66,7 @@ IGNORED_SVG_TAGS = [
     SVG_NS('radialGradient'),
     SVG_NS('style'),
     SVG_NS('text'),
+    SVG_NS('title'),
 ]
 
 #===============================================================================
@@ -179,7 +180,7 @@ class SVGLayer(MapLayer):
                 group_feature = self.flatmap.new_feature(shapely.ops.unary_union(geometries), properties)
             else:
                 group_feature = None
-            group_name = adobe_decode_markup(group)
+            group_name = svg_markup(group)
             if (feature_group := self.add_features(group_name, features)) is not None:
                 if 'id' not in properties:
                     group_feature = feature_group
@@ -240,7 +241,7 @@ class SVGLayer(MapLayer):
     #========================================================================================
         element = wrapped_element.etree_element
         element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
-        markup = adobe_decode_markup(element)
+        markup = svg_markup(element)
         properties_from_markup = self.source.properties_from_markup(markup)
         properties = parent_properties.copy()
         properties.pop('id', None)   # We don't inherit `id`

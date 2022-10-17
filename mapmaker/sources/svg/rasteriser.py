@@ -47,7 +47,7 @@ from mapmaker.utils.image import image_size
 from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import adobe_decode_markup, length_as_pixels, parse_svg_path, SVG_NS, XLINK_HREF
+from .utils import svg_markup, length_as_pixels, parse_svg_path, SVG_NS, XLINK_HREF
 
 #===============================================================================
 
@@ -461,7 +461,7 @@ class SVGTiler(object):
             stroked = (stroke != 'none')
             if stroked:
                 stroke_opacity = 1.0
-                markup = adobe_decode_markup(element)
+                markup = svg_markup(element)
                 if markup.startswith('.'):
                     properties = parse_markup(markup)
                     if 'centreline' in properties or 'node' in properties:

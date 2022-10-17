@@ -120,3 +120,12 @@ def adobe_encode(s, suffix=None):
     return re.sub('.', __match_to_hex, s)
 
 #===============================================================================
+
+def svg_markup(element):
+#=======================
+    if (markup := element.findtext(SVG_NS('title'), default='')) != '':
+        return markup
+    else:
+        return adobe_decode_markup(element)
+
+#===============================================================================

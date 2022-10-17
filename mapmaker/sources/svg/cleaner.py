@@ -33,7 +33,7 @@ from mapmaker.utils import FilePath
 
 from .. import EXCLUDED_FEATURE_TYPES, NETWORK_SHAPE_TYPES, EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
 from ..markup import parse_markup
-from .utils import adobe_decode_markup
+from .utils import svg_markup
 
 #===============================================================================
 
@@ -67,7 +67,7 @@ class SVGCleaner(object):
 
     def __exclude(self, element):
     #============================
-        markup = adobe_decode_markup(element)
+        markup = svg_markup(element)
         if markup.startswith('.'):
             properties = self.__map_properties.update_properties(parse_markup(markup))
             for key, value in properties.items():
