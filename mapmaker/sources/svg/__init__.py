@@ -61,7 +61,6 @@ from mapmaker.utils import FilePath, ProgressBar, log
 
 IGNORED_SVG_TAGS = [
     SVG_NS('font'),
-    SVG_NS('image'),
     SVG_NS('linearGradient'),
     SVG_NS('radialGradient'),
     SVG_NS('style'),
@@ -208,22 +207,22 @@ class SVGLayer(MapLayer):
                 element = self.__definitions.use(element)
                 wrapped_element = wrap_element(element)
             if element.tag == SVG_NS('clipPath'):
-                self.__add_clip_geometry(wrapped_element, transform)
-            else:
-                if (feature := self.__process_element(wrapped_element, transform, parent_properties, parent_style)) is not None:
-                    features.append(feature)
+                self.__add_clip_geometry(element, transform)
+            elif (feature := self.__process_element(wrapped_element, transform, parent_properties, parent_style)) is not None:
+                features.append(feature)
         progress_bar.close()
         return features
 
-    def __add_clip_geometry(self, wrapped_clip_path, transform):
+    def __add_clip_geometry(self, clip_path_element, transform):
     #===========================================================
-        clip_path_element = wrapped_clip_path.etree_element
-        clip_id = clip_path_element.attrib.get('id')
-        if clip_id is None:
-            return
+        if ((clip_id := clip_path_element.attrib.get('id')) is not None
+        and (geometry := self.__get_clip_geometry(clip_path_element, transform)) is not None):
+            self.__clip_geometries.add(clip_id, geometry)
+
+    def __get_clip_geometry(self, clip_path_element, transform):
+    #===========================================================
         geometries = []
-        for wrapped_element in wrapped_clip_path.iter_children():
-            element = wrapped_element.etree_element
+        for element in clip_path_element:
             if element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
             if (element is not None
@@ -234,8 +233,7 @@ class SVGLayer(MapLayer):
                 geometry = self.__get_geometry(element, properties, transform)
                 if geometry is not None:
                     geometries.append(geometry)
-        if len(geometries):
-            self.__clip_geometries.add(clip_id, shapely.ops.unary_union(geometries))
+        return shapely.ops.unary_union(geometries) if len(geometries) else None
 
     def __process_element(self, wrapped_element, transform, parent_properties, parent_style):
     #========================================================================================
@@ -264,6 +262,14 @@ class SVGLayer(MapLayer):
             and 'id' not in properties):
                 return None
             else:
+                return self.flatmap.new_feature(geometry, properties)
+        elif element.tag == SVG_NS('image'):
+            clip_path_url = element_style.pop('clip-path', None)
+            if ((geometry := self.__clip_geometries.get_by_url(clip_path_url)) is None
+            and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
+                T = transform@SVGTransform(element.attrib.get('transform'))
+                geometry = self.__get_clip_geometry(clip_path_element, T)
+            if geometry is not None:
                 return self.flatmap.new_feature(geometry, properties)
         elif element.tag == SVG_NS('g'):
             return self.__process_group(wrapped_element, properties, transform, parent_style)

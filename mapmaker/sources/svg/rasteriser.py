@@ -346,7 +346,7 @@ class SVGTiler(object):
                 self.__definitions.add_definition(element)
                 continue
             if element.tag == SVG_NS('clipPath'):
-                self.__add_clip_path(wrapped_element)
+                self.__add_clip_path(element)
             else:
                 drawing_objects.extend(self.__draw_element(wrapped_element, parent_transform, parent_style))
         progress_bar.close()
@@ -365,13 +365,16 @@ class SVGTiler(object):
         svg_transform = SVGTransform(gradient.attrib.get('gradientTransform'))
         return skia.Matrix(list((path_transform@svg_transform).flatten()))
 
-    def __add_clip_path(self, wrapped_clip_path):
+    def __add_clip_path(self, clip_path_element):
     #============================================
-        clip_path_element = wrapped_clip_path.etree_element
-        clip_id = clip_path_element.attrib.get('id')
+        if ((clip_id := clip_path_element.attrib.get('id')) is not None
+        and (clip_path := self.__get_clip_path(clip_path_element)) is not None):
+            self.__clip_paths.add(clip_id, clip_path)
+
+    def __get_clip_path(self, clip_path_element):
+    #============================================
         clip_path = None
-        for wrapped_element in wrapped_clip_path.iter_children():
-            element = wrapped_element.etree_element
+        for element in clip_path_element:
             if element.tag == SVG_NS('use'):
                 element = self.__definitions.use(element)
             if (element is not None
@@ -384,8 +387,7 @@ class SVGTiler(object):
                         clip_path = path
                     else:
                         clip_path.addPath(path)
-        if clip_id is not None and clip_path is not None:
-            self.__clip_paths.add(clip_id, clip_path)
+        return clip_path
 
     def __draw_element(self, wrapped_element, parent_transform, parent_style):
     #=========================================================================
@@ -405,7 +407,7 @@ class SVGTiler(object):
             path = SVGTiler.__get_graphics_path(element)
             if path is None: return []
 
-            fill = element_style.get('fill', '#FFF')
+            fill = element_style.get('fill', '#FFF').strip()
             if fill != 'none':
                 path.setFillType(skia.PathFillType.kWinding)
                 opacity = float(element_style.get('opacity', 1.0))
@@ -523,9 +525,14 @@ class SVGTiler(object):
                     paint = skia.Paint()
                     opacity = float(element_style.get('opacity', 1.0))
                     paint.setAlpha(round(opacity * 255))
+                    clip_path_url = element_style.pop('clip-path', None)
+                    if ((clip_path := self.__clip_paths.get_by_url(clip_path_url)) is None
+                    and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
+                        print('cp:', clip_path_url, clip_path_element)
+                        clip_path = self.__get_clip_path(clip_path_element)
                     drawing_objects.append(CanvasImage(image, paint, parent_transform,
                         element.attrib.get('transform'),
-                        self.__clip_paths.get_by_url(element_style.get('clip-path'))
+                        clip_path
                     ))
 
         elif element.tag == SVG_NS('text'):
