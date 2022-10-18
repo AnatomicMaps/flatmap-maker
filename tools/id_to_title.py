@@ -108,7 +108,8 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--version', action='version', version=__version__)
     parser.add_argument('--no-degroup', action='store_true',
                         help='Replace `id` markup with <title> elements without first removing extraneous nested groups')
-    parser.add_argument('svg_file', metavar='SVG_FILE', help='SVG file to process. The file is overwritten.')
+    parser.add_argument('--output', metavar='OUTPUT', help='Name of resulting file. Optional')
+    parser.add_argument('svg_file', metavar='SVG_FILE', help='SVG file to process. The file is overwritten if no OUTPUT is given.')
     args = parser.parse_args()
 
     svg_tree = SvgTree.from_file(args.svg_file)
@@ -120,6 +121,8 @@ if __name__ == '__main__':
     entitler = Entitler(svg_tree)
     svg_tree = entitler.title()
 
-    svg_tree.save('x.svg')
+    if args.output is None:
+        args.output = args.svg_file
+    svg_tree.save(args.output)
 
 #===============================================================================
