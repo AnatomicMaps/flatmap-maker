@@ -55,6 +55,13 @@ IMAGE_MEDIA_TYPES = ['image/jpeg', 'image/png']
 
 #===============================================================================
 
+IGNORED_SVG_TAGS = [
+    SVG_NS('style'),
+    SVG_NS('title'),
+]
+
+#===============================================================================
+
 def make_colour(colour_string, opacity=1.0):
     if colour_string.startswith('#'):
         colour = webcolors.hex_to_rgb(colour_string)
@@ -541,7 +548,7 @@ class SVGTiler(object):
                 self.__clip_paths.get_by_url(element_style.get('clip-path'))
             ))
 
-        elif element.tag != SVG_NS('style'):
+        elif element.tag not in IGNORED_SVG_TAGS:
             log.warning("'{}' not supported...".format(element.tag))
 
         return drawing_objects
