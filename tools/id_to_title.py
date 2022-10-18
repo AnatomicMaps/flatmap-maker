@@ -103,14 +103,23 @@ class Entitler:
 
 if __name__ == '__main__':
     import argparse
+    import sys
 
     parser = argparse.ArgumentParser(description='Remove extraneous nested groups and add replace `id` markup with <title> elements.')
     parser.add_argument('-v', '--version', action='version', version=__version__)
     parser.add_argument('--no-degroup', action='store_true',
                         help='Replace `id` markup with <title> elements without first removing extraneous nested groups')
     parser.add_argument('--output', metavar='OUTPUT', help='Name of resulting file. Optional')
-    parser.add_argument('svg_file', metavar='SVG_FILE', help='SVG file to process. The file is overwritten if no OUTPUT is given.')
+    parser.add_argument('--overwrite', action='store_true',
+                        help='Overwrite source SVG file')
+    parser.add_argument('svg_file', metavar='SVG_FILE', help='SVG file to process. The file is overwritten if no OUTPUT is given and --overwrite is set.')
     args = parser.parse_args()
+
+    if args.output is None:
+        if args.output:
+            args.output = args.svg_file
+        else:
+            sys.exit('No output file specified and --overwrite is not set')
 
     svg_tree = SvgTree.from_file(args.svg_file)
 
