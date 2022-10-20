@@ -550,7 +550,6 @@ class SVGTiler(object):
                     clip_path_url = element_style.pop('clip-path', None)
                     if ((clip_path := self.__clip_paths.get_by_url(clip_path_url)) is None
                     and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
-                        print('cp:', clip_path_url, clip_path_element)
                         clip_path = self.__get_clip_path(clip_path_element)
                     drawing_objects.append(CanvasImage(image, paint, parent_transform,
                         element.attrib.get('transform'), clip_path, scale=scale))
