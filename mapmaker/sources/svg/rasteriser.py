@@ -78,7 +78,7 @@ def make_colour(colour_string, opacity=1.0):
             colour = [int(c) for c in rgb]
     else:
         colour = webcolors.html5_parse_legacy_color(colour_string)
-    return skia.Color(*tuple(colour), int(255*opacity))
+    return skia.Color(*tuple(colour), round(255*opacity))
 
 #===============================================================================
 
@@ -294,8 +294,8 @@ class SVGTiler(object):
     def get_image(self):
     #===================
         # Draw image to fit tile set's pixel rectangle
-        surface = skia.Surface(int(self.__scaling[0]*self.__size[0] + 0.5),
-                               int(self.__scaling[1]*self.__size[1] + 0.5))
+        surface = skia.Surface(round(self.__scaling[0]*self.__size[0]),
+                               round(self.__scaling[1]*self.__size[1]))
         canvas = surface.getCanvas()
         canvas.clear(skia.Color4f(0xFFFFFFFF))
         self.__svg_drawing.draw_element(canvas, self.__bbox)
