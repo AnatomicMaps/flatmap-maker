@@ -18,10 +18,10 @@
 #
 #===============================================================================
 
-import io
 import os
 import math
 import re
+import tempfile
 
 #===============================================================================
 
@@ -121,7 +121,7 @@ class SVGSource(MapSource):
     #===========================
         cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
         cleaner.clean()
-        cleaned_svg = io.BytesIO()
+        cleaned_svg = tempfile.TemporaryFile()
         cleaner.save(cleaned_svg)
         cleaned_svg.seek(0)
         return RasterSource('svg', lambda: cleaned_svg, source_path=self.__source_file)
