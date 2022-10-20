@@ -62,6 +62,11 @@ IGNORED_SVG_TAGS = [
 
 #===============================================================================
 
+PRESCALE_IMAGE_SIZE = 100       # If an image is too small we prescale it
+PRESCALE_FACTOR     = 100       # for skia and then scale it back in a transform
+
+#===============================================================================
+
 def make_colour(colour_string, opacity=1.0):
     if colour_string.startswith('#'):
         colour = webcolors.hex_to_rgb(colour_string)
@@ -99,8 +104,8 @@ class GradientStops(object):
 #===============================================================================
 
 class CanvasDrawingObject(object):
-    def __init__(self, paint, bounds, parent_transform,
-                    transform_attribute, clip_path, bbox=None, root_object=False):
+    def __init__(self, paint, bounds, parent_transform, transform_attribute, clip_path,
+                    bbox=None, root_object=False, scale=1.0):
         if root_object:
             T = parent_transform@SVGTransform(transform_attribute)
             self.__matrix = skia.Matrix(list(T.flatten()))
@@ -112,6 +117,10 @@ class CanvasDrawingObject(object):
                 local_transform = SVGTransform(transform_attribute)
                 self.__matrix = skia.Matrix(list(local_transform.flatten()))
                 T = T@local_transform
+        if scale != 1.0:
+            T = T@Transform.scale(1.0/scale)
+            if self.__matrix is not None:
+                self.__matrix = self.__matrix.postScale(1.0/scale, 1.0/scale)
         if bounds is not None and bbox is None:
             bbox = T.transform_geometry(shapely.geometry.box(*tuple(bounds)))
         self.__bbox = bbox
@@ -166,8 +175,8 @@ class CanvasPath(CanvasDrawingObject):
 #===============================================================================
 
 class CanvasImage(CanvasDrawingObject):
-    def __init__(self, image, paint, parent_transform, transform_attribute, clip_path):
-        super().__init__(paint, image.bounds(), parent_transform, transform_attribute, clip_path)
+    def __init__(self, image, paint, parent_transform, transform_attribute, clip_path, scale=1.0):
+        super().__init__(paint, image.bounds(), parent_transform, transform_attribute, clip_path, scale=scale)
         self.__image = image
 
     def draw_element(self, canvas, tile_bbox):
@@ -525,10 +534,16 @@ class SVGTiler(object):
                     if pixels.shape[2] == 3:
                         pixels = cv2.cvtColor(pixels, cv2.COLOR_RGB2RGBA)
                     image = skia.Image.fromarray(pixels, colorType=skia.kBGRA_8888_ColorType)
-                    width = int(element.attrib.get('width', image.width()))
-                    height = int(element.attrib.get('height', image.height()))
-                    if width != image.width() or height != image.height():
-                        image = image.resize(width, height, skia.FilterQuality.kHigh_FilterQuality)
+                    width = float(element.attrib.get('width', image.width()))
+                    height = float(element.attrib.get('height', image.height()))
+                    if width < PRESCALE_IMAGE_SIZE or height < PRESCALE_IMAGE_SIZE:
+                        scale = PRESCALE_FACTOR
+                        width *= scale
+                        height *= scale
+                    else:
+                        scale = 1.0
+                    if round(width) != scale*image.width() or round(height) != scale*image.height():
+                        image = image.resize(round(width), round(height), skia.FilterQuality.kHigh_FilterQuality)
                     paint = skia.Paint()
                     opacity = float(element_style.get('opacity', 1.0))
                     paint.setAlpha(round(opacity * 255))
@@ -538,9 +553,7 @@ class SVGTiler(object):
                         print('cp:', clip_path_url, clip_path_element)
                         clip_path = self.__get_clip_path(clip_path_element)
                     drawing_objects.append(CanvasImage(image, paint, parent_transform,
-                        element.attrib.get('transform'),
-                        clip_path
-                    ))
+                        element.attrib.get('transform'), clip_path, scale=scale))
 
         elif element.tag == SVG_NS('text'):
             drawing_objects.append(CanvasText(element.text, element.attrib, parent_transform,

@@ -103,6 +103,10 @@ class Transform(object):
     def Identity(cls):
         return cls(np.identity(3))
 
+    @classmethod
+    def scale(cls, scale):
+        return cls([[scale, 0, 0], [0, scale, 0], [0, 0, 1]])
+
     @property
     def matrix(self):
         return self.__matrix
