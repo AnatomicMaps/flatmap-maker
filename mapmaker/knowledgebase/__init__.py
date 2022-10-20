@@ -31,6 +31,9 @@ from mapmaker.settings import settings
 
 #===============================================================================
 
+def connectivity_models():
+    return settings['KNOWLEDGE_STORE'].connectivity_models()
+
 def get_label(entity):
     return get_knowledge(entity).get('label', entity)
 

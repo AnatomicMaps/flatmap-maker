@@ -22,7 +22,7 @@ from collections import defaultdict
 
 #===============================================================================
 
-from mapmaker.knowledgebase import get_knowledge
+import mapmaker.knowledgebase as knowledgebase
 from mapmaker.routing import Network
 from mapmaker.settings import settings
 from mapmaker.sources import NETWORK_SHAPE_TYPES
@@ -55,6 +55,7 @@ class ExternalProperties(object):
             self.__pathways.add_connectivity(connectivity)
 
         # Connectivity from SciCrunch
+        connectivity_models = knowledgebase.connectivity_models()
         for connectivity_model in manifest.neuron_connectivity:
             path_filter = None
             traced_paths = None
@@ -70,7 +71,10 @@ class ExternalProperties(object):
                                                and (exclude_ids is None or exclude_ids is not None and path_id not in exclude_ids))
             else:
                 model_uri = connectivity_model
-            self.__pathways.add_connectivity_model(model_uri, self, path_filter=path_filter, traced_paths=traced_paths)
+            if model_uri in connectivity_models:
+                self.__pathways.add_connectivity_model(model_uri, self, path_filter=path_filter, traced_paths=traced_paths)
+            else:
+                log.warning(f'Connectivity for {model_uri} not available in SCKAN')
 
         # Load network centreline definitions
         self.__networks = { network.get('id'): Network(network, self)
@@ -173,7 +177,7 @@ class ExternalProperties(object):
                 feature_properties['kind'] = 'simulation'
         if (entity := feature_properties.get('models')) is not None and entity.strip() != '':
             # Make sure our knowledgebase knows about the anatomical object
-            knowledge = get_knowledge(entity)
+            knowledge = knowledgebase.get_knowledge(entity)
             if 'label' not in feature_properties:
                 feature_properties['label'] = knowledge.get('label')
         elif 'label' not in feature_properties and 'name' in feature_properties:
