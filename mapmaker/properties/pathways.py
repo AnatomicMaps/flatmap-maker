@@ -631,6 +631,7 @@ class Pathways(object):
                 if properties.get('type') == 'junction':
                     if path_id in self.__type_by_path_id:
                         properties['kind'] = self.__type_by_path_id[path_id]
+                    path_id = None      # Junctions aren't a paths
                 elif path_id is not None:
                     path = paths_by_id[path_id]
                     properties.update(self.__line_properties(path_id))
