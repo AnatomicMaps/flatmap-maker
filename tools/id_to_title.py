@@ -116,7 +116,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.output is None:
-        if args.output:
+        if args.overwrite:
             args.output = args.svg_file
         else:
             sys.exit('No output file specified and --overwrite is not set')
