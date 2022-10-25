@@ -62,8 +62,8 @@ IGNORED_SVG_TAGS = [
 
 #===============================================================================
 
-PRESCALE_IMAGE_SIZE = 100       # If an image is too small we prescale it
-PRESCALE_FACTOR     = 100       # for skia and then scale it back in a transform
+PRESCALE_IMAGE_SIZES = [10, 100]        # If an image is too small we prescale it
+PRESCALE_FACTORS     = [100, 10]        # for skia and then scale it back in a transform
 
 #===============================================================================
 
@@ -536,14 +536,17 @@ class SVGTiler(object):
                     image = skia.Image.fromarray(pixels, colorType=skia.kBGRA_8888_ColorType)
                     width = float(element.attrib.get('width', image.width()))
                     height = float(element.attrib.get('height', image.height()))
-                    if width < PRESCALE_IMAGE_SIZE or height < PRESCALE_IMAGE_SIZE:
-                        scale = PRESCALE_FACTOR
-                        width *= scale
-                        height *= scale
-                    else:
-                        scale = 1.0
+                    scale = 1.0
+                    for n, prescale_size in enumerate(PRESCALE_IMAGE_SIZES):
+                        if width < prescale_size or height < prescale_size:
+                            scale = PRESCALE_FACTORS[n]
+                            width *= scale
+                            height *= scale
                     if round(width) != scale*image.width() or round(height) != scale*image.height():
-                        image = image.resize(round(width), round(height), skia.FilterQuality.kHigh_FilterQuality)
+                        try:
+                            image = image.resize(round(width), round(height), skia.FilterQuality.kHigh_FilterQuality)
+                        except RuntimeError:
+                            breakpoint()
                     paint = skia.Paint()
                     opacity = float(element_style.get('opacity', 1.0))
                     paint.setAlpha(round(opacity * 255))
