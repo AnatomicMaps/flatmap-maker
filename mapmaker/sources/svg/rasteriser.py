@@ -118,9 +118,8 @@ class CanvasDrawingObject(object):
                 self.__matrix = skia.Matrix(list(local_transform.flatten()))
                 T = T@local_transform
         if scale != 1.0:
-            T = T@Transform.scale(1.0/scale)
             if self.__matrix is not None:
-                self.__matrix = self.__matrix.postScale(1.0/scale, 1.0/scale)
+                self.__matrix = self.__matrix.preScale(1.0/scale, 1.0/scale)
         if bounds is not None and bbox is None:
             bbox = T.transform_geometry(shapely.geometry.box(*tuple(bounds)))
         self.__bbox = bbox
@@ -542,11 +541,9 @@ class SVGTiler(object):
                             scale = PRESCALE_FACTORS[n]
                             width *= scale
                             height *= scale
-                    if round(width) != scale*image.width() or round(height) != scale*image.height():
-                        try:
-                            image = image.resize(round(width), round(height), skia.FilterQuality.kHigh_FilterQuality)
-                        except RuntimeError:
-                            breakpoint()
+                            break
+                    if round(width) != image.width() or round(height) != image.height():
+                        image = image.resize(round(width), round(height), skia.FilterQuality.kHigh_FilterQuality)
                     paint = skia.Paint()
                     opacity = float(element_style.get('opacity', 1.0))
                     paint.setAlpha(round(opacity * 255))
