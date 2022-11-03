@@ -188,7 +188,6 @@ class MapMaker(object):
 
         # Authoring implies to clean output directory, report deprecated markup, and don't tile background
         if options.get('authoring', False):
-            options['clean'] = True
             options['showDeprecated'] = True
 
         # Save options to add to map's metadata
