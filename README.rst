@@ -13,7 +13,7 @@ Documentation
 Requirements
 ------------
 
-* Python 3.8.
+* Python 3.10.
 * `Tippecanoe <https://github.com/mapbox/tippecanoe#installation>`_.
 * `COIN-OR CBC solver <https://github.com/coin-or/Cbc#binaries>`_.
 
