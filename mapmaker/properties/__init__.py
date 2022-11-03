@@ -110,7 +110,7 @@ class ExternalProperties(object):
                 if (properties.get('type') == 'nerve'
                 and (entity := properties.get('models')) is not None):
                     if entity in self.__nerve_ids_by_model:
-                        log.error(f'Nerve {entity} has already been assigned')
+                        log.error(f'Nerve `{entity}` has already been assigned')
                     else:
                         self.__nerve_ids_by_model[entity] = id
         elif features is not None:
