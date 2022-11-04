@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+from __future__ import annotations
 from collections import defaultdict, OrderedDict
 from typing import Hashable, Union
 
