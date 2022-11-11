@@ -288,9 +288,9 @@ class Network(object):
         for centreline_id, containing_features in self.__containers_by_centreline.items():
             for feature_id in containing_features:
                 centrelines_by_containing_feature[feature_id].add(centreline_id)
-        for feature_id, centrelines in centrelines_by_containing_feature.items():
-            if len(centrelines) > 1:
-                log.warning(f'Feature `{feature_id}` is container for multiple centrelines: {centrelines}')
+        for feature_id, centreline_set in centrelines_by_containing_feature.items():
+            if len(centreline_set) > 1:
+                log.warning(f'Feature `{feature_id}` is container for multiple centrelines: {centreline_set}')
 
     @property
     def id(self):
