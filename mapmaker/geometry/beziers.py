@@ -33,7 +33,7 @@ import shapely.geometry
 
 #===============================================================================
 
-def coords_to_point(pt: tuple[float]) -> BezierPoint:
+def coords_to_point(pt: tuple[float, float]) -> BezierPoint:
     return BezierPoint(*pt)
 
 def point_to_coords(pt: BezierPoint) -> tuple[float, float]:

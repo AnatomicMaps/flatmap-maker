@@ -172,11 +172,11 @@ class GeometricShape(object):
         return self.__properties
 
     @classmethod
-    def circle(cls, centre: tuple[float], radius: float = 2000, properties: dict = None):
+    def circle(cls, centre: tuple[float, float], radius: float = 2000, properties: dict = None):
         return cls(shapely.geometry.Point(centre).buffer(radius), properties)
 
     @classmethod
-    def line(cls, start: tuple[float], end: tuple[float], properties: dict = None):
+    def line(cls, start: tuple[float, float], end: tuple[float, float], properties: dict = None):
         return cls(shapely.geometry.LineString([start, end]), properties)
 
     @classmethod
