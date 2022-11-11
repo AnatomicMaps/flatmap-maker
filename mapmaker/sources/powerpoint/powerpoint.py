@@ -108,8 +108,16 @@ class Shape:
         return self.properties.get('colour')
 
     @property
+    def kind(self) -> Optional(str):
+        return self.properties.get('shape-kind')
+
+    @property
     def label(self) -> str:
         return self.properties.get('label', '')
+
+    @property
+    def name(self) -> Optional(str):
+        return self.properties.get('shape-name')
 
 #===============================================================================
 
