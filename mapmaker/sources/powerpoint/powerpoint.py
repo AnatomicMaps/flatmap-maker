@@ -103,6 +103,9 @@ class Shape:
     geometry: shapely.geometry.base.BaseGeometry
     properties: dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self):
+        self.metadata: dict[str, str] = {}  # kw_only=True field for Python 3.10
+
     @property
     def colour(self) -> Optional(str):
         return self.properties.get('colour')
@@ -118,6 +121,12 @@ class Shape:
     @property
     def name(self) -> Optional(str):
         return self.properties.get('shape-name')
+
+    def set_metadata(self, name: str, value: str):
+        self.metadata[name] = value
+
+    def get_metadata(self, name: str, default: Optional(str)=None) -> Optional(str):
+        return self.metadata.get(name, default)
 
 #===============================================================================
 
