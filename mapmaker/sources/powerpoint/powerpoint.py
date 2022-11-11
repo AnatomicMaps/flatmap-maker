@@ -21,7 +21,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import NewType, Optional
+from typing import Any, NewType, Optional
 
 #===============================================================================
 
@@ -69,7 +69,8 @@ PPTX_NAMESPACE = {
     'r': "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 }
 
-def pptx_resolve(qname):
+def pptx_resolve(qname: str) -> str:
+#===================================
     parts = qname.split(':', 1)
     if len(parts) == 2 and parts[0] in PPTX_NAMESPACE:
         return f'{{{PPTX_NAMESPACE[parts[0]]}}}{parts[1]}'
@@ -77,8 +78,8 @@ def pptx_resolve(qname):
 
 #===============================================================================
 
-def text_alignment(shape):
-#=========================
+def text_alignment(shape: PptxShape) -> str:
+#===========================================
     para = shape.text_frame.paragraphs[0].alignment
     vertical = shape.text_frame.vertical_anchor
     return ('left' if para in [PP_ALIGN.LEFT, PP_ALIGN.DISTRIBUTE, PP_ALIGN.JUSTIFY, PP_ALIGN.JUSTIFY_LOW] else
@@ -88,8 +89,8 @@ def text_alignment(shape):
             'bottom' if vertical == MSO_ANCHOR.BOTTOM else
             'middle')
 
-def text_content(shape):
-#=======================
+def text_content(shape: PptxShape) -> str:
+#=========================================
     text = shape.text.replace('\n', ' ').replace('\xA0', ' ').replace('\v', ' ').strip() # Newline, non-breaking space, vertical-tab
     return text if text not in ['', '.'] else ''
 
@@ -100,20 +101,20 @@ class Shape:
     type: SHAPE_TYPE
     id: int
     geometry: shapely.geometry.base.BaseGeometry
-    properties: dict[str, str] = field(default_factory=dict)
+    properties: dict[str, Any] = field(default_factory=dict)
 
     @property
-    def colour(self):
+    def colour(self) -> Optional(str):
         return self.properties.get('colour')
 
     @property
-    def label(self):
+    def label(self) -> str:
         return self.properties.get('label', '')
 
 #===============================================================================
 
 class Powerpoint():
-    def __init__(self, source_href):
+    def __init__(self, source_href: str):
         ppt_bytes = FilePath(source_href).get_BytesIO()
         pptx = Presentation(ppt_bytes)
 
@@ -132,7 +133,7 @@ class Powerpoint():
         self.__slides: list[Slide] = [Slide(n, slide, theme, self.__transform) for n, slide in enumerate(pptx.slides)]
 
     @property
-    def bounds(self):
+    def bounds(self) -> tuple[float, float, float, float]:
         return self.__bounds
 
     @property
@@ -140,13 +141,13 @@ class Powerpoint():
         return self.__slides
 
     @property
-    def transform(self):
+    def transform(self) -> Transform:
         return self.__transform
 
 #===============================================================================
 
 class Slide():
-    def __init__(self, index: int, slide:PptxSlide, theme, transform):
+    def __init__(self, index: int, slide: PptxSlide, theme: Theme, transform: Transform):
         self.__id = None
         # Get any layer directives
         if slide.has_notes_slide:
@@ -165,15 +166,15 @@ class Slide():
         self.__shapes_by_id: dict[int, Shape] = {}
 
     @property
-    def id(self):
+    def id(self) -> int:
         return self.__id
 
     @property
-    def slide(self):
+    def slide(self) -> PptxSlide:
         return self.__slide
 
     @property
-    def slide_id(self):
+    def slide_id(self) -> int:
         return self.__slide.slide_id
 
     def shape(self, id: int) -> Optional[Shape]:
@@ -185,7 +186,7 @@ class Slide():
         # Return the slide's group structure as a nested list of Shapes
         return self.__process_pptx_shapes(self.__slide.shapes, self.__transform, show_progress=True)
 
-    def __get_colour(self, shape: PptxShape, group_colour=None):
+    def __get_colour(self, shape: PptxShape, group_colour=None) -> tuple[Optional(str), float]:
     #===========================================================
         def colour_from_fill(shape, fill):
             if fill.type == MSO_FILL_TYPE.SOLID:
@@ -220,15 +221,15 @@ class Slide():
             log.warning(f'{shape.name}: unsupported line fill type: {shape.line.fill.type}')
         return (colour, alpha)
 
-    def __process_group(self, group: PptxGroupShape, transform) -> TreeList:
-    #=======================================================================
+    def __process_group(self, group: PptxGroupShape, transform: Transform) -> TreeList:
+    #==================================================================================
         return self.__process_pptx_shapes(group.shapes, transform@DrawMLTransform(group),
                                           group_colour=self.__get_colour(group))
 
 
     def __process_pptx_shapes(self, pptx_shapes: "PptxGroupShapes | PptxSlideShapes" ,
-                              transform, group_colour=None, show_progress=False) -> TreeList:
-    #========================================================================================
+                              transform: Transfor, group_colour=None, show_progress=False) -> TreeList:
+    #==================================================================================================
         progress_bar = ProgressBar(show=show_progress,
             total=len(pptx_shapes),
             unit='shp', ncols=40,
