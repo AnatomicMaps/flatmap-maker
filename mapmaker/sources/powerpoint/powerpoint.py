@@ -250,7 +250,7 @@ class Slide():
                 if alpha < 1.0:
                     shape_properties['opacity'] = round(100*alpha, 1)
                 geometry = get_shape_geometry(pptx_shape, transform, shape_properties)
-                if geometry is not None:
+                if geometry is not None and geometry.is_valid:
                     shape_xml = etree.fromstring(pptx_shape.element.xml)
                     for link_ref in shape_xml.findall('.//a:hlinkClick',
                                                     namespaces=PPTX_NAMESPACE):
@@ -294,6 +294,10 @@ class Slide():
                     shape = Shape(shape_type, pptx_shape.shape_id, geometry, shape_properties)
                     self.__shapes_by_id[shape.id] = shape
                     shapes.append(shape)
+                elif geometry is None:
+                    log.warning(f'Shape "{shape_name}" {pptx_shape.shape_type}/{shape_properties.get("shape-kind")} not processed -- cannot get geometry')
+                else:
+                    log.warning(f'Shape "{shape_name}" {pptx_shape.shape_type}/{shape_properties.get("shape-kind")} not processed -- cannot get valid geometry')
             elif pptx_shape.shape_type == MSO_SHAPE_TYPE.GROUP:
                 shapes.append(self.__process_group(pptx_shape, transform))
             elif pptx_shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
