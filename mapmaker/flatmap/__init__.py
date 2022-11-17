@@ -266,7 +266,7 @@ class FlatMap(object):
         new_feature.set_property('minzoom', minzoom)
         if properties.get('type') == 'nerve':
             new_feature.set_property('type', 'nerve-section')
-            new_feature.set_property('nerveId', feature.feature_id)  # Used in map viewer
+            new_feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
             ## Need to link outline feature of nerve into paths through the nerve so it is highlighted
             ## when mouse over a path through the nerve
             new_feature.set_property('tile-layer', 'pathways')
