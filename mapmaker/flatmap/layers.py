@@ -96,6 +96,9 @@ class FeatureLayer(object):
         # Update feature properties from JSON properties file
         for feature in self.__features:
             map_properties.update_feature_properties(feature)
+            if feature.property('type') == 'nerve':
+                # Nerve features are included only if used by connectivity
+                feature.set_property('exclude', True)
             if self.__exported:
                 # Save relationship between id/class and internal feature id
                 self.__flatmap.save_feature_for_lookup(feature)
@@ -111,7 +114,6 @@ class MapLayer(FeatureLayer):
         self.__outer_geometry = shapely.geometry.box(*source.bounds)
         self.__detail_features: list[Feature] = []
 #*        self.__ontology_data = self.options.ontology_data
-        self.__nerve_tracks: list[Feature] = []
         self.__raster_layers: list[RasterLayer] = []
         self.__zoom = None
 
@@ -140,10 +142,6 @@ class MapLayer(FeatureLayer):
         return self.__outer_geometry
 
     @property
-    def nerve_tracks(self):
-        return self.__nerve_tracks
-
-    @property
     def raster_layers(self):
         return self.__raster_layers
 
@@ -169,29 +167,6 @@ class MapLayer(FeatureLayer):
     #===============================================================================================
         if map_source.raster_source is not None:
             self.__raster_layers.append(RasterLayer(id, extent, map_source, min_zoom, local_world_to_base))
-
-    def add_nerve_details(self):
-    #===========================
-        # Add polygon features for nerve cuffs
-        nerve_polygons = []
-        for feature in self.features:
-            if feature.property('type') == 'nerve':
-                feature.set_property('tile-layer', 'pathways')
-                if not feature.has_property('nerveId'):
-                    feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
-                if feature.geom_type == 'LineString':
-                    properties = feature.properties.copy()
-                    properties.pop('id', None)   # Otherwise we will have a duplicate id...
-                    nerve_polygon_feature = self.__source.flatmap.new_feature(
-                        shapely.geometry.Polygon(feature.geometry.coords), properties)
-                    nerve_polygon_feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
-                    nerve_polygon_feature.set_property('tile-layer', 'pathways')
-                    nerve_polygons.append(nerve_polygon_feature)
-                    self.flatmap.save_feature_for_lookup(nerve_polygon_feature)
-            elif (feature.property('type') == 'nerve-track'
-              and feature.geom_type == 'LineString'):
-                self.__nerve_tracks.append(feature)
-        self.features.extend(nerve_polygons)
 
     def add_features(self, group_name, features, tile_layer='features', outermost=False):
     #====================================================================================

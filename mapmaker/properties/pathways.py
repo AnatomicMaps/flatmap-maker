@@ -25,6 +25,7 @@ from collections import defaultdict
 
 import networkx as nx
 from pyparsing import delimitedList, Group, ParseException, ParseResults, Suppress
+import shapely.geometry
 
 #===============================================================================
 
@@ -599,15 +600,16 @@ class Pathways(object):
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
-
     def __route_network_connectivity(self, network):
     #===============================================
-        log.info('Routing paths...')
+        log.info(f'Routing {network.id} paths...')
 
-        # First find route graphs for each path in each connectivity model
+        active_nerve_features: set[Feature] = set()
         paths_by_id = {}
         route_graphs = {}
         network.create_geometry()
+
+        # Find route graphs for each path in each connectivity model
         for connectivity_model in self.__connectivity_models:
             if connectivity_model.network == network.id:
                 layer = FeatureLayer('{}_routes'.format(connectivity_model.id), self.__flatmap, exported=True)
@@ -616,7 +618,7 @@ class Pathways(object):
                     paths_by_id[path.id] = path
                     route_graphs[path.id] = network.route_graph_from_path(path)
 
-        # Now find a way to order them across shared centrelines
+        # Now order them across shared centrelines
         routed_paths = network.layout(route_graphs)
 
         # Add features to the map for the geometric objects that make up each path
@@ -648,15 +650,31 @@ class Pathways(object):
                 ## ardell-13 is somehow doubled...
                 feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
                 layer.add_feature(feature)
-                nerve_features = routed_path.nerve_features
-                self.__active_nerve_ids.update(feature.id for feature in nerve_features)
                 if path_id is not None:
+                    nerve_feature_ids = routed_path.nerve_feature_ids
+                    nerve_features = [self.__feature_map.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
+                    active_nerve_features.update(nerve_features)
                     self.__resolved_pathways.add_connectivity(path_id,
                                                               path.models,  ## This is properties['models']...
                                                               path.path_type,  ## This is properties['type']...
                                                               routed_path.node_set,
                                                               feature.geojson_id,
                                                               nerve_features)
+        for feature in active_nerve_features:
+            feature.del_property('exclude')
+            feature.set_property('tile-layer', 'pathways')
+            # Add a polygon feature for a nerve cuff
+            if not feature.has_property('nerveId'):
+                feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
+            print(feature.properties)
+            if feature.geom_type == 'LineString':
+                properties = feature.properties.copy()
+                properties.pop('id', None)   # Otherwise we will have a duplicate id...
+                nerve_polygon_feature = self.__flatmap.new_feature(
+                    shapely.geometry.Polygon(feature.geometry.coords), properties)
+                nerve_polygon_feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
+                nerve_polygon_feature.set_property('tile-layer', 'pathways')
+                layer.features.append(nerve_polygon_feature)
 
     def generate_connectivity(self, networks):
     #=========================================
@@ -681,9 +699,6 @@ class Pathways(object):
                 self.__route_network_connectivity(network)
         if errors:
             raise ValueError('Errors in mapping paths and routes')
-        for feature_id in self.__active_nerve_ids:
-            if (feature := self.__feature_map.get_feature(feature_id)) is not None:
-                feature.set_property('active', True)
 
     def knowledge(self):
     #===================

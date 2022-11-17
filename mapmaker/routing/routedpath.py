@@ -305,7 +305,7 @@ class RoutedPath(object):
                                 if data.get('type') == 'target'}
 
     @property
-    def nerve_features(self):
+    def nerve_feature_ids(self) -> set[str]:
         return self.__graph.graph['nerve-features']
 
     @property

@@ -234,7 +234,6 @@ class FlatMap(object):
     #==================================
         for layer in self.__layer_dict.values():
             layer.set_feature_properties(self.__map_properties)
-            layer.add_nerve_details()
 
     def __add_details(self):
     #=======================
