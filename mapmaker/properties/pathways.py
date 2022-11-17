@@ -479,7 +479,7 @@ class Pathways(object):
         self.__connectivity_by_path_id = {}
         self.__connectivity_models = []
         self.__feature_map = None
-        self.__active_nerve_ids = set()
+        self.__active_nerve_ids: set[str] = set()   ### Manual layout only???
         self.add_connectivity({'paths': paths_list})
 
     @staticmethod
@@ -594,6 +594,7 @@ class Pathways(object):
         for path_id, lines in lines_by_path_id.items():
             for line_id in lines:
                 self.__paths_by_line_id[line_id].append(path_id)
+        # Following is for manual layout... ????
         self.__nerves_by_path_id.update(nerves_by_path_id)
         for path_id, nerves in nerves_by_path_id.items():
             self.__active_nerve_ids.update(nerves)
