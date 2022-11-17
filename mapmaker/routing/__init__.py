@@ -228,7 +228,26 @@ class Network(object):
         end_nodes_to_centrelines = defaultdict(list)
         intermediate_nodes_to_centrelines = defaultdict(list)
 
-        # First pass to check validity and collect centreline and end node identifiers
+        # Check for nerve cuffs in ``contained-in`` lists
+        if external_properties is not None:
+            for centreline in network.get('centrelines', []):
+                if (centreline_id := centreline.get('id')) is not None:
+                    centreline_models = centreline.get('models')
+                    if len(containers := set(centreline.get('contained-in', []))) > 0:
+                        contained_in = []
+                        for feature_id in containers:
+                            if (models := external_properties.nerve_models_by_id.get(feature_id)) is None:
+                                contained_in.append(feature_id)
+                            elif centreline_models is None:
+                                log.warning(f'Contained-in feature `{feature_id}` used as nerve model of its centreline (`{centreline_id}`)')
+                                centreline['models'] = models
+                            elif models == centreline_models:
+                                log.warning(f'Contained-in feature `{feature_id}` also models nerve of its centreline (`{centreline_id}`)')
+                            elif models != centreline_models:
+                                log.error(f'Contained-in feature `{feature_id}` models a different nerve than its centreline (`{centreline_id}`)')
+                        centreline['contained-in'] = contained_in
+
+        # Collect centreline and end node identifiers, checking validity
         for centreline in network.get('centrelines', []):
             centreline_id = centreline.get('id')
             if centreline_id is None:

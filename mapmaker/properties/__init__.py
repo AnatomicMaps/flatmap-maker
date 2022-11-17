@@ -39,6 +39,7 @@ class ExternalProperties(object):
         self.__properties_by_class = defaultdict(dict)
         self.__properties_by_id = defaultdict(dict)
         self.__nerve_ids_by_model = {}
+        self.__nerve_models_by_id = {}
         if manifest.properties is None:
             properties_dict = {}
         else:
@@ -88,6 +89,10 @@ class ExternalProperties(object):
     def nerve_ids_by_model(self):
         return self.__nerve_ids_by_model
 
+    @property
+    def nerve_models_by_id(self):
+        return self.__nerve_models_by_id
+
     def network_feature(self, feature):
     #==================================
         # Is the ``feature`` included in some network?
@@ -110,9 +115,13 @@ class ExternalProperties(object):
                 if (properties.get('type') == 'nerve'
                 and (entity := properties.get('models')) is not None):
                     if entity in self.__nerve_ids_by_model:
-                        log.error(f'Nerve `{entity}` has already been assigned')
+                        log.error(f'Nerve `{entity}` has already been assigned to a feature')
                     else:
                         self.__nerve_ids_by_model[entity] = id
+                    if id in self.__nerve_models_by_id:
+                        log.error(f'Feature `{id}` has already been assigned a model')
+                    else:
+                        self.__nerve_models_by_id[id] = entity
         elif features is not None:
             # ``Old`` style of properties
             for feature in features:
