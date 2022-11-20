@@ -207,6 +207,7 @@ class NetworkNode:
 class Network(object):
     def __init__(self, network: dict, external_properties: ExternalProperties=None):
         self.__id = network.get('id')
+        self.__type = network.get('type')
 
         self.__centreline_nodes: dict[str, list[NetworkNode]] = defaultdict(list)  #! Centreline id --> [Network nodes]
         self.__nodes_by_ftu: dict[str, list[NetworkNode]] = defaultdict(list)      #! FTU id id --> {Network nodes}
@@ -492,6 +493,10 @@ class Network(object):
             if (centreline_feature := self.__map_feature(centreline_id)) is None:
                 log.warning(f'Centreline {centreline_id} ignored: not on map')
                 continue
+
+            # Set centreline type to that of the network
+            if self.__type is not None:
+                centreline_feature.set_property('type', self.__type)
 
             # Set network node properties
             for network_node in network_nodes:
