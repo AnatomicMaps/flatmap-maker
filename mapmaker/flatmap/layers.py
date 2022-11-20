@@ -32,6 +32,7 @@ from mapmaker import MIN_ZOOM
 from mapmaker.exceptions import GroupValueError
 from mapmaker.geometry import connect_dividers, extend_line, make_boundary
 from mapmaker.geometry import save_geometry
+from mapmaker.settings import settings
 from mapmaker.utils import log
 
 if TYPE_CHECKING:
@@ -98,7 +99,7 @@ class FeatureLayer(object):
             map_properties.update_feature_properties(feature)
             if feature.property('type') == 'nerve':
                 # Nerve features are included only if used by connectivity
-                feature.set_property('exclude', True)
+                feature.set_property('exclude', not settings.get('authoring', False))
             if self.__exported:
                 # Save relationship between id/class and internal feature id
                 self.__flatmap.save_feature_for_lookup(feature)

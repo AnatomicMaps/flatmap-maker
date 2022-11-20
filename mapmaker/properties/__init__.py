@@ -206,9 +206,6 @@ class ExternalProperties(object):
                 labels.append(f'Id: {id}')
             if len(labels):  # We don't want empty tooltips
                 feature_properties['label'] = '\n'.join(labels)
-            # All nerve cuffs are visible
-            if feature_properties.get('type') == 'nerve':
-                feature_properties['active'] = True
 
         # Hide network features when not authoring or not a FC flatmap
         if not (authoring or settings.get('functionalConnectivity', False)):
