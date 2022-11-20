@@ -212,7 +212,7 @@ class Network(object):
         self.__centreline_nodes: dict[str, list[NetworkNode]] = defaultdict(list)  #! Centreline id --> [Network nodes]
         self.__nodes_by_ftu: dict[str, list[NetworkNode]] = defaultdict(list)      #! FTU id id --> {Network nodes}
         self.__containers_by_centreline = {}                #! Centreline id --> set of features that centreline is contained in
-        self.__models_to_id: dict[str, str] = {}            #! Ontological term --> centreline id
+        self.__models_to_id: dict[str, set[str]] = defaultdict(set)                #! Ontological term --> centrelines
         self.__feature_ids: set[str] = set()
         self.__full_ids: set[str] = set()                   #! A ``full id`` is a slash-separated list of feature ids
         self.__feature_map = None  #! Assigned after ``maker`` has processed sources
@@ -257,18 +257,22 @@ class Network(object):
                 log.error(f'Centreline {centreline_id} in network {self.__id} has a duplicate id')
             else:
                 self.__add_feature(centreline_id)
-                if (models := centreline.get('models')) is not None:
-                    if models in self.__models_to_id:
-                        log.warning(f'Centrelines `{centreline_id}` and `{self.__models_to_id[models]}` both model {models}')
-                    else:
-                        self.__models_to_id[models] = centreline_id
-                        # If we have ``external_properties`` without ``models`` annotation for the centreline then set it
-                        if external_properties is not None:
-                            if external_properties.get_property(centreline_id, 'models') is None:
-                                external_properties.set_property(centreline_id, 'models', models)
-                            if (nerve_id := external_properties.nerve_ids_by_model.get(models)) is not None:
-                                # Assign nerve cuff id to centreline
-                                external_properties.set_property(centreline_id, 'nerve', nerve_id)
+                if (centreline_models := centreline.get('models')) is not None:
+                    self.__models_to_id[centreline_models].add(centreline_id)
+                    # If we have ``external_properties`` without ``centreline_models`` annotation for the centreline then set it
+                    if external_properties is not None:
+                        if (models := external_properties.get_property(centreline_id, 'models')) is None:
+                            external_properties.set_property(centreline_id, 'models', centreline_models)
+                        elif centreline_models != models:
+                            log.error(f'Centreline {centreline_id} models both {centreline_models} and {models}')
+                        if (nerve_id := external_properties.nerve_ids_by_model.get(centreline_models)) is not None:
+                            # Assign nerve cuff id to centreline
+                            external_properties.set_property(centreline_id, 'nerve', nerve_id)
+                elif (models := external_properties.get_property(centreline_id, 'models')) is not None:
+                    # No ``models`` are directly specified for the centreline so assign what we've found
+                    centreline['models'] = models
+                    self.__models_to_id[models].add(centreline_id)
+                # Check connected nodes
                 connected_nodes = centreline.get('connects', [])
                 if len(connected_nodes) < 2:
                     log.error(f'Centreline {centreline_id} in network {self.__id} has too few nodes')
@@ -707,11 +711,15 @@ class Network(object):
             'node': connectivity_node
         }
         # Check if we can directly identify the centreline
-        if (centreline_id := self.__models_to_id.get(connectivity_node[0])) is not None:
-            if len(segment_ids := self.__segment_ids_by_centreline[centreline_id]) > 1:
-                log.warning(f'Connectivity node `{full_node_name(*connectivity_node)}` has found segmented centreline: {centreline_id}')
+        if (centreline_ids := self.__models_to_id.get(connectivity_node[0])) is not None:
+            segment_ids = set()
+            for centreline_id in centreline_ids:
+                segment_ids.update(self.__segment_ids_by_centreline[centreline_id])
+            if len(segment_ids) > 1:
+                log.warning(f'Connectivity node `{full_node_name(*connectivity_node)}` has found multiple centrelines and/or segments: {sorted(centreline_ids)}')
+
             else:
-                segment_id = segment_ids[0]
+                segment_id = segment_ids.pop()
                 result['segment-id'] = segment_id
                 if segment_id in self.__expanded_centreline_graph:
                     result['cl-node'] = segment_id
