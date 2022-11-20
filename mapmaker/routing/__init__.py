@@ -311,9 +311,9 @@ class Network(object):
         for centreline_id, containing_features in self.__containers_by_centreline.items():
             for feature_id in containing_features:
                 centrelines_by_containing_feature[feature_id].add(centreline_id)
-        for feature_id, centrelines in centrelines_by_containing_feature.items():
-            if len(centrelines) > 1:
-                log.warning(f'Feature `{feature_id}` is container for multiple centrelines: {centrelines}')
+        for feature_id, centreline_set in centrelines_by_containing_feature.items():
+            if len(centreline_set) > 1:
+                log.warning(f'Feature `{feature_id}` is container for multiple centrelines: {centreline_set}')
 
     @property
     def id(self):
@@ -759,7 +759,6 @@ class Network(object):
             elif connectivity_node not in self.__missing_identifiers:
                 log.warning(f'Cannot find feature for connectivity node {connectivity_node} ({full_node_name(*connectivity_node)})')
                 self.__missing_identifiers.add(connectivity_node)
-
         return result
 
     def __segment_from_containers(self, start_dict, features, end_dict):
@@ -927,7 +926,6 @@ class Network(object):
                     # Not a connection to the c/l network so node is local to the FTU
                     terminal_network.add_node(start_feature)
                     seen_terminals.add(start_node)
-
                 for next_node, key_dicts in G[start_node].items():
                     next_dict = G.nodes[next_node]
                     if len(ftu_connections):
