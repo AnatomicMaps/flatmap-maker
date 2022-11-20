@@ -31,12 +31,12 @@ from mapmaker.utils import log, FilePath
 
 #===============================================================================
 
-def entity_name(entity):
+def entity_name(entity: Optional[str]) -> str:
     if entity is None:
         return 'None'
     return get_label(entity)
 
-def full_node_name(anatomical_id, anatomical_layers):
+def full_node_name(anatomical_id: str, anatomical_layers: tuple[str, ...]) -> str:
     if len(anatomical_layers) == 0:
         return entity_name(anatomical_id)
     else:
@@ -66,7 +66,7 @@ class Feature(object):
         return self.__geojson_id
 
     @property
-    def geom_type(self) -> str:
+    def geom_type(self) -> Optional[str]:
         return self.__geometry.geom_type if self.__geometry else None
 
     @property
@@ -115,8 +115,8 @@ class Feature(object):
 #===============================================================================
 
 class FeatureMap(object):
-    def __init__(self, connectivity_terms=None):
-        self.__connectivity_terms = {}
+    def __init__(self, connectivity_terms: Optional[str]=None):
+        self.__connectivity_terms: dict[str, str] = {}
         if connectivity_terms is not None:
             equivalences = FilePath(connectivity_terms).get_json()
             for equivalence in equivalences:
@@ -126,66 +126,67 @@ class FeatureMap(object):
                         log.error(f'Connectivity term {alias} cannot map to both {self.__connectivity_terms[alias]} and {term}')
                     else:
                         self.__connectivity_terms[alias] = term
-        self.__id_to_feature = {}
-        self.__model_to_features = defaultdict(list)
+        self.__id_to_feature: dict[str, Feature]= {}
+        self.__model_to_features: dict[str, set[Feature]] = defaultdict(set)
 
-    def add_feature(self, feature):
-    #==============================
+    def add_feature(self, feature: Feature):
+    #=======================================
         if feature.id is not None:
             if feature.id in self.__id_to_feature:
                 log.error(f'Duplicate feature id: {feature.id}')
             else:
                 self.__id_to_feature[feature.id] = feature
         if feature.models is not None:
-            self.__model_to_features[feature.models].append(feature)
+            self.__model_to_features[feature.models].add(feature)
 
-    def duplicate_id(self, id):
-    #==========================
+    def duplicate_id(self, id: str) -> bool:
+    #=======================================
         return self.__id_to_feature.get(id, None) is not None
 
-    def find_path_features_by_anatomical_id(self, anatomical_id, anatomical_layers):
-    #===============================================================================
-        def features_from_anatomical_id(term):
+    def find_path_features_by_anatomical_id(self, anatomical_id: str, anatomical_layers: tuple[str, ...]) -> set[Feature]:
+    #=====================================================================================================================
+        def features_from_anatomical_id(term: str) -> set[Feature]:
             return set(self.__model_to_features.get(self.__connectivity_terms.get(term, term), []))
 
-        anatomical_layers = list(anatomical_layers)
-        if len(anatomical_layers) == 0:
+        layers = list(anatomical_layers)
+        if len(layers) == 0:
             return features_from_anatomical_id(anatomical_id)
-        else:
-            features = features_from_anatomical_id(anatomical_id)
-            if len(features) == 0:
-                while len(anatomical_layers) > 0:
-                    substitute_id = anatomical_layers.pop(0)
-                    features = features_from_anatomical_id(substitute_id)
-                    if len(features):
-                        log.warning(f'Cannot find feature for {entity_name(anatomical_id)} ({anatomical_id}), substituted containing `{entity_name(substitute_id)}` region')
-                        break
-            if len(features) == 1 or len(anatomical_layers) == 0:
-                return features
 
-            # Check feature is contained in specified layers
-            for anatomical_layer in anatomical_layers:
-                included_features = set()
-                layer_features = features_from_anatomical_id(anatomical_layer)
-                for layer_feature in layer_features:
-                    for feature in features:
-                        if layer_feature.geometry.contains(feature.geometry.centroid):
-                            included_features.add(feature)
-                anatomical_features = included_features
-                if len(included_features) == 1:
+        features = features_from_anatomical_id(anatomical_id)
+        if len(features) == 0:
+            while len(layers) > 0:
+                substitute_id = layers.pop(0)
+                features = features_from_anatomical_id(substitute_id)
+                if len(features):
+                    log.warning(f'Cannot find feature for {entity_name(anatomical_id)} ({anatomical_id}), substituted containing `{entity_name(substitute_id)}` region')
                     break
+        if len(features) == 1 or len(layers) == 0:
+            return features
+
+        # Check feature is contained in specified layers
+        anatomical_features = set()
+        for anatomical_layer in layers:
+            included_features = set()
+            layer_features = features_from_anatomical_id(anatomical_layer)
+            for layer_feature in layer_features:
+                for feature in features:
+                    if layer_feature.geometry.contains(feature.geometry.centroid):
+                        included_features.add(feature)
+            anatomical_features = included_features
+            if len(included_features) == 1:
+                break
         return anatomical_features
 
-    def geojson_ids(self, ids):
-    #==========================
+    def geojson_ids(self, ids: list[str]) -> list[int]:
+    #==================================================
         return [f.geojson_id for id in ids if (f := self.__id_to_feature.get(id)) is not None]
 
-    def get_feature(self, id):
-    #=========================
+    def get_feature(self, id: str) -> Optional[Feature]:
+    #===================================================
         return self.__id_to_feature.get(id)
 
-    def has_feature(self, id):
-    #=========================
+    def has_feature(self, id: str) -> bool:
+    #======================================
         return id in self.__id_to_feature
 
 #===============================================================================
