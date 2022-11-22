@@ -18,8 +18,9 @@
 #
 #===============================================================================
 
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 import datetime
+from typing import Optional
 
 #===============================================================================
 
@@ -30,10 +31,9 @@ import numpy as np
 
 from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import FeatureSearch, Transform
-from mapmaker.geometry import bounds_to_extent, extent_to_bounds, normalised_coords
+from mapmaker.geometry import normalised_coords
 from mapmaker.knowledgebase import get_knowledge
 from mapmaker.properties import ExternalProperties
-from mapmaker.properties.pathways import Route
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
@@ -52,6 +52,7 @@ class FlatMap(object):
         self.__extent = None
         self.__centre = None
         self.__min_zoom = maker.zoom[0]
+        self.__feature_map = None
 
     def __len__(self):
         return self.__visible_layer_count
@@ -95,10 +96,6 @@ class FlatMap(object):
     @property
     def local_id(self):
         return self.__local_id
-
-    @property
-    def map_directory(self):
-        return self.__map_dir
 
     @property
     def map_properties(self):
@@ -161,16 +158,17 @@ class FlatMap(object):
         self.__created = datetime.datetime.utcnow()
         self.__metadata['created'] = self.__created.isoformat()
 
-    def is_duplicate_feature_id(self, id):
-    #=====================================
-        return self.__feature_map.duplicate_id(id)
+    def is_duplicate_feature_id(self, feature_id: str) -> bool:
+    #==========================================================
+        return self.__feature_map is not None and self.__feature_map.duplicate_id(feature_id)
 
-    def save_feature_for_lookup(self, feature):
-    #==========================================
-        self.__feature_map.add_feature(feature)
+    def save_feature_for_lookup(self, feature: Feature):
+    #===================================================
+        if self.__feature_map is not None:
+            self.__feature_map.add_feature(feature)
 
-    def get_feature(self, feature_id):
-    #=================================
+    def get_feature(self, feature_id: str) -> Optional[Feature]:
+    #===========================================================
         return self.__features.get(feature_id)
 
     def new_feature(self, geometry, properties, has_children=False):
@@ -266,7 +264,7 @@ class FlatMap(object):
         new_feature.set_property('minzoom', minzoom)
         if properties.get('type') == 'nerve':
             new_feature.set_property('type', 'nerve-section')
-            new_feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
+            new_feature.set_property('nerveId', new_feature.geojson_id)  # Used in map viewer
             ## Need to link outline feature of nerve into paths through the nerve so it is highlighted
             ## when mouse over a path through the nerve
             new_feature.set_property('tile-layer', 'pathways')

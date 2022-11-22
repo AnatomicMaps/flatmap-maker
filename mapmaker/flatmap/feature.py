@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 from collections import defaultdict
-from typing import Any, Optional
+from typing import Any, NewType, Optional
 
 from shapely.geometry.base import BaseGeometry
 
@@ -31,21 +31,25 @@ from mapmaker.utils import log, FilePath
 
 #===============================================================================
 
+AnatomicalNode = NewType('AnatomicalNode', tuple[str, tuple[str, ...]])
+
+#===============================================================================
+
 def entity_name(entity: Optional[str]) -> str:
     if entity is None:
         return 'None'
     return get_label(entity)
 
-def full_node_name(anatomical_id: str, anatomical_layers: tuple[str, ...]) -> str:
-    if len(anatomical_layers) == 0:
-        return entity_name(anatomical_id)
+def full_node_name(anatomical_node: AnatomicalNode) -> str:
+    if len(anatomical_node[1]) == 0:
+        return entity_name(anatomical_node[0])
     else:
-        layer_names = ', '.join([entity_name(entity) for entity in anatomical_layers if entity is not None])
-        return f'{entity_name(anatomical_id)} in {layer_names}'
+        layer_names = ', '.join([entity_name(entity) for entity in anatomical_node[1] if entity is not None])
+        return f'{entity_name(anatomical_node[0])} in {layer_names}'
 
 #===============================================================================
 
-class Feature(object):
+class Feature:
     def __init__(self, geojson_id: int,
                        geometry: BaseGeometry,
                        properties: dict[str, Any],
@@ -114,7 +118,7 @@ class Feature(object):
 
 #===============================================================================
 
-class FeatureMap(object):
+class FeatureMap:
     def __init__(self, connectivity_terms: Optional[str]=None):
         self.__connectivity_terms: dict[str, str] = {}
         if connectivity_terms is not None:

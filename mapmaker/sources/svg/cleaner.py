@@ -18,8 +18,9 @@
 #
 #===============================================================================
 
+from __future__ import annotations
 from datetime import datetime, timezone
-from typing import BinaryIO
+from typing import BinaryIO, Optional, TYPE_CHECKING
 
 #===============================================================================
 
@@ -28,12 +29,15 @@ from lxml import etree
 #===============================================================================
 
 from mapmaker import __version__
-from mapmaker.settings import settings
 from mapmaker.utils import FilePath
 
-from .. import EXCLUDED_FEATURE_TYPES, NETWORK_SHAPE_TYPES, EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
+from .. import EXCLUDED_FEATURE_TYPES, EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
 from ..markup import parse_markup
 from .utils import svg_markup
+
+if TYPE_CHECKING:
+    from mapmaker.flatmap import FeatureMap
+    from mapmaker.properties import ExternalProperties
 
 #===============================================================================
 

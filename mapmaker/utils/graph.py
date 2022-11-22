@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 from collections import defaultdict, OrderedDict
-from typing import Hashable, Union
+from typing import Any, Hashable, Optional
 
 #===============================================================================
 
@@ -28,7 +28,7 @@ import networkx as nx
 
 #===============================================================================
 
-def smooth_edges(G: nx.Graph, end_nodes: Union[list, set]=None, edge_nodes_attribute: str='edge-nodes') -> nx.MultiDiGraph:
+def smooth_edges(G: nx.Graph, end_nodes: Optional[list | set]=None, edge_nodes_attribute: str='edge-nodes') -> nx.MultiDiGraph:
     """
     Return a networkx.MultiGraph copy of G with all degree 2 nodes removed.
 

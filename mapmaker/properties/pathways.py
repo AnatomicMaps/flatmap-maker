@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 from collections import defaultdict
+from typing import Any, Optional
 
 #===============================================================================
 
@@ -125,7 +126,7 @@ def path_type_from_phenotypes(phenotypes):
 
 #===============================================================================
 
-class ResolvedPath(object):
+class ResolvedPath:
     """
     A path described in terms of numeric feature ids.
     """
@@ -136,7 +137,7 @@ class ResolvedPath(object):
         self.__models = None
 
     @property
-    def as_dict(self) -> dict[str, list[int]] :
+    def as_dict(self) -> dict[str, Any] :
         """
         The numeric feature ids that make up a path.
         """
@@ -195,7 +196,7 @@ class ResolvedPath(object):
 
 #===============================================================================
 
-class Route(object):
+class Route:
     def __init__(self, path_id, route):
         self.__path_id = path_id
         routing = parse_route_nodes(route)
@@ -229,9 +230,9 @@ class Route(object):
 
 #===============================================================================
 
-class ResolvedPathways(object):
+class ResolvedPathways:
     """
-    A set of :class:`ResolvedPath`\ s.
+    A set of :class:`ResolvedPath`\'s.
 
         Arguments:
         ----------
@@ -282,7 +283,7 @@ class ResolvedPathways(object):
         resolved_path.extend_lines([geojson_id])
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
 
-    def add_pathway(self, path_id: str, model: str, path_type:str,
+    def add_pathway(self, path_id: str, model: Optional[str], path_type: Optional[str],
                     route: Route, lines: list[str], nerves: list[str]):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -298,6 +299,8 @@ class ResolvedPathways(object):
 
 #===============================================================================
 
+'''
+##  WIP...
 class NodeTypeFinder:
     def __init__(self, axon_nodes, dendrite_nodes, path_id):
         self.__axon_nodes = axon_nodes
@@ -343,10 +346,12 @@ class NodeTypeFinder:
             else:
                 region = regions[i]
                 i += 1
+# End WIP...
+'''
 
 #===============================================================================
 
-class Path(object):
+class Path:
     def __init__(self, source, path, trace=False):
         self.__source = source
         self.__id = path['id']
@@ -370,17 +375,17 @@ class Path(object):
                     log.warning(f'SCKAN knowledge error: {self.__id} phenotype {phenotypes} is unknown, defaulting to CNS')
                     self.__path_type = 'cns'
                 G = nx.Graph()
-                node_type_finder = NodeTypeFinder(knowledge.get('axons', []),
-                                                  knowledge.get('dendrites', []),
-                                                  self.__id)
+                ##node_type_finder = NodeTypeFinder(knowledge.get('axons', []),
+                ##                                  knowledge.get('dendrites', []),
+                ##                                  self.__id)
                 for node in knowledge.get('connectivity'):
                     node_0 = tuple((node[0][0], tuple(node[0][1])))
                     node_1 = tuple((node[1][0], tuple(node[1][1])))
                     G.add_edge(node_0, node_1)
-                    if 'node-type' not in G.nodes[node_0]:
-                        G.nodes[node_0]['node-type'] = node_type_finder.node_type(node_0)
-                    if 'node-type' not in G.nodes[node_1]:
-                        G.nodes[node_1]['node-type'] = node_type_finder.node_type(node_1)
+                    ##if 'node-type' not in G.nodes[node_0]:
+                    ##    G.nodes[node_0]['node-type'] = node_type_finder.node_type(node_0)
+                    ##if 'node-type' not in G.nodes[node_1]:
+                    ##    G.nodes[node_1]['node-type'] = node_type_finder.node_type(node_1)
                 self.__connectivity = G
 
         if self.__connectivity is None:
@@ -428,7 +433,7 @@ class Path(object):
 
 #===============================================================================
 
-class ConnectivityModel(object):
+class ConnectivityModel:
     def __init__(self, description):
         self.__id = description.get('id')
         self.__network = description.get('network')
@@ -464,7 +469,7 @@ class ConnectivityModel(object):
 
 #===============================================================================
 
-class Pathways(object):
+class Pathways:
     def __init__(self, flatmap, paths_list):
         self.__flatmap = flatmap
         self.__layer_paths = set()
@@ -475,7 +480,7 @@ class Pathways(object):
         self.__resolved_pathways = None
         self.__routes_by_path_id = {}
         self.__type_by_path_id = {}
-        self.__path_models_by_id = {}
+        self.__path_models_by_id: dict[str, str] = {}
         self.__connectivity_by_path_id = {}
         self.__connectivity_models = []
         self.__feature_map = None
@@ -490,7 +495,7 @@ class Pathways(object):
 
     @property
     def connectivity(self):
-        connectivity = {
+        connectivity: dict[str, Any] = {
             'models': [
                 { 'id': model.source,
                   'paths': model.path_ids

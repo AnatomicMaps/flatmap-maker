@@ -33,7 +33,7 @@ from functools import partial
 import itertools
 import math
 import sys
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 
 #===============================================================================
@@ -62,16 +62,18 @@ import shapely.geometry
 
 #===============================================================================
 
-from mapmaker.flatmap.feature import Feature, full_node_name
+from mapmaker.flatmap.feature import AnatomicalNode, Feature, FeatureMap
+from mapmaker.flatmap.feature import anatomical_node_name, full_node_name
 from mapmaker.geometry.beziers import bezier_to_linestring, closest_time_distance
-from mapmaker.geometry.beziers import coords_to_point, point_to_coords
-from mapmaker.geometry.beziers import set_bezier_path_end_to_point, split_bezier_path_at_point
-from mapmaker.settings import settings
+from mapmaker.geometry.beziers import coords_to_point
+from mapmaker.geometry.beziers import split_bezier_path_at_point
 from mapmaker.utils import log
 import mapmaker.utils.graph as graph_utils
 
 from .options import MIN_EDGE_JOIN_RADIUS
-from .routedpath import IntermediateNode, PathRouter
+from .routedpath import IntermediateNode, PathRouter, RoutedPath
+
+#===============================================================================
 
 if TYPE_CHECKING:
     from mapmaker.properties import ExternalProperties
@@ -159,8 +161,8 @@ class NetworkNode:
     intermediate: bool = False
     map_feature: Optional[Feature] = None
     feature_id: str = field(init=False)
-    ftu_id: str = field(init=False)
-    properties: dict = field(default_factory=dict, init=False)
+    ftu_id: Optional[str] = field(init=False)
+    properties: dict[str, Any] = field(default_factory=dict, init=False)
 
     def __post_init__(self):
         self.feature_id = self.full_id.rsplit('/', 1)[-1]
@@ -173,11 +175,11 @@ class NetworkNode:
         return hash(self.feature_id)
 
     @property
-    def centre(self):
+    def centre(self) -> BezierPoint:
         return self.properties.get('centre')
 
     @centre.setter
-    def centre(self, value):
+    def centre(self, value: BezierPoint):
         self.properties['centre'] = value
 
     @property
@@ -185,7 +187,7 @@ class NetworkNode:
         return self.properties.get('geometry')
 
     @property
-    def radii(self):
+    def radii(self) -> Optional[tuple[float, float]]:
         return self.properties.get('radii')
 
     def set_properties_from_feature(self, feature: Feature):
@@ -205,7 +207,7 @@ class NetworkNode:
 #===============================================================================
 
 class Network(object):
-    def __init__(self, network: dict, external_properties: ExternalProperties=None):
+    def __init__(self, network: dict, external_properties: Optional[ExternalProperties]=None):
         self.__id = network.get('id')
         self.__type = network.get('type')
 
@@ -215,14 +217,14 @@ class Network(object):
         self.__models_to_id: dict[str, set[str]] = defaultdict(set)                #! Ontological term --> centrelines
         self.__feature_ids: set[str] = set()
         self.__full_ids: set[str] = set()                   #! A ``full id`` is a slash-separated list of feature ids
-        self.__feature_map = None  #! Assigned after ``maker`` has processed sources
-        self.__missing_identifiers: set[str] = set()
+        self.__feature_map: Optional[FeatureMap] = None  #! Assigned after ``maker`` has processed sources
+        self.__missing_identifiers: set[AnatomicalNode] = set()
 
         # The following are assigned once we have feature geometry
         self.__centreline_graph: nx.MultiGraph = None                               #! Edges are centreline segments between intermediate nodes.
         self.__containers_by_segment: dict[str, set[str]] = defaultdict(set)        #! Segment id --> set of features that segment is contained in
         self.__expanded_centreline_graph: nx.Graph = None                           #! Expanded version of centreline graph
-        self.__segment_edge_by_segment: dict[str, tuple] = {}                       #! Segment id --> segment edge
+        self.__segment_edge_by_segment: dict[str, tuple[str, str, str]] = {}        #! Segment id --> segment edge
         self.__segment_ids_by_centreline: dict[str, list[str]] = defaultdict(list)  #! Centreline id --> segment ids of the centreline
 
         # Track how nodes are associated with centrelines
@@ -693,20 +695,20 @@ class Network(object):
 
         self.__expanded_centreline_graph = expand_centreline_graph(self.__centreline_graph)
 
-    def route_graph_from_path(self, path: Path):
-    #===========================================
+    def route_graph_from_path(self, path: Path) -> tuple[nx.Graph, nx.Graph]:
+    #========================================================================
         return self.__route_graph_from_connectivity(path)
 
-    def layout(self, route_graphs: nx.Graph) -> dict:
-    #================================================
+    def layout(self, route_graphs: nx.Graph) -> dict[int, RoutedPath]:
+    #=================================================================
         path_router = PathRouter()
         for path_id, route_graph in route_graphs.items():
             path_router.add_path(path_id, route_graph)
         # Layout the paths and return the resulting routes
         return path_router.layout()
 
-    def __node_dict_for_feature(self, connectivity_node):
-    #====================================================
+    def __node_dict_for_feature(self, connectivity_node: AnatomicalNode) -> dict[str, Any]:
+    #======================================================================================
         result = {
             'node': connectivity_node
         }
@@ -886,8 +888,8 @@ class Network(object):
             result['segments'] = segments
         return result
 
-    def __closest_node_to(self, feature_node, segment_id):
-    #=====================================================
+    def __closest_node_to(self, feature_node, segment_id) -> Optional[str]:
+    #======================================================================
         # Find segment's node that is closest to ``feature_node``.
         feature = self.__feature_map.get_feature(feature_node)
         feature_centre = feature.geometry.centroid

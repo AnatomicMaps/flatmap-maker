@@ -18,8 +18,6 @@
 #
 #===============================================================================
 
-import io
-import math
 import os
 
 #===============================================================================
@@ -477,7 +475,7 @@ class RasterTileMaker(object):
             else:
                 tile_extractor = SVGImageTiler(self.__raster_layer, self.__tile_set)
         else:
-            raise TypeError('Unsupported kind of background tile source: {}'.format(source_kind))
+            raise TypeError(f'Unsupported kind of background tile source: {kind}')
         return mp.Process(target=self.__make_zoomed_tiles, args=(tile_extractor, ), name=self.__id)
 
 #===============================================================================
