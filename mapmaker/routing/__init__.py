@@ -536,6 +536,7 @@ class Network(object):
         for node_0, node_1, edge_dict in self.__centreline_graph.edges(data=True):
             bz_segments = edge_dict.pop('bezier-segments')
             bz_path = BezierPath.fromSegments(bz_segments)
+            edge_id = edge_dict['centreline']       # Used in error messages below
             path_reversed = edge_dict['reversed']
             segment_id = edge_dict['segment']
             # Set intermediate node centres to their closest point on the centreline's path
