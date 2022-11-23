@@ -19,22 +19,13 @@
 #===============================================================================
 
 import os
-import math
 import re
 import tempfile
 
 #===============================================================================
 
-# https://simoncozens.github.io/beziers.py/index.html
-from beziers.cubicbezier import CubicBezier
-from beziers.path import BezierPath
-from beziers.line import Line as BezierLine
-from beziers.point import Point as BezierPoint
-from beziers.quadraticbezier import QuadraticBezier
-
 from lxml import etree
 import numpy as np
-import shapely.geometry
 import shapely.ops
 
 #===============================================================================
@@ -46,12 +37,10 @@ from .cleaner import SVGCleaner
 from .definitions import DefinitionStore, ObjectStore
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import svg_markup, length_as_pixels, parse_svg_path, SVG_NS
+from .utils import geometry_from_svg_path, length_as_pixels, svg_markup, parse_svg_path, SVG_NS
 
 from mapmaker.flatmap.layers import MapLayer
-from mapmaker.geometry import Transform, reflect_point
-from mapmaker.geometry.beziers import bezier_sample
-from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
+from mapmaker.geometry import Transform
 from mapmaker.settings import settings
 from mapmaker.utils import FilePath, ProgressBar, log
 
@@ -284,15 +273,7 @@ class SVGLayer(MapLayer):
     ##
     ## Returns path element as a `shapely` object.
     ##
-        coordinates = []
-        bezier_segments = []
-        moved = False
-        first_point = None
-        current_point = None
-        closed = False
         path_tokens = []
-
-        T = transform@SVGTransform(element.attrib.get('transform'))
         if element.tag == SVG_NS('path'):
             path_tokens = list(parse_svg_path(element.attrib.get('d', '')))
 
@@ -383,166 +364,17 @@ class SVGLayer(MapLayer):
                                'V', 0,
                                'Z']
 
-        pos = 0
-        while pos < len(path_tokens):
-            if isinstance(path_tokens[pos], str) and path_tokens[pos].isalpha():
-                cmd = path_tokens[pos]
-                pos += 1
-            # Else repeat previous command with new coordinates
-            # with `moveTo` becoming `lineTo`
-            elif cmd == 'M':
-                cmd = 'L'
-            elif cmd == 'm':
-                cmd = 'l'
-
-            if cmd not in ['s', 'S']:
-                second_cubic_control = None
-            if cmd not in ['t', 'T']:
-                second_quad_control = None
-
-            if cmd in ['a', 'A']:
-                params = [float(x) for x in path_tokens[pos:pos+7]]
-                pos += 7
-                pt = params[5:7]
-                if cmd == 'a':
-                    pt[0] += current_point[0]
-                    pt[1] += current_point[1]
-                phi = math.radians(params[2])
-                segs = bezier_segments_from_arc_endpoints(tuple2(*params[0:2]), phi, *params[3:5],
-                                                          tuple2(*current_point), tuple2(*pt), T)
-                bezier_segments.extend(segs)
-                coordinates.extend(bezier_sample(BezierPath.fromSegments(segs)))
-                current_point = pt
-
-            elif cmd in ['c', 'C', 's', 'S']:
-                coords = [BezierPoint(*T.transform_point(current_point))]
-                if cmd in ['c', 'C']:
-                    n_params = 6
-                else:
-                    n_params = 4
-                    if second_cubic_control is None:
-                        coords.append(BezierPoint(*T.transform_point(current_point)))
-                    else:
-                        coords.append(BezierPoint(*T.transform_point(
-                            reflect_point(second_cubic_control, current_point))))
-                params = [float(x) for x in path_tokens[pos:pos+n_params]]
-                pos += n_params
-                for n in range(0, n_params, 2):
-                    pt = params[n:n+2]
-                    if cmd.islower():
-                        pt[0] += current_point[0]
-                        pt[1] += current_point[1]
-                    if n == (n_params - 4):
-                        second_cubic_control = pt
-                    coords.append(BezierPoint(*T.transform_point(pt)))
-                bz = CubicBezier(*coords)
-                bezier_segments.append(bz)
-                coordinates.extend(bezier_sample(bz))
-                current_point = pt
-
-            elif cmd in ['l', 'L', 'h', 'H', 'v', 'V']:
-                if cmd in ['l', 'L']:
-                    params = [float(x) for x in path_tokens[pos:pos+2]]
-                    pos += 2
-                    pt = params[0:2]
-                    if cmd == 'l':
-                        pt[0] += current_point[0]
-                        pt[1] += current_point[1]
-                else:
-                    param = float(path_tokens[pos])
-                    pos += 1
-                    if cmd == 'h':
-                        param += current_point[0]
-                    elif cmd == 'v':
-                        param += current_point[1]
-                    if cmd in ['h', 'H']:
-                        pt = [param, current_point[1]]
-                    else:
-                        pt = [current_point[0], param]
-                if moved:
-                    coordinates.append(T.transform_point(current_point))
-                    moved = False
-                coordinates.append(T.transform_point(pt))
-                bz = BezierLine(BezierPoint(*coordinates[-2]), BezierPoint(*coordinates[-1]))
-                bezier_segments.append(bz)
-                current_point = pt
-
-            elif cmd in ['m', 'M']:
-                params = [float(x) for x in path_tokens[pos:pos+2]]
-                pos += 2
-                pt = params[0:2]
-                if first_point is None:
-                    # First `m` in a path is treated as `M`
-                    first_point = pt
-                else:
-                    if cmd == 'm':
-                        pt[0] += current_point[0]
-                        pt[1] += current_point[1]
-                current_point = pt
-                moved = True
-
-            elif cmd in ['q', 'Q', 't', 'T']:
-                coords = [BezierPoint(*T.transform_point(current_point))]
-                if cmd in ['q', 'Q']:
-                    n_params = 4
-                else:
-                    n_params = 2
-                    if second_quad_control is None:
-                        coords.append(BezierPoint(*T.transform_point(current_point)))
-                    else:
-                        coords.append(BezierPoint(*T.transform_point(
-                            reflect_point(second_quad_control, current_point))))
-                params = [float(x) for x in path_tokens[pos:pos+n_params]]
-                pos += n_params
-                for n in range(0, n_params, 2):
-                    pt = params[n:n+2]
-                    if cmd.islower():
-                        pt[0] += current_point[0]
-                        pt[1] += current_point[1]
-                    if n == (n_params - 4):
-                        second_quad_control = pt
-                    coords.append(BezierPoint(*T.transform_point(pt)))
-                bz = QuadraticBezier(*coords)
-                bezier_segments.append(bz)
-                coordinates.extend(bezier_sample(bz))
-                current_point = pt
-
-            elif cmd in ['z', 'Z']:
-                if first_point is not None and current_point != first_point:
-                    coordinates.append(T.transform_point(first_point))
-                closed = True
-                first_point = None
-
-            else:
-                log.warning('Unknown path command: {}'.format(cmd))
-
-        properties['bezier-segments'] = bezier_segments
-
         if properties.get('node', False):
-            if not closed and not properties.get('closed', False):
-                log.warning(f"Nodes must be closed: {properties.get('markup')}")
-                properties['closed'] = True
-        elif (properties.get('centreline', False)
-          and (closed or properties.get('closed', False))):
-            log.warning(f"Centrelines can't be closed: {properties.get('markup')}" )
-
-        if closed and len(coordinates) >= 3:
-            geometry = shapely.geometry.Polygon(coordinates)
-        elif properties.get('closed', False) and len(coordinates) >= 3:
-            # Return a polygon if flagged as `closed`
-            coordinates.append(coordinates[0])
-            geometry = shapely.geometry.Polygon(coordinates)
-        elif len(coordinates) >= 2:
-            geometry = shapely.geometry.LineString(coordinates)
+            must_close = True
+        elif properties.get('centreline', False):
+            must_close = False
         else:
-            geometry = None
-
-        if geometry is not None and not geometry.is_valid:
-            if geometry.geom_type == 'Polygon':
-                # Try smoothing out boundary irregularities
-                geometry = geometry.buffer(20)
-            if not geometry.is_valid:
-                log.warning(f'Invalid geometry for {geometry.geom_type}, shape properties: {properties}')
+            must_close = properties.get('closed', None)
+        try:
+            geometry, bezier_segments = geometry_from_svg_path(path_tokens, transform@SVGTransform(element.attrib.get('transform')), must_close)
+            properties['bezier-segments'] = bezier_segments
+        except ValueError as err:
+            log.warning(f"{err}: {properties.get('markup')}")
 
         return geometry
 

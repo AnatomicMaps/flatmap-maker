@@ -31,11 +31,12 @@ from mapmaker.utils import log, FilePath, TreeList
 from .. import MapSource, RasterSource
 
 from .powerpoint import Powerpoint, Shape, Slide, SHAPE_TYPE
+from .powerpoint import PptxSlide
 
 #===============================================================================
 
 class PowerpointSlide(MapLayer):
-    def __init__(self, source: PowerpointSource, slide, slide_number):
+    def __init__(self, source: PowerpointSource, slide: PptxSlide, slide_number: int):
         if slide.id is not None:
             id = slide.id
         else:
