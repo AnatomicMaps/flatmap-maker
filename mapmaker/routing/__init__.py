@@ -233,7 +233,8 @@ class Network(object):
                         if (nerve_id := external_properties.nerve_ids_by_model.get(centreline_models)) is not None:
                             # Assign nerve cuff id to centreline
                             external_properties.set_property(centreline_id, 'nerve', nerve_id)
-                elif (models := external_properties.get_property(centreline_id, 'models')) is not None:
+                elif (external_properties is not None
+                  and (models := external_properties.get_property(centreline_id, 'models')) is not None):
                     # No ``models`` are directly specified for the centreline so assign what we've found
                     centreline['models'] = models
                     self.__models_to_id[models].add(centreline_id)
@@ -306,7 +307,7 @@ class Network(object):
 
     def __map_feature(self, feature_id):
     #===================================
-        if feature_id not in self.__missing_identifiers:
+        if self.__feature_map is not None and feature_id not in self.__missing_identifiers:
             if (feature := self.__feature_map.get_feature(feature_id)) is not None:
                 return feature
             log.error('Cannot find network feature: {}'.format(feature_id))
