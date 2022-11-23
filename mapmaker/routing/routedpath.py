@@ -452,7 +452,7 @@ class RoutedPath(object):
                             'source': edge_dict.get('source')
                         }))
                     if self.__trace:
-                        geometry.extend(bezier_control_points(bz, label=f'{path_id}-T'))
+                        geometry.extend(bezier_control_points(bz, label=f'{self.__path_id}-T'))
                     # Draw arrow iff degree(node_1) == 1
                     if self.__graph.degree(terminal_node) == 1:
                         geometry.append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
