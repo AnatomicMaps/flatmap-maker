@@ -200,6 +200,8 @@ class ExternalProperties(object):
                 labels.append(f'Models: {model}')
             if (label := feature_properties.get('label')) is not None:
                 labels.append(f'Label: {label}')
+            if (type := feature_properties.get('type')) is not None:
+                labels.append(f'Type: {type}')
             if len(classes):
                 labels.append(f'Class: {", ".join(classes)}')
             if id is not None:
