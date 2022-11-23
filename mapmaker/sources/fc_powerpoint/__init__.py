@@ -156,13 +156,14 @@ class FCPowerpoint(PowerpointSource):
         svg_extractor = Pptx2Svg(self.source_href,
             kind=self.kind, shape_filter=self.__svg_shape_filter)
         svg_extractor.slides_to_svg()
-        for layer in svg_extractor.svg_layers:
-            svg = StringIO()
+        svg = StringIO()
+        for layer in svg_extractor.svg_layers:    ### this just gets the first slide...
             layer.save(svg)
-            svg_bytes = BytesIO(svg.getvalue().encode('utf-8'))
-            svg.close()
-            svg_bytes.seek(0)
-            return svg_bytes
+            break
+        svg_bytes = BytesIO(svg.getvalue().encode('utf-8'))
+        svg.close()
+        svg_bytes.seek(0)
+        return svg_bytes
 
 #===============================================================================
 
