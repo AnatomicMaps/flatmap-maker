@@ -99,9 +99,9 @@ class FCFeature:
 #===============================================================================
 
 class FCPowerpoint(PowerpointSource):
-    def __init__(self, flatmap, id, source_href, source_kind, source_range=None, shape_filters=None, annotation_set=None):
+    def __init__(self, flatmap, id, source_href, source_kind, source_range=None, shape_filters=None, annotator=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind, source_range=source_range, SlideClass=FCSlide)
-        self.__annotation_set = annotation_set
+        self.__annotator = annotator
         if shape_filters is not None:
             self.__map_shape_filter = shape_filters.map_filter
             self.__svg_shape_filter = shape_filters.svg_filter
@@ -111,12 +111,12 @@ class FCPowerpoint(PowerpointSource):
 
     def annotate(self, slide):
     #=========================
-        if self.__annotation_set is None:
+        if self.__annotator is None:
             return
         for id in slide.systems:
-            self.__annotation_set.add_system(slide.fc_features[id].label, self.id)
+            self.__annotator.add_system(slide.fc_features[id].label, self.id)
         for id in slide.organs:
-            self.__annotation_set.add_organ(slide.fc_features[id].label, self.id,
+            self.__annotator.add_organ(slide.fc_features[id].label, self.id,
                 tuple(slide.fc_features[system_id].label for system_id in slide.fc_features[id].parents if system_id != 0)
                 )
         for feature in slide.fc_features.values():
@@ -130,7 +130,7 @@ class FCPowerpoint(PowerpointSource):
                     if len(feature.parents) > 1:
                         log.warning(f'FTU {feature} in multiple organs')
                     else:
-                        self.__annotation_set.add_ftu(slide.fc_features[organ_id].label, feature.label, self.id)
+                        self.__annotator.add_ftu(slide.fc_features[organ_id].label, feature.label, self.id)
 
     def filter_map_shape(self, shape):
     #=================================
