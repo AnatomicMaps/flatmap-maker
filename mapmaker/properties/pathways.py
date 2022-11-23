@@ -655,6 +655,7 @@ class Pathways:
                 feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
                 layer.add_feature(feature)
                 if path_id is not None:
+                    path = paths_by_id[path_id]
                     nerve_feature_ids = routed_path.nerve_feature_ids
                     nerve_features = [self.__feature_map.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
                     active_nerve_features.update(nerve_features)
