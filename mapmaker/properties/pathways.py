@@ -616,8 +616,6 @@ class Pathways:
         # Find route graphs for each path in each connectivity model
         for connectivity_model in self.__connectivity_models:
             if connectivity_model.network == network.id:
-                layer = FeatureLayer('{}_routes'.format(connectivity_model.id), self.__flatmap, exported=True)
-                self.__flatmap.add_layer(layer)
                 for path in connectivity_model.paths.values():
                     paths_by_id[path.id] = path
                     route_graphs[path.id] = network.route_graph_from_path(path)
@@ -626,6 +624,8 @@ class Pathways:
         routed_paths = network.layout(route_graphs)
 
         # Add features to the map for the geometric objects that make up each path
+        layer = FeatureLayer(f'{network.id}_routes', self.__flatmap, exported=True)
+        self.__flatmap.add_layer(layer)
         for route_number, routed_path in routed_paths.items():
             for geometric_shape in routed_path.geometry():
                 properties = {
