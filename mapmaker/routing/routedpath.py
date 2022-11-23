@@ -131,6 +131,7 @@ class PathRouter(object):
 
         # Don't invoke solver if there's only a single shared path...
         if len(routes) > 1:
+            log.info('Solving for path order...')
             layout = TransitMap(edges, shared_paths, node_edge_order)
             layout.solve()
             edge_order = layout.results()
