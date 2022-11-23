@@ -24,6 +24,10 @@ import json
 
 import shapely.strtree
 
+import warnings
+from shapely.errors import ShapelyDeprecationWarning
+warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
+
 #===============================================================================
 
 from mapmaker.utils import log
