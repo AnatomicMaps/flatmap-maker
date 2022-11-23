@@ -151,15 +151,9 @@ class ExternalProperties(object):
 
     def properties(self, id):
     #========================
-        properties = {}
-        properties_by_id = self.__properties_by_id.get(id, {})
-        for cls in properties_by_id.get('class', '').split():
-            properties.update(self.__properties_by_class.get(cls, {}))
-        properties.update(properties_by_id)
-        # Old way: ``id`` could be a ``class``
-        if len(properties) == 0:
-            properties = self.__properties_by_class.get(id, {})
-        # Remove above when all maps converted
+        properties = {'id': id}
+        properties.update(self.__properties_by_id.get(id, {}))
+        self.update_properties(properties)
         return properties
 
     def update_properties(self, feature_properties):
