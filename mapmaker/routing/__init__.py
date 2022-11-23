@@ -1176,6 +1176,7 @@ class Network(object):
         route_graph.graph['path-type'] = path.path_type
         route_graph.graph['source'] = path.source
         route_graph.graph['nerve-features'] = set(nerve_id for nerve_id in path_nerve_ids if self.__map_feature(nerve_id) is not None)
+        route_graph.graph['traced'] = path.trace
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
         else:

@@ -277,7 +277,7 @@ class IntermediateNode:
            log.error(f'Cannot get width of node {id}')
         self.__width_normal = mid_normal*width/2.0
 
-    def geometry(self, path_source, path_id, start_point, end_point, num_points=100, offset=0):
+    def geometry(self, path_source, path_id, start_point, end_point, num_points=100, offset=0, show_controls=False):
         node_point = self.__mid_point + self.__width_normal*offset
         geometry = [GeometricShape.circle(
             point_to_coords(node_point),
@@ -289,6 +289,9 @@ class IntermediateNode:
             })]
         segs = [ bezier_connect(start_point, node_point, self.__start_angle, self.__mid_angle),
                  bezier_connect(node_point, end_point, self.__mid_angle, self.__end_angle) ]
+        if show_controls:
+            geometry.extend(bezier_control_points(segs[0], 'intermediate 0'))
+            geometry.extend(bezier_control_points(segs[1], 'intermediate 1'))
         return (bezier_to_line_coords(BezierPath.fromSegments(segs), num_points=num_points, offset=offset), geometry)
 
 #===============================================================================
@@ -297,6 +300,7 @@ class RoutedPath(object):
     def __init__(self, path_id: str, route_graph: nx.Graph, number: int):
         self.__path_id = path_id
         self.__graph = route_graph
+        self.__trace = route_graph.graph.get('traced', False)
         self.__number = number
         self.__node_set = {node for node, data in route_graph.nodes(data=True)
                                 if not data.get('exclude', False)}
@@ -356,16 +360,21 @@ class RoutedPath(object):
                 component = path_components[component_num]
                 if isinstance(component, IntermediateNode):
                     component_num += 1
+                    if self.__trace:
+                        geometry.extend(bezier_control_points(path_components[component_num], label=f'{path_id}-{component_num}'))
                     next_line_coords = bezier_to_line_coords(path_components[component_num], offset=path_offset)
                     intermediate_geometry = component.geometry(path_source, path_id, intermediate_start,
                                                                BezierPoint(*(next_line_coords[0] if path_offset >= 0 else next_line_coords[-1])),
-                                                               offset=2*offset/edge_dict['max-paths'])
+                                                               offset=2*offset/edge_dict['max-paths'],
+                                                               show_controls=self.__trace)
                     line_coords = intermediate_geometry[0]
                     geometry.extend(intermediate_geometry[1])
                     coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
                     line_coords = next_line_coords
                     intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
                 else:
+                    if self.__trace:
+                        geometry.extend(bezier_control_points(component, label=f'{path_id}-{component_num}'))
                     line_coords = bezier_to_line_coords(component, offset=path_offset)
                     if len(line_coords) == 0:
                         log.warning(f'{path_id}: offset too big for parallel path...')
@@ -443,6 +452,8 @@ class RoutedPath(object):
                             'path-id': edge_dict.get('path-id'),
                             'source': edge_dict.get('source')
                         }))
+                    if self.__trace:
+                        geometry.extend(bezier_control_points(bz, label=f'{path_id}-T'))
                     # Draw arrow iff degree(node_1) == 1
                     if self.__graph.degree(terminal_node) == 1:
                         geometry.append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
