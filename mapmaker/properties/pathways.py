@@ -670,7 +670,7 @@ class Pathways:
             # Add a polygon feature for a nerve cuff
             if not feature.has_property('nerveId'):
                 feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
-            print(feature.properties)
+###            print(feature.properties)
             if feature.geom_type == 'LineString':
                 properties = feature.properties.copy()
                 properties.pop('id', None)   # Otherwise we will have a duplicate id...
