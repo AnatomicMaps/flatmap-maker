@@ -99,7 +99,7 @@ class SVGSource(MapSource):
             self.__boundary_geometry = self.__layer.boundary_feature.geometry
         if not settings.get('authoring', False) and self.__exported:
             # Save a cleaned copy of the SVG in the map's output directory
-            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=True)
+            cleaner = SVGCleaner(self.__source_file, properties_store=self.flatmap.map_properties, all_layers=True)
             cleaner.clean()
             with open(os.path.join(settings.get('output'),
                       self.flatmap.id,
@@ -108,12 +108,16 @@ class SVGSource(MapSource):
 
     def get_raster_source(self):
     #===========================
-        cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
+        return RasterSource('svg', self.__get_data, source_path=self.__source_file)
+
+    def __get_data(self):
+    #====================
+        cleaner = SVGCleaner(self.__source_file, feature_map=self.flatmap.feature_map, all_layers=False)
         cleaner.clean()
         cleaned_svg = tempfile.TemporaryFile()
         cleaner.save(cleaned_svg)
         cleaned_svg.seek(0)
-        return RasterSource('svg', lambda: cleaned_svg, source_path=self.__source_file)
+        return cleaned_svg
 
 #===============================================================================
 

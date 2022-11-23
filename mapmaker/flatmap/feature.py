@@ -33,6 +33,9 @@ from mapmaker.utils import log, FilePath
 
 AnatomicalNode = NewType('AnatomicalNode', tuple[str, tuple[str, ...]])
 
+def anatomical_node_name(node: AnatomicalNode) -> str:
+    return '/'.join(reversed((node[0],) + node[1]))
+
 #===============================================================================
 
 def entity_name(entity: Optional[str]) -> str:
@@ -147,39 +150,57 @@ class FeatureMap:
     #=======================================
         return self.__id_to_feature.get(id, None) is not None
 
-    def find_path_features_by_anatomical_id(self, anatomical_id: str, anatomical_layers: tuple[str, ...]) -> set[Feature]:
-    #=====================================================================================================================
+    def find_path_features_by_anatomical_node(self, anatomical_node: AnatomicalNode) -> tuple[AnatomicalNode, set[Feature]]:
+    #=======================================================================================================================
         def features_from_anatomical_id(term: str) -> set[Feature]:
             return set(self.__model_to_features.get(self.__connectivity_terms.get(term, term), []))
 
-        layers = list(anatomical_layers)
-        if len(layers) == 0:
-            return features_from_anatomical_id(anatomical_id)
-
+        anatomical_id = anatomical_node[0]
         features = features_from_anatomical_id(anatomical_id)
+        layers = list(anatomical_node[1])
+        if len(layers) == 0:
+            return (anatomical_node, features)
+
+        # Remove any nerve features from the anatomical node's layers
+        anatomical_layers = []
+        for layer in layers:
+            nerve_layer = False
+            for feature in features_from_anatomical_id(layer):
+                if feature.property('type') == 'nerve':
+                    nerve_layer = True
+                    break
+            if not nerve_layer:
+                anatomical_layers.append(layer)
+
+        # Look for a substitute feature if we can't find the base term
+        matched_node = AnatomicalNode((anatomical_id, tuple(anatomical_layers)))
         if len(features) == 0:
-            while len(layers) > 0:
-                substitute_id = layers.pop(0)
+            while len(anatomical_layers) > 0:
+                substitute_id = anatomical_layers.pop(0)
                 features = features_from_anatomical_id(substitute_id)
                 if len(features):
                     log.warning(f'Cannot find feature for {entity_name(anatomical_id)} ({anatomical_id}), substituted containing `{entity_name(substitute_id)}` region')
+                    matched_node = AnatomicalNode((substitute_id, tuple(anatomical_layers)))
                     break
-        if len(features) == 1 or len(layers) == 0:
-            return features
+        if len(anatomical_layers) == 0:
+            return (matched_node, features)
 
-        # Check feature is contained in specified layers
-        anatomical_features = set()
-        for anatomical_layer in layers:
-            included_features = set()
-            layer_features = features_from_anatomical_id(anatomical_layer)
-            for layer_feature in layer_features:
-                for feature in features:
+        # Restrict found features to those contained in specified layers
+        matched_features = set()
+        for feature in features:
+            feature_in_layers = False
+            for anatomical_layer in anatomical_layers:
+                feature_in_layer = False
+                for layer_feature in features_from_anatomical_id(anatomical_layer):
                     if layer_feature.geometry.contains(feature.geometry.centroid):
-                        included_features.add(feature)
-            anatomical_features = included_features
-            if len(included_features) == 1:
-                break
-        return anatomical_features
+                        feature_in_layer = True
+                        break
+                if feature_in_layer:
+                    feature_in_layers = True
+                    break
+            if feature_in_layers:
+                matched_features.add(feature)
+        return (matched_node, matched_features)
 
     def geojson_ids(self, ids: list[str]) -> list[int]:
     #==================================================

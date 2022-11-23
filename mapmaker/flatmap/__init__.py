@@ -82,6 +82,10 @@ class FlatMap(object):
         return self.__entities
 
     @property
+    def feature_map(self):
+        return self.__feature_map
+
+    @property
     def id(self):
         return self.__id
 

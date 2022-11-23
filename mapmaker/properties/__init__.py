@@ -211,6 +211,7 @@ class ExternalProperties(object):
         if not (authoring or settings.get('functionalConnectivity', False)):
             for shape_type in NETWORK_SHAPE_TYPES:
                 if shape_type in feature_properties:
+                    feature_properties['invisible'] = True
                     feature_properties['exclude'] = True
                     break
         return feature_properties

@@ -97,9 +97,12 @@ class FeatureLayer(object):
         # Update feature properties from JSON properties file
         for feature in self.__features:
             map_properties.update_feature_properties(feature)
-            if feature.property('type') == 'nerve':
-                # Nerve features are included only if used by connectivity
-                feature.set_property('exclude', not settings.get('authoring', False))
+            if not settings.get('authoring', False):
+                if feature.property('type') == 'nerve' or 'auto-hide' in feature.property('class', ''):
+                    # Nerve and ``auto-hide`` features are included only if used by connectivity
+                    feature.set_property('exclude', True)
+            elif feature.property('type') == 'nerve':
+                feature.set_property('tile-layer', 'pathways')
             if self.__exported:
                 # Save relationship between id/class and internal feature id
                 self.__flatmap.save_feature_for_lookup(feature)
