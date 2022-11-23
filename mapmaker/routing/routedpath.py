@@ -341,7 +341,6 @@ class RoutedPath(object):
         """
         geometry = []
         for node_0, node_1, edge_dict in self.__graph.edges.data():
-            edge = (node_0, node_1)
             path_id = edge_dict.get('path-id')
             path_source = edge_dict.get('source')
             properties = {
@@ -399,7 +398,6 @@ class RoutedPath(object):
                     self.__graph.nodes[edge_dict['end-node']]['start-point'] = BezierPoint(*path_line.coords[-1])
 
         # Draw paths to terminal nodes
-
         def draw_arrow(start_point, end_point):
             heading = (end_point - start_point).angle
             end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
