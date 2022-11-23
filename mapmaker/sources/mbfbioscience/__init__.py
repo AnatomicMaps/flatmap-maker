@@ -163,7 +163,7 @@ class MBFSource(MapSource):
                                       self.__world_to_image.transform_geometry(boundary_geometry))
 
     def get_raster_source(self):
-    #===========================
+    #============================
         return RasterSource('image', lambda: self.__image)
 
 #===============================================================================
