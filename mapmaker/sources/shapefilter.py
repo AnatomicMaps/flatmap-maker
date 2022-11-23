@@ -98,9 +98,9 @@ class ShapeFilter:
 #===============================================================================
 
 class ShapeFilters:
-    def __init__(self):
-        self.__map_shape_filter = ShapeFilter()
-        self.__svg_shape_filter = ShapeFilter()
+    def __init__(self, map_filter=None, svg_filter=None):
+        self.__map_shape_filter = ShapeFilter() if map_filter is None else map_filter
+        self.__svg_shape_filter = ShapeFilter() if svg_filter is None else svg_filter
 
     @property
     def map_filter(self):
