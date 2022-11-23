@@ -141,14 +141,12 @@ class ResolvedPath:
         """
         The numeric feature ids that make up a path.
         """
-        path_dict = {
+        return {
             'lines': list(self.__lines),
             'nerves': list(self.__nerves),
-            'nodes': list(self.__nodes)
+            'nodes': list(self.__nodes),
+            'models': self.__models
         }
-        if self.__models is not None:
-            path_dict['models'] = self.__models
-        return path_dict
 
     def extend_lines(self, geojson_ids: list[int]):
         """
