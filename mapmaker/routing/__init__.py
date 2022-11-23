@@ -81,43 +81,6 @@ if TYPE_CHECKING:
 
 #===============================================================================
 
-"""
-Find the subgraph G' induced on G, that
-1) contain all nodes in a set of nodes V', and
-2) is a connected component.
-
-See: https://stackoverflow.com/questions/58076592/python-networkx-connect-subgraph-with-a-loose-node
-"""
-
-def get_connected_subgraph(path_id, graph, v_prime):
-#===================================================
-    """Given a graph G=(V,E), and a vertex set V', find the V'', that
-    1) is a superset of V', and
-    2) when used to induce a subgraph on G forms a connected component.
-
-    Arguments:
-    ----------
-    graph : networkx.Graph object
-        The full graph.
-    v_prime : list
-        The chosen vertex set.
-
-    Returns:
-    --------
-    G_prime : networkx.Graph object
-        The subgraph of G fullfilling criteria 1) and 2).
-
-    """
-    vpp = set()
-    for source, target in itertools.combinations(v_prime, 2):
-        if nx.has_path(graph, source, target):
-            paths = nx.all_shortest_paths(graph, source, target)
-            for path in paths:
-                vpp.update(path)
-        else:
-            log.warning(f'{path_id}: No network connection between {source} and {target}')
-    return graph.subgraph(vpp)
-
 def expand_centreline_graph(graph: nx.MultiGraph) -> nx.Graph:
 #=============================================================
     G = nx.Graph()

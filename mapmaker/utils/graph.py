@@ -74,3 +74,40 @@ def smooth_edges(G: nx.Graph, end_nodes: Optional[list | set]=None, edge_nodes_a
     return R
 
 #===============================================================================
+
+def get_connected_subgraph(G, nodes):
+#====================================
+    """
+    Find the subgraph G' induced on G, that
+    1) contain all nodes in a set of nodes V', and
+    2) is a connected component.
+
+    See: https://stackoverflow.com/questions/58076592/python-networkx-connect-subgraph-with-a-loose-node
+
+    Given a graph G=(V,E), and a vertex set V', find the V'', that
+    1) is a superset of V', and
+    2) when used to induce a subgraph on G forms a connected component.
+
+    Arguments:
+    ----------
+    G : networkx.Graph object
+        The full graph.
+    nodes : iterable
+        The chosen vertex set.
+
+    Returns:
+    --------
+    G_prime : networkx.Graph object
+        The subgraph of G fullfilling criteria 1) and 2).
+
+    """
+    vpp = set()
+    for source, target in itertools.combinations(nodes, 2):
+        if source in G and target in G:
+            if nx.has_path(G, source, target):
+                paths = nx.all_shortest_paths(G, source, target)
+                for path in paths:
+                    vpp.update(path)
+    return G.subgraph(vpp)
+
+#===============================================================================
