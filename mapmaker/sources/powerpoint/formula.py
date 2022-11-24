@@ -22,7 +22,11 @@
 
 #===============================================================================
 
+from __future__ import annotations
 import math
+from typing import Optional
+
+#===============================================================================
 
 import pptx.shapes.connector
 from pptx.enum.shapes import MSO_SHAPE_TYPE
@@ -179,15 +183,15 @@ class Geometry(object):
             for gd in adjustments:
                 self.__variables[gd.name] = gd.fmla
 
-    def __len__(self):
-        return len(self.__geometry.pathLst)
+    def __len__(self) -> int:
+        return len(self.__geometry.pathLst) if self.__geometry is not None else 0
 
     @property
-    def path_list(self):
+    def path_list(self) -> list:
         return self.__geometry.pathLst if self.__geometry is not None else []
 
     @property
-    def shape_kind(self):
+    def shape_kind(self) -> Optional[str]:
         return self.__shape_kind
 
     @property
