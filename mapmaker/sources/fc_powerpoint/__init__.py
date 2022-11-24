@@ -69,6 +69,11 @@ class FCFeature:
     children: list[int] = field(default_factory=list, init=False)
     parents: list[int] = field(default_factory=list, init=False)
 
+    def __post_init__(self):
+        label = self.properties.pop('label', '').replace('\t', '|').strip()
+        self.properties['name'] = label
+        self.properties['label'] = f'{self.id}: {label}' if settings.get('authoring', False) else label
+
     def __str__(self):
         return f'FCFeature(id={self.id}, children={self.children}, parents={self.parents}, properties={self.properties})'
 
@@ -86,11 +91,15 @@ class FCFeature:
 
     @property
     def label(self):
-        return self.properties.get('label', '').replace('\t', '|').strip()
+        return self.properties.get('label', self.name)
 
     @property
     def models(self):
         return self.properties.get('models')
+
+    @property
+    def name(self):
+        return self.properties.get('name', '')
 
     @models.setter
     def models(self, model):
