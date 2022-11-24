@@ -21,7 +21,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
 #===============================================================================
 
@@ -34,14 +34,20 @@ from mapmaker.utils import log, relative_path
 
 #===============================================================================
 
-@dataclass
-class Annotation:
-    identifier: str = field(default_factory=str)
-    term: str = field(default_factory=str)
-    sources: set[str] = field(default_factory=set)
-
-#===============================================================================
-
+try:
+    @dataclass(kw_only=True)  # Requires Python 3.10
+    class Annotation:
+        identifier: str = field(default_factory=str)
+        name: str = field(default_factory=str)
+        term: str = field(default_factory=str)
+        sources: set[str] = field(default_factory=set)
+except TypeError:
+    class Annotation:
+        def __init__(self, identifier: str='', name: str='', term: str='', sources: set[str]=set()):
+            self.identifier = identifier
+            self.name = name
+            self.term = term
+            self.sources = sources
 
 #===============================================================================
 
@@ -53,33 +59,51 @@ class Annotator:
             else:
                 log.warning(f'Remote FC annotation at {spreadsheet} will not be updated')
         self.__spreadsheet = Path(spreadsheet)
-        self.__system_labels: dict[str, Annotation] = {}
-        self.__organ_system_labels: dict[str, tuple[Annotation, set[str]]] = {}
-        self.__organ_ftu_labels: dict[tuple[str, str], Annotation] = {}
+        self.__systems_by_name: dict[str, Annotation] = {}                          #! System name -> Annotation
+        self.__organ_systems_by_name: dict[str, tuple[Annotation, set[str]]] = {}   #! Organ name -> (Annotation, Systems)
+        self.__ftus_by_names: dict[tuple[str, str], Annotation] = {}                #! (Organ, FTU name) -> Annotation
+        self.__annotations_by_id: dict[str, Annotation] = {}
         self.__connectivity: list = []  ## networkx.Graph()   ???
         self.__load()
 
-    def add_ftu(self, organ_label: str, ftu_label: str, source: str):
-    #================================================================
-        key = (organ_label, ftu_label)
-        if key not in self.__organ_ftu_labels:
-            self.__organ_ftu_labels[key] = Annotation()
-        self.__organ_ftu_labels[key].sources.add(source)
+    def find_annotation(self, identifier: str) -> Optional[Annotation]:
+    #==================================================================
+        return self.__annotations_by_id.get(identifier)
 
-    def add_organ(self, label: str, source: str, system_labels: Iterable[str]):
+    def find_ftu_by_names(self, organ_name: str, ftu_name: str) -> Optional[Annotation]:
+    #======================================================================================
+        return self.__ftus_by_names.get((organ_name, ftu_name))
+
+    def add_ftu(self, organ_name: str, ftu_name: str, source: str) -> Annotation:
+    #==============================================================================
+        if (annotation := self.find_ftu_by_names(organ_name, ftu_name)) is None:
+            annotation = Annotation(name=ftu_name)
+            self.__ftus_by_names[(organ_name, ftu_name)] = annotation
+        annotation.sources.add(source)
+        return annotation
+
+    def add_organ(self, name: str, source: str, system_names: Iterable[str]):
     #==========================================================================
-        if label in self.__organ_system_labels:
-            self.__organ_system_labels[label][1].update(system_labels)
+        if name in self.__organ_systems_by_name:
+            self.__organ_systems_by_name[name][1].update(system_names)
         else:
-            self.__organ_system_labels[label] = (Annotation(), set(system_labels))
-        self.__organ_system_labels[label][0].sources.add(source)
+            self.__organ_systems_by_name[name] = (Annotation(), set(system_names))
+        self.__organ_systems_by_name[name][0].sources.add(source)
 
-    def add_system(self, label: str, source: str):
+    def add_system(self, name: str, source: str):
     #=============================================
-        if label != '':
-            if label not in self.__system_labels:
-                self.__system_labels[label] = Annotation()
-            self.__system_labels[label].sources.add(source)
+        if name != '':
+            if name not in self.__systems_by_name:
+                self.__systems_by_name[name] = Annotation()
+            self.__systems_by_name[name].sources.add(source)
+
+    def __add_annotation(self, annotation: Annotation):
+    #==================================================
+        if annotation.identifier != '':
+            if annotation.identifier in self.__annotations_by_id:
+                log.error(f'Duplicate identifier in FC annotation: {annotation.identifier}')
+            else:
+                self.__annotations_by_id[annotation.identifier] = annotation
 
     def __load(self):
     #================
@@ -94,9 +118,11 @@ class Annotator:
                         raise KeyError('Wrong Organ System header row')
                     elif n != 0:
                         key = row[0].value
-                        if key not in self.__system_labels:
-                            self.__system_labels[key] = Annotation(row[1].value, row[2].value)
-
+                        if key not in self.__systems_by_name:
+                            self.__systems_by_name[key] = Annotation(identifier=row[1].value,
+                                                                      name=row[0].value,
+                                                                      term=row[2].value)
+                            self.__add_annotation(self.__systems_by_name[key])
                 worksheet = workbook['Organs']
                 for n, row in enumerate(worksheet.rows):
                     if (n == 0 and (row[0].value != 'Organ Name'
@@ -106,10 +132,12 @@ class Annotator:
                         raise KeyError('Wrong Organ header row')
                     elif n != 0:
                         key = row[0].value
-                        if key not in self.__organ_system_labels:
-                            self.__organ_system_labels[key] = (Annotation(row[1].value, row[2].value),
-                                                               set(row[3+i].value for i in range(3) if row[3+i].value is not None))
-
+                        if key not in self.__organ_systems_by_name:
+                            self.__organ_systems_by_name[key] = (Annotation(identifier=row[1].value,
+                                                                             name=row[0].value,
+                                                                             term=row[2].value),
+                                                                    set(row[3+i].value for i in range(3) if row[3+i].value is not None))
+                            self.__add_annotation(self.__organ_systems_by_name[key][0])
                 worksheet = workbook['FTUs']
                 for n, row in enumerate(worksheet.rows):
                     if (n == 0 and (row[0].value != 'Organ'
@@ -120,9 +148,14 @@ class Annotator:
                         raise KeyError('Wrong FTU header row')
                     elif n != 0:
                         key = (row[0].value, row[1].value)
-                        if key not in self.__organ_ftu_labels:
-                            self.__organ_ftu_labels[key] = Annotation(row[2].value, row[3].value)
+                        if key not in self.__ftus_by_names:
+                            if (full_identifier := row[4].value) in [0, '', None]:
+                                full_identifier = row[2].value
+                            self.__ftus_by_names[key] = Annotation(identifier=full_identifier,  ## but we want value. not formula...
+                                                                    name=row[1].value,
+                                                                    term=row[3].value)
 
+                            self.__add_annotation(self.__ftus_by_names[key])
             except KeyError:
                 print(f'{self.__spreadsheet} is in wrong format, ignored')
             workbook.close()
@@ -169,8 +202,8 @@ class Annotator:
         worksheet.write_string(0, 1, 'Identifier')
         worksheet.write_string(0, 2, 'Term')
         worksheet.write_string(0, 3, 'Sources...')
-        for row, key in enumerate(sorted(self.__system_labels.keys())):
-            annotation = self.__system_labels[key]
+        for row, key in enumerate(sorted(self.__systems_by_name.keys())):
+            annotation = self.__systems_by_name[key]
             worksheet.write_string(row + 1, 0, key)
             worksheet.write_string(row + 1, 1, annotation.identifier)
             worksheet.write_string(row + 1, 2, annotation.term)
@@ -190,19 +223,19 @@ class Annotator:
         worksheet.write_string(0, 2, 'Term')
         worksheet.write_string(0, 3, 'Systems...')
         worksheet.write_string(0, 6, 'Sources...')
-        for row, label in enumerate(sorted(self.__organ_system_labels.keys())):
-            (annotation, system_labels) = self.__organ_system_labels[label]
-            worksheet.write_string(row + 1, 0, label)
+        for row, name in enumerate(sorted(self.__organ_systems_by_name.keys())):
+            (annotation, system_names) = self.__organ_systems_by_name[name]
+            worksheet.write_string(row + 1, 0, name)
             worksheet.write_string(row + 1, 1, annotation.identifier)
             worksheet.write_string(row + 1, 2, annotation.term)
-            for n, system_label in enumerate(sorted(system_labels)):
-                worksheet.write_string(row + 1, n + 3, system_label)
+            for n, system_name in enumerate(sorted(system_names)):
+                worksheet.write_string(row + 1, n + 3, system_name)
             worksheet.write_string(row + 1, 6, ', '.join(sorted(annotation.sources)))
-        last_organ_row = len(self.__organ_system_labels) + 1
+        last_organ_row = len(self.__organ_systems_by_name) + 1
         organ_lookup = f'Organs!$A$2:$A${last_organ_row}, Organs!$B$2:$B${last_organ_row}'
         worksheet.set_selection('B2')
 
-        # FTUs are labeled features that have a (single) organ as a parent
+        # FTUs are nameed features that have a (single) organ as a parent
         worksheet = workbook.add_worksheet('FTUs')
         worksheet.protect()
         worksheet.freeze_panes(1, 0)
@@ -219,12 +252,12 @@ class Annotator:
         worksheet.write_string(0, 4, 'Full Identifier')
         worksheet.write_string(0, 5, 'Sources...')
         row = 1
-        for key in sorted(self.__organ_ftu_labels.keys()):
-            (organ_label, ftu_label) = key
-            annotation = self.__organ_ftu_labels[key]
-            worksheet.write_string(row, 0, organ_label)
-            worksheet.write_string(row, 1, ftu_label)
             worksheet.write_string(row, 2, annotation.identifier)
+        for key in sorted(self.__ftus_by_names.keys()):
+            (organ_name, ftu_name) = key
+            annotation = self.__ftus_by_names[key]
+            worksheet.write_string(row, 0, organ_name)
+            worksheet.write_string(row, 1, ftu_name)
             worksheet.write_string(row, 3, annotation.term)
             organ_id = f'_xlfn.XLOOKUP(A{row+1}, {organ_lookup})'
             worksheet.write_formula(row, 4, f'=IF(OR(C{row+1}="", {organ_id}=""), "", _xlfn.TEXTJOIN("/", TRUE, {organ_id}, C{row+1}))')
