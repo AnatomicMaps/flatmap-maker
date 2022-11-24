@@ -257,7 +257,6 @@ class SVGTiler(object):
         svg_to_tile_transform = Transform([[self.__scaling[0],               0.0, 0.0],
                                            [              0.0, self.__scaling[1], 0.0],
                                            [              0.0,               0.0, 1.0]])
-        self.__svg_drawing = self.__draw_svg(svg_to_tile_transform)
 
         # Transform from SVG pixels to world coordinates
         self.__image_to_world = (Transform([
@@ -281,6 +280,9 @@ class SVGTiler(object):
                                                                    x0 + self.__tile_size[0],
                                                                    y0 + self.__tile_size[0])
             self.__tile_bboxes[mercantile.quadkey(tile)] = tile_bbox
+
+        # Render SVG onto a CanvasGroup
+        self.__svg_drawing = self.__draw_svg(svg_to_tile_transform)
 
     @property
     def size(self):
