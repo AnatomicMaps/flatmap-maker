@@ -70,6 +70,8 @@ class ColourMap(object):
         elif colour_format.type == MSO_COLOR_TYPE.SCHEME:
             key = MSO_THEME_COLOR.to_xml(colour_format.theme_color)
             rgb = self.__colour_defs[DML(key)]
+        elif colour_format.type == MSO_COLOR_TYPE.PRESET:
+            return colour_format._color._xClr.attrib['val']
         else:
             raise ValueError('Unsupported colour format: {}'.format(colour_format.type))
         lumMod = colour_format.lumMod
