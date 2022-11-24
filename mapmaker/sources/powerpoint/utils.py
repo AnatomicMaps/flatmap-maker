@@ -35,6 +35,7 @@ import shapely.geometry
 from mapmaker.geometry import ellipse_point
 from mapmaker.geometry.beziers import bezier_sample
 from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
+from mapmaker.utils import log
 
 from .formula import Geometry, radians
 from .presets import DML
@@ -55,10 +56,9 @@ def get_shape_geometry(shape, transform, properties=None):
         bbox = (shape.width, shape.height) if path.w is None or path.h is None else (path.w, path.h)
         T = transform@DrawMLTransform(shape, bbox)
 
-        moved = False
-        first_point = None
         current_point = None
-        closed = False
+        first_point = None
+        moved = False
 
         for c in path.getchildren():
             if   c.tag == DML('arcTo'):
