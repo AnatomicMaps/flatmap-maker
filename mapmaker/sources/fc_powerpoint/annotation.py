@@ -252,12 +252,12 @@ class Annotator:
         worksheet.write_string(0, 4, 'Full Identifier')
         worksheet.write_string(0, 5, 'Sources...')
         row = 1
-            worksheet.write_string(row, 2, annotation.identifier)
         for key in sorted(self.__ftus_by_names.keys()):
             (organ_name, ftu_name) = key
             annotation = self.__ftus_by_names[key]
             worksheet.write_string(row, 0, organ_name)
             worksheet.write_string(row, 1, ftu_name)
+            worksheet.write_string(row, 2, annotation.identifier.split('/')[-1])
             worksheet.write_string(row, 3, annotation.term)
             organ_id = f'_xlfn.XLOOKUP(A{row+1}, {organ_lookup})'
             worksheet.write_formula(row, 4, f'=IF(OR(C{row+1}="", {organ_id}=""), "", _xlfn.TEXTJOIN("/", TRUE, {organ_id}, C{row+1}))')
