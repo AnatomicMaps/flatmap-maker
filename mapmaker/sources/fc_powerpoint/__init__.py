@@ -38,6 +38,7 @@ from .. import RasterSource
 from ..powerpoint import PowerpointSource, PowerpointSlide
 from ..powerpoint.powerpoint import Shape, Slide, SHAPE_TYPE
 from ..powerpoint.pptx2svg import Pptx2Svg
+from ..shapefilter import ShapeFilter, ShapeFilters
 
 #===============================================================================
 
@@ -104,6 +105,23 @@ class FCFeature:
     @models.setter
     def models(self, model):
         self.properties['models'] = model
+
+#===============================================================================
+
+class SVGShapeFilter(ShapeFilter):
+    def add_shape(self, shape):
+        super().add_shape(shape)
+
+    def filter(self, shape):
+        super().filter(shape)
+
+class MapShapeFilter(ShapeFilter):
+    def add_shape(self, shape):
+        super().add_shape(shape)
+
+class FCShapeFilters(ShapeFilters):
+    def __init__(self):
+        super().__init__(map_filter=MapShapeFilter, svg_filter=SVGShapeFilter)
 
 #===============================================================================
 

@@ -46,8 +46,8 @@ from .output.tilemaker import RasterTileMaker
 from .settings import settings
 
 from .sources import FCPowerpoint, MBFSource, PowerpointSource, SVGSource
+from .sources.fc_powerpoint import ShapeFilters as FCShapeFilters
 from .sources.fc_powerpoint.annotation import Annotator as FCAnnotator
-from .sources.shapefilter import ShapeFilters
 
 #===============================================================================
 
@@ -322,7 +322,7 @@ class MapMaker(object):
 
         settings['functionalConnectivity'] = (self.__manifest.kind == 'functional')
         if settings['functionalConnectivity']:
-            self.__shape_filters = ShapeFilters()
+            self.__shape_filters = FCShapeFilters()
             if self.__manifest.annotation is not None:
                 self.__FC_annotator = FCAnnotator(self.__manifest.annotation)
             else:
