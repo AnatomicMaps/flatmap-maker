@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 from collections import defaultdict, OrderedDict
-from typing import Any, Hashable, Optional
+from typing import Hashable, Optional
 
 #===============================================================================
 
