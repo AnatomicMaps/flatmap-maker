@@ -108,7 +108,7 @@ class Annotator:
     def __load(self):
     #================
         if self.__spreadsheet.exists():
-            workbook = openpyxl.load_workbook(self.__spreadsheet, read_only=True)
+            workbook = openpyxl.load_workbook(self.__spreadsheet, read_only=True, data_only=True)
             try:
                 worksheet = workbook['OrganSystems']
                 for n, row in enumerate(worksheet.rows):
