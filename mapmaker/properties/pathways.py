@@ -270,14 +270,15 @@ class ResolvedPathways:
                 log.warning(f'Cannot find feature for node: {id}')
         return node_ids
 
-    def add_connectivity(self, path_id: str, model: str, path_type: str,
-                         route_nodes: list[str], geojson_id: int, nerve_features: list[Feature]):
+    def add_connectivity(self, path_id: str, geojson_id: int,
+                         model: str, path_type: str,
+                         node_feature_ids: list[Feature], nerve_features: list[Feature]):
         resolved_path = self.__paths[path_id]
         if model is not None:
             resolved_path.set_model_id(model)
         if path_type is not None:
             self.__type_paths[path_type].add(path_id)
-        resolved_path.extend_nodes(self.__resolve_nodes_for_path(path_id, route_nodes))
+        resolved_path.extend_nodes(self.__resolve_nodes_for_path(path_id, node_feature_ids))
         resolved_path.extend_lines([geojson_id])
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
 
@@ -660,19 +661,17 @@ class Pathways:
                     nerve_features = [self.__feature_map.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
                     active_nerve_features.update(nerve_features)
                     self.__resolved_pathways.add_connectivity(path_id,
+                                                              feature.geojson_id,
                                                               path.models,  ## This is properties['models']...
                                                               path.path_type,  ## This is properties['type']...
-                                                              routed_path.node_set,
-                                                              feature.geojson_id,
+                                                              routed_path.node_feature_ids,
                                                               nerve_features)
         for feature in active_nerve_features:
-            feature.del_property('exclude')
-            feature.set_property('tile-layer', 'pathways')
-            # Add a polygon feature for a nerve cuff
-            if not feature.has_property('nerveId'):
-                feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
 ###            print(feature.properties)
-            if feature.geom_type == 'LineString':
+            if feature.property('type') == 'nerve' and feature.geom_type == 'LineString':
+                feature.del_property('exclude')
+                feature.set_property('tile-layer', 'pathways')
+                # Add a polygon feature for a nerve cuff
                 properties = feature.properties.copy()
                 properties.pop('id', None)   # Otherwise we will have a duplicate id...
                 nerve_polygon_feature = self.__flatmap.new_feature(

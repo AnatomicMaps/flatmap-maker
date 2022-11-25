@@ -758,19 +758,23 @@ class Network(object):
 
         ### WIP: need to check for and add centrelines connecting nodes...
 
-        path_feature_ids = set()
+        path_nerve_ids = set()
+        path_node_ids = set()
         route_graph = nx.MultiGraph()
+        def add_route_edges_from_graph(G):
+            for node_0, node_1, edge_dict in G.edges(data=True):
+                route_graph.add_node(node_0, **self.__centreline_graph.nodes[node_0])
+                route_graph.add_node(node_1, **self.__centreline_graph.nodes[node_1])
+                route_graph.add_edge(node_0, node_1, **edge_dict)
+                path_node_ids.update(node.feature_id for node in edge_dict['network-nodes'])
+
         for node, node_dict in connectivity_graph.nodes(data=True):
             node_type = node_dict['type']
-
             if node_type == 'segment':
-                path_feature_ids.update(node_dict['nerve-ids'])
+                path_nerve_ids.update(node_dict['nerve-ids'])
                 segment_graph = node_dict['subgraph']
                 if segment_graph.number_of_edges() == 1:
-                    for node_0, node_1, edge_dict in segment_graph.edges(data=True):
-                        route_graph.add_node(node_0, **self.__centreline_graph.nodes[node_0])
-                        route_graph.add_node(node_1, **self.__centreline_graph.nodes[node_1])
-                        route_graph.add_edge(node_0, node_1, **edge_dict)
+                    add_route_edges_from_graph(segment_graph)
                 else:
                     # Get set of neighbouring features
                     neighbouring_ids = set()
@@ -780,12 +784,8 @@ class Network(object):
                             neighbouring_ids.update(neighbour_dict['feature-ids'])
                         elif neighbour_dict['type'] == 'segment':
                             neighbouring_ids.update(neighbour_dict['subgraph'].nodes)
-                    # And get actual segment edges used by our path
-                    for node_0, node_1, edge_dict in graph_utils.get_connected_subgraph(segment_graph, neighbouring_ids).edges(data=True):
-                        route_graph.add_node(node_0, **self.__centreline_graph.nodes[node_0])
-                        route_graph.add_node(node_1, **self.__centreline_graph.nodes[node_1])
-                        route_graph.add_edge(node_0, node_1, **edge_dict)
-
+                    # Add actual segment edges used by our path
+                    add_route_edges_from_graph(graph_utils.get_connected_subgraph(segment_graph, neighbouring_ids))
 
         terminal_nodes = set()
         for node, node_dict in connectivity_graph.nodes(data=True):
@@ -799,12 +799,16 @@ class Network(object):
                     terminal_nodes.add(node)
                     node_dict['terminal'] = True
 
-        for feature_id in route_graph.nodes:
+        nerve_id = list(path_nerve_ids)[0] if len(path_nerve_ids) else None
+        if nerve_id is not None and (nerve_feature := self.__map_feature(nerve_id)) is not None:
+            nerve_id = nerve_feature.geojson_id
+        for feature_id in path_node_ids:
             feature = self.__map_feature(feature_id)
-            if feature is not None and not feature.property('invisible', False):
-                # Add the feature to set of features for the path
-                path_feature_ids.add(feature.id)
-                feature.set_property('exclude', False)
+            if feature is not None and 'auto-hide' in feature.property('class', ''):
+                # Show the hidden feature on the map
+                feature.del_property('exclude')
+                if nerve_id is not None:
+                    feature.set_property('nerveId', nerve_id)   # Used in map viewer
 
         ### WIP: need to add terminal nodes/graphs to the route graph
 
@@ -812,7 +816,8 @@ class Network(object):
         route_graph.graph['path-type'] = path.path_type
         route_graph.graph['source'] = path.source
         route_graph.graph['traced'] = path.trace
-        route_graph.graph['nerve-features'] = set(feature_id for feature_id in path_feature_ids if self.__map_feature(feature_id) is not None)
+        route_graph.graph['nerve-features'] = set(feature_id for feature_id in path_nerve_ids if self.__map_feature(feature_id) is not None)
+        route_graph.graph['node-features'] = set(feature_id for feature_id in path_node_ids if self.__map_feature(feature_id) is not None)
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
         else:

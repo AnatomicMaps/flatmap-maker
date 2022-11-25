@@ -315,8 +315,8 @@ class RoutedPath(object):
         return self.__graph.graph['nerve-features']
 
     @property
-    def node_set(self):
-        return self.__node_set
+    def node_feature_ids(self) -> set[str]:
+        return self.__graph.graph['node-features']
 
     @property
     def path_id(self):
