@@ -680,7 +680,7 @@ class Network(object):
             'type': None,
             'contains': set()
         }
-        # Can directly identify the centreline
+        # Can we directly identify the centreline?
         if (centreline_ids := self.__models_to_id.get(connectivity_node[0])) is not None:
             if len(connectivity_node[1]) > 0:
                 log.error(f'Node {full_node_name(connectivity_node)} has centreline inside layers')
