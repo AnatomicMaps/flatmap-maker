@@ -260,12 +260,12 @@ class ResolvedPathways:
     def __resolve_nodes_for_path(self, path_id, nodes):
         node_ids = []
         for id in nodes:
-            if ((feature := self.__feature_map.get_feature(id)) is not None
-             and not feature.property('exclude')):
-                node_id = feature.geojson_id
-                feature.set_property('nodeId', node_id)
-                self.__node_paths[node_id].add(path_id)
-                node_ids.append(node_id)
+            if (feature := self.__feature_map.get_feature(id)) is not None:
+                if not feature.property('exclude'):
+                    node_id = feature.geojson_id
+                    feature.set_property('nodeId', node_id)
+                    self.__node_paths[node_id].add(path_id)
+                    node_ids.append(node_id)
             else:
                 log.warning(f'Cannot find feature for node: {id}')
         return node_ids
