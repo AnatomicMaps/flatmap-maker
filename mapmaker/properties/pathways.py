@@ -607,6 +607,9 @@ class Pathways:
 
     def __route_network_connectivity(self, network):
     #===============================================
+        if self.__resolved_pathways is None or self.__feature_map is None:
+            log.error('Cannot route network when no pathways nor feature mapping')
+            return
         log.info(f'Routing {network.id} paths...')
 
         active_nerve_features: set[Feature] = set()
