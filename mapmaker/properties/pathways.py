@@ -704,14 +704,13 @@ class Pathways:
 ###            print(feature.properties)
             if feature.property('type') == 'nerve' and feature.geom_type == 'LineString':
                 feature.del_property('exclude')
+                feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                 feature.set_property('tile-layer', 'pathways')
                 # Add a polygon feature for a nerve cuff
                 properties = feature.properties.copy()
                 properties.pop('id', None)   # Otherwise we will have a duplicate id...
                 nerve_polygon_feature = self.__flatmap.new_feature(
                     shapely.geometry.Polygon(feature.geometry.coords), properties)
-                nerve_polygon_feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
-                nerve_polygon_feature.set_property('tile-layer', 'pathways')
                 layer.features.append(nerve_polygon_feature)
 
     def generate_connectivity(self, networks):
