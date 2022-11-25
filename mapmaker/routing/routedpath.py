@@ -303,12 +303,6 @@ class RoutedPath(object):
         self.__graph = route_graph
         self.__trace = route_graph.graph.get('traced', False)
         self.__number = number
-        self.__node_set = {node for node, data in route_graph.nodes(data=True)
-                                if not data.get('exclude', False)}
-        self.__source_nodes = {node for node, data in route_graph.nodes(data=True)
-                                if data.get('type') == 'source'}
-        self.__target_nodes = {node for node, data in route_graph.nodes(data=True)
-                                if data.get('type') == 'target'}
 
     @property
     def nerve_feature_ids(self) -> set[str]:
@@ -321,15 +315,6 @@ class RoutedPath(object):
     @property
     def path_id(self):
         return self.__path_id
-
-    def __line_from_edge(self, edge):
-        node_0 = self.__graph.nodes[edge[0]]
-        node_1 = self.__graph.nodes[edge[1]]
-        if 'geometry' not in node_0 or 'geometry' not in node_1:
-            log.warning('Edge {} nodes have no geometry'.format(edge))
-        else:
-            return shapely.geometry.LineString([
-                node_0['geometry'].centroid, node_1['geometry'].centroid])
 
     def geometry(self) -> list[GeometricShape]:
     #==========================================
