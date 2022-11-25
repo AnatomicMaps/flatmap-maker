@@ -93,6 +93,10 @@ class ExternalProperties(object):
     def nerve_models_by_id(self):
         return self.__nerve_models_by_id
 
+    @property
+    def pathways(self):
+        return self.__pathways
+
     def network_feature(self, feature):
     #==================================
         # Is the ``feature`` included in some network?
