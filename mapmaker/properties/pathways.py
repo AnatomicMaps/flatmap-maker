@@ -484,6 +484,8 @@ class Pathways:
         self.__connectivity_models = []
         self.__feature_map = None
         self.__active_nerve_ids: set[str] = set()   ### Manual layout only???
+        self.__connectors: dict[str, str] = {}
+        self.__connectors_by_type: dict[str, list[str]] = defaultdict(list)
         self.add_connectivity({'paths': paths_list})
 
     @staticmethod
@@ -508,7 +510,36 @@ class Pathways:
                 'node-paths': self.__resolved_pathways.node_paths,
                 'type-paths': self.__resolved_pathways.type_paths,
             })
+        if len(self.__connectors):
+            connectivity.update(self.__connectors_as_dict())
         return connectivity
+
+    def add_connector(self, shape_id, path_type, geojson_id):
+    #========================================================
+        # Need geojson id of shape's feature
+        path_id = f'path_{shape_id}'
+        self.__connectors[path_id] = geojson_id
+        self.__connectors_by_type[path_type].append(path_id)
+
+    def __connectors_as_dict(self):
+    #==============================
+        return {
+            'models': [{
+                'id': 'fc-paths',
+                'paths': list(self.__connectors.keys())
+            }],
+            'paths': {
+                path_id: {
+                    'lines': [geojson_id],
+                    'nodes': [],
+                    'nerves': []
+                } for path_id, geojson_id in self.__connectors.items()
+            },
+            'node-paths': {},
+            'type-paths': {
+                path_type: path_ids for path_type, path_ids in self.__connectors_by_type.items()
+            }
+        }
 
     def set_feature_map(self, feature_map):
     #======================================
