@@ -197,7 +197,10 @@ class ExternalProperties(object):
             if (model := feature_properties.get('models')) is not None:
                 labels.append(f'Models: {model}')
             if (label := feature_properties.get('label')) is not None:
-                labels.append(f'Label: {label}')
+                if settings.get('functionalConnectivity', False):
+                    labels.append(label)
+                else:
+                    labels.append(f'Label: {label}')
             if (type := feature_properties.get('type')) is not None:
                 labels.append(f'Type: {type}')
             if len(classes):
