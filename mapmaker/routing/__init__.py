@@ -153,8 +153,8 @@ class NetworkNode:
     def radii(self) -> Optional[tuple[float, float]]:
         return self.properties.get('radii')
 
-    def set_properties_from_feature(self, feature: Feature):
-    #=======================================================
+    def set_properties_from_feature(self, feature: Optional[Feature]):
+    #=================================================================
         if feature is not None:
             self.map_feature = feature
             self.properties.update(feature.properties)
@@ -314,22 +314,6 @@ class Network(object):
             self.__missing_identifiers.add(feature_id)
         return None
 
-    def __set_properties_from_feature(self, feature_id):
-    #===================================================
-        feature = self.__map_feature(feature_id)
-        node_dict = {}
-        if feature is not None:
-            node_dict.update(feature.properties)
-            node_dict['geometry'] = feature.geometry
-            if feature.geometry is not None:
-                centre = feature.geometry.centroid
-                node_dict['centre'] = BezierPoint(centre.x, centre.y)
-                radius = max(math.sqrt(feature.geometry.area/math.pi), MIN_EDGE_JOIN_RADIUS)
-                node_dict['radii'] = (0.999*radius, 1.001*radius)
-            else:
-                log.warning(f'Centreline node {node_dict.get("id")} has no geometry')
-        return node_dict
-
     def create_geometry(self):
     #=========================
         def set_default_node_properties(network_node):
@@ -397,7 +381,7 @@ class Network(object):
             segments[n] = split[0]
             return segments[:n+1]
 
-        def set_segment_geometry(node_id_0, node_1, edge_dict):
+        def set_segment_geometry(node_id_0, node_1_id, edge_dict):
             segments = edge_dict.pop('bezier-path').asSegments()
             segment_id = edge_dict['segment']
             network_nodes = edge_dict['network-nodes']
@@ -408,15 +392,15 @@ class Network(object):
             edge_dict['start-node'] = start_node_id
             edge_dict['end-node'] = end_node_id
 
-            # Truncate the path at brannch nodes
-            if self.__centreline_graph.degree(node_0) >= 2:
+            # Truncate the path at branch nodes
+            if self.__centreline_graph.degree(node_id_0) >= 2:
                 if start_node_id == node_id_0:
                     # This assumes network_nodes[0] centre is close to segments[0].start
                     segments = truncate_segments_at_start(segments, network_nodes[0])
                 else:
                     # This assumes network_nodes[-1] centre is close to segments[-1].end
                     segments = truncate_segments_at_end(segments, network_nodes[-1])
-            if self.__centreline_graph.degree(node_1) >= 2:
+            if self.__centreline_graph.degree(node_1_id) >= 2:
                 if start_node_id == node_id_0:
                     # This assumes network_nodes[0] centre is close to segments[-1].end
                     segments = truncate_segments_at_end(segments, network_nodes[0])
