@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 from collections import defaultdict, OrderedDict
-from typing import Hashable, Optional
+from typing import Any, Hashable, Optional
 
 #===============================================================================
 
@@ -109,5 +109,12 @@ def get_connected_subgraph(G, nodes):
                 for path in paths:
                     vpp.update(path)
     return G.subgraph(vpp)
+
+#===============================================================================
+
+def connected_paths(G: nx.Graph) -> list[Any]:
+#=============================================
+    edge_path_graph = smooth_edges(G)
+    return list(path for _, _, path in edge_path_graph.edges(data='edge-nodes'))
 
 #===============================================================================
