@@ -31,6 +31,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import partial
+import itertools
 import math
 import sys
 from typing import TYPE_CHECKING, Any, Optional
@@ -758,12 +759,15 @@ class Network(object):
         path_nerve_ids = set()
         path_node_ids = set()
 
+        # Helper functions
+        def add_route__with_edge_dict(node_0, node_1, edge_dict):
+            route_graph.add_node(node_0, **self.__centreline_graph.nodes[node_0])
+            route_graph.add_node(node_1, **self.__centreline_graph.nodes[node_1])
+            route_graph.add_edge(node_0, node_1, **edge_dict)
+            path_node_ids.update(node.feature_id for node in edge_dict['network-nodes'])
         def add_route_edges_from_graph(G) -> bool:
             for node_0, node_1, edge_dict in G.edges(data=True):
-                route_graph.add_node(node_0, **self.__centreline_graph.nodes[node_0])
-                route_graph.add_node(node_1, **self.__centreline_graph.nodes[node_1])
-                route_graph.add_edge(node_0, node_1, **edge_dict)
-                path_node_ids.update(node.feature_id for node in edge_dict['network-nodes'])
+                add_route__with_edge_dict(node_0, node_1, edge_dict)
             return G.number_of_edges() > 0
 
         # Add directly identified centreline segments to the route, noting path nodes and
@@ -786,10 +790,28 @@ class Network(object):
                 # Add segment edges used by our path to the route
                 node_dict['used'] = add_route_edges_from_graph(segment_graph)
 
-        # collect sequences of unused nodes (that are features)
-        # Find paths...
-        #
+        # Find centrelines where adjacent connectivity nodes that are centreline end nodes
+        seen_pairs = set()
+        for node, node_dict in connectivity_graph.nodes(data=True):
+            if node_dict['type'] == 'feature':
+                for neighbour in connectivity_graph.neighbors(node):
+                    if (node, neighbour) in seen_pairs:
+                        continue
+                    seen_pairs.add((node, neighbour))
+                    seen_pairs.add((neighbour, node))
+                    neighbour_dict = connectivity_graph.nodes[neighbour]
+                    if neighbour_dict['type'] == 'feature':
+                        for node_feature in node_dict['feature-ids']:
+                            for neighbouring_feature in neighbour_dict['feature-ids']:
+                                if (edge_dicts := self.__centreline_graph.get_edge_data(node_feature, neighbouring_feature)) is not None:
+                                    if len(edge_dicts) > 1:
+                                        log.warning(f'{path.id}: Multiple centrelines between {node_feature} and {neighbouring_feature}')
+                                    add_route__with_edge_dict(node_feature, neighbouring_feature, edge_dicts[list(edge_dicts)[0]])
+                                    node_dict['used'] = True
+                                    neighbour_dict['used'] = True
 
+        # Find centrelines that are contained in sequences of so far unused nodes of the
+        # connectivity graph
         def get_centreline_from_containing_features(feature_ids: set[str]):
             candidate_contained_centrelines = set()
             for feature_id in feature_ids:
@@ -819,6 +841,19 @@ class Network(object):
                     feature_ids.update(node_dict['feature-ids'])
             if len(feature_ids):
                 get_centreline_from_containing_features(feature_ids)
+
+        # Now see if unconnected centreline end nodes in the route graph are in fact connected
+        # by a centreline
+        new_edge_dicts = {}
+        for node_0, node_1 in itertools.combinations(route_graph.nodes, 2):
+            if (not route_graph.has_edge(node_0, node_1)
+            and (edge_dicts := self.__centreline_graph.get_edge_data(node_0, node_1)) is not None):
+                if len(edge_dicts) > 1:
+                    log.warning(f'{path.id}: Multiple centrelines between {node_0} and {node_1}')
+                new_edge_dicts[(node_0, node_1)] = edge_dicts[list(edge_dicts)[0]]
+        for edge, edge_dict in new_edge_dicts.items():
+            route_graph.add_edge(*edge, **edge_dict)
+            path_node_ids.update(node.feature_id for node in edge_dict['network-nodes'])
 
         # Find the set of terminal nodes of the path (i.e. those connectivity nodes
         # not connected to centrelines)
