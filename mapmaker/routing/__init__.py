@@ -643,7 +643,6 @@ class Network(object):
                             if not intersection.is_empty:
                                 if intersection.length > longest_match:
                                     longest_segment_edge = segment_edge_id
-
                         if longest_segment_edge is not None:
                             segment_id = self.__centreline_graph.edges[longest_segment_edge]['segment']
                             self.__containers_by_segment[segment_id].add(feature_id)
@@ -694,7 +693,6 @@ class Network(object):
             if len(connectivity_node[1]) > 0:
                 log.error(f'Node {full_node_name(connectivity_node)} has centreline inside layers')
             properties.update(self.__segment_properties_from_ids(centreline_ids))
-            properties['used'] = True
 
         elif self.__feature_map is not None:
             matched = self.__feature_map.find_path_features_by_anatomical_node(connectivity_node)
@@ -760,12 +758,13 @@ class Network(object):
         path_nerve_ids = set()
         path_node_ids = set()
 
-        def add_route_edges_from_graph(G):
+        def add_route_edges_from_graph(G) -> bool:
             for node_0, node_1, edge_dict in G.edges(data=True):
                 route_graph.add_node(node_0, **self.__centreline_graph.nodes[node_0])
                 route_graph.add_node(node_1, **self.__centreline_graph.nodes[node_1])
                 route_graph.add_edge(node_0, node_1, **edge_dict)
                 path_node_ids.update(node.feature_id for node in edge_dict['network-nodes'])
+            return G.number_of_edges() > 0
 
         # Add directly identified centreline segments to the route, noting path nodes and
         # nerve cuff identifiers
@@ -774,9 +773,7 @@ class Network(object):
             if node_type == 'segment':
                 path_nerve_ids.update(node_dict['nerve-ids'])
                 segment_graph = node_dict['subgraph']
-                if segment_graph.number_of_edges() == 1:
-                    add_route_edges_from_graph(segment_graph)
-                else:
+                if segment_graph.number_of_edges() > 1:
                     # Get set of neighbouring features
                     neighbouring_ids = set()
                     for neighbour in connectivity_graph.neighbors(node):
@@ -785,8 +782,9 @@ class Network(object):
                             neighbouring_ids.update(neighbour_dict['feature-ids'])
                         elif neighbour_dict['type'] == 'segment':
                             neighbouring_ids.update(neighbour_dict['subgraph'].nodes)
-                    # Add actual segment edges used by our path
-                    add_route_edges_from_graph(graph_utils.get_connected_subgraph(segment_graph, neighbouring_ids))
+                    segment_graph = graph_utils.get_connected_subgraph(segment_graph, neighbouring_ids)
+                # Add segment edges used by our path to the route
+                node_dict['used'] = add_route_edges_from_graph(segment_graph)
 
         # collect sequences of unused nodes (that are features)
         # Find paths...
