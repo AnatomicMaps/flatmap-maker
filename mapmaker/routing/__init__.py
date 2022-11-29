@@ -896,8 +896,9 @@ class Network(object):
             return list(f for f in node_dict['features'])[0]
 
         terminal_graphs: dict[tuple, nx.Graph] = {}
+        visited = set()
         for node, node_dict in connectivity_graph.nodes(data=True):
-            if connectivity_graph.degree(node) == 1:
+            if node not in visited and connectivity_graph.degree(node) == 1:
                 if node_dict['type'] == 'feature':
                     if len(node_dict['used']) == 0:
                         # First check node isn't already the end of a centreline
@@ -907,16 +908,14 @@ class Network(object):
                                 break
 
                     if len(node_dict['used']) == 0:
-                        visited = set()
                         terminal_graph = nx.Graph()
 
-                        def walk_terminal_path(start_node):
-                            node = start_node
-                            visited.add(start_node)
+                        def add_paths_to_neighbours(node, node_dict):
+                            visited.add(node)
+                            neighbours_neighbours = []
                             node_feature = get_node_feature(node_dict)
                             for neighbour in connectivity_graph.neighbors(node):
                                 if neighbour not in visited:
-                                    visited.add(neighbour)
                                     neighbour_dict = connectivity_graph.nodes[neighbour]
                                     degree = connectivity_graph.degree(neighbour)
 
@@ -927,14 +926,13 @@ class Network(object):
                                             closest_feature_id = self.__closest_feature_id_to_point(node_feature_centre, used_ids)
                                             terminal_graph.add_edge(node_feature.id, closest_feature_id,
                                                 upstream=True)
+                                            terminal_graph.nodes[closest_feature_id]['upstream'] = True
                                         else:
                                             neighbour_feature = get_node_feature(neighbour_dict)
                                             terminal_graph.add_node(neighbour_feature.id, feature=neighbour_feature)
                                             terminal_graph.add_edge(node_feature.id, neighbour_feature.id)
-                                            node_feature = neighbour_feature
 
-                                    elif (neighbour_dict['type'] == 'segment'
-                                      and len(neighbour_dict['used']) == 0):
+                                    elif neighbour_dict['type'] == 'segment':
                                         closest_feature_id = None
                                         closest_distance = None
                                         for segment_id in neighbour_dict['subgraph'].graph['segment-ids']:
@@ -948,19 +946,12 @@ class Network(object):
                                             terminal_graph.nodes[node_feature.id]['feature'] = node_feature
                                             neighbour_dict['used'] = {closest_feature_id}
 
-                                    if (degree == 1
-                                     or len(neighbour_dict['used'])
-                                     or neighbour_dict['type'] != 'feature'):
-                                        # Reached either a path end or a destination
-                                        return
-                                    if degree == 2:
-                                        # Continue along path
-                                        node = neighbour
-                                    else:
-                                        # At a branch, so take it
-                                        walk_terminal_path(neighbour)
-                        walk_terminal_path(node)
+                                    if degree > 1 and len(neighbour_dict['used']) == 0 and neighbour_dict['type'] == 'feature':
+                                        neighbours_neighbours.append((neighbour, neighbour_dict))
+                            for neighbour in neighbours_neighbours:
+                                add_paths_to_neighbours(*neighbour)
 
+                        add_paths_to_neighbours(node, node_dict)
                         terminal_graphs[node] = terminal_graph
 
         for node, graph in terminal_graphs.items():
@@ -984,14 +975,13 @@ class Network(object):
             for node_0, node_1, upstream in terminal_graph.edges(data='upstream'):
                 if not upstream:
                     upstream_node = None
+                    route_graph.add_node(node_0, type='terminal')
+                    route_graph.add_node(node_1, type='terminal')
                     route_graph.add_edge(node_0, node_1, type='terminal')
                 else:
-                    upstream_node = (node_0 if node_0 in route_graph else
-                                     node_1 if node_1 in route_graph else
-                                     None)
-                    if upstream_node is not None:
-                        route_graph.nodes[upstream_node]['type'] = 'upstream'
-                        route_graph.nodes[upstream_node]['direction'] = list(route_graph.nodes[upstream_node]['edge-direction'].items())[0][1]
+                    upstream_node = node_0 if terminal_graph.nodes[node_0].get('upstream') else node_1
+                    route_graph.nodes[upstream_node]['type'] = 'upstream'
+                    route_graph.nodes[upstream_node]['direction'] = list(route_graph.nodes[upstream_node]['edge-direction'].items())[0][1]
                     route_graph.add_edge(node_0, node_1, type='upstream')
                 if node_0 != upstream_node:
                     route_graph.nodes[node_0].update(
