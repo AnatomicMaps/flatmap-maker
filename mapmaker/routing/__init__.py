@@ -675,7 +675,7 @@ class Network(object):
             segment_ids.update(self.__segment_ids_by_centreline[centreline_id])
         properties['subgraph'] = self.__centreline_graph.edge_subgraph([self.__segment_edge_by_segment[segment_id]
                                                                             for segment_id in segment_ids]).copy()
-        properties['subgraph'].graph['centreline_ids'] = centreline_ids
+        properties['subgraph'].graph['segment-ids'] = segment_ids
         properties['nerve-ids'] = nerve_ids
         properties['type'] = 'segment'
         return properties
@@ -687,7 +687,8 @@ class Network(object):
             'node': connectivity_node,
             'name': anatomical_node_name(connectivity_node),
             'type': None,
-            'contains': set()
+            'contains': set(),
+            'used': set()
         }
         # Can we directly identify the centreline from nodes anatomical base term?
         if (centreline_ids := self.__models_to_id.get(connectivity_node[0])) is not None:
@@ -698,10 +699,11 @@ class Network(object):
         elif self.__feature_map is not None:
             matched = self.__feature_map.find_path_features_by_anatomical_node(connectivity_node)
             properties['name'] = anatomical_node_name(matched[0])
-            feature_ids = set(f.id for f in matched[1] if f.id is not None)
-            if len(feature_ids):
+
+            features = set(f for f in matched[1] if f.id is not None)
+            if len(features):
                 properties['type'] = 'feature'
-                properties['feature-ids'] = feature_ids
+                properties['features'] = features
             elif connectivity_node not in self.__missing_identifiers:
                 log.warning(f'Cannot find feature for connectivity node {connectivity_node} ({full_node_name(connectivity_node)})')
                 self.__missing_identifiers.add(connectivity_node)
@@ -765,10 +767,14 @@ class Network(object):
             route_graph.add_node(node_1, **self.__centreline_graph.nodes[node_1])
             route_graph.add_edge(node_0, node_1, **edge_dict)
             path_node_ids.update(node.feature_id for node in edge_dict['network-nodes'])
-        def add_route_edges_from_graph(G) -> bool:
+        def add_route_edges_from_graph(G, used_nodes):
+            node_feature_ids = set()
             for node_0, node_1, edge_dict in G.edges(data=True):
                 add_route__with_edge_dict(node_0, node_1, edge_dict)
-            return G.number_of_edges() > 0
+                node_feature_ids.update({node_0, node_1})
+            for node in used_nodes:
+                node_dict = connectivity_graph.nodes[node]
+                node_dict['used'] = node_feature_ids
 
         # Add directly identified centreline segments to the route, noting path nodes and
         # nerve cuff identifiers
@@ -783,14 +789,14 @@ class Network(object):
                     for neighbour in connectivity_graph.neighbors(node):
                         neighbour_dict = connectivity_graph.nodes[neighbour]
                         if neighbour_dict['type'] == 'feature':
-                            neighbouring_ids.update(neighbour_dict['feature-ids'])
+                            neighbouring_ids.update(f.id for f in neighbour_dict['features'])
                         elif neighbour_dict['type'] == 'segment':
                             neighbouring_ids.update(neighbour_dict['subgraph'].nodes)
                     segment_graph = graph_utils.get_connected_subgraph(segment_graph, neighbouring_ids)
                 # Add segment edges used by our path to the route
-                node_dict['used'] = add_route_edges_from_graph(segment_graph)
+                add_route_edges_from_graph(segment_graph, {node})
 
-        # Find centrelines where adjacent connectivity nodes that are centreline end nodes
+        # Find centrelines where adjacent connectivity nodes are centreline end nodes
         seen_pairs = set()
         for node, node_dict in connectivity_graph.nodes(data=True):
             if node_dict['type'] == 'feature':
@@ -801,18 +807,18 @@ class Network(object):
                     seen_pairs.add((neighbour, node))
                     neighbour_dict = connectivity_graph.nodes[neighbour]
                     if neighbour_dict['type'] == 'feature':
-                        for node_feature in node_dict['feature-ids']:
-                            for neighbouring_feature in neighbour_dict['feature-ids']:
-                                if (edge_dicts := self.__centreline_graph.get_edge_data(node_feature, neighbouring_feature)) is not None:
+                        for node_feature in node_dict['features']:
+                            for neighbouring_feature in neighbour_dict['features']:
+                                if (edge_dicts := self.__centreline_graph.get_edge_data(node_feature.id, neighbouring_feature.id)) is not None:
                                     if len(edge_dicts) > 1:
-                                        log.warning(f'{path.id}: Multiple centrelines between {node_feature} and {neighbouring_feature}')
-                                    add_route__with_edge_dict(node_feature, neighbouring_feature, edge_dicts[list(edge_dicts)[0]])
-                                    node_dict['used'] = True
-                                    neighbour_dict['used'] = True
+                                        log.warning(f'{path.id}: Multiple centrelines between {node_feature.id} and {neighbouring_feature.id}')
+                                    add_route__with_edge_dict(node_feature.id, neighbouring_feature.id, edge_dicts[list(edge_dicts)[0]])
+                                    node_dict['used'] = {node_feature.id}
+                                    neighbour_dict['used'] = {neighbouring_feature.id}
 
         # Find centrelines that are contained in sequences of so far unused nodes of the
         # connectivity graph
-        def get_centreline_from_containing_features(feature_ids: set[str]):
+        def get_centreline_from_containing_features(feature_ids: set[str], used_nodes: set):
             candidate_contained_centrelines = set()
             for feature_id in feature_ids:
                 candidate_contained_centrelines.update(self.__centrelines_by_containing_feature.get(feature_id, set()))
@@ -827,20 +833,23 @@ class Network(object):
             if matched_centreline is not None:
                 properties = (self.__segment_properties_from_ids([matched_centreline]))
                 path_nerve_ids.update(properties['nerve-ids'])
-                add_route_edges_from_graph(properties['subgraph'])
+                add_route_edges_from_graph(properties['subgraph'], used_nodes)
 
         for path_nodes in graph_utils.connected_paths(connectivity_graph):
             feature_ids = set()
+            used_nodes = set()
             for node in path_nodes:
                 node_dict = connectivity_graph.nodes[node]
-                if node_dict.get('used', False):
+                if len(node_dict['used']):
                     if len(feature_ids):
-                        get_centreline_from_containing_features(feature_ids)
+                        get_centreline_from_containing_features(feature_ids, used_nodes)
                         feature_ids = set()
+                        used_nodes = set()
                 elif node_dict['type'] == 'feature':
-                    feature_ids.update(node_dict['feature-ids'])
+                    feature_ids.update(f.id for f in node_dict['features'])
+                    used_nodes.add(node)
             if len(feature_ids):
-                get_centreline_from_containing_features(feature_ids)
+                get_centreline_from_containing_features(feature_ids, used_nodes)
 
         # Now see if unconnected centreline end nodes in the route graph are in fact connected
         # by a centreline
