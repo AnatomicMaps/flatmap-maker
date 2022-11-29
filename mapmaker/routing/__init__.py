@@ -739,7 +739,7 @@ class Network(object):
                     if neighbour_dict['type'] == 'feature':
                         feature_nodes.add(neighbour)
                         if node_dict['name'] == neighbour_dict['name']:
-                            log.error(f'Adjacent connectivity nodes are identical! {node_dict["name"]}')
+                            log.error(f'{path.id}: Adjacent connectivity nodes are identical! {node_dict["name"]}')
                         elif neighbour_dict['name'].startswith(node_dict['name']):
                             # node contains neighbour
                             node_dict['contains'].add(neighbour)
