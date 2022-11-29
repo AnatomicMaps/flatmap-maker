@@ -163,11 +163,14 @@ class SVGLayer(MapLayer):
                 transform@SVGTransform(group.attrib.get('transform')),
                 properties,
                 group_style)
-            properties.pop('tile-layer', None)  # Don't count ``tile-layer``
-            if (len(properties)
-             and len(geometries := [f.geometry for f in features if f.geometry.is_valid])):
+            properties.pop('tile-layer', None)  # Don't set ``tile-layer``
+            if len(group_features := [f for f in features if f.geometry.is_valid]):
                 # If the group element has markup and contains geometry then add it as a feature
-                group_feature = self.flatmap.new_feature(shapely.ops.unary_union(geometries), properties)
+                group_feature = self.flatmap.new_feature(shapely.ops.unary_union([f.geometry for f in group_features]), properties)
+                # And don't output interior features with no markup
+                for feature in group_features:
+                    if not feature.has_property('markup'):
+                        feature.set_property('exclude', True)
             else:
                 group_feature = None
             group_name = svg_markup(group)
@@ -233,7 +236,8 @@ class SVGLayer(MapLayer):
         markup = svg_markup(element)
         properties_from_markup = self.source.properties_from_markup(markup)
         properties = parent_properties.copy()
-        properties.pop('id', None)   # We don't inherit `id`
+        properties.pop('id', None)       # We don't inherit `id`
+        properties.pop('markup', None)   # nor `markup`
         properties.update(properties_from_markup)
         if 'error' in properties:
             pass

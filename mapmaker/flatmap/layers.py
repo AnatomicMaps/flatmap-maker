@@ -225,7 +225,7 @@ class MapLayer(FeatureLayer):
                 grouped_properties.update(feature.properties)
             elif feature.property('region'):
                 regions.append(self.flatmap.new_feature(feature.geometry.representative_point(), feature.properties))
-            elif not feature.has_property('markup') or feature.property('divider'):
+            elif feature.property('divider'):
                 if feature.geom_type == 'LineString':
                     dividers.append(feature.geometry)
                 elif feature.geom_type == 'Polygon':
