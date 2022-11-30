@@ -201,15 +201,16 @@ def bezier_control_points(bezier, label=''):
     :returns:   A list of GeometricShapes
     """
     geometry = []
-    bz_pts = tuple(point_to_coords(p) for p in bezier.points)
-    for pt in (0, 3):
-        geometry.append(GeometricShape.circle(bz_pts[pt], radius=600 if pt == 0 else 300,
-            properties={'type': 'bezier', 'kind': 'bezier-end', 'label': f'{label}-{pt}'}))
-    for pt in (1, 2):
-        geometry.append(GeometricShape.circle(bz_pts[pt], radius=400,
-            properties={'type': 'bezier', 'kind': 'bezier-control', 'label': f'{label}-{pt}'}))
-    geometry.append(GeometricShape.line(*bz_pts[0:2], properties={'type': 'bezier'}))
-    geometry.append(GeometricShape.line(*bz_pts[2:4], properties={'type': 'bezier'}))
+    if isinstance(bezier, CubicBezier):
+        bz_pts = tuple(point_to_coords(p) for p in bezier.points)
+        for pt in (0, 3):
+            geometry.append(GeometricShape.circle(bz_pts[pt], radius=600 if pt == 0 else 300,
+                properties={'type': 'bezier', 'kind': 'bezier-end', 'label': f'{label}-{pt}'}))
+        for pt in (1, 2):
+            geometry.append(GeometricShape.circle(bz_pts[pt], radius=400,
+                properties={'type': 'bezier', 'kind': 'bezier-control', 'label': f'{label}-{pt}'}))
+        geometry.append(GeometricShape.line(*bz_pts[0:2], properties={'type': 'bezier'}))
+        geometry.append(GeometricShape.line(*bz_pts[2:4], properties={'type': 'bezier'}))
     return geometry
 
 def join_geometry(node, node_dict, edge_dict_0, edge_dict_1):
