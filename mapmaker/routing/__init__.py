@@ -843,7 +843,8 @@ class Network(object):
                                 if (edge_dicts := self.__centreline_graph.get_edge_data(node_feature.id, neighbouring_feature.id)) is not None:
                                     if len(edge_dicts) > 1:
                                         log.warning(f'{path.id}: Multiple centrelines between {node_feature.id} and {neighbouring_feature.id}')
-                                    add_route__with_edge_dict(node_feature.id, neighbouring_feature.id, edge_dicts[list(edge_dicts)[0]])
+                                    edge_dict = edge_dicts[list(edge_dicts)[0]]
+                                    add_route__with_edge_dict(node_feature.id, neighbouring_feature.id, edge_dict)
                                     node_dict['used'] = {node_feature.id}
                                     neighbour_dict['used'] = {neighbouring_feature.id}
 
@@ -990,7 +991,7 @@ class Network(object):
                 log.warning(f'{path.id}: Feature {feature.id} has no geometry')
             return node_dict
 
-        # Now add edges from the terminal graps to the path's route graph
+        # Now add edges from the terminal graphs to the path's route graph
         for terminal_graph in terminal_graphs.values():
             for node_0, node_1, upstream in terminal_graph.edges(data='upstream'):
                 if not upstream:
