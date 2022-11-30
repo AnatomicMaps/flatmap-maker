@@ -976,8 +976,10 @@ class Network(object):
         if path.trace:
             log.info(f'{path.id}: Terminal connections:')
             for terminal_graph in terminal_graphs.values():
+                for n_0, nd in terminal_graph.nodes(data=True):
+                    log.info(f'{path.id}: Node {n_0}: {nd}')
                 for n_0, n_1, ed in terminal_graph.edges(data=True):
-                    log.info(f'{path.id}: {n_0} -> {n_1}: {ed}')
+                    log.info(f'{path.id}: Edge {n_0} -> {n_1}: {ed}')
 
         def set_properties_from_feature_id(feature_id: str):
             node_dict = {}
