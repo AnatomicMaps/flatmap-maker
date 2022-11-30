@@ -979,16 +979,18 @@ class Network(object):
                 for n_0, n_1, ed in terminal_graph.edges(data=True):
                     log.info(f'{path.id}: {n_0} -> {n_1}: {ed}')
 
-        def set_properties_from_feature(feature):
-            node_dict = feature.properties.copy()
-            node_dict['geometry'] = feature.geometry
-            if feature.geometry is not None:
-                centre = feature.geometry.centroid
-                node_dict['centre'] = BezierPoint(centre.x, centre.y)
-                radius = max(math.sqrt(feature.geometry.area/math.pi), MIN_EDGE_JOIN_RADIUS)
-                node_dict['radii'] = (0.999*radius, 1.001*radius)
-            else:
-                log.warning(f'{path.id}: Feature {feature.id} has no geometry')
+        def set_properties_from_feature_id(feature_id: str):
+            node_dict = {}
+            if (feature := self.__map_feature(feature_id)) is not None:
+                node_dict.update(feature.properties)
+                node_dict['geometry'] = feature.geometry
+                if feature.geometry is not None:
+                    centre = feature.geometry.centroid
+                    node_dict['centre'] = BezierPoint(centre.x, centre.y)
+                    radius = max(math.sqrt(feature.geometry.area/math.pi), MIN_EDGE_JOIN_RADIUS)
+                    node_dict['radii'] = (0.999*radius, 1.001*radius)
+                else:
+                    log.warning(f'{path.id}: Feature {feature.id} has no geometry')
             return node_dict
 
         # Now add edges from the terminal graphs to the path's route graph
@@ -1005,11 +1007,9 @@ class Network(object):
                     route_graph.nodes[upstream_node]['direction'] = list(route_graph.nodes[upstream_node]['edge-direction'].items())[0][1]
                     route_graph.add_edge(node_0, node_1, type='upstream')
                 if node_0 != upstream_node:
-                    route_graph.nodes[node_0].update(
-                        set_properties_from_feature(terminal_graph.nodes[node_0]['feature']))
+                    route_graph.nodes[node_0].update(set_properties_from_feature_id(node_0))
                 if node_1 != upstream_node:
-                    route_graph.nodes[node_1].update(
-                        set_properties_from_feature(terminal_graph.nodes[node_1]['feature']))
+                    route_graph.nodes[node_1].update(set_properties_from_feature_id(node_1))
 
         # Identify features on the path with a nerve cuff used by the path
         # and make hidden nodes that are actually used in the route visible
