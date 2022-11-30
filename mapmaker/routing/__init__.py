@@ -963,7 +963,6 @@ class Network(object):
                                 # Only have our neighbour visit their neighbours if the neighbour is unconnected
                                 if degree > 1 and len(neighbour_dict['used']) == 0 and neighbour_dict['type'] == 'feature':
                                     neighbours_neighbours.append((neighbour, neighbour_dict))
-                                    print('      will be next...')
                             # Connect our neighbour's neighbours
                             for neighbour in neighbours_neighbours:
                                 add_paths_to_neighbours(*neighbour)
