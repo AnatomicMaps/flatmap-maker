@@ -792,6 +792,8 @@ class Network(object):
 
         # Helper functions
         def add_route__with_edge_dict(node_0, node_1, edge_dict):
+            if path.trace:
+                log.info(f'{path.id}: Found centreline {edge_dict.get("centreline")} between {node_0} and {node_1}')
             route_graph.add_node(node_0, **self.__centreline_graph.nodes[node_0])
             route_graph.add_node(node_1, **self.__centreline_graph.nodes[node_1])
             route_graph.add_edge(node_0, node_1, **edge_dict)
@@ -970,10 +972,11 @@ class Network(object):
                         add_paths_to_neighbours(node, node_dict)
                         terminal_graphs[node] = terminal_graph
 
-#        for node, graph in terminal_graphs.items():
-#            print(node, graph.nodes(data=True))
-#            print(node, graph.edges(data=True))
-#            print()
+        if path.trace:
+            log.info(f'{path.id}: Terminal connections:')
+            for terminal_graph in terminal_graphs.values():
+                for n_0, n_1, ed in terminal_graph.edges(data=True):
+                    log.info(f'{path.id}: {n_0} -> {n_1}: {ed}')
 
         def set_properties_from_feature(feature):
             node_dict = feature.properties.copy()
