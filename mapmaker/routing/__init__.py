@@ -824,8 +824,12 @@ class Network(object):
                         elif neighbour_dict['type'] == 'segment':
                             neighbouring_ids.update(neighbour_dict['subgraph'].nodes)
                     segment_graph = graph_utils.get_connected_subgraph(segment_graph, neighbouring_ids)
-                # Add segment edges used by our path to the route
-                add_route_edges_from_graph(segment_graph, {node})
+                if segment_graph.number_of_edges():
+                    # Add segment edges used by our path to the route
+                    add_route_edges_from_graph(segment_graph, {node})
+                else:
+                    log.warning(f'{path.id}: Cannot find any sub-segments of centreline for `{node_dict["name"]}`')
+                    node_dict['type'] = 'no-segment'
 
         # Find centrelines where adjacent connectivity nodes are centreline end nodes
         seen_pairs = set()
