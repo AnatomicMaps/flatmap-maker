@@ -802,8 +802,6 @@ class Network(object):
 
         # Helper functions
         def add_route__with_edge_dict(node_0, node_1, edge_dict):
-            if path.trace:
-                log.info(f'{path.id}: Found centreline {edge_dict.get("centreline")} between {node_0} and {node_1}')
             route_graph.add_node(node_0, **self.__centreline_graph.nodes[node_0])
             route_graph.add_node(node_1, **self.__centreline_graph.nodes[node_1])
             route_graph.add_edge(node_0, node_1, **edge_dict)
@@ -1047,6 +1045,12 @@ class Network(object):
         route_graph.graph['traced'] = path.trace
         route_graph.graph['nerve-features'] = set(feature_id for feature_id in path_nerve_ids if self.__map_feature(feature_id) is not None)
         route_graph.graph['node-features'] = set(feature_id for feature_id in path_node_ids if self.__map_feature(feature_id) is not None)
+
+        if path.trace:
+            log.info(f'{path.id}: Route graph: {route_graph.graph}')
+            for n_0, n_1, ed in route_graph.edges(data=True):
+                log.info(f'{path.id}: Edge {n_0} -> {n_1}, centreline {ed.get("centreline")}')
+
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
         else:
