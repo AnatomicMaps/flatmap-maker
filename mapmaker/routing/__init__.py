@@ -752,14 +752,20 @@ class Network(object):
     #===============================================================================================
         connectivity_graph = path.connectivity
 
-        if path.trace:
-            log.info(f'{path.id}: Edges {connectivity_graph.edges}')
-
         # Map connectivity nodes to map features and centrelines, storing the result
         # in the connectivity graph
         for node, node_dict in connectivity_graph.nodes(data=True):
             node_dict.update(self.__feature_properties_from_node(node))
 
+        if path.trace:
+            for node, node_dict in connectivity_graph.nodes(data=True):
+                node_data = {}
+                if node_dict['type'] == 'feature':
+                    node_data['features'] = {f.id for f in node_dict['features']}
+                elif node_dict['type'] == 'segment':
+                    node_data['segments'] = node_dict['subgraph'].graph['segment-ids']
+                log.info(f'{path.id}: Connectivity node {node}: {node_data}')
+            log.info(f'{path.id}: Connectivity edges {connectivity_graph.edges}')
 
         # Go through all the nodes that map to a feature and flag those which enclose
         # an immediate neighbour so that we don't draw a path to the containing node
