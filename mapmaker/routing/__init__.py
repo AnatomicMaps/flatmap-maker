@@ -468,9 +468,19 @@ class Network(object):
 
             bz_path = BezierPath.fromSegments(centreline_feature.property('bezier-segments'))
 
+            # A node's centre may not be where a centreline into the node finishes
+            # so check both ends of the Bezier path to decide the curve's direction
             node_0_centre = network_nodes[0].centre
-            path_reversed = (node_0_centre.distanceFrom(bz_path.pointAtTime(0.0)) >
-                             node_0_centre.distanceFrom(bz_path.pointAtTime(1.0)))
+            node_1_centre = network_nodes[-1].centre
+            min_distance = None
+            coords = (0, 0)
+            for n, centre in enumerate([node_0_centre, node_1_centre]):
+                for m, t in enumerate([0.0, 1.0]):
+                    distance = centre.distanceFrom(bz_path.pointAtTime(t))
+                    if min_distance is None or distance < min_distance:
+                        min_distance = distance
+                        coords = (n, m)
+            path_reversed = (coords[0] != coords[1])
 
             # Construct the segmented centreline graph
             seg_no = 0
