@@ -461,7 +461,7 @@ class RoutedPath(object):
 
         # Connect edges at branch nodes
         for node, node_dict in self.__graph.nodes(data=True):
-            if node_dict.get('degree', 0) >= 2:
+            if self.__graph.degree(node) >= 2:
                 edge_dicts = []
                 edge_nodes = []
                 for node_0, node_1, edge_dict in self.__graph.edges(node, data=True):
