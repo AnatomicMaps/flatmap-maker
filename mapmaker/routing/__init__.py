@@ -208,7 +208,7 @@ class Network(object):
                         for feature_id in containers:
                             if external_properties.properties(feature_id).get('models') is None:
                                 # Container features are of no use if they don't model anything...
-                                log.warning(f'Contained-in feature `{feature_id}` of `{centreline_id}` does not have an anatomical term')
+                                log.error(f'Contained-in feature `{feature_id}` of `{centreline_id}` does not have an anatomical term')
                             elif (models := external_properties.nerve_models_by_id.get(feature_id)) is None:
                                 contained_in.append(feature_id)
                             elif centreline_models is None:
