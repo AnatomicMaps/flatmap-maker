@@ -464,7 +464,7 @@ class RoutedPath(object):
             if self.__graph.degree(node) >= 2:
                 edge_dicts = []
                 edge_nodes = []
-                for node_0, node_1, edge_dict in self.__graph.edges(node, data=True):
+                for _, node_1, edge_dict in self.__graph.edges(node, data=True):
                     if edge_dict.get('type') not in ['terminal', 'upstream']:
                         edge_dicts.append(edge_dict)
                         edge_nodes.append(node_1)
@@ -490,9 +490,9 @@ class RoutedPath(object):
                     except KeyError:
                         log.warning(f"{edge_dict.get('path-id')}: Missing geometry for {node} and/or {edge_nodes[0]}")
                     """
-                elif len(edge_dicts) == 2:
+                elif len(edge_nodes) == 2:
                     geometry.extend(join_geometry(node, node_dict, edge_dicts[0], edge_dicts[1]))
-                elif len(edge_dicts) == 3:  ## Generalise
+                elif len(edge_nodes) == 3:  ## Generalise
                     # Check angles between edges to find two most obtuse...
                     centre = node_dict['centre']
                     min_angle = math.pi
