@@ -45,3 +45,4 @@ dependencies:
       - skia-python>=87.5,<88.0
       - cssselect2>=0.6.0,<0.7.0
       - gitpython>=3.1.29
+      - giturlparse>=0.10.0
