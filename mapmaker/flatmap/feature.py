@@ -185,7 +185,7 @@ class FeatureMap:
                 substitute_id = anatomical_layers.pop(0)
                 features = features_from_anatomical_id(substitute_id)
                 if len(features):
-                    log.warning(f'Cannot find feature for {entity_name(anatomical_id)} ({anatomical_id}), substituted containing `{entity_name(substitute_id)}` region')
+                    log.warning(f'Cannot find feature for `{entity_name(anatomical_id)}` ({anatomical_id}), substituted containing `{entity_name(substitute_id)}` region')
                     matched_node = AnatomicalNode((substitute_id, tuple(anatomical_layers)))
                     break
         if len(anatomical_layers) == 0:
