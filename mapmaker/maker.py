@@ -28,6 +28,10 @@ import sys
 
 #===============================================================================
 
+import git
+
+#===============================================================================
+
 from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.utils import configure_logging, log, FilePath
 
@@ -51,9 +55,41 @@ from .sources.fc_powerpoint.annotation import Annotator as FCAnnotator
 
 #===============================================================================
 
-class Manifest(object):
+class MapRepository:
+    def __init__(self, working_dir):
+        try:
+            self.__repo = git.Repo(working_dir)
+            self.__changed_items = [ item.a_path for item in self.__repo.index.diff(None) ]
+            self.__staged_items = [ item.a_path for item in self.__repo.index.diff('Head') ]
+            self.__untracked_files = self.__repo.untracked_files
+        except git.InvalidGitRepositoryError:
+            self.__repo = None
+            self.__changed_items = []
+            self.__staged_items = []
+            self.__untracked_files = []
+            if not settings.get('authoring', False):
+                log.error('Flatmap sources must be in a git managed directory')
+
+    @property
+    def sha(self):
+        return self.__repo.head.commit.hexsha if self.__repo is not None else None
+
+    def status(self, path):
+        if path in self.__untracked_files:
+            return 'untracked'
+        elif path in self.__changed_items:
+            return 'modified'
+        elif path in self.__staged_items:
+            return 'staged'
+        else:
+            return "don't care"
+
+#===============================================================================
+
+class Manifest:
     def __init__(self, manifest_path, single_file=None, id=None):
         self.__path = FilePath(manifest_path)
+        self.__repo = MapRepository(pathlib.Path(manifest_path).parent)
         self.__url = self.__path.url
         self.__connections = {}
         self.__connectivity = []

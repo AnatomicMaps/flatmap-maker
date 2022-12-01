@@ -124,6 +124,28 @@ mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/do
 type = "url"
 url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.2.0/flatmapknowledge-1.2.0-py3-none-any.whl"
 [[package]]
+name = "gitdb"
+version = "4.0.10"
+description = "Git Object Database"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+smmap = ">=3.0.1,<6"
+
+[[package]]
+name = "gitpython"
+version = "3.1.29"
+description = "GitPython is a python library used to interact with Git repositories"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+gitdb = ">=4.0.1,<5"
+
+[[package]]
 name = "idna"
 version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -376,7 +398,7 @@ plugins = ["importlib-metadata"]
 
 [[package]]
 name = "pyomo"
-version = "6.4.2"
+version = "6.4.3"
 description = "Pyomo: Python Optimization Modeling Objects"
 category = "main"
 optional = false
@@ -387,7 +409,7 @@ ply = "*"
 
 [package.extras]
 docs = ["Sphinx (>2)", "numpy", "scipy", "sphinx-copybutton", "sphinx-rtd-theme (>0.5)", "sphinxcontrib-jsmath", "sphinxcontrib-napoleon"]
-optional = ["casadi", "dill", "ipython", "matplotlib", "networkx", "numdifftools", "numpy", "openpyxl", "pandas", "pint", "python-louvain", "pywin32", "pyyaml", "scipy", "seaborn", "sympy", "xlrd", "z3-solver"]
+optional = ["casadi", "dill", "ipython", "matplotlib (!=3.6.1)", "networkx", "numdifftools", "numpy", "openpyxl", "pandas", "pint", "python-louvain", "pywin32", "pyyaml", "scipy", "seaborn", "sympy", "xlrd", "z3-solver"]
 tests = ["coverage", "parameterized", "pybind11", "pytest", "pytest-parallel"]
 
 [[package]]
@@ -540,6 +562,14 @@ python-versions = "*"
 [package.dependencies]
 numpy = "*"
 pybind11 = ">=2.6"
+
+[[package]]
+name = "smmap"
+version = "5.0.0"
+description = "A pure Python implementation of a sliding window memory map manager"
+category = "main"
+optional = false
+python-versions = ">=3.6"
 
 [[package]]
 name = "snowballstemmer"
@@ -826,7 +856,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4.0"
-content-hash = "e34ef49fb93c21896d847b99fbe34ae2b2bbd5fff0cd52fce4428c69c0433c8e"
+content-hash = "39ff654f283b7efcef348ffb3cd26644e691e6e1fc32e942f81e8d7426da7d6c"
 
 [metadata.files]
 alabaster = [
@@ -874,6 +904,14 @@ et-xmlfile = [
     {file = "et_xmlfile-1.1.0.tar.gz", hash = "sha256:8eb9e2bc2f8c97e37a2dc85a09ecdcdec9d8a396530a6d5a33b30b9a92da0c5c"},
 ]
 flatmapknowledge = []
+gitdb = [
+    {file = "gitdb-4.0.10-py3-none-any.whl", hash = "sha256:c286cf298426064079ed96a9e4a9d39e7f3e9bf15ba60701e95f5492f28415c7"},
+    {file = "gitdb-4.0.10.tar.gz", hash = "sha256:6eb990b69df4e15bad899ea868dc46572c3f75339735663b81de79b06f17eb9a"},
+]
+gitpython = [
+    {file = "GitPython-3.1.29-py3-none-any.whl", hash = "sha256:41eea0deec2deea139b459ac03656f0dd28fc4a3387240ec1d3c259a2c47850f"},
+    {file = "GitPython-3.1.29.tar.gz", hash = "sha256:cc36bfc4a3f913e66805a28e84703e419d9c264c1077e537b54f0e1af85dbefd"},
+]
 idna = [
     {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
     {file = "idna-3.4.tar.gz", hash = "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4"},
@@ -1226,19 +1264,22 @@ pygments = [
     {file = "Pygments-2.13.0.tar.gz", hash = "sha256:56a8508ae95f98e2b9bdf93a6be5ae3f7d8af858b43e02c5a2ff083726be40c1"},
 ]
 pyomo = [
-    {file = "Pyomo-6.4.2-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:f78070edfa21f832b92f0876c302d9014576225515507a244a116f9bd8815f66"},
-    {file = "Pyomo-6.4.2-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:53bb40e031744ed7f226c2beffbf3fedab64573ffb32a75ac06a7dd9148f2b89"},
-    {file = "Pyomo-6.4.2-cp310-cp310-win_amd64.whl", hash = "sha256:9f00752fe280c4a8d2e57ef1dcd5a1896cc57479cac2ba43efd85cf05ceec15e"},
-    {file = "Pyomo-6.4.2-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:3ba77c2cbb885a0f8d1990ac1d80c3fe33e2c7171da18b7b0b35b83997362889"},
-    {file = "Pyomo-6.4.2-cp37-cp37m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:dc0b9a55253da91dea12bd522e70461f5e15d0c898cb90f326cddbc209828a0c"},
-    {file = "Pyomo-6.4.2-cp37-cp37m-win_amd64.whl", hash = "sha256:87237bb73fb189f38eacc86eca951ab734bf8d8f02305c998e5f3eacb3fef7ed"},
-    {file = "Pyomo-6.4.2-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:50166e4b89cb2778ba4b511fd929c89f7b223b646d1ccf9ed2b184fd1231cbd8"},
-    {file = "Pyomo-6.4.2-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:0846c10db4506d6f9560346ac62e58676ae8377b2015cf18672bca0e0362d3b3"},
-    {file = "Pyomo-6.4.2-cp38-cp38-win_amd64.whl", hash = "sha256:8265fb9a4150a050f410d6e023dbc03ffd56047284a8fba784d210e9dd658780"},
-    {file = "Pyomo-6.4.2-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:53042753cc23c01b8bd2f758d13db56a37bccd62b233f78b36c9551ec7849043"},
-    {file = "Pyomo-6.4.2-cp39-cp39-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:094e3ece446037a2db02d4634289c41dd9be64e2044f312161a1e17cd2275ed3"},
-    {file = "Pyomo-6.4.2-cp39-cp39-win_amd64.whl", hash = "sha256:654c83281aa4bb237a3de5b77ddc9ea92666b0f57b6cfe312ce8e186fedcd5b1"},
-    {file = "Pyomo-6.4.2.tar.gz", hash = "sha256:6f5a867e77bdd6ac2ba0da5d4a251e38543ae05eba5a0c5cf8ab39e7fa8e1ea9"},
+    {file = "Pyomo-6.4.3-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:b861960a3ed6a18a5e2de00ea941e2e05dc544b875bfc45736646d7baab36614"},
+    {file = "Pyomo-6.4.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a028a55ebf80dfa18ff0bfd9a9903caee704ac53f89d7a4f3cd1e5aab7a1e2e0"},
+    {file = "Pyomo-6.4.3-cp310-cp310-win_amd64.whl", hash = "sha256:ea9230653a6dcffec789059e24ba54478527f77f33f78ce6832d98deed042bcf"},
+    {file = "Pyomo-6.4.3-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:01469092f7e38530b8ad7b61ad21a027371da89e985961110e87586a6ce6265f"},
+    {file = "Pyomo-6.4.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bcf8f73f69eaccfdd8c801fa0ed910ab2267df26cf37ee20e976913df555a654"},
+    {file = "Pyomo-6.4.3-cp311-cp311-win_amd64.whl", hash = "sha256:4c75551a4547bc32f3928bb3f5b357ab2b926a48e68053a657c367837c64e664"},
+    {file = "Pyomo-6.4.3-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:8e658411048ad0f892905a3109586fc3e2562e53cbe56fda418a245dd369bf82"},
+    {file = "Pyomo-6.4.3-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6a22308a07525f580cc16836434c95562f2b8df067605f1aaa07e45cc3a9a4c9"},
+    {file = "Pyomo-6.4.3-cp37-cp37m-win_amd64.whl", hash = "sha256:fd8e354a6451ad029534214a80dfce2f4603c34d6135b0d763cd7f630bb45920"},
+    {file = "Pyomo-6.4.3-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:5f4cfd1d3dd8f247c18b4c963bf4a4ac7ac80de373d6597bdc23ff13ab406430"},
+    {file = "Pyomo-6.4.3-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fcc57dc26ab8d5e083d186418b43125ddf80ea3d696d566eb6b1c8259d41454c"},
+    {file = "Pyomo-6.4.3-cp38-cp38-win_amd64.whl", hash = "sha256:bb87924ceb39d8f857a36a6ad36fbc6ab00d7db201ed351882b9f7756741960d"},
+    {file = "Pyomo-6.4.3-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:5009c1c142931091393b4abeb9d34b7b4fa2c1b3a896052480b2af7b33c1a45b"},
+    {file = "Pyomo-6.4.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b9f54c0e84c1e19eb76981e9b3d110685a15fbcc6cd3b7e1466a5efb346b5f9c"},
+    {file = "Pyomo-6.4.3-cp39-cp39-win_amd64.whl", hash = "sha256:9fc38b4bfec5de3b21e489da12d4a7152ade057624eddb8910d02c8caaa1d7e3"},
+    {file = "Pyomo-6.4.3.tar.gz", hash = "sha256:7f3f67f61a6e5c2dd9c4dd930356d3176bad1572f1abee780592e725d6445288"},
 ]
 pyparsing = [
     {file = "pyparsing-3.0.9-py3-none-any.whl", hash = "sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"},
@@ -1452,6 +1493,10 @@ skia-python = [
     {file = "skia_python-87.5-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:ac621c4850fee0a17ed430ab4fc8de5fea37be69dca55d4d0bd26ac8108afc40"},
     {file = "skia_python-87.5-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4c8b440cb92a52249893b5968d9eff4f44f4070195ed7ea406ee44651305bee5"},
     {file = "skia_python-87.5-cp39-cp39-win_amd64.whl", hash = "sha256:4bfd6fa011a2b2e1501615414a429dca2b08baaa69c60d52c491300bb30e10c3"},
+]
+smmap = [
+    {file = "smmap-5.0.0-py3-none-any.whl", hash = "sha256:2aba19d6a040e78d8b09de5c57e96207b09ed71d8e55ce0959eeee6c8e190d94"},
+    {file = "smmap-5.0.0.tar.gz", hash = "sha256:c840e62059cd3be204b0c9c9f74be2c09d5648eddd4580d9314c3ecde0b30936"},
 ]
 snowballstemmer = [
     {file = "snowballstemmer-2.2.0-py2.py3-none-any.whl", hash = "sha256:c8e1716e83cc398ae16824e5572ae04e0d9fc2c6b985fb0f900f5f0c96ecba1a"},
