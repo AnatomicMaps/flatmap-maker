@@ -87,15 +87,12 @@ def bezier_to_line_coords(bz, num_points=100, offset=0):
 
 def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle: float = None) -> CubicBezier:
     # Connect points ``a`` and ``b`` with a Bezier curve with a slope
-    # at ``a`` of ``theta`` and a slope at ''b'' of ``pi + theta``.
+    # at ``a`` of ``start_angle`` and a slope at ''b'' of ``pi + end_angle``.
     d = a.distanceFrom(b)
     if d == 0:
         return
     if end_angle is None:
         end_angle = start_angle
-    elif abs(start_angle - end_angle) > math.pi/2:
-        # Make sure ``start_angle`` and ``end_angle`` are pointing the same way
-        start_angle += math.pi
     return CubicBezier(a, a + BezierPoint.fromAngle(start_angle)*d/3,
                        b - BezierPoint.fromAngle(end_angle)*d/3, b)
 
