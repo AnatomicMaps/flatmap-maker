@@ -18,17 +18,20 @@
 #
 #===============================================================================
 
+from __future__ import annotations
+from enum import Enum
 import json
 import os
 import pathlib
 import multiprocessing.connection
 import shutil
 import subprocess
-import sys
+from typing import Optional
 
 #===============================================================================
 
 import git
+import giturlparse
 
 #===============================================================================
 
@@ -55,34 +58,54 @@ from .sources.fc_powerpoint.annotation import Annotator as FCAnnotator
 
 #===============================================================================
 
+class GitState(Enum):
+    UNKNOWN   = 0
+    DONTCARE  = 1
+    STAGED    = 2
+    CHANGED   = 3
+    UNTRACKED = 4
+
+#===============================================================================
+
 class MapRepository:
-    def __init__(self, working_dir):
+    def __init__(self, working_dir: pathlib.Path):
         try:
             self.__repo = git.Repo(working_dir)
+            self.__repo_path = pathlib.Path(self.__repo.working_dir).absolute()
             self.__changed_items = [ item.a_path for item in self.__repo.index.diff(None) ]
             self.__staged_items = [ item.a_path for item in self.__repo.index.diff('Head') ]
             self.__untracked_files = self.__repo.untracked_files
         except git.InvalidGitRepositoryError:
             self.__repo = None
-            self.__changed_items = []
-            self.__staged_items = []
-            self.__untracked_files = []
             if not settings.get('authoring', False):
                 log.error('Flatmap sources must be in a git managed directory')
 
     @property
-    def sha(self):
+    def remotes(self) -> Optional[dict[str, str]]:
+        return {
+            remote.name: giturlparse.parse(remote.url).url2https
+                for remote in self.__repo.remotes
+            } if self.__repo is not None else None
+
+    @property
+    def sha(self) -> Optional[str]:
         return self.__repo.head.commit.hexsha if self.__repo is not None else None
 
-    def status(self, path):
-        if path in self.__untracked_files:
-            return 'untracked'
-        elif path in self.__changed_items:
-            return 'modified'
-        elif path in self.__staged_items:
-            return 'staged'
-        else:
-            return "don't care"
+    def status(self, path: str) -> GitState:
+    #=======================================
+        if self.__repo is not None:
+            if path.startswith('file://'):
+                path = path[7:]
+            full_path = pathlib.Path(path).absolute()
+            if full_path.is_relative_to(self.__repo_path):
+                git_path = str(full_path.relative_to(self.__repo_path))
+                return (GitState.UNTRACKED if git_path in self.__untracked_files else
+                        GitState.CHANGED if git_path in self.__changed_items else
+                        GitState.STAGED if git_path in self.__staged_items else
+                        GitState.DONTCARE)
+            elif not settings.get('authoring', False):
+                log.error(f"{full_path} is not under git control in the manifest's directory")
+        return GitState.UNKNOWN
 
 #===============================================================================
 
@@ -94,6 +117,7 @@ class Manifest:
         self.__connections = {}
         self.__connectivity = []
         self.__neuron_connectivity = []
+        self.__uncommitted = 0
         if single_file is not None:
             if id is None:
                 id = self.__url.rsplit('/', 1)[-1].rsplit('.', 1)[0].replace('_', '-').replace(' ', '_')
@@ -113,25 +137,28 @@ class Manifest:
                 self.__manifest['id'] = id
             elif 'id' not in self.__manifest:
                 raise ValueError('No id given for manifest')
-            if 'sources' not in self.__manifest:
-                raise ValueError('No sources given for manifest')
-            if 'anatomicalMap' in self.__manifest:
-                self.__manifest['anatomicalMap'] = self.__path.join_url(self.__manifest['anatomicalMap'])
-            if 'annotation' in self.__manifest:
-                self.__manifest['annotation'] = self.__path.join_url(self.__manifest['annotation'])
-            if 'connectivityTerms' in self.__manifest:
-                self.__manifest['connectivityTerms'] = self.__path.join_url(self.__manifest['connectivityTerms'])
-            if 'properties' in self.__manifest:
-                self.__manifest['properties'] = self.__path.join_url(self.__manifest['properties'])
-            for path in self.__manifest.get('connectivity', []):
-                self.__connectivity.append(self.__path.join_url(path))
 
             if self.__manifest.get('sckan-version', 'production') not in ['production', 'staging']:
                 raise ValueError("'sckan-version' in manifest must be `production' or 'staging'")
             for model in self.__manifest.get('neuronConnectivity', []):
                 self.__neuron_connectivity.append(model)
+
+            if 'sources' not in self.__manifest:
+                raise ValueError('No sources given for manifest')
             for source in self.__manifest['sources']:
-                source['href'] = self.__path.join_url(source['href'])
+                source['href'] = self.__check_and_normalise_path(source['href'])
+            if 'anatomicalMap' in self.__manifest:
+                self.__manifest['anatomicalMap'] = self.__check_and_normalise_path(self.__manifest['anatomicalMap'])
+            if 'annotation' in self.__manifest:
+                self.__manifest['annotation'] = self.__check_and_normalise_path(self.__manifest['annotation'])
+            if 'connectivityTerms' in self.__manifest:
+                self.__manifest['connectivityTerms'] = self.__check_and_normalise_path(self.__manifest['connectivityTerms'])
+            if 'properties' in self.__manifest:
+                self.__manifest['properties'] = self.__check_and_normalise_path(self.__manifest['properties'])
+            for path in self.__manifest.get('connectivity', []):
+                self.__connectivity.append(self.__check_and_normalise_path(path))
+            if self.__uncommitted:
+                raise TypeError("Not all of the flatmap's sources are under git control (use '--authoring')?")
 
     @property
     def anatomical_map(self):
@@ -140,18 +167,6 @@ class Manifest:
     @property
     def annotation(self):
         return self.__manifest.get('annotation')
-
-    @property
-    def id(self):
-        return self.__manifest['id']
-
-    @property
-    def kind(self):
-        return self.__manifest.get('kind', 'anatomical')
-
-    @property
-    def models(self):
-        return self.__manifest.get('models')
 
     @property
     def connections(self):
@@ -164,6 +179,26 @@ class Manifest:
     @property
     def connectivity_terms(self):
         return self.__manifest.get('connectivityTerms')
+
+    @property
+    def git_status(self):
+        if self.__repo.sha is not None:
+            return {
+                'sha': self.__repo.sha,
+                'remotes': self.__repo.remotes
+            }
+
+    @property
+    def id(self):
+        return self.__manifest['id']
+
+    @property
+    def kind(self):
+        return self.__manifest.get('kind', 'anatomical')
+
+    @property
+    def models(self):
+        return self.__manifest.get('models')
 
     @property
     def neuron_connectivity(self):
@@ -184,6 +219,20 @@ class Manifest:
     @property
     def url(self):
         return self.__url
+
+    def __check_and_normalise_path(self, path) -> str:
+    #=================================================
+        normalised_path = self.__path.join_url(path)
+        if not settings.get('authoring', False):
+            git_state = self.__repo.status(normalised_path)
+            if git_state != GitState.DONTCARE:
+                message = ('unknown to git' if git_state == GitState.UNKNOWN else
+                           'staged to be committed' if git_state == GitState.STAGED else
+                           'unstaged with changes' if git_state == GitState.CHANGED else
+                           'untracked by git')
+                log.error(f'{normalised_path} is {message}')
+                self.__uncommitted += 1
+        return normalised_path
 
 #===============================================================================
 
@@ -240,6 +289,12 @@ class MapMaker(object):
         self.__id = self.__manifest.id
         if self.__id is None:
             raise ValueError('No id given for map')
+
+        # Save for metadata
+        git_status = self.__manifest.git_status
+        self.__git_status = {'git-status': git_status} if git_status is not None else {}
+
+        # All set to go
         log('Making map: {}'.format(self.__id))
 
         # Make sure our output directories exist
@@ -479,6 +534,7 @@ class MapMaker(object):
         # Save flatmap's metadata, including settings used to generate map
         metadata = self.__flatmap.metadata
         metadata['settings'] = self.__options
+        metadata.update(self.__git_status)
         tile_db.add_metadata(metadata=json.dumps(metadata))
 
         # Save layer details in metadata
@@ -515,6 +571,7 @@ class MapMaker(object):
             map_index['style'] = 'fcdiagram'
         else:
             map_index['style'] = 'flatmap'
+        map_index.update(self.__git_status)
 
         # Create `index.json` for building a map in the viewer
         with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:
