@@ -717,7 +717,7 @@ class Network(object):
                 properties['type'] = 'feature'
                 properties['features'] = features
             elif connectivity_node not in self.__missing_identifiers:
-                log.warning(f'Cannot find feature for connectivity node {connectivity_node} ({full_node_name(connectivity_node)})')
+                properties['warning'] = f'Cannot find feature for connectivity node {connectivity_node} ({full_node_name(connectivity_node)})'
                 self.__missing_identifiers.add(connectivity_node)
         return properties
 
@@ -755,6 +755,8 @@ class Network(object):
         # in the connectivity graph
         for node, node_dict in connectivity_graph.nodes(data=True):
             node_dict.update(self.__feature_properties_from_node(node))
+            if (warning := node_dict.pop('warning', None)) is not None:
+                log.warning(f'{path.id}: {warning}')
 
         if path.trace:
             for node, node_dict in connectivity_graph.nodes(data=True):
