@@ -113,9 +113,9 @@ def get_connected_subgraph(G, nodes):
 
 #===============================================================================
 
-def connected_paths(G: nx.Graph) -> list[Any]:
-#=============================================
+def connected_paths(G: nx.Graph) -> dict[tuple[str, str], Any]:
+#==============================================================
     edge_path_graph = smooth_edges(G)
-    return list(path for _, _, path in edge_path_graph.edges(data='edge-nodes'))
+    return {(node_0, node_1): path for node_0, node_1, path in edge_path_graph.edges(data='edge-nodes')}
 
 #===============================================================================

@@ -869,7 +869,9 @@ class Network(object):
 
         # Find centrelines that are contained in sequences of so far unused nodes of the
         # connectivity graph
-        def get_centreline_from_containing_features(feature_ids: set[str], used_nodes: set):
+        def get_centreline_from_containing_features(start_dict, end_dict, feature_ids: set[str], used_nodes: set):
+            start_feature_ids = [f.id for f in start_dict.get('features', [])]
+            end_feature_ids = [f.id for f in end_dict.get('features', [])]
             candidate_contained_centrelines = set()
             for feature_id in feature_ids:
                 candidate_contained_centrelines.update(self.__centrelines_by_containing_feature.get(feature_id, set()))
@@ -878,6 +880,13 @@ class Network(object):
             for centreline_id in candidate_contained_centrelines:
                 centreline_containers = self.__containers_by_centreline[centreline_id]
                 score = len(centreline_containers & feature_ids)/len(centreline_containers | feature_ids)
+                centreline_nodes = self.__centreline_nodes[centreline_id]
+                if (centreline_nodes[0].feature_id in start_feature_ids
+                 or centreline_nodes[0].feature_id in end_feature_ids):
+                    score += 1
+                if (centreline_nodes[-1].feature_id in start_feature_ids
+                 or centreline_nodes[-1].feature_id in end_feature_ids):
+                    score += 1
                 if score > max_score:
                     matched_centreline = centreline_id
                     max_score = score
@@ -886,21 +895,23 @@ class Network(object):
                 path_nerve_ids.update(properties['nerve-ids'])
                 add_route_edges_from_graph(properties['subgraph'], used_nodes)
 
-        for path_nodes in graph_utils.connected_paths(connectivity_graph):
+        for ends, path_nodes in graph_utils.connected_paths(connectivity_graph).items():
             feature_ids = set()
             used_nodes = set()
+            start_dict = connectivity_graph.nodes[ends[0]]
             for node in path_nodes:
                 node_dict = connectivity_graph.nodes[node]
                 if len(node_dict['used']):
                     if len(feature_ids):
-                        get_centreline_from_containing_features(feature_ids, used_nodes)
+                        get_centreline_from_containing_features(start_dict, node_dict, feature_ids, used_nodes)
                         feature_ids = set()
                         used_nodes = set()
+                        start_dict = node_dict
                 elif node_dict['type'] == 'feature':
                     feature_ids.update(f.id for f in node_dict['features'])
                     used_nodes.add(node)
             if len(feature_ids):
-                get_centreline_from_containing_features(feature_ids, used_nodes)
+                get_centreline_from_containing_features(start_dict, connectivity_graph.nodes[ends[1]], feature_ids, used_nodes)
 
         # Now see if unconnected centreline end nodes in the route graph are in fact connected
         # by a centreline
