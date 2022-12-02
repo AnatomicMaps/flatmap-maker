@@ -973,6 +973,7 @@ class Network(object):
                                     for segment_id in neighbour_dict['subgraph'].graph['segment-ids']:
                                         (segment_end, distance) = self.__closest_segment_node_to_point(node_feature_centre, segment_id)
                                         if (segment_end is not None
+                                          and segment_end in route_graph
                                           and (closest_distance is None or distance < closest_distance)):
                                             closest_feature_id = segment_end
                                             closest_distance = distance
