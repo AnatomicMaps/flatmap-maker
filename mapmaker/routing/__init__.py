@@ -177,11 +177,11 @@ class Network(object):
 
         self.__centreline_nodes: dict[str, list[NetworkNode]] = defaultdict(list)  #! Centreline id --> [Network nodes]
         self.__nodes_by_ftu: dict[str, list[NetworkNode]] = defaultdict(list)      #! FTU id id --> {Network nodes}
-        self.__containers_by_centreline = {}                #! Centreline id --> set of features that centreline is contained in
+        self.__containers_by_centreline = {}                                       #! Centreline id --> set of features that centreline is contained in
         self.__models_to_id: dict[str, set[str]] = defaultdict(set)                #! Ontological term --> centrelines
         self.__feature_ids: set[str] = set()
-        self.__full_ids: set[str] = set()                   #! A ``full id`` is a slash-separated list of feature ids
-        self.__feature_map: Optional[FeatureMap] = None  #! Assigned after ``maker`` has processed sources
+        self.__full_ids: set[str] = set()                                          #! A ``full id`` is a slash-separated list of feature ids
+        self.__feature_map: Optional[FeatureMap] = None                            #! Assigned after ``maker`` has processed sources
         self.__missing_identifiers: set[AnatomicalNode] = set()
         self.__end_feature_ids = set()
         self.__container_feature_ids = set()
@@ -712,7 +712,6 @@ class Network(object):
         elif self.__feature_map is not None:
             matched = self.__feature_map.find_path_features_by_anatomical_node(connectivity_node)
             properties['name'] = anatomical_node_name(matched[0])
-
             features = set(f for f in matched[1] if f.id is not None)
             if len(features):
                 properties['type'] = 'feature'
@@ -1056,7 +1055,7 @@ class Network(object):
         if path.trace:
             log.info(f'{path.id}: Route graph: {route_graph.graph}')
             for n_0, n_1, ed in route_graph.edges(data=True):
-                log.info(f'{path.id}: Edge {n_0} -> {n_1}, centreline {ed.get("centreline")}')
+                log.info(f'{path.id}: Edge {n_0} -> {n_1}: {ed.get("centreline")}')
 
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
