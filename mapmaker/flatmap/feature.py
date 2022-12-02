@@ -206,6 +206,9 @@ class FeatureMap:
                     break
             if feature_in_layers:
                 matched_features.add(feature)
+        if len(matched_features) == 0 and len(features) == 1:
+            matched_features = features
+            log.warning(f'Feature `{full_node_name(matched_node)}` is not in expected layers')
         return (matched_node, matched_features)
 
     def geojson_ids(self, ids: list[str]) -> list[int]:
