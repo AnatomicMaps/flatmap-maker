@@ -721,10 +721,10 @@ class Network(object):
                 self.__missing_identifiers.add(connectivity_node)
         return properties
 
-    def __closest_feature_id_to_point(self, point, node_feature_ids) -> str:
-    #=======================================================================
+    def __closest_feature_id_to_point(self, point, node_feature_ids) -> Optional[str]:
+    #=================================================================================
         # Find feature id of feature that is closest to ``point``.
-        closest_feature_id: str = None
+        closest_feature_id: Optional[str] = None
         closest_distance = -1
         for node_id in node_feature_ids:
             node_centre = self.__centreline_graph.nodes[node_id]['geometry'].centroid
