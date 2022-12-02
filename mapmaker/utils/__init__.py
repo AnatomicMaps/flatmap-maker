@@ -21,11 +21,9 @@
 import io
 import json
 import pathlib
-import sys
-import urllib.request
-
-from json.decoder import JSONDecodeError
+import urllib.error
 from urllib.parse import urljoin, urlparse
+import urllib.request
 
 #===============================================================================
 
