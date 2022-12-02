@@ -872,9 +872,13 @@ class Network(object):
         def get_centreline_from_containing_features(start_dict, end_dict, feature_ids: set[str], used_nodes: set):
             start_feature_ids = [f.id for f in start_dict.get('features', [])]
             end_feature_ids = [f.id for f in end_dict.get('features', [])]
+            if path.trace:
+                log.info(f'{path.id}: Search between {start_feature_ids} and {end_feature_ids}: containers {feature_ids}')
             candidate_contained_centrelines = set()
             for feature_id in feature_ids:
                 candidate_contained_centrelines.update(self.__centrelines_by_containing_feature.get(feature_id, set()))
+            if path.trace:
+                log.info(f'{path.id}: Candidates: {candidate_contained_centrelines}')
             matched_centreline = None
             max_score = 0
             for centreline_id in candidate_contained_centrelines:
@@ -887,10 +891,14 @@ class Network(object):
                 if (centreline_nodes[-1].feature_id in start_feature_ids
                  or centreline_nodes[-1].feature_id in end_feature_ids):
                     score += 1
+                if path.trace:
+                    log.info(f'{path.id}: Score: {score}: {centreline_id}')
                 if score > max_score:
                     matched_centreline = centreline_id
                     max_score = score
             if matched_centreline is not None:
+                if path.trace:
+                    log.info(f'{path.id}: Selected: {max_score}: {matched_centreline}')
                 properties = (self.__segment_properties_from_ids([matched_centreline]))
                 path_nerve_ids.update(properties['nerve-ids'])
                 add_route_edges_from_graph(properties['subgraph'], used_nodes)
