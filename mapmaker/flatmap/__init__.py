@@ -133,6 +133,8 @@ class FlatMap(object):
         }
         if self.__models is not None:
             self.__metadata['taxon'] = self.__models
+            if (sex := self.__manifest.biological_sex) is not None:
+                self.__metadata['biological-sex'] = sex
             knowledge = get_knowledge(self.__models)
             if 'label' in knowledge:
                 self.__metadata['describes'] = knowledge['label']

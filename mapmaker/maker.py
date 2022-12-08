@@ -198,6 +198,10 @@ class Manifest:
         return self.__manifest.get('annotation')
 
     @property
+    def biological_sex(self):
+        return self.__manifest.get('biological-sex')
+
+    @property
     def connections(self):
         return self.__connections
 
@@ -599,8 +603,9 @@ class MapMaker(object):
             'image-layers': len(self.__raster_layers) > 0
         }
         if self.__flatmap.models is not None:
-            map_index['describes'] = self.__flatmap.models
-
+            map_index['taxon'] = self.__flatmap.models
+        if self.__manifest.biological_sex is not None:
+            map_index['biologicalSex'] = self.__manifest.biological_sex
         if settings.get('authoring', False):
             map_index['style'] = 'authoring'
         elif settings.get('functionalConnectivity', False):
