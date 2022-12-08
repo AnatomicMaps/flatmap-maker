@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+from __future__ import annotations
 from collections import OrderedDict
 import datetime
 from typing import Optional
