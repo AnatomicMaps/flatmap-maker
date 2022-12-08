@@ -45,6 +45,7 @@ from .layers import MapLayer
 class FlatMap(object):
     def __init__(self, manifest, maker):
         self.__id = maker.id
+        self.__uuid = maker.uuid
         self.__manifest = manifest
         self.__local_id = manifest.id
         self.__models = manifest.models
@@ -113,11 +114,16 @@ class FlatMap(object):
     def models(self):
         return self.__models
 
+    @property
+    def uuid(self):
+        return self.__uuid
+
     def initialise(self):
     #====================
         self.__created = None   # Set when map closed
         self.__metadata = {
             'id': self.__id,
+            'uuid': self.__uuid,
             'name': self.__local_id,
             # Who made the map
             'creator': 'mapmaker {}'.format(__version__),

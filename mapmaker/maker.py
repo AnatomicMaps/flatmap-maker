@@ -27,6 +27,8 @@ import multiprocessing.connection
 import shutil
 import subprocess
 from typing import Optional
+import uuid
+from urllib.parse import urljoin
 
 #===============================================================================
 
@@ -58,6 +60,10 @@ from .sources.fc_powerpoint.annotation import Annotator as FCAnnotator
 
 #===============================================================================
 
+UPSTREAM_MAP_REPOSITORIES = 'https://github.com/AnatomicMaps/'
+
+#===============================================================================
+
 class GitState(Enum):
     UNKNOWN   = 0
     DONTCARE  = 1
@@ -75,6 +81,7 @@ class MapRepository:
             self.__changed_items = [ item.a_path for item in self.__repo.index.diff(None) ]
             self.__staged_items = [ item.a_path for item in self.__repo.index.diff('Head') ]
             self.__untracked_files = self.__repo.untracked_files
+            self.__set_upstream_base()
         except git.InvalidGitRepositoryError:
             self.__repo = None
             if not settings.get('authoring', False):
@@ -91,21 +98,43 @@ class MapRepository:
     def sha(self) -> Optional[str]:
         return self.__repo.head.commit.hexsha if self.__repo is not None else None
 
-    def status(self, path: str) -> GitState:
-    #=======================================
+    def __git_path(self, path):
         if self.__repo is not None:
             if path.startswith('file://'):
                 path = path[7:]
             full_path = pathlib.Path(path).absolute()
             if full_path.is_relative_to(self.__repo_path):
-                git_path = str(full_path.relative_to(self.__repo_path))
+                return str(full_path.relative_to(self.__repo_path))
+
+    def __set_upstream_base(self) -> Optional[str]:
+        if self.__repo is not None:
+            upstream_url = None
+            for remote in self.__repo.remotes:
+                url = giturlparse.parse(remote.url).url2https
+                if upstream_url is None:
+                    upstream_url = url
+                elif url.startswith(UPSTREAM_MAP_REPOSITORIES):
+                    upstream_url = url
+                    break
+            url = giturlparse.parse(upstream_url)
+            self.__upstream_base = f'{url.protocol}://{url.host}{url.port}/{url.owner}/{url.repo}/blob/{self.__repo.head.commit.hexsha}/'
+
+    def status(self, path: str) -> GitState:
+    #=======================================
+        if self.__repo is not None:
+            if (git_path := self.__git_path(path)) is not None:
                 return (GitState.UNTRACKED if git_path in self.__untracked_files else
                         GitState.CHANGED if git_path in self.__changed_items else
                         GitState.STAGED if git_path in self.__staged_items else
                         GitState.DONTCARE)
             elif not settings.get('authoring', False):
-                log.error(f"{full_path} is not under git control in the manifest's directory")
+                log.error(f"{path} is not under git control in the manifest's directory")
         return GitState.UNKNOWN
+
+    def path_blob_url(self, path):
+    #=============================
+        if (git_path := self.__git_path(path)) is not None:
+            return urljoin(self.__upstream_base, git_path)
 
 #===============================================================================
 
@@ -218,7 +247,8 @@ class Manifest:
 
     @property
     def url(self):
-        return self.__url
+        blob_url = self.__repo.path_blob_url(self.__url)
+        return self.__url if blob_url is None else blob_url
 
     def __check_and_normalise_path(self, path) -> str:
     #=================================================
@@ -289,6 +319,7 @@ class MapMaker(object):
         self.__id = self.__manifest.id
         if self.__id is None:
             raise ValueError('No id given for map')
+        self.__uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, self.__manifest.url))
 
         # Save for metadata
         git_status = self.__manifest.git_status
@@ -301,7 +332,7 @@ class MapMaker(object):
         map_base = options.get('output')
         if not os.path.exists(map_base):
             os.makedirs(map_base)
-        self.__map_dir = os.path.join(map_base, self.__id)
+        self.__map_dir = os.path.join(map_base, self.__uuid)
         if options.get('clean', False):
             shutil.rmtree(self.__map_dir, True)
         if not os.path.exists(self.__map_dir):
@@ -335,6 +366,10 @@ class MapMaker(object):
     @property
     def id(self):
         return self.__id
+
+    @property
+    def uuid(self):
+        return self.__uuid
 
     @property
     def zoom(self):
@@ -555,6 +590,7 @@ class MapMaker(object):
 
         map_index = {
             'id': self.__id,
+            'uuid': self.__uuid,
             'source': self.__manifest.url,
             'min-zoom': self.__zoom[0],
             'max-zoom': self.__zoom[1],
