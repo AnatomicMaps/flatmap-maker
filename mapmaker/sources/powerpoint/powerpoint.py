@@ -46,10 +46,10 @@ import pptx.shapes.connector
 #===============================================================================
 
 from mapmaker.geometry import Transform
+from mapmaker.properties.markup import parse_layer_directive, parse_markup
 from mapmaker.utils import FilePath, log, ProgressBar, TreeList
 
 from .. import WORLD_METRES_PER_EMU
-from ..markup import parse_layer_directive, parse_markup
 from .colour import ColourMap, Theme
 from .presets import DML
 from .transform import DrawMLTransform

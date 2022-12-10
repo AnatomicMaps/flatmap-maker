@@ -50,8 +50,8 @@ from lxml import etree
 #===============================================================================
 
 from mapmaker.properties.anatomicalmap import AnatomicalMap
+from mapmaker.properties.markup import parse_markup, properties_to_markup
 from mapmaker.properties.pathways import Pathways, parse_nerves, parse_path_lines, parse_route_nodes
-from mapmaker.sources.markup import parse_markup, properties_to_markup
 from mapmaker.sources.svg.utils import adobe_decode, adobe_encode
 from mapmaker.utils import FilePath, relative_path
 

@@ -29,10 +29,10 @@ from lxml import etree
 #===============================================================================
 
 from mapmaker import __version__
+from mapmaker.properties.markup import parse_markup
 from mapmaker.utils import FilePath
 
 from .. import EXCLUDED_FEATURE_TYPES, EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
-from ..markup import parse_markup
 from .utils import svg_markup
 
 if TYPE_CHECKING:

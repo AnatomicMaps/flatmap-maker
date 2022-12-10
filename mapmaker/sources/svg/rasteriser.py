@@ -38,9 +38,9 @@ import webcolors
 #===============================================================================
 
 from .. import WORLD_METRES_PER_PIXEL
-from ..markup import parse_markup
 
 from mapmaker.geometry import extent_to_bounds, Transform, reflect_point
+from mapmaker.properties.markup import parse_markup
 from mapmaker.utils import ProgressBar, log
 from mapmaker.utils.image import image_size
 

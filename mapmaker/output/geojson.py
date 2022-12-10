@@ -30,7 +30,7 @@ import shapely.geometry
 #===============================================================================
 
 from mapmaker.geometry import mercator_transform
-from mapmaker.sources.markup import ignore_property
+from mapmaker.properties.markup import ignore_property
 from mapmaker.utils import ProgressBar
 
 #===============================================================================

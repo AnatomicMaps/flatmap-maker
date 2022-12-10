@@ -28,7 +28,7 @@ from lxml import etree
 
 #===============================================================================
 
-from mapmaker.sources.markup import parse_markup, properties_to_markup
+from mapmaker.properties.markup import parse_markup, properties_to_markup
 from mapmaker.sources.svg.utils import adobe_decode, adobe_encode
 from mapmaker.utils import FilePath, relative_path
 

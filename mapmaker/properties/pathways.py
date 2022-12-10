@@ -34,8 +34,9 @@ from mapmaker.flatmap.feature import Feature, FeatureMap
 from mapmaker.flatmap.layers import FeatureLayer
 from mapmaker.knowledgebase import get_knowledge
 from mapmaker.settings import settings
-from mapmaker.sources.markup import ID_TEXT
 from mapmaker.utils import log, FilePath
+
+from .markup import ID_TEXT
 
 #===============================================================================
 

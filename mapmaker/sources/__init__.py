@@ -29,9 +29,8 @@ import numpy as np
 #===============================================================================
 
 from mapmaker.geometry import bounds_to_extent
+from mapmaker.properties.markup import parse_markup
 from mapmaker.utils import FilePath
-
-from .markup import parse_markup
 
 if TYPE_CHECKING:
     from mapmaker.flatmap import FlatMap, MapLayer
