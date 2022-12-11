@@ -990,6 +990,7 @@ class Network(object):
                                 elif neighbour_dict['type'] == 'segment':
                                     closest_feature_id = None
                                     closest_distance = None
+                                    last_segment = None
                                     for segment_id in neighbour_dict['subgraph'].graph['segment-ids']:
                                         (segment_end, distance) = self.__closest_segment_node_to_point(node_feature_centre, segment_id)
                                         if (segment_end is not None
@@ -997,10 +998,12 @@ class Network(object):
                                           and (closest_distance is None or distance < closest_distance)):
                                             closest_feature_id = segment_end
                                             closest_distance = distance
+                                            last_segment = segment_id
                                     if closest_feature_id is not None:
                                         terminal_graph.add_edge(node_feature.id, closest_feature_id, upstream=True)
                                         terminal_graph.nodes[node_feature.id]['feature'] = node_feature
                                         terminal_graph.nodes[closest_feature_id]['upstream'] = True
+                                        terminal_graph.nodes[closest_feature_id]['segment'] = last_segment
                                         neighbour_dict['used'] = {closest_feature_id}
                                 # Only have our neighbour visit their neighbours if the neighbour is unconnected
                                 if degree > 1 and len(neighbour_dict['used']) == 0 and neighbour_dict['type'] == 'feature':
@@ -1045,7 +1048,12 @@ class Network(object):
                 else:
                     upstream_node = node_0 if terminal_graph.nodes[node_0].get('upstream') else node_1
                     route_graph.nodes[upstream_node]['type'] = 'upstream'
-                    route_graph.nodes[upstream_node]['direction'] = list(route_graph.nodes[upstream_node]['edge-direction'].items())[0][1]
+                    segment_id = terminal_graph.nodes[upstream_node].get('segment')
+                    if segment_id is not None:
+                        # We want the path direction we were going when we reached the upstream node
+                        route_graph.nodes[upstream_node]['direction'] = route_graph.nodes[upstream_node]['edge-direction'][segment_id]
+                    else:
+                        route_graph.nodes[upstream_node]['direction'] = list(route_graph.nodes[upstream_node]['edge-direction'].items())[0][1]
                     route_graph.add_edge(node_0, node_1, type='upstream')
                 if node_0 != upstream_node:
                     route_graph.nodes[node_0].update(set_properties_from_feature_id(node_0))
