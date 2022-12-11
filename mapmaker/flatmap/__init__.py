@@ -21,6 +21,7 @@
 from __future__ import annotations
 from collections import OrderedDict
 import datetime
+import os
 from typing import Optional
 
 #===============================================================================
@@ -47,6 +48,7 @@ class FlatMap(object):
     def __init__(self, manifest, maker):
         self.__id = maker.id
         self.__uuid = maker.uuid
+        self.__map_dir = maker.map_dir
         self.__manifest = manifest
         self.__local_id = manifest.id
         self.__models = manifest.models
@@ -170,6 +172,10 @@ class FlatMap(object):
         # Set creation time
         self.__created = datetime.datetime.utcnow()
         self.__metadata['created'] = self.__created.isoformat()
+
+    def full_filename(self, localname):
+    #==================================
+        return os.path.join(self.__map_dir, localname)
 
     def is_duplicate_feature_id(self, feature_id: str) -> bool:
     #==========================================================

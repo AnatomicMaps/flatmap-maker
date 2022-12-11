@@ -124,11 +124,8 @@ class PowerpointSource(MapSource):
             slide_layer = self.__SlideClass(self, slide, slide_number)
             log('Slide {}, {}'.format(slide_number, slide_layer.id))
             if settings.get('saveDrawML'):
-                xml = open(os.path.join(settings.get('output'),
-                                        self.flatmap.id,
-                                        '{}.xml'.format(slide_layer.id)), 'w')
-                xml.write(slide.element.xml)
-                xml.close()
+                with open(self.flatmap.full_filename(f'{slide_layer.id}.xml'), 'w') as xml:
+                    xml.write(slide.element.xml)
             slide_layer.process()
             self.add_layer(slide_layer)
 

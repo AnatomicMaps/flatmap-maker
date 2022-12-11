@@ -372,6 +372,10 @@ class MapMaker(object):
         return self.__id
 
     @property
+    def map_dir(self):
+        return self.__map_dir
+
+    @property
     def uuid(self):
         return self.__uuid
 
