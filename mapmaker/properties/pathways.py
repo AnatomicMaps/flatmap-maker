@@ -105,6 +105,8 @@ PATH_TYPES = {
     'ilxtr:SpinalCordDescendingProjectionPhenotype': 'cns',
     'ilxtr:EntericPhenotype': 'enteric',
     'ilxtr:IntestinoFugalProjectionPhenotype': 'intestine',
+    'ILX:0104003': 'excitatory',
+    'ILX:0105486': 'inhibitory'
 }
 
 PATH_ORDER = {
