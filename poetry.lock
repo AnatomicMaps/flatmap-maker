@@ -123,7 +123,6 @@ mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/do
 [package.source]
 type = "url"
 url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.2.1/flatmapknowledge-1.2.1-py3-none-any.whl"
-
 [[package]]
 name = "gitdb"
 version = "4.0.10"
@@ -346,14 +345,11 @@ et-xmlfile = "*"
 
 [[package]]
 name = "packaging"
-version = "21.3"
+version = "22.0"
 description = "Core utilities for Python packages"
 category = "dev"
 optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-pyparsing = ">=2.0.2,<3.0.5 || >3.0.5"
+python-versions = ">=3.7"
 
 [[package]]
 name = "pillow"
@@ -407,7 +403,7 @@ plugins = ["importlib-metadata"]
 
 [[package]]
 name = "pyomo"
-version = "6.4.3"
+version = "6.4.4"
 description = "Pyomo: Python Optimization Modeling Objects"
 category = "main"
 optional = false
@@ -1158,8 +1154,8 @@ openpyxl = [
     {file = "openpyxl-3.0.10.tar.gz", hash = "sha256:e47805627aebcf860edb4edf7987b1309c1b3632f3750538ed962bbcc3bd7449"},
 ]
 packaging = [
-    {file = "packaging-21.3-py3-none-any.whl", hash = "sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522"},
-    {file = "packaging-21.3.tar.gz", hash = "sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb"},
+    {file = "packaging-22.0-py3-none-any.whl", hash = "sha256:957e2148ba0e1a3b282772e791ef1d8083648bc131c8ab0c1feba110ce1146c3"},
+    {file = "packaging-22.0.tar.gz", hash = "sha256:2198ec20bd4c017b8f9717e00f0c8714076fc2fd93816750ab48e2c41de2cfd3"},
 ]
 pillow = [
     {file = "Pillow-9.3.0-1-cp37-cp37m-win32.whl", hash = "sha256:e6ea6b856a74d560d9326c0f5895ef8050126acfdc7ca08ad703eb0081e82b74"},
@@ -1277,22 +1273,22 @@ pygments = [
     {file = "Pygments-2.13.0.tar.gz", hash = "sha256:56a8508ae95f98e2b9bdf93a6be5ae3f7d8af858b43e02c5a2ff083726be40c1"},
 ]
 pyomo = [
-    {file = "Pyomo-6.4.3-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:b861960a3ed6a18a5e2de00ea941e2e05dc544b875bfc45736646d7baab36614"},
-    {file = "Pyomo-6.4.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a028a55ebf80dfa18ff0bfd9a9903caee704ac53f89d7a4f3cd1e5aab7a1e2e0"},
-    {file = "Pyomo-6.4.3-cp310-cp310-win_amd64.whl", hash = "sha256:ea9230653a6dcffec789059e24ba54478527f77f33f78ce6832d98deed042bcf"},
-    {file = "Pyomo-6.4.3-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:01469092f7e38530b8ad7b61ad21a027371da89e985961110e87586a6ce6265f"},
-    {file = "Pyomo-6.4.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bcf8f73f69eaccfdd8c801fa0ed910ab2267df26cf37ee20e976913df555a654"},
-    {file = "Pyomo-6.4.3-cp311-cp311-win_amd64.whl", hash = "sha256:4c75551a4547bc32f3928bb3f5b357ab2b926a48e68053a657c367837c64e664"},
-    {file = "Pyomo-6.4.3-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:8e658411048ad0f892905a3109586fc3e2562e53cbe56fda418a245dd369bf82"},
-    {file = "Pyomo-6.4.3-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6a22308a07525f580cc16836434c95562f2b8df067605f1aaa07e45cc3a9a4c9"},
-    {file = "Pyomo-6.4.3-cp37-cp37m-win_amd64.whl", hash = "sha256:fd8e354a6451ad029534214a80dfce2f4603c34d6135b0d763cd7f630bb45920"},
-    {file = "Pyomo-6.4.3-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:5f4cfd1d3dd8f247c18b4c963bf4a4ac7ac80de373d6597bdc23ff13ab406430"},
-    {file = "Pyomo-6.4.3-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fcc57dc26ab8d5e083d186418b43125ddf80ea3d696d566eb6b1c8259d41454c"},
-    {file = "Pyomo-6.4.3-cp38-cp38-win_amd64.whl", hash = "sha256:bb87924ceb39d8f857a36a6ad36fbc6ab00d7db201ed351882b9f7756741960d"},
-    {file = "Pyomo-6.4.3-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:5009c1c142931091393b4abeb9d34b7b4fa2c1b3a896052480b2af7b33c1a45b"},
-    {file = "Pyomo-6.4.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b9f54c0e84c1e19eb76981e9b3d110685a15fbcc6cd3b7e1466a5efb346b5f9c"},
-    {file = "Pyomo-6.4.3-cp39-cp39-win_amd64.whl", hash = "sha256:9fc38b4bfec5de3b21e489da12d4a7152ade057624eddb8910d02c8caaa1d7e3"},
-    {file = "Pyomo-6.4.3.tar.gz", hash = "sha256:7f3f67f61a6e5c2dd9c4dd930356d3176bad1572f1abee780592e725d6445288"},
+    {file = "Pyomo-6.4.4-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:218800ebd64089ecd014c30edda79e0e77b3f6f1d4914255bac64359bfac9514"},
+    {file = "Pyomo-6.4.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a115279dc97c00f0d810f63740722114de556d0eb0f0578dde14f65e10da1adb"},
+    {file = "Pyomo-6.4.4-cp310-cp310-win_amd64.whl", hash = "sha256:262f696a76e9e7e57de5e318b0c8e596e3d1bcd07e4b3f248b5e6c65ebad6749"},
+    {file = "Pyomo-6.4.4-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:590b89ea36c72ae1e319b6c44cd0fc34669846e01fc338e8e0d941e1eb73610f"},
+    {file = "Pyomo-6.4.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2511406a29f444372bf17976df007b5e380f6d25875bf7df6c4a4d2f93e2cd26"},
+    {file = "Pyomo-6.4.4-cp311-cp311-win_amd64.whl", hash = "sha256:b92fb3ef8cd57fa805a466e1b94f1ba52e52b2186c3f7c13ea2ad78dc79d6e1b"},
+    {file = "Pyomo-6.4.4-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:7e63c5f0417267718d20a60964316d69995dddc36da764dedc4fe4bb5b99db61"},
+    {file = "Pyomo-6.4.4-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:eeac7841307d75665f26200dca7cf45e27d443fd8224bb9f8c32a057e65b936c"},
+    {file = "Pyomo-6.4.4-cp37-cp37m-win_amd64.whl", hash = "sha256:68e47754db4c76ec8d2d5f57d523f46d847a149a9e55a23366011c7778cd686b"},
+    {file = "Pyomo-6.4.4-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:2c4b817627c9dc6969aec16d363c88c926a3c8e28c7d585eeb65f6d58f9794f5"},
+    {file = "Pyomo-6.4.4-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:27a87c0038953df3f158199a494abf3e49d1712a60e2745840ed048f8f505c63"},
+    {file = "Pyomo-6.4.4-cp38-cp38-win_amd64.whl", hash = "sha256:958eeb0c2635aeaf5181fb6dc3b1e89174859bd2c4daba9af6a8ee7e1eff96bb"},
+    {file = "Pyomo-6.4.4-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:700dfedd014fef0c3f33801dc7698f0e7fce31518f6028bf51ba070017ec418b"},
+    {file = "Pyomo-6.4.4-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1d66ec5150c9b5807853efb489c645700f69c9ca9524579b76be65773ff6c63f"},
+    {file = "Pyomo-6.4.4-cp39-cp39-win_amd64.whl", hash = "sha256:554d6e66a5c8a0a26b3e8b5223ed6b6ac012a05c4025d6de47f5bcc015a899df"},
+    {file = "Pyomo-6.4.4.tar.gz", hash = "sha256:922dd8e6e3e421550acf884bd27f74cab2fe6552cdde36715d116b0c8345c367"},
 ]
 pyparsing = [
     {file = "pyparsing-3.0.9-py3-none-any.whl", hash = "sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"},
