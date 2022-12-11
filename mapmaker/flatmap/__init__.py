@@ -34,7 +34,7 @@ from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import normalised_coords
 from mapmaker.knowledgebase import get_knowledge
-from mapmaker.properties import ExternalProperties
+from mapmaker.properties import ConnectorSet, ExternalProperties
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
@@ -203,6 +203,17 @@ class FlatMap(object):
         self.__layer_dict[layer.id] = layer
         if layer.exported:
             self.__visible_layer_count += 1
+            if settings.get('showCentrelines', False):
+                connector_set = ConnectorSet('centreline')
+                for feature in layer.features:
+                    if (feature.properties.get('centreline', False)
+                      and not feature.properties.get('excluded', False)):
+                        feature.set_property('kind', 'centreline')
+                        feature.set_property('tile-layer', 'pathways')
+                        connector_set.add(feature.properties['id'],
+                                          feature.properties['kind'],
+                                          feature.geojson_id)
+                self.map_properties.pathways.add_connector_set(connector_set)
 
     def add_source_layers(self, layer_number, source):
     #=================================================

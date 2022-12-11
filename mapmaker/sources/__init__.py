@@ -55,20 +55,13 @@ WORLD_METRES_PER_UM = 100
 
 #===============================================================================
 
-# These shape types are included as vector features (of type ``network``) if
-# they have a label or the ``--only-networks`` option is set
-NETWORK_SHAPE_TYPES = [
-    # These though are included if the ``--show-centrelines`` option is set
-    'centreline', 'node'
-    ]
-
-# Shapes/paths with these types are excluded from image tiling, although
-# NETWORK_SHAPE_TYPES are not excluded if the ``--show-centrelines`` option
-# is set
-EXCLUDE_SHAPE_TYPES = NETWORK_SHAPE_TYPES + [
+# Shapes/paths with these types are excluded from image tiling
+EXCLUDE_SHAPE_TYPES = [
+    'centreline',
     'group',
     'invisible',  ## Maybe have an ``id`` or ``class`` ==> not invisible...
     'marker',
+    'node',
     'path',
     'region',
     ]

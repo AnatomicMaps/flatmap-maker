@@ -469,6 +469,44 @@ class ConnectivityModel:
 
 #===============================================================================
 
+class ConnectorSet:
+    def __init__(self, model_id):
+        self.__id = model_id
+        self.__connectors: dict[str, str] = {}
+        self.__connectors_by_type: dict[str, list[str]] = defaultdict(list)
+
+    def __len__(self):
+        return len(self.__connectors)
+
+    def add(self, connector_id, path_type, geojson_id):
+    #==================================================
+        # Need geojson id of shape's feature
+        path_id = f'{self.__id}_path_{connector_id}'
+        self.__connectors[path_id] = geojson_id
+        self.__connectors_by_type[path_type].append(path_id)
+
+    def as_dict(self):
+    #=================
+        return {
+            'models': [{
+                'id': self.__id,
+                'paths': list(self.__connectors.keys())
+            }],
+            'paths': {
+                path_id: {
+                    'lines': [geojson_id],
+                    'nodes': [],
+                    'nerves': []
+                } for path_id, geojson_id in self.__connectors.items()
+            },
+            'node-paths': {},
+            'type-paths': {
+                path_type: path_ids for path_type, path_ids in self.__connectors_by_type.items()
+            }
+        }
+
+#===============================================================================
+
 class Pathways:
     def __init__(self, flatmap, paths_list):
         self.__flatmap = flatmap
@@ -485,8 +523,7 @@ class Pathways:
         self.__connectivity_models = []
         self.__feature_map = None
         self.__active_nerve_ids: set[str] = set()   ### Manual layout only???
-        self.__connectors: dict[str, str] = {}
-        self.__connectors_by_type: dict[str, list[str]] = defaultdict(list)
+        self.__connector_sets: list[ConnectorSet] = []
         self.add_connectivity({'paths': paths_list})
 
     @staticmethod
@@ -498,49 +535,33 @@ class Pathways:
     @property
     def connectivity(self):
         connectivity: dict[str, Any] = {
-            'models': [
-                { 'id': model.source,
-                  'paths': model.path_ids
-                } for model in self.__connectivity_models
-                    if model.source is not None
-            ]
+            'models': [],
+            'paths': {},
+            'node-paths': {},
+            'type-paths': {}
         }
+        for model in self.__connectivity_models:
+            if model.source is not None:
+                connectivity['models'].append({
+                    'id': model.source,
+                    'paths': model.path_ids
+                })
         if self.__resolved_pathways is not None:
-            connectivity.update({
-                'paths': self.__resolved_pathways.paths_dict,
-                'node-paths': self.__resolved_pathways.node_paths,
-                'type-paths': self.__resolved_pathways.type_paths,
-            })
-        if len(self.__connectors):
-            connectivity.update(self.__connectors_as_dict())
+            connectivity['paths'] = self.__resolved_pathways.paths_dict
+            connectivity['node-paths'] = self.__resolved_pathways.node_paths
+            connectivity['type-paths'] = self.__resolved_pathways.type_paths
+        for connector_set in self.__connector_sets:
+            connector_set_dict = connector_set.as_dict()
+            connectivity['models'].extend(connector_set_dict['models'])
+            connectivity['paths'].update(connector_set_dict['paths'])
+            connectivity['node-paths'].update(connector_set_dict['node-paths'])
+            connectivity['type-paths'].update(connector_set_dict['type-paths'])
         return connectivity
 
-    def add_connector(self, shape_id, path_type, geojson_id):
-    #========================================================
-        # Need geojson id of shape's feature
-        path_id = f'path_{shape_id}'
-        self.__connectors[path_id] = geojson_id
-        self.__connectors_by_type[path_type].append(path_id)
-
-    def __connectors_as_dict(self):
-    #==============================
-        return {
-            'models': [{
-                'id': 'fc-paths',
-                'paths': list(self.__connectors.keys())
-            }],
-            'paths': {
-                path_id: {
-                    'lines': [geojson_id],
-                    'nodes': [],
-                    'nerves': []
-                } for path_id, geojson_id in self.__connectors.items()
-            },
-            'node-paths': {},
-            'type-paths': {
-                path_type: path_ids for path_type, path_ids in self.__connectors_by_type.items()
-            }
-        }
+    def add_connector_set(self, connector_set):
+    #==========================================
+        if len(connector_set):
+            self.__connector_sets.append(connector_set)
 
     def set_feature_map(self, feature_map):
     #======================================

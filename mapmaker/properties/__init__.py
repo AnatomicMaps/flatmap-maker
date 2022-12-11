@@ -25,11 +25,10 @@ from collections import defaultdict
 import mapmaker.knowledgebase as knowledgebase
 from mapmaker.routing import Network
 from mapmaker.settings import settings
-from mapmaker.sources import NETWORK_SHAPE_TYPES
 from mapmaker.utils import FilePath, log
 
 from .anatomicalmap import AnatomicalMap
-from .pathways import Pathways
+from .pathways import ConnectorSet, Pathways
 
 #===============================================================================
 
@@ -210,13 +209,13 @@ class ExternalProperties(object):
             if len(labels):  # We don't want empty tooltips
                 feature_properties['label'] = '\n'.join(labels)
 
-        # Hide network features when not authoring or not a FC flatmap
+        # Hide network node features when not authoring or not a FC flatmap
         if not (authoring or settings.get('functionalConnectivity', False)):
-            for shape_type in NETWORK_SHAPE_TYPES:
-                if shape_type in feature_properties:
-                    feature_properties['invisible'] = True
-                    feature_properties['exclude'] = True
-                    break
+            if (feature_properties.get('node', False)
+            or not settings.get('showCentrelines', False)
+               and feature_properties.get('centreline', False)):
+                feature_properties['invisible'] = True
+                feature_properties['exclude'] = True
         return feature_properties
 
     def update_feature_properties(self, feature):

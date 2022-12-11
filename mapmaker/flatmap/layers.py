@@ -98,7 +98,8 @@ class FeatureLayer(object):
         for feature in self.__features:
             map_properties.update_feature_properties(feature)
             if not settings.get('authoring', False):
-                if feature.property('type') == 'nerve' or 'auto-hide' in feature.property('class', ''):
+                if ('auto-hide' in feature.property('class', '')
+                or feature.property('type') == 'nerve' and feature.property('kind') != 'centreline'):
                     # Nerve and ``auto-hide`` features are included only if used by connectivity
                     feature.set_property('exclude', True)
             elif feature.property('type') == 'nerve':
