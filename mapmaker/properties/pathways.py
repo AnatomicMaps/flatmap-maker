@@ -739,7 +739,7 @@ class Pathways:
 
     def generate_connectivity(self, networks):
     #=========================================
-        if self.__resolved_pathways is not None:
+        if self.__feature_map is None or self.__resolved_pathways is not None:
             return
         self.__resolved_pathways = ResolvedPathways(self.__feature_map)
         errors = False
