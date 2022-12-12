@@ -982,7 +982,13 @@ class Network(object):
                                         closest_feature_id = self.__closest_feature_id_to_point(node_feature_centre, used_ids)
                                         terminal_graph.add_edge(node_feature.id, closest_feature_id,
                                             upstream=True)
+                                        segments = set()
+                                        for connected_edges in route_graph[closest_feature_id].values():
+                                            for edge_dict in connected_edges.values():
+                                                if (segment_id := edge_dict.get('segment')) is not None:
+                                                    segments.add(segment_id)
                                         terminal_graph.nodes[closest_feature_id]['upstream'] = True
+                                        terminal_graph.nodes[closest_feature_id]['segments'] = segments
                                     else:
                                         neighbour_feature = get_node_feature(neighbour_dict)
                                         terminal_graph.add_node(neighbour_feature.id, feature=neighbour_feature)
@@ -1003,7 +1009,7 @@ class Network(object):
                                         terminal_graph.add_edge(node_feature.id, closest_feature_id, upstream=True)
                                         terminal_graph.nodes[node_feature.id]['feature'] = node_feature
                                         terminal_graph.nodes[closest_feature_id]['upstream'] = True
-                                        terminal_graph.nodes[closest_feature_id]['segment'] = last_segment
+                                        terminal_graph.nodes[closest_feature_id]['segments'] = set([last_segment])
                                         neighbour_dict['used'] = {closest_feature_id}
                                 # Only have our neighbour visit their neighbours if the neighbour is unconnected
                                 if degree > 1 and len(neighbour_dict['used']) == 0 and neighbour_dict['type'] == 'feature':
@@ -1048,10 +1054,13 @@ class Network(object):
                 else:
                     upstream_node = node_0 if terminal_graph.nodes[node_0].get('upstream') else node_1
                     route_graph.nodes[upstream_node]['type'] = 'upstream'
-                    segment_id = terminal_graph.nodes[upstream_node].get('segment')
-                    if segment_id is not None:
+                    segment_ids = terminal_graph.nodes[upstream_node].get('segments', set())
+                    if len(segment_ids):
                         # We want the path direction we were going when we reached the upstream node
-                        route_graph.nodes[upstream_node]['direction'] = route_graph.nodes[upstream_node]['edge-direction'][segment_id]
+                        direction = 0.0
+                        for segment_id in segment_ids:
+                            direction += route_graph.nodes[upstream_node]['edge-direction'][segment_id]
+                        route_graph.nodes[upstream_node]['direction'] = direction/len(segment_ids)
                     else:
                         route_graph.nodes[upstream_node]['direction'] = list(route_graph.nodes[upstream_node]['edge-direction'].items())[0][1]
                     route_graph.add_edge(node_0, node_1, type='upstream')
