@@ -20,22 +20,27 @@
 
 from lxml import etree
 
-#===============================================================================
-
-from mapmaker.sources.svg.utils import adobe_decode_markup
+from mapmaker.properties.markup import parse_markup
 
 #===============================================================================
 
-def print_ids(element, indent=0):
-#================================
-    if 'Gradient' not in element.tag:
-        id = adobe_decode_markup(element)
-        if id != '':
-            print('{}{}'.format(indent*' ', id))
-        elif len(element):
-            print('{}<Group>'.format(indent*' '))
-        for child in element:
-            print_ids(child, indent+4)
+def SVG_NS(tag):
+#===============
+    return '{{http://www.w3.org/2000/svg}}{}'.format(tag)
+
+TITLE_TAG = SVG_NS('title')
+
+#===============================================================================
+
+def print_ids(element):
+#======================
+    if (title := element.find(TITLE_TAG)) is not None:
+        if (markup := title.text.strip()).startswith('.'):
+            if (id := parse_markup(markup).get('id', '')) != '':
+                print(id)
+    for child in element:
+        if child.tag != TITLE_TAG:
+            print_ids(child)
 
 if __name__ == '__main__':
 #=========================
