@@ -374,14 +374,20 @@ class RoutedPath(object):
                 path_line = path_line.simplify(SMOOTHING_TOLERANCE, preserve_topology=False)
                 geometry.append(GeometricShape(path_line, properties))
                 if edge_dict.get('type') not in ['terminal', 'upstream']:
+                    if offset >= 0:
+                        start_point = BezierPoint(*path_line.coords[0])
+                        end_point = BezierPoint(*path_line.coords[-1])
+                    else:
+                        start_point = BezierPoint(*path_line.coords[-1])
+                        end_point = BezierPoint(*path_line.coords[0])
                     # Save where branch node edges will connect to offsetted path line
                     edge_dict['path-end'] = {
-                        edge_dict['start-node']: BezierPoint(*path_line.coords[0]),
-                        edge_dict['end-node']: BezierPoint(*path_line.coords[-1])
+                        edge_dict['start-node']: start_point,
+                        edge_dict['end-node']: end_point
                     }
                     # Save offsetted point where terminal edges start from
-                    self.__graph.nodes[edge_dict['start-node']]['start-point'] = BezierPoint(*path_line.coords[0])
-                    self.__graph.nodes[edge_dict['end-node']]['start-point'] = BezierPoint(*path_line.coords[-1])
+                    self.__graph.nodes[edge_dict['start-node']]['start-point'] = start_point
+                    self.__graph.nodes[edge_dict['end-node']]['start-point'] = end_point
 
         # Draw paths to terminal nodes
         def draw_arrow(start_point, end_point):
