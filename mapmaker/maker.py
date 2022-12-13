@@ -147,7 +147,9 @@ class Manifest:
         self.__connectivity = []
         self.__neuron_connectivity = []
         self.__uncommitted = 0
+
         if single_file is not None:
+            # A special case is to make a map from a standalone source file
             if id is None:
                 id = self.__url.rsplit('/', 1)[-1].rsplit('.', 1)[0].replace('_', '-').replace(' ', '_')
             self.__manifest = {
@@ -190,7 +192,7 @@ class Manifest:
             for path in self.__manifest.get('connectivity', []):
                 self.__connectivity.append(self.__check_and_normalise_path(path))
             if self.__uncommitted:
-                raise TypeError("Not all of the flatmap's sources are under git control (use '--authoring')?")
+                raise TypeError("Not all of the flatmap's sources are commited into git ('--authoring' option intended?)")
 
     @property
     def anatomical_map(self):
