@@ -161,6 +161,9 @@ class Manifest:
                 ]
             }
         else:
+            # Check the manifest itself is committed into the repository
+            self.__check_committed(self.__url)
+
             self.__manifest = self.__path.get_json()
             if id is not None:
                 self.__manifest['id'] = id
@@ -257,16 +260,20 @@ class Manifest:
     def __check_and_normalise_path(self, path) -> str:
     #=================================================
         normalised_path = self.__path.join_url(path)
+        self.__check_committed(normalised_path)
+        return normalised_path
+
+    def __check_committed(self, path):
+    #=================================
         if not settings.get('authoring', False):
-            git_state = self.__repo.status(normalised_path)
+            git_state = self.__repo.status(path)
             if git_state != GitState.DONTCARE:
                 message = ('unknown to git' if git_state == GitState.UNKNOWN else
                            'staged to be committed' if git_state == GitState.STAGED else
                            'unstaged with changes' if git_state == GitState.CHANGED else
                            'untracked by git')
-                log.error(f'{normalised_path} is {message}')
+                log.error(f'{path} is {message}')
                 self.__uncommitted += 1
-        return normalised_path
 
 #===============================================================================
 
