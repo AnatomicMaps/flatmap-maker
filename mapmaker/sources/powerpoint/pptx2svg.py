@@ -18,27 +18,40 @@
 #
 #===============================================================================
 
-import colorsys
-import json
-import os
-import re
-import string
-
+from __future__ import annotations
 from collections import OrderedDict
+import colorsys
 from math import sqrt, sin, cos, acos, pi as PI
+import os
 from pathlib import Path
-from urllib.parse import urljoin
+import re
+from typing import Optional
 from zipfile import ZipFile
 
 #===============================================================================
 
 from lxml import etree
 import numpy as np
-import shapely.geometry
-import shapely.strtree
 import svgwrite
+from svgwrite.base import BaseElement as SvgElement
 from tqdm import tqdm
 import transforms3d
+
+#===============================================================================
+
+from shapely.errors import ShapelyDeprecationWarning
+import shapely.geometry
+import shapely.strtree
+
+import warnings
+warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
+
+#===============================================================================
+
+from beziers.cubicbezier import CubicBezier
+from beziers.path import BezierPath
+from beziers.point import Point as BezierPoint
+from beziers.quadraticbezier import QuadraticBezier
 
 #===============================================================================
 
@@ -51,17 +64,22 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Length
 
+from pptx.shapes.base import BaseShape as PptxShape
+from pptx.shapes.group import GroupShape as PptxGroupShape
+from pptx.shapes.shapetree import GroupShapes as PptxGroupShapes
+from pptx.shapes.shapetree import SlideShapes as PptxSlideShapes
+from pptx.slide import Slide as PptxSlide
+
 #===============================================================================
 
+from mapmaker.geometry.beziers import bezier_sample
+from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
 from mapmaker.utils import FilePath, log
+
+from .colour import ColourMap, Theme
 from .formula import Geometry, radians
-from .presets import DML, ThemeDefinition
+from .presets import DML
 from .powerpoint import Shape, SHAPE_TYPE
-from .utils import get_shape_geometry
-
-#===============================================================================
-
-__version__ = '1.1.0'
 
 #===============================================================================
 
@@ -70,6 +88,13 @@ PPTX_NAMESPACE = {
     'a': "http://schemas.openxmlformats.org/drawingml/2006/main",
     'r': "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 }
+
+def pptx_resolve(qname: str) -> str:
+#===================================
+    parts = qname.split(':', 1)
+    if len(parts) == 2 and parts[0] in PPTX_NAMESPACE:
+        return f'{{{PPTX_NAMESPACE[parts[0]]}}}{parts[1]}'
+    return qname
 
 #===============================================================================
 
@@ -87,16 +112,7 @@ EMU_PER_PIXEL = EMU_PER_IN/PIXELS_PER_IN
 # Minimum width for a stroked path in points
 MIN_STROKE_WIDTH = 0.5
 
-#===============================================================================
-
-FONT_SIZE = 10            # pixels
 TEXT_MARGINS = (4, 1)    # pixels
-
-STYLESHEET = """
-    text  {{
-        font: bold {FONT_SIZE}px sans-serif;
-        border: 1px solid red;
-    }}""".format(FONT_SIZE=FONT_SIZE)
 
 #===============================================================================
 
@@ -114,7 +130,7 @@ def text_alignment(shape):
 def text_content(shape):
 #=======================
     text = shape.text.replace('\n', ' ').replace('\xA0', ' ').replace('\v', ' ').strip() # Newline, non-breaking space, vertical-tab
-    return text if text not in ['', '.'] else ''
+    return text if text not in ['', '.'] else None
 
 #===============================================================================
 
@@ -171,6 +187,7 @@ EXCLUDED_NAME_PREFIXES = [
     'Freeform',
     'Group',
     'Oval',
+    'Star',
 ]
 
 # Markup that has been deprecated
@@ -181,94 +198,26 @@ EXCLUDED_NAME_MARKUP = [
 
 # Check to see if we have a valid name and encode it as an id
 
-def id_from_name(name):
+def valid_markup(name):
 #======================
     if name not in EXCLUDED_NAME_MARKUP:
         for prefix in EXCLUDED_NAME_PREFIXES:
             if name.startswith(prefix):
-                return None
-        return adobe_encode(name)
-    return None
+                return False
+        return True
+    return False
 
-# Helpers for encoding names for Adobe Illustrator
+def add_markup(element, markup):
+#===============================
+    if valid_markup(markup):
+        element.set_desc(title=markup)
 
-def match_to_hex(m):
-#===================
-    c = m[0]
-    return (c   if c in (string.ascii_letters + string.digits) else
-            '_' if c in string.whitespace else
-            '_x{:02X}_'.format(ord(c)))
-
-def adobe_encode(s):
-#===================
-    return re.sub('.', match_to_hex, s)
-
-#===============================================================================
-
-class Theme(object):
-    def __init__(self, pptx_source):
-        with ZipFile(pptx_source, 'r') as presentation:
-            for info in presentation.infolist():
-                if info.filename.startswith('ppt/theme/'):
-                    self.__theme_definition = ThemeDefinition.new(presentation.read(info))
-                    break
-
-    def colour_scheme(self):
-    #=======================
-        return self.__theme_definition.themeElements.clrScheme
-
-#===============================================================================
-
-class ColourMap(object):
-    def __init__(self, ppt_theme, slide):
-        self.__colour_defs = {}
-        for colour_def in ppt_theme.colour_scheme():
-            defn = colour_def[0]
-            if defn.tag == DML('sysClr'):
-                self.__colour_defs[colour_def.tag] = RGBColor.from_string(defn.attrib['lastClr'])
-            elif defn.tag == DML('srgbClr'):
-                self.__colour_defs[colour_def.tag] = RGBColor.from_string(defn.val)
-        # The slide's layout master can have colour aliases
-        colour_map = slide.slide_layout.slide_master.element.clrMap.attrib
-        for key, value in colour_map.items():
-            if key != value:
-                self.__colour_defs[DML(key)] = self.__colour_defs[DML(value)]
-
-    def lookup(self, colour_format):
-    #===============================
-        if colour_format.type == MSO_COLOR_TYPE.RGB:
-            rgb = colour_format.rgb
-        elif colour_format.type == MSO_COLOR_TYPE.SCHEME:
-            key = MSO_THEME_COLOR.to_xml(colour_format.theme_color)
-            rgb = self.__colour_defs[DML(key)]
-        elif colour_format.type == MSO_COLOR_TYPE.PRESET:
-            return colour_format._color._xClr.attrib['val']
-        else:
-            raise ValueError('Unsupported colour format: {}'.format(colour_format.type))
-        lumMod = colour_format.lumMod
-        lumOff = colour_format.lumOff
-        satMod = colour_format.satMod
-        if lumMod != 1.0 or lumOff != 0.0 or satMod != 1.0:
-            hls = list(colorsys.rgb_to_hls(*(np.array(rgb)/255.0)))
-            hls[1] *= lumMod
-            hls[1] += lumOff
-            if hls[1] > 1.0:
-                hls[1] = 1.0
-            hls[2] *= satMod
-            if hls[2] > 1.0:
-                hls[2] = 1.0
-            colour = np.uint8(255*np.array(colorsys.hls_to_rgb(*hls)) + 0.5)
-            rgb = RGBColor(*colour.tolist())
-        tint = colour_format.tint
-        if tint > 0.0:
-            colour = np.array(rgb)
-            tinted = np.uint8((colour + tint*(255 - colour)))
-            rgb = RGBColor(*colour.tolist())
-        shade = colour_format.shade
-        if shade != 1.0:
-            shaded = np.uint8(shade*np.array(rgb))
-            rgb = RGBColor(*shaded.tolist())
-        return '#{}'.format(str(rgb))
+def add_class(xml, cls):
+#=======================
+    if 'class' not in xml.attribs:
+        xml.attribs['class'] = cls
+    else:
+        xml.attribs['class'] += f' {cls}'
 
 #===============================================================================
 
@@ -338,6 +287,9 @@ class Gradient(object):
 
 class DrawMLTransform(object):
     def __init__(self, shape, bbox=None):
+        if bbox is None:
+            bbox = (shape.width, shape.height)
+
         xfrm = shape.element.xfrm
 
         # From Section L.4.7.6 of ECMA-376 Part 1
@@ -405,12 +357,11 @@ class Transform(object):
 #===============================================================================
 
 class SvgLayer(object):
-    def __init__(self, size, slide, slide_number, ppt_theme, kind='base', shape_filter=None, quiet=False):
+    def __init__(self, size, slide: PptxSlide, slide_number: int, ppt_theme, kind: str='base', shape_filter=None, quiet=False):
         self.__slide = slide
         self.__colour_map = ColourMap(ppt_theme, slide)
-        self.__dwg = svgwrite.Drawing(filename=None, size=size)
-        svg_style = self.__dwg.style(STYLESHEET)
-        self.__dwg.add(svg_style)
+        self.__dwg = svgwrite.Drawing(filename=None, size=None)
+        self.__dwg.attribs['viewBox'] = f'0 0 {size[0]} {size[1]}'
 ## WIP  add_marker_definitions(self.__dwg)
         self.__id = None
         self.__models = None
@@ -444,8 +395,8 @@ class SvgLayer(object):
     #===========================
         self.__dwg.write(file_object, pretty=True, indent=4)
 
-    def get_colour(self, shape, group_colour=None):
-    #==============================================
+    def get_colour(self, shape: PptxShape, group_colour: Optional[str]=None) -> tuple[Optional[str], float]:
+    #=======================================================================================================
         def colour_from_fill(shape, fill):
             if fill.type == MSO_FILL_TYPE.SOLID:
                 return (self.__colour_map.lookup(fill.fore_color),
@@ -479,20 +430,21 @@ class SvgLayer(object):
             log.warning(f'{shape.name}: unsupported line fill type: {shape.line.fill.type}')
         return (colour, alpha)
 
-    def process(self, transform):
-    #============================
+    def process(self, transform: Transform):
+    #=======================================
         self.process_shape_list(self.__slide.shapes, self.__dwg, transform,  not self.__quiet)
         if self.__kind == 'base' and self.__shape_filter is not None:
             self.__shape_filter.create_filter()
 
-    def process_group(self, group, svg_parent, transform):
-    #=====================================================
-        svg_group = self.__dwg.g(id=id_from_name(group.name))
+    def process_group(self, group: PptxGroupShape, svg_parent: SvgElement, transform: Transform):
+    #============================================================================================
+        svg_group = self.__dwg.g(id=group.shape_id)
+        add_markup(svg_group, group.name)
         svg_parent.add(svg_group)
         self.process_shape_list(group.shapes, svg_group, transform@DrawMLTransform(group).matrix(),
                                 group_colour=self.get_colour(group))
 
-    def process_shape_list(self, shapes, svg_parent, transform, group_colour=None, show_progress=False):
+    def process_shape_list(self, shapes: PptxGroupShapes, svg_parent: SvgElement, transform: Transform, group_colour: str=None, show_progress: bool=False):
     #===================================================================================================
         if show_progress:
             print('Processing shape list...')
@@ -516,57 +468,33 @@ class SvgLayer(object):
         if show_progress:
             progress_bar.close()
 
-    def __shape_excluded(self, geometry, overlap=0.98, properties=None, show=False):
-    #===============================================================================
-        if self.__excluded_shape_tree is not None:
-            intersecting_shapes = self.__excluded_shape_tree.query(geometry)
-            for g in intersecting_shapes:
-                if g.intersects(geometry):
-                    if properties is None:
-                        intersecting_area = g.intersection(geometry).area
-                        if (intersecting_area >= overlap*geometry.area
-                        and intersecting_area >= overlap*g.area):
-                            if show:
-                                attribs = self.__excluded_shape_attributes[id(g)]
-                                print(f'Excluded at {100*overlap}% by {attribs}')
-                            return True
-                    elif properties == self.__excluded_shape_attributes[id(g)]:
-                        if show:
-                            print(f'Excluded by {properties}')
-                        return True
-        return False
+    def process_shape(self, shape: PptxShape, svg_parent: SvgElement, transform: Transform, group_colour: str=None):
+    #===============================================================================================================
 
-    def process_shape(self, shape, svg_parent, transform, group_colour=None):
-    #=======================================================================
-        shape_id = id_from_name(shape.name)
-        geometry = Geometry(shape)
-        if shape_id is not None and len(geometry) > 1:
-            # Add a group to hold multiple paths
-            ## We should really add a `.group` placeholder
-            group = self.__dwg.g(id=shape_id)
-            svg_parent.add(group)
-            svg_parent = group
-            shape_id = None
+        closed = False
+        coordinates = []
+        pptx_geometry = Geometry(shape)
 
-        for path in geometry.path_list:
-            svg_path = self.__dwg.path(fill='none', class_='non-scaling-stroke')
-            svg_text = None
-            if shape_id is not None:
-                svg_path.attribs['id'] = shape_id
+        svg_path = self.__dwg.path(id=shape.shape_id, fill='none', class_='non-scaling-stroke')
+
+        for path in pptx_geometry.path_list:
+
             bbox = (shape.width, shape.height) if path.w is None else (path.w, path.h)
             T = transform@DrawMLTransform(shape, bbox).matrix()
+
+            shape_size = T.scale_length(bbox)
+
             current_point = None
             first_point = None
-            closed = False
             moved = False
-            coordinates = []
+
             exclude_shape = False
             for c in path.getchildren():
                 if   c.tag == DML('arcTo'):
-                    wR = geometry.attrib_value(c, 'wR')
-                    hR = geometry.attrib_value(c, 'hR')
-                    stAng = radians(geometry.attrib_value(c, 'stAng'))
-                    swAng = radians(geometry.attrib_value(c, 'swAng'))
+                    wR = pptx_geometry.attrib_value(c, 'wR')
+                    hR = pptx_geometry.attrib_value(c, 'hR')
+                    stAng = radians(pptx_geometry.attrib_value(c, 'stAng'))
+                    swAng = radians(pptx_geometry.attrib_value(c, 'swAng'))
                     p1 = ellipse_point(wR, hR, stAng)
                     p2 = ellipse_point(wR, hR, stAng + swAng)
                     pt = (current_point[0] - p1[0] + p2[0],
@@ -576,6 +504,12 @@ class SvgLayer(object):
                     svg_path.push('A', *T.scale_length((wR, hR)),
                                        180*phi/PI, large_arc_flag, 1,
                                        *T.transform_point(pt))
+                    large_arc_flag = 1 if swAng >= PI else 0
+                    segs = bezier_segments_from_arc_endpoints(tuple2(wR, hR),
+                                        0, large_arc_flag, 1,
+                                        tuple2(*current_point), tuple2(*pt),
+                                        T)
+                    coordinates.extend(bezier_sample(BezierPath.fromSegments(segs)))
                     current_point = pt
                 elif c.tag == DML('close'):
                     svg_path.push('Z')
@@ -585,13 +519,17 @@ class SvgLayer(object):
                     first_point = None
                 elif c.tag == DML('cubicBezTo'):
                     coords = []
+                    bz_coords = [BezierPoint(*T.transform_point(current_point))]
                     for p in c.getchildren():
-                        pt = geometry.point(p)
+                        pt = pptx_geometry.point(p)
                         coords.extend(T.transform_point(pt))
+                        bz_coords.append(BezierPoint(*T.transform_point(pt)))
                         current_point = pt
                     svg_path.push('C', *coords)
+                    bz = CubicBezier(*bz_coords)
+                    coordinates.extend(bezier_sample(bz))
                 elif c.tag == DML('lnTo'):
-                    pt = geometry.point(c.pt)
+                    pt = pptx_geometry.point(c.pt)
                     coords = T.transform_point(pt)
                     svg_path.push('L', *coords)
                     if moved:
@@ -600,7 +538,7 @@ class SvgLayer(object):
                     coordinates.append(coords)
                     current_point = pt
                 elif c.tag == DML('moveTo'):
-                    pt = geometry.point(c.pt)
+                    pt = pptx_geometry.point(c.pt)
                     coords = T.transform_point(pt)
                     svg_path.push('M', *coords)
                     if first_point is None:
@@ -609,131 +547,217 @@ class SvgLayer(object):
                     current_point = pt
                 elif c.tag == DML('quadBezTo'):
                     coords = []
+                    bz_coords = [BezierPoint(*T.transform_point(current_point))]
                     for p in c.getchildren():
-                        pt = geometry.point(p)
+                        pt = pptx_geometry.point(p)
                         coords.extend(T.transform_point(pt))
+                        bz_coords.append(BezierPoint(*T.transform_point(pt)))
                         current_point = pt
                     svg_path.push('Q', *coords)
+                    bz = QuadraticBezier(*bz_coords)
+                    coordinates.extend(bezier_sample(bz))
                 else:
                     print('Unknown path element: {}'.format(c.tag))
 
-            colour, alpha = self.get_colour(shape, group_colour)
-            if not isinstance(shape, pptx.shapes.connector.Connector):
-                if (shape.fill.type == MSO_FILL_TYPE.SOLID
-                 or shape.fill.type == MSO_FILL_TYPE.GROUP):
-                    svg_path.attribs['fill'] = colour
-                    if alpha < 1.0:
-                        svg_path.attribs['opacity'] = alpha
-                elif shape.fill.type == MSO_FILL_TYPE.GRADIENT:
-                    self.__gradient_id += 1
-                    gradient = Gradient(self.__dwg, self.__gradient_id, shape, self.__colour_map)
-                    svg_path.attribs['fill'] = gradient.url
-                elif shape.fill.type is None:
-                    svg_path.attribs['fill'] = '#FF0000'
-                    svg_path.attribs['opacity'] = 1.0
-                elif shape.fill.type != MSO_FILL_TYPE.BACKGROUND:
-                    print('Unsupported fill type: {}'.format(shape.fill.type))
-
-                label = text_content(shape)
-                if self.__kind == 'base' and label != '':
-                    # Draw text if base map
-                    svg_text = self.__dwg.text(label)
-                    shape_pos = T.transform_point((0, 0))
-                    shape_size = T.scale_length(bbox)
-                    svg_text.attribs['x'] = shape_pos[0]
-                    svg_text.attribs['y'] = shape_pos[1]
-                    (halign, valign) = text_alignment(shape)
-                    #if shape.rotation != 0:
-                    #    svg_text.attribs['transform'] = f'rotate({shape.rotation})'
-                    if halign == 'right':
-                        svg_text.attribs['text-anchor'] = 'end'
-                        svg_text.attribs['x'] += shape_size[0] - TEXT_MARGINS[0]
-                    elif halign == 'centre':
-                        svg_text.attribs['text-anchor'] = 'middle'
-                        svg_text.attribs['x'] += shape_size[0]/2
-                    else:   # Default to 'left'
-                        svg_text.attribs['text-anchor'] = 'start'
-                        svg_text.attribs['x'] += TEXT_MARGINS[0]
-                    if valign == 'bottom':
-                        svg_text.attribs['dominant-baseline'] = 'auto'
-                        svg_text.attribs['y'] += shape_size[1]
-                    elif valign == 'middle':
-                        svg_text.attribs['dominant-baseline'] = 'middle'
-                        svg_text.attribs['y'] += shape_size[1]/2
-                    else:   # Default to 'top'
-                        svg_text.attribs['dominant-baseline'] = 'auto'
-                        svg_text.attribs['y'] += FONT_SIZE + TEXT_MARGINS[1]
-
-                if self.__shape_filter is not None and len(coordinates) > 2 and closed:
-                    # Apply filter to closed shapes
-                    geometry = shapely.geometry.Polygon(coordinates)
-                    properties = {
-                        'label': label,
-                        'colour': colour,
-                        'alpha': alpha
-                    }
-                    closed_shape = Shape(SHAPE_TYPE.FEATURE, shape_id, geometry, properties)
-                    if self.__kind == 'base':
-                        self.__shape_filter.add_shape(closed_shape)
-                    elif self.__kind == 'layer':
-                        self.__shape_filter.filter(closed_shape)
-                        exclude_shape = properties.get('exclude', False)
-
-            elif self.__shape_filter is not None:
-                # Exclude connectors when filtering shapes
-                exclude_shape = True
-
+        exclude_shape = False
+        exclude_text = True
+        svg_text = None
+        label = None
+        colour, alpha = self.get_colour(shape, group_colour)
+        if not isinstance(shape, pptx.shapes.connector.Connector):
+            svg_path.attribs.update(self.__get_fill(shape, group_colour))
+            label = text_content(shape)
+            if self.__shape_filter is not None and len(coordinates) > 2 and closed:
+                # Apply filter to closed shapes
+                ## this doesn't work for shapes drawn using arcTo or *BezTo commands
+                ## OK for FC since (most) shapes are rectangular (but not circular nodes...)
+                geometry = shapely.geometry.Polygon(coordinates)
+                properties = {
+                    'colour': colour,
+                    'alpha': alpha
+                }
+                if label is not None:
+                    properties['label'] = label
+                closed_shape = Shape(SHAPE_TYPE.FEATURE, shape.shape_id, geometry, properties)
+                if self.__kind == 'base':
+                    self.__shape_filter.add_shape(closed_shape)
+                elif self.__kind == 'layer':
+                    self.__shape_filter.filter(closed_shape)
+                exclude_shape = properties.get('exclude', False)
+                exclude_text = properties.get('exclude-text', False)
             else:
-                line_style = None
-                shape_xml = etree.fromstring(shape.element.xml)
-                if (line_props := shape_xml.find('.//p:spPr/a:ln',
-                                                namespaces=PPTX_NAMESPACE)) is not None:
-                    for prop in line_props.getchildren():
-                        if prop.tag == DML('prstDash'):
-                            line_style = prop.attrib.get('val', 'solid')
-                            break
-                try:
-                    dash_style = shape.line.dash_style
-                except KeyError:
-                    dash_style = None
+                exclude_text = False
 
-                if line_style is not None or dash_style is not None:
-                    if dash_style == MSO_LINE_DASH_STYLE.DASH:
-                        print('DASH', dash_style, line_style)
-                        svg_path.attribs['stroke-dasharray'] = 4*stroke_width
-                    elif line_style == 'sysDot':
-                        svg_path.attribs['stroke-dasharray'] = '{} {} {} {}'.format(4*stroke_width, stroke_width, stroke_width, stroke_width)
-                    elif dash_style == MSO_LINE_DASH_STYLE.LONG_DASH:
-                        print('LONG_DASH', dash_style, line_style)
-                        svg_path.attribs['stroke-dasharray'] = '{} {}'.format(4*stroke_width, stroke_width)
-                    elif dash_style == MSO_LINE_DASH_STYLE.SQUARE_DOT:
-                        print('SQUARE_DOT', dash_style, line_style)
-                        svg_path.attribs['stroke-dasharray'] = '{} {}'.format(2*stroke_width, stroke_width)
-                    elif line_style != 'solid':
-                        print(f'Unsupported line dash style: {dash_style}/{line_style}')
+            exclude_text = True ####################### TEMP
+            if (not exclude_text and not exclude_shape   ## <<<<<<<<<<<<<<<<<<<<< No text at all...
+            and self.__kind == 'base' and label is not None):
+                svg_text = self.__draw_shape_label(shape, label, shape_size, T)
 
-            if shape.line.fill.type == MSO_FILL_TYPE.SOLID:
-                svg_path.attribs['stroke'] = self.__colour_map.lookup(shape.line.color)
-                alpha = shape.line.fill.fore_color.alpha
-                if alpha < 1.0:
-                    svg_path.attribs['stroke-opacity'] = alpha
-            elif shape.line.fill.type is None:
-                svg_path.attribs['stroke'] = 'none'
-            elif shape.line.fill.type != MSO_FILL_TYPE.BACKGROUND:
-                print('Unsupported line fill type: {}'.format(shape.line.fill.type))
-            stroke_width = points_to_pixels(max(Length(shape.line.width).pt, MIN_STROKE_WIDTH))
-            svg_path.attribs['stroke-width'] = stroke_width
+            svg_path.attribs.update(self.__get_stroke(shape))
 
+        elif True:  #####  WIP self.__shape_filter is not None:   ## No filter for pptx2celldel ??
+            # Exclude connectors when filtering shapes
+            exclude_shape = True
 
 ## WIP      if 'type' in shape.line.headEnd or 'type' in shape.line.tailEnd:
 ## WIP          svg_path.set_markers((marker_id(shape.line.headEnd, 'head'),
 ## WIP                                None,
 ## WIP                                marker_id(shape.line.tailEnd, 'tail')))
 
-            if not exclude_shape:
+        if not exclude_shape:
+            # Use shapely to get geometry
+            if closed:
+                geometry = shapely.geometry.Polygon(coordinates)
+            else:
+                geometry = shapely.geometry.LineString(coordinates)
+                if shape.name.trim().startswith('.') and 'closed' in shape.name:
+                    coordinates.append(coordinates[0])
+                    geometry = shapely.geometry.Polygon(coordinates)
+            shape_kind = pptx_geometry.shape_kind
+
+            if (shape_kind is not None
+             and not shape_kind.startswith('star')
+             and shape_size[0]*shape_size[1] < 200):
+                add_class(svg_path, 'connector')    ## FC
+                                                    ## cardio (circle) versus neural (rect)
+                                                    ## nerve features...
+
+            if (hyperlink := self.__get_link(shape)) is not None:
+                if label is None:
+                    label = hyperlink
+                link_element = self.__dwg.a(href=hyperlink)
+                link_element.add(svg_path)
+                if svg_text is not None:
+                    link_element.add(svg_text)
+                svg_parent.add(link_element)
+            else:
                 svg_parent.add(svg_path)
                 if svg_text is not None:
                     svg_parent.add(svg_text)
+            if label is not None:
+                add_markup(svg_path, label)  # Set's <title>
+                if svg_text is not None:
+                    add_markup(svg_text, label)
+            else:
+                add_markup(svg_path, shape.name)
+
+    def __draw_shape_label(self, shape: PptxShape, label: str, shape_size: tuple[float, float], transform: Transform) -> SvgElement:
+    #===============================================================================================================================
+        # Draw text if base map
+
+        style = {}
+        font = shape.text_frame.paragraphs[0].runs[0].font
+        font_size = round(font.size/EMU_PER_PIXEL)
+        if font.name is not None:   ## Else need to get from theme
+            style['font-family'] = font.name
+        style['font-size'] = f'{font_size}px'
+        style['font-weight'] = 700 if font.bold else 400
+        if font.italic:
+            style['font-size'] = 'italic'
+        if font.color.type is not None:
+            style['fill'] = self.__colour_map.lookup(font.color)
+            if font.color.alpha != 1.0:
+                style['fill-opacity'] = font.color.alpha
+
+        svg_text = self.__dwg.text(label)   ## text_run.text
+        svg_text.attribs['style'] = ' '.join([f'{name}: {value};' for name, value in style.items()])
+
+        shape_pos = transform.transform_point((0, 0))
+        svg_text.attribs['x'] = shape_pos[0]
+        svg_text.attribs['y'] = shape_pos[1]
+        (halign, valign) = text_alignment(shape)
+
+        if halign == 'right':
+            svg_text.attribs['text-anchor'] = 'end'
+            svg_text.attribs['x'] += shape_size[0] - TEXT_MARGINS[0]
+        elif halign == 'centre':
+            svg_text.attribs['text-anchor'] = 'middle'
+            svg_text.attribs['x'] += shape_size[0]/2
+        else:   # Default to 'left'
+            svg_text.attribs['text-anchor'] = 'start'
+            svg_text.attribs['x'] += TEXT_MARGINS[0]
+        if valign == 'bottom':
+            svg_text.attribs['dominant-baseline'] = 'auto'
+            svg_text.attribs['y'] += shape_size[1]
+        elif valign == 'middle':
+            svg_text.attribs['dominant-baseline'] = 'middle'
+            svg_text.attribs['y'] += shape_size[1]/2
+        else:   # Default to 'top'
+            svg_text.attribs['dominant-baseline'] = 'auto'
+            svg_text.attribs['y'] += font_size + TEXT_MARGINS[1]
+        return svg_text
+
+    def __get_fill(self, shape: PptxShape, group_colour: str) -> dict[str, Any]:
+    #===========================================================================
+        fill_attribs = {}
+        colour, alpha = self.get_colour(shape, group_colour)
+        if (shape.fill.type == MSO_FILL_TYPE.SOLID
+         or shape.fill.type == MSO_FILL_TYPE.GROUP):
+            fill_attribs['fill'] = colour
+            if alpha < 1.0:
+                fill_attribs['opacity'] = alpha
+        elif shape.fill.type == MSO_FILL_TYPE.GRADIENT:
+            self.__gradient_id += 1
+            gradient = Gradient(self.__dwg, self.__gradient_id, shape, self.__colour_map)
+            fill_attribs['fill'] = gradient.url
+        elif shape.fill.type is None:
+            fill_attribs['fill'] = '#FF0000'
+            fill_attribs['opacity'] = 1.0
+        elif shape.fill.type != MSO_FILL_TYPE.BACKGROUND:
+            print('Unsupported fill type: {}'.format(shape.fill.type))
+        return fill_attribs
+
+    @staticmethod
+    def __get_link(shape: PptxShape) -> str:
+    #=======================================
+        shape_xml = etree.fromstring(shape.element.xml)
+        for link_ref in shape_xml.findall('.//a:hlinkClick', namespaces=PPTX_NAMESPACE):
+            r_id = link_ref.attrib[pptx_resolve('r:id')]
+            if (r_id in shape.part.rels
+             and shape.part.rels[r_id].reltype == 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink'):
+                return shape.part.rels[r_id].target_ref
+
+    def __get_stroke(self, shape: PptxShape) -> dict[str, Any]:
+    #==========================================================
+        stroke_attribs = {}
+        line_style = None
+        shape_xml = etree.fromstring(shape.element.xml)
+        if (line_props := shape_xml.find('.//p:spPr/a:ln', namespaces=PPTX_NAMESPACE)) is not None:
+            for prop in line_props.getchildren():
+                if prop.tag == DML('prstDash'):
+                    line_style = prop.attrib.get('val', 'solid')
+                    break
+        try:
+            dash_style = shape.line.dash_style
+        except KeyError:
+            dash_style = None
+        if line_style is not None or dash_style is not None:
+            if dash_style == MSO_LINE_DASH_STYLE.DASH:
+                print('DASH', dash_style, line_style)
+                stroke_attribs['stroke-dasharray'] = 4*stroke_width
+            elif line_style == 'sysDot':
+                stroke_attribs['stroke-dasharray'] = '{} {} {} {}'.format(4*stroke_width, stroke_width, stroke_width, stroke_width)
+            elif dash_style == MSO_LINE_DASH_STYLE.LONG_DASH:
+                print('LONG_DASH', dash_style, line_style)
+                stroke_attribs['stroke-dasharray'] = '{} {}'.format(4*stroke_width, stroke_width)
+            elif dash_style == MSO_LINE_DASH_STYLE.SQUARE_DOT:
+                print('SQUARE_DOT', dash_style, line_style)
+                stroke_attribs['stroke-dasharray'] = '{} {}'.format(2*stroke_width, stroke_width)
+            elif line_style != 'solid':
+                print(f'Unsupported line dash style: {dash_style}/{line_style}')
+        if shape.line.fill.type == MSO_FILL_TYPE.SOLID:
+            stroke_attribs['stroke'] = self.__colour_map.lookup(shape.line.color)
+            alpha = shape.line.fill.fore_color.alpha
+            if alpha < 1.0:
+                stroke_attribs['stroke-opacity'] = alpha
+        elif shape.line.fill.type is None:
+            stroke_attribs['stroke'] = 'none'
+        elif shape.line.fill.type != MSO_FILL_TYPE.BACKGROUND:
+            print('Unsupported line fill type: {}'.format(shape.line.fill.type))
+        stroke_width = points_to_pixels(max(Length(shape.line.width).pt, MIN_STROKE_WIDTH))
+        stroke_attribs['stroke-width'] = stroke_width
+
+        return stroke_attribs
 
 #===============================================================================
 
@@ -783,11 +807,13 @@ class Pptx2Svg(object):
 
     def save_layers(self, output_dir):
     #=================================
+        self.__saved_svg = OrderedDict()
         for layer in self.__svg_layers:
             filename = f'{layer.id}.svg'
             with open(os.path.join(output_dir, filename), 'w', encoding='utf-8') as fp:
                 layer.save(fp)
             self.__saved_svg[layer.id] = filename
+        return self.__saved_svg
 
     def update_manifest(self, manifest):
     #===================================
