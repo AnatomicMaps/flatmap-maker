@@ -20,13 +20,11 @@
 
 from __future__ import annotations
 from collections import OrderedDict
-import colorsys
 from math import sqrt, sin, cos, acos, pi as PI
 import os
 from pathlib import Path
 import re
 from typing import Optional
-from zipfile import ZipFile
 
 #===============================================================================
 
@@ -58,16 +56,15 @@ from beziers.quadraticbezier import QuadraticBezier
 import pptx.shapes.connector
 from pptx import Presentation
 from pptx.dml.fill import FillFormat
-from pptx.dml.color import RGBColor
-from pptx.enum.dml import MSO_COLOR_TYPE, MSO_FILL_TYPE, MSO_THEME_COLOR, MSO_LINE_DASH_STYLE
+from pptx.enum.dml import MSO_FILL_TYPE, MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_SHAPE_TYPE
-from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.enum.text import MSO_VERTICAL_ANCHOR as MSO_ANCHOR
+from pptx.enum.text import PP_PARAGRAPH_ALIGNMENT as PP_ALIGN
 from pptx.util import Length
 
 from pptx.shapes.base import BaseShape as PptxShape
 from pptx.shapes.group import GroupShape as PptxGroupShape
 from pptx.shapes.shapetree import GroupShapes as PptxGroupShapes
-from pptx.shapes.shapetree import SlideShapes as PptxSlideShapes
 from pptx.slide import Slide as PptxSlide
 
 #===============================================================================
