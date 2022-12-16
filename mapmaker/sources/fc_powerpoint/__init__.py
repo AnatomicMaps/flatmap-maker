@@ -296,8 +296,8 @@ class FCSlide(PowerpointSlide):
 
                 # Sort geometries by area, smallest item first
                 overlaps = [shape_ids[i[0]]
-                                for i in sorted([(id(geometry), geometry.area)
-                                                    for geometry in intersecting_geometries],
+                                for i in sorted([(id(geometries[index]), geometries[index].area)
+                                                    for index in intersecting_geometries],
                                                 key = lambda x: x[1])
                            ]
 

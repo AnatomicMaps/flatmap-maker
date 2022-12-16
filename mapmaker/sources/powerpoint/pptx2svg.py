@@ -37,12 +37,8 @@ import transforms3d
 
 #===============================================================================
 
-from shapely.errors import ShapelyDeprecationWarning
 import shapely.geometry
 import shapely.strtree
-
-import warnings
-warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
 #===============================================================================
 

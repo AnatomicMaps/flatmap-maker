@@ -24,10 +24,6 @@ import json
 
 import shapely.strtree
 
-import warnings
-from shapely.errors import ShapelyDeprecationWarning
-warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
-
 #===============================================================================
 
 from mapmaker.utils import log
@@ -82,8 +78,9 @@ class ShapeFilter:
     def __shape_excluded(self, geometry, overlap=0.98, attributes=None, show=False):
     #===============================================================================
         if self.__excluded_shape_rtree is not None:
-            intersecting_shapes = self.__excluded_shape_rtree.query(geometry)
-            for g in intersecting_shapes:
+            intersecting_shapes_indices = self.__excluded_shape_rtree.query(geometry)
+            for index in intersecting_shapes_indices:
+                g = self.__excluded_shape_geometries[index]
                 if g.intersects(geometry):
                     if attributes is None:
                         intersecting_area = g.intersection(geometry).area
