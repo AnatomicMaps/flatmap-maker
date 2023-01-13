@@ -108,7 +108,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "flatmapknowledge"
-version = "1.2.1"
+version = "1.2.2"
 description = ""
 category = "main"
 optional = false
@@ -119,7 +119,7 @@ mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/do
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.2.1/flatmapknowledge-1.2.1-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.2.2/flatmapknowledge-1.2.2-py3-none-any.whl"
 [[package]]
 name = "gitdb"
 version = "4.0.10"
@@ -862,7 +862,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4.0"
-content-hash = "fea1986893f7a9f75a867e0627aae87155126695cb572bc23f584398c61ecec9"
+content-hash = "e830dfc85a93128a00fe3c8c0050ac7a4f094894082370887762d0a13b3a055a"
 
 [metadata.files]
 alabaster = [
