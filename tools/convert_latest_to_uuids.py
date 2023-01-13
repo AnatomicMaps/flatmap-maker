@@ -135,6 +135,9 @@ class Flatmap:
     def index(self):
         return self.__index
 
+    def get(self, key, default=None):
+        return self.__flatmap.get(key, default)
+
 #===============================================================================
 
 def latest_flatmaps(flatmap_root):
