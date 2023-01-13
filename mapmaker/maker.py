@@ -262,6 +262,10 @@ class Manifest:
         blob_url = self.__repo.path_blob_url(self.__url)
         return self.__url if blob_url is None else blob_url
 
+    @property
+    def uuid(self):
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, self.url))
+
     def __check_and_normalise_path(self, path) -> str:
     #=================================================
         normalised_path = self.__path.join_url(path)
@@ -335,7 +339,7 @@ class MapMaker(object):
         self.__id = self.__manifest.id
         if self.__id is None:
             raise ValueError('No id given for map')
-        self.__uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, self.__manifest.url))
+        self.__uuid = self.__manifest.uuid
 
         # Save for metadata
         git_status = self.__manifest.git_status
