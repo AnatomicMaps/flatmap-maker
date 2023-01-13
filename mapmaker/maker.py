@@ -117,7 +117,10 @@ class MapRepository:
                     upstream_url = url
                     break
             url = giturlparse.parse(upstream_url)
-            self.__upstream_base = f'{url.protocol}://{url.host}{url.port}/{url.owner}/{url.repo}/blob/{self.__repo.head.commit.hexsha}/'
+            raw_folder = ('blob/' if url.host.endswith('github.com') else
+                          'rawfile/' if url.host.endswith('physiomeproject.org') else
+                          '')
+            self.__upstream_base = f'{url.protocol}://{url.host}{url.port}/{url.owner}/{url.repo}/{raw_folder}{self.__repo.head.commit.hexsha}/'
 
     def status(self, path: str) -> GitState:
     #=======================================
