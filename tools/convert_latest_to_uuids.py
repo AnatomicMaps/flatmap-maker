@@ -175,6 +175,8 @@ class FlatmapSource:
     def __init__(self, flatmap):
         map_source = flatmap['source']
         git_url = giturlparse.parse(map_source)
+        if not git_url.valid:
+            raise FlatmapError('Sources are not in a remote git repository')
         if not git_url.domain.endswith('physiomeproject.org'):
             raise FlatmapError('Only `physiomeproject.org` sources are currently supported')
         parts = git_url.groups_path.split('/')
