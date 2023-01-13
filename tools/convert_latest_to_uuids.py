@@ -135,6 +135,9 @@ class Flatmap:
     def index(self):
         return self.__index
 
+    def as_dict(self):
+        return self.__flatmap
+
     def get(self, key, default=None):
         return self.__flatmap.get(key, default)
 
@@ -189,10 +192,10 @@ class FlatmapSource:
 #===============================================================================
 
 class FlatmapConvertor:
-    def __init__(self, output_root, final_root=None):
-        self.__output_path = pathlib.Path(output_root).absolute()
+    def __init__(self, output_path, final_root=None):
+        self.__output_path = output_path
         self.__final_root = final_root if final_root is not None else str(self.__output_path)
-        self.__store = KnowledgeStore(output_root, create=False)
+        self.__store = KnowledgeStore(output_path, create=False)
 
     def convert(self, flatmap_dir, manifest):
         output_dir = self.__output_path / manifest.uuid
@@ -244,42 +247,62 @@ class FlatmapConvertor:
 #===============================================================================
 
 def main():
-    import sys
-
-    parser = argparse.ArgumentParser(description='Upgrade most recent maps for each species on a flatmap server to use GUIDs.')
+    parser = argparse.ArgumentParser(description='Upgrade most recent maps for each species to use GUIDs.')
     parser.add_argument('--id', metavar='ID', help='Only process this map (and only if it is the latest for a species)')
-    parser.add_argument('--final-dest', metavar='FINAL_DESTINATION_FLATMAP_ROOT', help='Full path to flatmap root where destination maps will be placed')
-    parser.add_argument('source_flatmaps', metavar='SOURCE_FLATMAP_ROOT')
-    parser.add_argument('dest_flatmaps', metavar='DESTINATION_FLATMAP_ROOT')
+    parser.add_argument('--list-only', action='store_true', help='List most recent maps without upgrading them')
+    parser.add_argument('--dest', dest='dest_flatmaps', metavar='DESTINATION', help='Flatmap root to save maps into. Required if not `list-latest`')
+    parser.add_argument('--final', dest='final_dest', metavar='FINAL_DESTINATION', help='Full path to flatmap root where destination maps will be placed. Optional, defaults to DESTINATION')
+    parser.add_argument('--source', dest='source_flatmaps', required=True, metavar='SOURCE', help='Flatmap root to source maps. Required')
     args = parser.parse_args()
 
-    if args.dest_flatmaps == args.source_flatmaps:
-        sys.exit('Source and destination root directories must be different')
-    if args.final_dest is not None and not args.final_dest.startswith('/'):
-        sys.exit('Final destination path must start with `/`')
+    if not args.list_only:
+        if args.dest_flatmaps is None:
+            parser.error('Destination root directory is required if not listing latest maps')
+        elif args.dest_flatmaps == args.source_flatmaps:
+            parser.error('Source and destination root directories must be different')
+        if args.final_dest is not None and not args.final_dest.startswith('/'):
+            parser.error('Final destination path must start with `/`')
 
-    conversion_table = {}
-    convertor = FlatmapConvertor(args.dest_flatmaps, args.final_dest)
-    for flatmap_dir, flatmap in latest_flatmaps(args.source_flatmaps).items():
-        taxon = flatmap['taxon']
-        if 'uuid' in flatmap:
-            logging.info(f'Skipped {taxon} ({flatmap_dir}) as already uses GUID')
-            continue
-        elif args.id is not None and args.id != flatmap['id']:
-            continue
-        try:
-            flatmap_source = FlatmapSource(flatmap)
-        except TypeError as e:
-            logging.error(str(e))
-            continue
-        guid = convertor.convert(flatmap_dir, flatmap_source.manifest)
-        if guid is not None:
-            conversion_table[taxon] = guid
-            logging.info(f'Saved {taxon} ({flatmap_dir}) as {guid}')
-        else:
-            logging.info(f'Skipped {taxon} ({flatmap_dir}) as GUID already exists')
+    latest_maps = latest_flatmaps(args.source_flatmaps)
+    if latest_maps is None:
+        exit()
+    output_dict = {}
+    if args.list_only:
+        for flatmap_dir, flatmap in latest_maps.items():
+            taxon = flatmap['taxon']
+            if 'uuid' in flatmap:
+                logging.info(f'Skipped {taxon} ({flatmap_dir}) as source already has GUID')
+                continue
+            elif args.id is not None and args.id != flatmap['id']:
+                continue
+            output_dict[flatmap_dir] = flatmap.as_dict()
 
-    print(json.dumps(conversion_table, indent=4))
+    else:
+        output_path = pathlib.Path(args.dest_flatmaps).absolute()
+        if not output_path.exists():
+            logging.error(f'Missing destination directory: {output_path}')
+            exit()
+        convertor = FlatmapConvertor(output_path, args.final_dest)
+        for flatmap_dir, flatmap in latest_maps.items():
+            taxon = flatmap['taxon']
+            if 'uuid' in flatmap:
+                logging.info(f'Skipped {taxon} ({flatmap_dir}) as source already has GUID')
+                continue
+            elif args.id is not None and args.id != flatmap['id']:
+                continue
+            try:
+                flatmap_source = FlatmapSource(flatmap)
+            except FlatmapError as e:
+                logging.warning(f'{flatmap_dir}: {e}')
+                continue
+            guid = convertor.convert(flatmap_dir, flatmap_source.manifest)
+            if guid is not None:
+                output_dict[taxon] = guid
+                logging.info(f'Saved {taxon} ({flatmap_dir}) as {guid}')
+            else:
+                logging.info(f'Skipped {taxon} ({flatmap_dir}) as destination GUID already exists')
+
+    print(json.dumps(output_dict, indent=4))
 
 #===============================================================================
 
