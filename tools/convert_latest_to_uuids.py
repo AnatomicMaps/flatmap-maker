@@ -24,6 +24,7 @@ import logging
 import os
 import pathlib
 import shutil
+import sqlite3
 import tempfile
 
 #===============================================================================
@@ -35,13 +36,34 @@ import giturlparse
 from flatmapknowledge import KnowledgeStore
 
 from mapmaker.maker import Manifest
-from mapmaker.output.mbtiles import MBTiles
 
 #===============================================================================
 
 def normalise_identifier(id):
     return ':'.join([(s[:-1].lstrip('0') + s[-1])
                         for s in id.split(':')])
+
+#===============================================================================
+
+class MetadataDatabase:
+    def __init__(self, database):
+        self.__db = sqlite3.connect(database)
+
+    def add_metadata(self, **metadata):
+        for name, value in metadata.items():
+            self.__db.execute('replace into metadata(name, value) values (?, ?);',
+                                                                    (name, value))
+    def close(self):
+        self.__db.close()
+
+    def execute(self, sql):
+        return self.__db.execute(sql)
+
+    def metadata(self, name=None):
+        if name is not None:
+            return self.__db.execute('select value from metadata where name=?;', (name, )).fetchone()[0]
+        else:
+            return dict(self.__db.execute('select name, value from metadata;').fetchall())
 
 #===============================================================================
 
@@ -60,12 +82,12 @@ class Flatmap:
         if version < 1.3:
             raise TypeError(f'Flatmap version is too old: {flatmap_dir}')
 
-        tile_db = MBTiles(mbtiles)
-        metadata = tile_db.metadata('metadata')
-        tile_db.close()
         if (('id' not in metadata or flatmap_dir.name != metadata['id'])
          and ('uuid' not in metadata or flatmap_dir.name != metadata['uuid'].split(':')[-1])):
             raise TypeError(f'Flatmap id mismatch: {flatmap_dir}')
+        db = MetadataDatabase(mbtiles)
+        metadata = json.loads(str(db.metadata(name='metadata')))
+        db.close()
 
         flatmap = {
             'id': metadata['id'],
@@ -184,7 +206,7 @@ class FlatmapConvertor:
             fp.write(json.dumps(index))
 
         mbtiles_file = output_dir / 'index.mbtiles'
-        tile_db = MBTiles(mbtiles_file)
+        tile_db = MetadataDatabase(mbtiles_file)
         metadata = json.loads(str(tile_db.metadata(name='metadata')))
         metadata.pop('name', None)
         metadata['id'] = index['id']
