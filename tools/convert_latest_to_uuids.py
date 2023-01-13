@@ -173,7 +173,7 @@ class FlatmapSource:
         map_source = flatmap['source']
         git_url = giturlparse.parse(map_source)
         if not git_url.domain.endswith('physiomeproject.org'):
-            raise TypeError('Only `physiomeproject.org` sources are currently supported')
+            raise FlatmapError('Only `physiomeproject.org` sources are currently supported')
         parts = git_url.groups_path.split('/')
         repo_path = f'{git_url.protocol}://{git_url.host}{git_url.port}/{git_url.owner}/{parts[0]}'
         working_dir = tempfile.TemporaryDirectory()
