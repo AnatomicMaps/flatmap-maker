@@ -21,7 +21,6 @@
 import argparse
 import json
 import logging
-import os
 import pathlib
 import shutil
 import sqlite3
@@ -67,27 +66,31 @@ class MetadataDatabase:
 
 #===============================================================================
 
+class FlatmapError(Exception):
+    pass
+
+#===============================================================================
+
 class Flatmap:
-    def __init__(self, flatmap_dir):
-        index_file = os.path.join(flatmap_dir, 'index.json')
-        mbtiles = os.path.join(flatmap_dir, 'index.mbtiles')
-        if (not os.path.isdir(flatmap_dir)
-         or not os.path.exists(index_file)
-         or not os.path.exists(mbtiles)):
-            raise TypeError(f'Invalid or missing flatmap directory: {flatmap_dir}')
+    def __init__(self, flatmap_path):
+        index_file = flatmap_path / 'index.json'
+        mbtiles = flatmap_path / 'index.mbtiles'
+        if not flatmap_path.is_dir() or not index_file.exists() or not mbtiles.exists():
+            raise FlatmapError('Invalid or missing directory')
 
         with open(index_file) as fp:
             self.__index = json.loads(fp.read())
         version = self.__index.get('version', 1.0)
         if version < 1.3:
-            raise TypeError(f'Flatmap version is too old: {flatmap_dir}')
+            raise FlatmapError('Version is too old')
 
-        if (('id' not in metadata or flatmap_dir.name != metadata['id'])
-         and ('uuid' not in metadata or flatmap_dir.name != metadata['uuid'].split(':')[-1])):
-            raise TypeError(f'Flatmap id mismatch: {flatmap_dir}')
         db = MetadataDatabase(mbtiles)
         metadata = json.loads(str(db.metadata(name='metadata')))
         db.close()
+
+        if (('id' not in metadata or flatmap_path.name != metadata['id'])
+         and ('uuid' not in metadata or flatmap_path.name != metadata['uuid'].split(':')[-1])):
+            raise FlatmapError('Id mismatch')
 
         flatmap = {
             'id': metadata['id'],
@@ -138,13 +141,17 @@ def latest_flatmaps(flatmap_root):
 #=================================
     flatmaps_by_dir = {}
     root_path = pathlib.Path(flatmap_root).absolute()
-    if root_path.is_dir():
-        for flatmap_dir in root_path.iterdir():
-            try:
-                flatmaps_by_dir[str(flatmap_dir)] = Flatmap(flatmap_dir)
-            except TypeError as e:
-                logging.error(str(e))
-                continue
+    if not root_path.exists():
+        logging.error(f'Missing source directory: {root_path}')
+        return None
+    elif root_path.is_dir():
+        for flatmap_path in root_path.iterdir():
+            if flatmap_path.is_dir():
+                try:
+                    flatmaps_by_dir[str(flatmap_path)] = Flatmap(flatmap_path)
+                except FlatmapError as e:
+                    logging.warning(f'{flatmap_path}: {e}')
+                    continue
     maps_by_taxon_sex = {}
     for flatmap_dir, flatmap in flatmaps_by_dir.items():
         if ((created := flatmap.get('created')) is not None
