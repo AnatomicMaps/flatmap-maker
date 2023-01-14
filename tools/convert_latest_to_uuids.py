@@ -210,8 +210,8 @@ class FlatmapSource:
 class FlatmapConvertor:
     def __init__(self, output_path, final_root=None):
         self.__output_path = output_path
-        self.__store = KnowledgeStore(output_path, create=False)
         self.__final_root = pathlib.Path(final_root).absolute() if final_root is not None else self.__output_path
+        self.__store = KnowledgeStore(output_path)
 
     def convert(self, flatmap_dir, manifest):
         output_dir = self.__output_path / manifest.uuid
