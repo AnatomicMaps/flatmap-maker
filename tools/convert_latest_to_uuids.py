@@ -54,6 +54,7 @@ class MetadataDatabase:
 
     def add_metadata(self, **metadata):
         for name, value in metadata.items():
+            value = json.dumps(value) if name == 'metadata' else value
             self.__db.execute('replace into metadata(name, value) values (?, ?);',
                                                                     (name, value))
     def close(self):
@@ -64,7 +65,8 @@ class MetadataDatabase:
 
     def metadata(self, name=None):
         if name is not None:
-            return self.__db.execute('select value from metadata where name=?;', (name, )).fetchone()[0]
+            result = self.__db.execute('select value from metadata where name=?;', (name, )).fetchone()[0]
+            return json.loads(result) if name == 'metadata' else result
         else:
             return dict(self.__db.execute('select name, value from metadata;').fetchall())
 
@@ -89,7 +91,7 @@ class Flatmap:
             raise FlatmapError('Version is too old')
 
         db = MetadataDatabase(mbtiles)
-        metadata = json.loads(str(db.metadata(name='metadata')))
+        metadata = db.metadata(name='metadata')
         db.close()
 
         if (('id' not in metadata or flatmap_path.name != metadata['id'])
@@ -225,8 +227,9 @@ class FlatmapConvertor:
             fp.write(json.dumps(index))
 
         mbtiles_file = output_dir / 'index.mbtiles'
-        tile_db = MetadataDatabase(mbtiles_file)
-        metadata = json.loads(str(tile_db.metadata(name='metadata')))
+        db = MetadataDatabase(mbtiles_file)
+        metadata = db.metadata(name='metadata')
+
         metadata.pop('name', None)
         metadata['id'] = index['id']
         metadata['uuid'] = index['uuid']
@@ -235,12 +238,14 @@ class FlatmapConvertor:
         metadata['git-status'] = index['git-status']
         if 'biologicalSex' in index:
             metadata['biologicalSex'] = index['biologicalSex']
-        tile_db.execute("delete from metadata where name='id'")
-        tile_db.execute("delete from metadata where name='describes'")
-        tile_db.add_metadata(metadata=json.dumps(metadata))
-        tile_db.add_metadata(name=str(mbtiles_file))
-        tile_db.add_metadata(description=str(mbtiles_file))
-        tile_db.close()
+
+        db.execute("delete from metadata where name='id'")
+        db.execute("delete from metadata where name='describes'")
+        db.add_metadata(metadata=metadata)
+        final_db_name = str(self.__final_root / manifest.uuid / 'index.mbtiles')
+        db.add_metadata(name=final_db_name)
+        db.add_metadata(description=final_db_name)
+        db.close()
 
         if self.__store.db is not None:
             self.__store.db.execute('begin')
