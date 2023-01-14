@@ -60,6 +60,9 @@ class MetadataDatabase:
     def close(self):
         self.__db.close()
 
+    def commit(self):
+        return self.__db.commit()
+
     def execute(self, sql):
         return self.__db.execute(sql)
 
@@ -239,12 +242,14 @@ class FlatmapConvertor:
         if 'biologicalSex' in index:
             metadata['biologicalSex'] = index['biologicalSex']
 
+        db.execute('begin')
         db.execute("delete from metadata where name='id'")
         db.execute("delete from metadata where name='describes'")
         db.add_metadata(metadata=metadata)
         final_db_name = str(self.__final_root / manifest.uuid / 'index.mbtiles')
         db.add_metadata(name=final_db_name)
         db.add_metadata(description=final_db_name)
+        db.commit()
         db.close()
 
         if self.__store.db is not None:
