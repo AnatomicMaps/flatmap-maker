@@ -38,6 +38,10 @@ from mapmaker.maker import Manifest
 
 #===============================================================================
 
+__version__ = '1.0.0'
+
+#===============================================================================
+
 def normalise_identifier(id):
     return ':'.join([(s[:-1].lstrip('0') + s[-1])
                         for s in id.split(':')])
@@ -255,6 +259,7 @@ def main():
     parser.add_argument('--dest', dest='dest_flatmaps', metavar='DESTINATION', help='Flatmap root to save maps into. Required if not `list-latest`')
     parser.add_argument('--final', dest='final_dest', metavar='FINAL_DESTINATION', help='Full path to flatmap root where destination maps will be placed. Optional, defaults to DESTINATION')
     parser.add_argument('--source', dest='source_flatmaps', required=True, metavar='SOURCE', help='Flatmap root to source maps. Required')
+    parser.add_argument('-v', '--version', action='version', version=__version__)
     args = parser.parse_args()
 
     if not args.list_only:
