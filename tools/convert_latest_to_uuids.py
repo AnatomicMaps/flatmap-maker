@@ -259,7 +259,7 @@ class FlatmapConvertor:
         if self.__store.db is not None:
             self.__store.db.execute('begin')
             self.__store.db.execute('replace into flatmaps(id, models, created) values (?, ?, ?)',
-                                        (manifest.uuid, manifest.models, index['created']))
+                                        (manifest.uuid, manifest.models, metadata['created']))
             self.__store.db.commit()
 
         return metadata['uuid']
