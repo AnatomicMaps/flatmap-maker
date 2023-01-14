@@ -225,8 +225,6 @@ class FlatmapConvertor:
         index['uuid'] = manifest.uuid
         index['taxon'] = manifest.models
         index['describes'] = self.__store.entity_knowledge(manifest.models)['label']
-        if index['taxon'] == 'NCBITaxon:9606' and 'biologicalSex' not in index:
-            index['biologicalSex'] = 'PATO:0000384'
         if 'image_layer' in index:
             index['image-layers'] = index.pop('image_layer')
         index['git-status'] = manifest.git_status
