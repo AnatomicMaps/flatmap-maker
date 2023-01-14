@@ -47,7 +47,7 @@ class FilePathError(IOError):
 class FilePath(object):
     def __init__(self, path: str):
         if relative_path(path):
-            self.__url = pathlib.Path(path).absolute().resolve().as_uri()
+            self.__url = pathlib.Path(path).absolute().as_uri()
         else:
             self.__url = path
 
