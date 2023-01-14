@@ -277,6 +277,7 @@ def main():
     parser.add_argument('--verbose', action='store_true', help='Show progress')
     args = parser.parse_args()
 
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s')
     if args.verbose:
         logging.getLogger().setLevel(logging.INFO)
     else:
@@ -298,10 +299,11 @@ def main():
         for flatmap_dir, flatmap in latest_maps.items():
             taxon = flatmap['taxon']
             if 'uuid' in flatmap:
-                logging.info(f'Skipped {taxon} ({flatmap_dir}) as source already has GUID')
+                logging.warning(f'{taxon} already has GUID in source {flatmap_dir} -- skipped processing')
                 continue
             elif args.id is not None and args.id != flatmap['id']:
                 continue
+            logging.info(f'Processing {taxon} from {flatmap_dir}')
             output_dict[flatmap_dir] = flatmap.as_dict()
 
     else:
@@ -313,10 +315,11 @@ def main():
         for flatmap_dir, flatmap in latest_maps.items():
             taxon = flatmap['taxon']
             if 'uuid' in flatmap:
-                logging.info(f'Skipped {taxon} ({flatmap_dir}) as source already has GUID')
+                logging.warning(f'{taxon} already has GUID in source {flatmap_dir} -- skipped processing')
                 continue
             elif args.id is not None and args.id != flatmap['id']:
                 continue
+            logging.info(f'Processing {taxon} from source {flatmap_dir}')
             try:
                 flatmap_source = FlatmapSource(flatmap)
             except FlatmapError as e:
@@ -325,9 +328,9 @@ def main():
             guid = convertor.convert(flatmap_dir, flatmap_source.manifest)
             if guid is not None:
                 output_dict[taxon] = guid
-                logging.info(f'Saved {taxon} ({flatmap_dir}) as {guid}')
+                logging.info(f'Saved {taxon} as {guid} in destination')
             else:
-                logging.info(f'Skipped {taxon} ({flatmap_dir}) as destination GUID already exists')
+                logging.warning(f'{taxon} with GUID already exists in destination -- not overwritten')
 
     print(json.dumps(output_dict, indent=4))
 
