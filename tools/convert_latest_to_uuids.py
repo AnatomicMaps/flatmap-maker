@@ -190,8 +190,12 @@ class FlatmapSource:
             raise FlatmapError('Only `physiomeproject.org` sources are currently supported')
         parts = git_url.groups_path.split('/')
         repo_path = f'{git_url.protocol}://{git_url.host}{git_url.port}/{git_url.owner}/{parts[0]}'
-        working_dir = tempfile.TemporaryDirectory()
-        repo = git.Repo.clone_from(repo_path, working_dir)
+        working_dir = tempfile.TemporaryDirectory().name
+        try:
+            repo = git.Repo.clone_from(repo_path, working_dir)
+        except git.exc.GitCommandError as e:
+            raise FlatmapError(str(e))
+
         repo.head.reference = repo.commit(parts[-1])
         repo.head.reset(index=True, working_tree=True)
         self.__manifest = Manifest(f'{working_dir}/{git_url.repo}')
