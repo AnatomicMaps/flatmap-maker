@@ -32,6 +32,7 @@ import git
 import giturlparse
 
 #===============================================================================
+
 from flatmapknowledge import KnowledgeStore
 
 from mapmaker.maker import Manifest
@@ -268,13 +269,18 @@ class FlatmapConvertor:
 
 def main():
     parser = argparse.ArgumentParser(description='Upgrade most recent maps for each species to use GUIDs.')
-    parser.add_argument('--id', metavar='ID', help='Only process this map (and only if it is the latest for a species)')
-    parser.add_argument('--list-only', action='store_true', help='List most recent maps without upgrading them')
-    parser.add_argument('--dest', dest='dest_flatmaps', metavar='DESTINATION', help='Flatmap root to save maps into. Required if not `list-latest`')
-    parser.add_argument('--final', dest='final_dest', metavar='FINAL_DESTINATION', help='Full path to flatmap root where destination maps will be placed. Optional, defaults to DESTINATION')
-    parser.add_argument('--source', dest='source_flatmaps', required=True, metavar='SOURCE', help='Flatmap root to source maps. Required')
     parser.add_argument('-v', '--version', action='version', version=__version__)
+    parser.add_argument('--id', metavar='ID',
+        help='Only process this map (and only if it is the latest for a species)')
+    parser.add_argument('--list-only', action='store_true',
+        help='List most recent maps without upgrading them')
     parser.add_argument('--verbose', action='store_true', help='Show progress')
+    parser.add_argument('--dest', dest='dest_flatmaps', metavar='DESTINATION',
+        help='Flatmap root to save maps into. Required if not `list-latest`')
+    parser.add_argument('--final', dest='final_dest', metavar='FINAL_DESTINATION',
+        help='Full path to flatmap root where destination maps will be placed. Optional, defaults to DESTINATION')
+    parser.add_argument('--source', dest='source_flatmaps', required=True, metavar='SOURCE',
+        help='Flatmap root to source maps. Required')
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s')
@@ -340,148 +346,3 @@ if __name__ == '__main__':
     main()
 
 #===============================================================================
-
-'''
-
-
-id|1220ab6b172448ccf9dd8c4d748447248d3185b25123dd5b4700d33c04d80011   ## delete
-describes|NCBITaxon:9823   ### delete
-
-
-name|whole-pig             ### replace
-set both "description" and "name" to full path to new index.mbtiles
-
-/home/ubuntu/services/prod-flatmap-server-v2/flatmaps/1220ab6b172448ccf9dd8c4d748447248d3185b25123dd5b4700d33c04d80011/index.mbtiles
-/Users/dbro078/Flatmaps/map-server/flatmaps/0434e45b-8830-534a-9abc-f871f385f14c/index.mbtiles
-
-
-Copy flatmap_dir contents to new flatmap_root/uuid directory then modify index.json as above
-
-
-Next update metadata in index.mbtiles in new directory
-
-
-        metadata = self.__flatmap.metadata
-        metadata['settings'] = self.__options
-        metadata.update(self.__git_status)
-        tile_db.add_metadata(metadata=json.dumps(metadata))
-
-
-
-
-{
-    "id": "1220ab6b172448ccf9dd8c4d748447248d3185b25123dd5b4700d33c04d80011",  ## --> manifest.id
-                                                                               ## uuid = manifest.uuid
-    "source": "https://models.physiomeproject.org/workspace/6eb/rawfile/e8341d8301e2def368343de35d2465f202c7780a/manifest.json",
-    "min-zoom": 2,
-    "max-zoom": 10,
-    "bounds": [-19.403896699557297, -14.398403706782805, 19.403896699557297, 14.398403706782805],
-    "version": 1.3,
-    "image_layer": true,            ## key -> image-layers
-    "describes": "NCBITaxon:9823"   ## key -> taxon
-                                    ## lookup describes
-                                    ## set biologicalSex = "PATO:0000384" if taxon == "NCBITaxon:9606"
-                                    ## "git-status" = manifest.git_status
-                                    ## "style" = "flatmap"
-}
-
-
-
-description|/home/ubuntu/services/prod-flatmap-server-v2/flatmaps/1220ab6b172448ccf9dd8c4d748447248d3185b25123dd5b4700d33c04d80011/index.mbtiles
-
-metadata|{"id": "1220ab6b172448ccf9dd8c4d748447248d3185b25123dd5b4700d33c04d80011", "name": "whole-pig", "creator": "mapmaker 1.3.0b7", "source": "https://models.physiomeproject.org/workspace/6eb/rawfile/e8341d8301e2def368343de35d2465f202c7780a/manifest.json", "version": 1.3, "describes": "NCBITaxon:9823", "created": "2021-12-10T09:35:00.948552"}
-{
-    "id": "1220ab6b172448ccf9dd8c4d748447248d3185b25123dd5b4700d33c04d80011",
-    "name": "whole-pig",
-    "creator": "mapmaker 1.3.0b7",
-    "source": "https://models.physiomeproject.org/workspace/6eb/rawfile/e8341d8301e2def368343de35d2465f202c7780a/manifest.json",
-    "version": 1.3,
-    "describes": "NCBITaxon:9823",
-    "created": "2021-12-10T09:35:00.948552"
-}
-
-
-
-{
-    "id": "human-flatmap_male",
-    "uuid": "0434e45b-8830-534a-9abc-f871f385f14c",
-    "source": "https://github.com/AnatomicMaps/human-flatmap/blob/5564310c9763be1dd7cab6867ce3499d496001f1/male.manifest.json",
-    "min-zoom": 2,
-    "max-zoom": 10,
-    "bounds": [-15.732891461948963, -15.656807270737906, 15.732891461948963, 15.656807270737906],
-    "version": 1.5,
-    "image-layers": true,
-    "taxon": "NCBITaxon:9606",
-    "biologicalSex": "PATO:0000384",
-    "style": "flatmap",
-    "git-status":
-    {
-        "sha": "5564310c9763be1dd7cab6867ce3499d496001f1",
-        "remotes":
-        {
-            "origin": "https://github.com/AnatomicMaps/human-flatmap.git"
-        }
-    }
-}
-
-
-
-metadata|{
-    "id": "human-flatmap_male",
-    "uuid": "0434e45b-8830-534a-9abc-f871f385f14c",
-    "name": "human-flatmap_male",
-    "creator": "mapmaker 1.5.5-b.1",
-    "source": "https://github.com/AnatomicMaps/human-flatmap/blob/5564310c9763be1dd7cab6867ce3499d496001f1/male.manifest.json",
-    "version": 1.5,
-    "taxon": "NCBITaxon:9606",
-    "biological-sex": "PATO:0000384",
-    "describes": "Homo sapiens",
-    "created": "2022-12-08T22:10:43.606491",
-    "settings":
-    {
-        "logFile": null,
-        "showDeprecated": false,
-        "silent": false,
-        "verbose": false,
-        "clean": true,
-        "backgroundTiles": true,
-        "authoring": false,
-        "debug": true,
-        "onlyNetworks": false,
-        "saveDrawML": false,
-        "saveGeoJSON": false,
-        "showTippe": false,
-        "initialZoom": 4,
-        "maxZoom": 10,
-        "minZoom": 2,
-        "cleanConnectivity": false,
-        "singleFile": null,
-        "output": "/Users/dbro078/Flatmaps/map-server/flatmaps",
-        "source": "../published/sources/human/male.manifest.json"
-    },
-    "git-status":
-    {
-        "sha": "5564310c9763be1dd7cab6867ce3499d496001f1",
-        "remotes":
-        {
-            "origin": "https://github.com/AnatomicMaps/human-flatmap.git"
-        }
-    }
-}
-
-'''
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
