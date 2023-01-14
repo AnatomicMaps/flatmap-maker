@@ -274,7 +274,13 @@ def main():
     parser.add_argument('--final', dest='final_dest', metavar='FINAL_DESTINATION', help='Full path to flatmap root where destination maps will be placed. Optional, defaults to DESTINATION')
     parser.add_argument('--source', dest='source_flatmaps', required=True, metavar='SOURCE', help='Flatmap root to source maps. Required')
     parser.add_argument('-v', '--version', action='version', version=__version__)
+    parser.add_argument('--verbose', action='store_true', help='Show progress')
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
+    else:
+        logging.getLogger().setLevel(logging.WARNING)
 
     if not args.list_only:
         if args.dest_flatmaps is None:
