@@ -131,13 +131,14 @@ def get_shape_geometry(shape, transform, properties=None):
     if len(coordinates) == 0:
         return None
     elif closed:
-        geometry = shapely.geometry.Polygon(coordinates)
+        geometry = shapely.geometry.Polygon(coordinates).buffer(0)
     else:
         geometry = shapely.geometry.LineString(coordinates)
         if properties is not None and properties.get('closed', False):
             # Return a polygon if flagged as `closed`
             coordinates.append(coordinates[0])
-            return shapely.geometry.Polygon(coordinates)
+            return shapely.geometry.Polygon(coordinates).buffer(0)
+
     return geometry
 
 #===============================================================================

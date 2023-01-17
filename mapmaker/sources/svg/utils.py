@@ -298,11 +298,11 @@ def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
         raise ValueError("Shape must have closed geometry")
 
     if closed and len(coordinates) >= 3:
-        geometry = shapely.geometry.Polygon(coordinates)
+        geometry = shapely.geometry.Polygon(coordinates).buffer(0)
     elif must_close == True and len(coordinates) >= 3:
         # Return a polygon if flagged as `closed`
         coordinates.append(coordinates[0])
-        geometry = shapely.geometry.Polygon(coordinates)
+        geometry = shapely.geometry.Polygon(coordinates).buffer(0)
     elif len(coordinates) >= 2:
         ## Warn if start and end point are ``close`` wrt to the length of the line as shape
         ## may be intended to be closed... (test with ``cardio_8-1``)

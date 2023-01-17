@@ -564,7 +564,7 @@ class SvgLayer(object):
                 # Apply filter to closed shapes
                 ## this doesn't work for shapes drawn using arcTo or *BezTo commands
                 ## OK for FC since (most) shapes are rectangular (but not circular nodes...)
-                geometry = shapely.geometry.Polygon(coordinates)
+                geometry = shapely.geometry.Polygon(coordinates).buffer(0)
                 properties = {
                     'colour': colour,
                     'alpha': alpha
@@ -600,12 +600,12 @@ class SvgLayer(object):
         if not exclude_shape:
             # Use shapely to get geometry
             if closed:
-                geometry = shapely.geometry.Polygon(coordinates)
+                geometry = shapely.geometry.Polygon(coordinates).buffer(0)
             else:
                 geometry = shapely.geometry.LineString(coordinates)
                 if shape.name.trim().startswith('.') and 'closed' in shape.name:
                     coordinates.append(coordinates[0])
-                    geometry = shapely.geometry.Polygon(coordinates)
+                    geometry = shapely.geometry.Polygon(coordinates).buffer(0)
             shape_kind = pptx_geometry.shape_kind
 
             if (shape_kind is not None

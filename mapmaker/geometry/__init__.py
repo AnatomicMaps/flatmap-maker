@@ -255,7 +255,7 @@ def make_boundary(lines):
         coords = line_matcher.coords
         if coords[0] != coords[-1]:
             coords.append(coords[0])
-        return shapely.geometry.Polygon(coords)
+        return shapely.geometry.Polygon(coords).buffer(0)
     else:
         raise ValueError("Final boundary segment doesn't have a close neighbour")
 

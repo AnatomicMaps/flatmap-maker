@@ -139,7 +139,7 @@ class MBFSource(MapSource):
             if contour.get('closed'):
                 if (points[0] != points[-1]).all():
                     points.append(points[-1])
-                geometry = shapely.geometry.Polygon((points))
+                geometry = shapely.geometry.Polygon((points)).buffer(0)
             else:
                 geometry = shapely.geometry.LineString(points)
 
