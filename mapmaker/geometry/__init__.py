@@ -145,9 +145,9 @@ class Transform(object):
     #======================================
        return shapely.affinity.affine_transform(geometry, self.__shapely_matrix)
 
-    def transform_point(self, point):
-    #================================
-        return (self.__matrix@[point[0], point[1], 1.0])[:2]
+    def transform_point(self, point) -> tuple[float, float]:
+    #=======================================================
+        return tuple(self.__matrix@[point[0], point[1], 1.0])[:2]
 
 #===============================================================================
 
