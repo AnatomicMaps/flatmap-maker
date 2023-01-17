@@ -245,8 +245,8 @@ class Slide():
 
 
     def __process_pptx_shapes(self, pptx_shapes: "PptxGroupShapes | PptxSlideShapes" ,
-                              transform: Transfor, group_colour=None, show_progress=False) -> TreeList:
-    #==================================================================================================
+                              transform: Transform, group_colour=None, show_progress=False) -> TreeList:
+    #===================================================================================================
         progress_bar = ProgressBar(show=show_progress,
             total=len(pptx_shapes),
             unit='shp', ncols=40,
