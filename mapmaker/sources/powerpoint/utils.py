@@ -28,11 +28,13 @@ from beziers.path import BezierPath
 from beziers.point import Point as BezierPoint
 from beziers.quadraticbezier import QuadraticBezier
 
+from pptx.shapes.base import BaseShape as PptxShape
+
 import shapely.geometry
 
 #===============================================================================
 
-from mapmaker.geometry import ellipse_point
+from mapmaker.geometry import ellipse_point, Transform
 from mapmaker.geometry.beziers import bezier_sample
 from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
 from mapmaker.utils import log
@@ -43,8 +45,8 @@ from .transform import DrawMLTransform
 
 #===============================================================================
 
-def get_shape_geometry(shape, transform, properties=None):
-#=========================================================
+def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
+#===============================================================================
 ##
 ## Returns shape's geometry as `shapely` object.
 ##
@@ -56,7 +58,7 @@ def get_shape_geometry(shape, transform, properties=None):
         bbox = (shape.width, shape.height) if path.w is None or path.h is None else (path.w, path.h)
         T = transform@DrawMLTransform(shape, bbox)
 
-        current_point = None
+        current_point = []
         first_point = None
         moved = False
 
