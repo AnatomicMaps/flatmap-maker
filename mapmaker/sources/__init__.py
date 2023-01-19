@@ -19,6 +19,7 @@
 #===============================================================================
 
 from __future__ import annotations
+from io import BytesIO
 from typing import Callable, Optional, TYPE_CHECKING
 
 #===============================================================================
@@ -130,6 +131,10 @@ class MapSource(object):
         self.__raster_source = None
 
     @property
+    def annotator(self):
+        return None
+
+    @property
     def bounds(self) -> tuple[float, float, float, float]:
         """
         :returns: The map's (SE, NW) bounds in WGS84 metres.
@@ -191,6 +196,10 @@ class MapSource(object):
     #====================================
         self.__errors.append((kind, msg))
 
+    def filter_map_shape(self, shape):
+    #=================================
+        return
+
     def map_area(self) -> float:
     #===========================
         return abs(self.__bounds[2] - self.__bounds[0]) * (self.__bounds[3] - self.__bounds[1])
@@ -228,7 +237,7 @@ class MapSource(object):
 #===============================================================================
 
 class RasterSource(object):
-    def __init__(self, kind: str, get_data: Callable[[], bytes], source_path: Optional[FilePath]=None):
+    def __init__(self, kind: str, get_data: Callable[[], bytes | BytesIO], source_path: Optional[FilePath]=None):
         self.__kind = kind
         self.__get_data = get_data
         self.__data = None
