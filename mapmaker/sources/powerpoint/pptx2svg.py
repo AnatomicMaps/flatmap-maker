@@ -363,10 +363,10 @@ class SvgLayer(object):
             notes_text = notes_slide.notes_text_frame.text
             if notes_text.startswith('.'):
                 for part in notes_text[1:].split():
-                    id_match = re.match('id *\((.*)\)', part)
+                    id_match = re.match(r'id *\((.*)\)', part)
                     if id_match is not None:
                         self.__id = id_match[1].strip()
-                    models_match = re.match('models *\((.*)\)', part)
+                    models_match = re.match(r'models *\((.*)\)', part)
                     if models_match is not None:
                         self.__models = models_match[1].strip()
         if self.__id is None:
@@ -477,7 +477,7 @@ class SvgLayer(object):
 
             shape_size = T.scale_length(bbox)
 
-            current_point = None
+            current_point = []
             first_point = None
             moved = False
 

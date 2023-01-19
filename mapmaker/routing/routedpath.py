@@ -38,6 +38,7 @@ from beziers.point import Point as BezierPoint
 
 import networkx as nx
 import shapely.geometry
+from shapely.geometry.base import BaseGeometry
 
 #===============================================================================
 
@@ -161,12 +162,12 @@ class PathRouter(object):
 #===============================================================================
 
 class GeometricShape(object):
-    def __init__(self, geometry: shapely.geometry, properties: Optional[dict] = None):
+    def __init__(self, geometry: BaseGeometry, properties: Optional[dict] = None):
         self.__geometry = geometry
         self.__properties = properties if properties is not None else {}
 
     @property
-    def geometry(self) -> shapely.geometry:
+    def geometry(self) -> BaseGeometry:
         return self.__geometry
 
     @property

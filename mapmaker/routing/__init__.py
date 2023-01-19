@@ -139,7 +139,7 @@ class NetworkNode:
         return hash(self.feature_id)
 
     @property
-    def centre(self) -> BezierPoint:
+    def centre(self) -> Optional[BezierPoint]:
         return self.properties.get('centre')
 
     @centre.setter

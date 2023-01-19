@@ -183,7 +183,7 @@ class Slide():
         self.__shapes_by_id: dict[int, Shape] = {}
 
     @property
-    def id(self) -> int:
+    def id(self) -> int | None:
         return self.__id
 
     @property
