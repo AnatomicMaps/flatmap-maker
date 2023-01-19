@@ -19,7 +19,7 @@ pytz = ">=2015.7"
 
 [[package]]
 name = "beziers"
-version = "0.4.0"
+version = "0.5.0"
 description = "Bezier curve manipulation library"
 category = "main"
 optional = false
@@ -453,7 +453,7 @@ XlsxWriter = ">=0.5.7"
 
 [[package]]
 name = "pytz"
-version = "2022.7"
+version = "2022.7.1"
 description = "World timezone definitions, modern and historical"
 category = "dev"
 optional = false
@@ -523,7 +523,7 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "setuptools"
-version = "65.7.0"
+version = "66.0.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
 optional = false
@@ -845,7 +845,7 @@ python-versions = "*"
 
 [[package]]
 name = "xlsxwriter"
-version = "3.0.6"
+version = "3.0.7"
 description = "A Python module for creating Excel XLSX files."
 category = "main"
 optional = false
@@ -862,7 +862,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4.0"
-content-hash = "e830dfc85a93128a00fe3c8c0050ac7a4f094894082370887762d0a13b3a055a"
+content-hash = "38f6600a5d1d5509e89e31a7baa813aace1a27f2ccf7e20e7386dc0642fa9cf4"
 
 [metadata.files]
 alabaster = [
@@ -874,8 +874,8 @@ babel = [
     {file = "Babel-2.11.0.tar.gz", hash = "sha256:5ef4b3226b0180dedded4229651c8b0e1a3a6a2837d45a073272f313e4cf97f6"},
 ]
 beziers = [
-    {file = "beziers-0.4.0-py2.py3-none-any.whl", hash = "sha256:04dfb44f4ba9614b23a71fcd0a414042c006f601910de4ca3f053ea8f6abc8b4"},
-    {file = "beziers-0.4.0.tar.gz", hash = "sha256:3a01994887928971fd88b34777dea42ff49813264d8ffddee909310d03959ef5"},
+    {file = "beziers-0.5.0-py3-none-any.whl", hash = "sha256:05ccfb67ab67797e6c55ac871191b7464abdc5c22f9004ae58735c7ac1ddca2d"},
+    {file = "beziers-0.5.0.macosx-12-arm64.tar.gz", hash = "sha256:e28375a1f4f9b4a6e67e5b661ef664907e9b87177c74b78367336cf53ae95698"},
 ]
 certifi = [
     {file = "certifi-2022.12.7-py3-none-any.whl", hash = "sha256:4ad3232f5e926d6718ec31cfc1fcadfde020920e278684144551c91769c7bc18"},
@@ -1438,8 +1438,8 @@ python-pptx = [
     {file = "python-pptx-0.6.21.tar.gz", hash = "sha256:7798a2aaf89563565b3c7120c0acfe9aff775db0db3580544e3bf4840c2e378f"},
 ]
 pytz = [
-    {file = "pytz-2022.7-py2.py3-none-any.whl", hash = "sha256:93007def75ae22f7cd991c84e02d434876818661f8df9ad5df9e950ff4e52cfd"},
-    {file = "pytz-2022.7.tar.gz", hash = "sha256:7ccfae7b4b2c067464a6733c6261673fdb8fd1be905460396b97a073e9fa683a"},
+    {file = "pytz-2022.7.1-py2.py3-none-any.whl", hash = "sha256:78f4f37d8198e0627c5f1143240bb0206b8691d8d7ac6d78fee88b78733f8c4a"},
+    {file = "pytz-2022.7.1.tar.gz", hash = "sha256:01a0681c4b9684a28304615eba55d1ab31ae00bf68ec157ec3708a8182dbbcd0"},
 ]
 pyyaml = [
     {file = "PyYAML-6.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:d4db7c7aef085872ef65a8fd7d6d09a14ae91f691dec3e87ee5ee0539d516f53"},
@@ -1539,8 +1539,8 @@ requests = [
     {file = "requests-2.28.2.tar.gz", hash = "sha256:98b1b2782e3c6c4904938b84c0eb932721069dfdb9134313beff7c83c2df24bf"},
 ]
 setuptools = [
-    {file = "setuptools-65.7.0-py3-none-any.whl", hash = "sha256:8ab4f1dbf2b4a65f7eec5ad0c620e84c34111a68d3349833494b9088212214dd"},
-    {file = "setuptools-65.7.0.tar.gz", hash = "sha256:4d3c92fac8f1118bb77a22181355e29c239cabfe2b9effdaa665c66b711136d7"},
+    {file = "setuptools-66.0.0-py3-none-any.whl", hash = "sha256:a78d01d1e2c175c474884671dde039962c9d74c7223db7369771fcf6e29ceeab"},
+    {file = "setuptools-66.0.0.tar.gz", hash = "sha256:bd6eb2d6722568de6d14b87c44a96fac54b2a45ff5e940e639979a3d1792adb6"},
 ]
 shapely = [
     {file = "shapely-2.0.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:7266080d39946395ba4b31fa35b9b7695e0a4e38ccabf0c67e2936caf9f9b054"},
@@ -1701,8 +1701,8 @@ webencodings = [
     {file = "webencodings-0.5.1.tar.gz", hash = "sha256:b36a1c245f2d304965eb4e0a82848379241dc04b865afcc4aab16748587e1923"},
 ]
 xlsxwriter = [
-    {file = "XlsxWriter-3.0.6-py3-none-any.whl", hash = "sha256:56eae8ae587536734009aa819845c3e3c865462399823085b0baabbb081a929c"},
-    {file = "XlsxWriter-3.0.6.tar.gz", hash = "sha256:2f9e5ea13343fe85486e349d4e5fdf746bb69dc7bc1dedfa9b5fae2bb48c0795"},
+    {file = "XlsxWriter-3.0.7-py3-none-any.whl", hash = "sha256:d79dadac9dcbff3c24281764b052b46bcdb391f3184f337c4c4e6ed8d2738d7d"},
+    {file = "XlsxWriter-3.0.7.tar.gz", hash = "sha256:1239958b12da12be6abf05b32f64ff162eb75fff0fdf00d901ca0f46dc0557cf"},
 ]
 xmltodict = [
     {file = "xmltodict-0.12.0-py2.py3-none-any.whl", hash = "sha256:8bbcb45cc982f48b2ca8fe7e7827c5d792f217ecf1792626f808bf41c3b86051"},
