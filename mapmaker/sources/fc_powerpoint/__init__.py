@@ -45,6 +45,21 @@ from ..shapefilter import ShapeFilter, ShapeFilters
 CONNECTOR_CLASSES = {
     '#FF0000': 'symp',     # Source is in Brain/spinal cord
     '#0070C0': 'sensory',  # Target is in Brain/spinal cord
+from .json_annotator import JsonAnnotator
+from .xlsx_annotator import XlsxAnnotator
+from .annotation import Annotator
+
+def create_annotator(annotation_file: str) -> Annotator:
+#=======================================================
+    if annotation_file.endswith('.json'):
+        return JsonAnnotator(annotation_file)
+    elif annotation_file.endswith('.xlsx'):
+        return XlsxAnnotator(annotation_file)
+    else:
+        raise TypeError('Unsupported annotation file format: {annotation_file}')
+
+#===============================================================================
+
     '#4472C4': 'sensory',
     '#548235': 'para',     # Source is in Brain/spinal cord
 }

@@ -56,7 +56,7 @@ from .settings import settings
 
 from .sources import FCPowerpoint, MBFSource, PowerpointSource, SVGSource
 from .sources.fc_powerpoint import ShapeFilters as FCShapeFilters
-from .sources.fc_powerpoint.annotation import Annotator as FCAnnotator
+from .sources.fc_powerpoint import create_annotator as create_fc_annotator
 
 #===============================================================================
 
@@ -474,7 +474,7 @@ class MapMaker(object):
         if settings['functionalConnectivity']:
             self.__shape_filters = FCShapeFilters()
             if self.__manifest.annotation is not None:
-                self.__FC_annotator = FCAnnotator(self.__manifest.annotation)
+                self.__FC_annotator = create_fc_annotator(self.__manifest.annotation)
             else:
                 self.__FC_annotator = None
         for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
