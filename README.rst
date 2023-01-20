@@ -14,7 +14,7 @@ Requirements
 ------------
 
 * Python 3.10.
-* `Tippecanoe <https://github.com/mapbox/tippecanoe#installation>`_.
+* Tippecanoe, either from `here <https://github.com/mapbox/tippecanoe#installation>`_ or the latest version from `here <https://github.com/felt/tippecanoe#installation>`_
 * `COIN-OR CBC solver <https://github.com/coin-or/Cbc#binaries>`_.
 
 Installation
@@ -69,48 +69,50 @@ Command line help
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
-                    [--clean] [--background-tiles] [--show-centrelines]
-                    [--check-errors] [--debug] [--save-drawml] [--save-geojson] [--tippecanoe]
+                    [--clean] [--background-tiles] [--authoring]
+                    [--debug] [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N] [--min-zoom N]
-                    [--clean-connectivity] [--id ID] [--single-file {celldl,svg}]
+                    [--clean-connectivity] [--id ID] [--single-file {celldl,svg}] [--show-centrelines]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
 
-    optional arguments:
+    options:
       -h, --help            show this help message and exit
       -v, --version         show program's version number and exit
 
     Logging:
-      --log LOG_FILE        append messages to a log file
-      --show-deprecated     issue a warning for deprecated markup properties
-      --silent              suppress all messages to screen
-      --verbose             show progress bars
+      --log LOG_FILE        Append messages to a log file
+      --show-deprecated     Issue a warning for deprecated markup properties
+      --silent              Suppress all messages to screen
+      --verbose             Show progress bars
 
     Image tiling:
       --clean               Remove all files from generated map's directory before generating new map
-      --background-tiles    generate image tiles of map's layers (may take a while...)
-      --show-centrelines    Show centrelines and nodes on image tiles
+      --background-tiles    Generate image tiles of map's layers (may take a while...)
 
     Diagnostics:
-      --check-errors        check for errors without generating a map
-      --debug               show a traceback for error exceptions
-      --save-drawml         save a slide's DrawML for debugging
+      --authoring           For use when checking a new map: highlight incomplete features; show centreline network; no image tiles; no neuron paths; etc
+      --debug               Show a traceback for error exceptions
+      --only-networks       Only output features that are part of a centreline network
+      --save-drawml         Save a slide's DrawML for debugging
       --save-geojson        Save GeoJSON files for each layer
       --tippecanoe          Show command used to run Tippecanoe
 
     Zoom level:
-      --initial-zoom N      initial zoom level (defaults to 4)
-      --max-zoom N          maximum zoom level (defaults to 10)
-      --min-zoom N          minimum zoom level (defaults to 2)
+      --initial-zoom N      Initial zoom level (defaults to 4)
+      --max-zoom N          Maximum zoom level (defaults to 10)
+      --min-zoom N          Minimum zoom level (defaults to 2)
 
-    miscellaneous:
+    Miscellaneous:
       --clean-connectivity  Refresh local connectivity knowledge from SciCrunch
       --id ID               Set explicit ID for flatmap, overriding manifest
-      --single-file {celldl,svg}    Source is a single file of the designated type, not a flatmap manifest
+      --single-file {celldl,svg}
+                            Source is a single file of the designated type, not a flatmap manifest
+      --show-centrelines    Show centrelines in generated map
 
     Required arguments:
-      --output OUTPUT       base directory for generated flatmaps
+      --output OUTPUT       Base directory for generated flatmaps
       --source SOURCE       URL or path of a flatmap manifest
 
 An example run
