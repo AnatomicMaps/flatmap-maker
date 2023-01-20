@@ -379,9 +379,8 @@ class SVGLayer(MapLayer):
         try:
             geometry, bezier_segments = geometry_from_svg_path(path_tokens, transform@SVGTransform(element.attrib.get('transform')), must_close)
             properties['bezier-segments'] = bezier_segments
+            return geometry
         except ValueError as err:
             log.warning(f"{err}: {properties.get('markup')}")
-
-        return geometry
 
 #===============================================================================
