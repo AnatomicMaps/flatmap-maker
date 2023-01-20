@@ -18,9 +18,12 @@
 #
 #===============================================================================
 
+from __future__ import annotations
 import io
 import json
+import os
 import pathlib
+from typing import Any
 import urllib.error
 from urllib.parse import urljoin, urlparse
 import urllib.request
@@ -34,8 +37,11 @@ from .treelist import TreeList
 
 #===============================================================================
 
-def relative_path(path: str) -> bool:
-    return path.split(':', 1)[0] not in ['file', 'http', 'https']
+def relative_path(path: str | pathlib.Path) -> bool:
+    return str(path).split(':', 1)[0] not in ['file', 'http', 'https']
+
+def make_uri(path: str | pathlib.Path) -> str:
+    return pathlib.Path(os.path.abspath(path)).as_uri() if relative_path(path) else str(path)
 
 #===============================================================================
 
@@ -46,29 +52,23 @@ class FilePathError(IOError):
 
 class FilePath(object):
     def __init__(self, path: str):
-        if relative_path(path):
-            self.__url = pathlib.Path(path).absolute().as_uri()
-        else:
-            self.__url = path
+        self.__url = make_uri(path)
 
     @property
-    def extension(self):
+    def extension(self) -> str:
         parts = self.filename.rsplit('.')
         return parts[-1] if len(parts) > 1 else ''
 
     @property
-    def filename(self):
+    def filename(self) -> str:
         return urlparse(self.__url).path.rsplit('/', 1)[-1]
 
     @property
-    def url(self):
+    def url(self) -> str:
         return self.__url
 
-    def __str__(self):
-        return str(self.__url)
-
-    def close(self):
-        self.__fp.close()
+    def __str__(self) -> str:
+        return self.__url
 
     def get_data(self):
         with self.get_fp() as fp:
@@ -80,13 +80,13 @@ class FilePath(object):
         except urllib.error.URLError:
             raise FilePathError('Cannot open path: {}'.format(self.__url)) from None
 
-    def get_json(self):
+    def get_json(self) -> Any:
         try:
             return json.loads(self.get_data())
         except json.JSONDecodeError as err:
             raise ValueError('{}: {}'.format(self.__url, err)) from None
 
-    def get_BytesIO(self):
+    def get_BytesIO(self) -> io.BytesIO:
         bytesio = io.BytesIO(self.get_data())
         bytesio.seek(0)
         return bytesio
