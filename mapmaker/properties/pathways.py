@@ -734,7 +734,7 @@ class Pathways:
                 properties = feature.properties.copy()
                 properties.pop('id', None)   # Otherwise we will have a duplicate id...
                 nerve_polygon_feature = self.__flatmap.new_feature(
-                    shapely.geometry.Polygon(feature.geometry.coords), properties).buffer(0)
+                    shapely.geometry.Polygon(feature.geometry.coords).buffer(0), properties)
                 layer.features.append(nerve_polygon_feature)
 
     def generate_connectivity(self, networks):
