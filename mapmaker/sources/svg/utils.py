@@ -22,6 +22,7 @@ from __future__ import annotations
 import math
 import re
 import string
+from typing import Optional
 
 #===============================================================================
 
@@ -41,6 +42,7 @@ from shapely.geometry.base import BaseGeometry
 from mapmaker.geometry import Transform, reflect_point
 from mapmaker.geometry.beziers import bezier_sample
 from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
+from mapmaker.utils import log
 
 from .. import PIXELS_PER_INCH
 
@@ -150,16 +152,20 @@ def svg_markup(element):
 #===============================================================================
 
 def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
-                           must_close: bool=None) -> tuple[BaseGeometry, list[BezierSegment], bool]:
+                           must_close: Optional[bool]=None) -> tuple[BaseGeometry, list[BezierSegment]]:
     coordinates = []
     bezier_segments = []
     closed = False
 
     moved = False
     first_point = None
-    current_point = None
+    current_point = []
+    pt = []
 
     pos = 0
+    cmd = None
+    second_cubic_control = None
+    second_quad_control = None
     while pos < len(path_tokens):
         if isinstance(path_tokens[pos], str) and path_tokens[pos].isalpha():
             cmd = path_tokens[pos]
@@ -184,7 +190,7 @@ def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
                 pt[0] += current_point[0]
                 pt[1] += current_point[1]
             phi = math.radians(params[2])
-            segs = bezier_segments_from_arc_endpoints(tuple2(*params[0:2]), phi, *params[3:5],
+            segs = bezier_segments_from_arc_endpoints(tuple2(*params[0:2]), phi, params[3], params[4],
                                                       tuple2(*current_point), tuple2(*pt), transform)
             bezier_segments.extend(segs)
             coordinates.extend(bezier_sample(BezierPath.fromSegments(segs)))
@@ -290,7 +296,7 @@ def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
             first_point = None
 
         else:
-            log.warning('Unknown SVG path command: {}'.format(cmd))
+            log.warning(f'Unknown SVG path command: {cmd}')
 
     if must_close == False and closed:
         raise ValueError("Shape can't have closed geometry")
