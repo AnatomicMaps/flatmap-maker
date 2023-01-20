@@ -33,7 +33,7 @@ Using pipenv
 
 * Install ``mapmaker`` directly from GitHub with::
 
-    $ pipenv install --python 3.8 https://github.com/dbrnz/flatmap-maker/releases/download/v1.5.4/mapmaker-1.5.4-py3-none-any.whl
+    $ pipenv install --python 3.10 https://github.com/dbrnz/flatmap-maker/releases/download/v1.5.4/mapmaker-1.5.4-py3-none-any.whl
 
 
 Development
