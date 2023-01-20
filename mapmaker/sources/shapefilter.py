@@ -18,11 +18,18 @@
 #
 #===============================================================================
 
+from typing import Optional
+
+#===============================================================================
+
+from shapely.geometry.base import BaseGeometry
 import shapely.strtree
 
 #===============================================================================
 
 from mapmaker.utils import log
+
+from .shape import Shape
 
 #===============================================================================
 
@@ -35,20 +42,20 @@ class ShapeFilter:
         self.__warn_filter = False
 
     @staticmethod
-    def __shape_attribs(shape):
+    def __attributes(shape: Shape):
         return {
-            'label': shape.properties.get('label', ''),
-            'colour': shape.properties.get('colour'),
-            'alpha': shape.properties.get('alpha', 1)   #   -->  opacity ??
+            'label': shape.label,
+            'colour': shape.colour,
+            'opacity': shape.opacity
         }
 
-    def add_shape(self, shape):
-    #==========================
+    def add_shape(self, shape: Shape):
+    #=================================
         geometry = shape.geometry
         if self.__excluded_shape_rtree is None:
             if 'Polygon' in geometry.geom_type:
                 self.__excluded_shape_geometries.append(geometry)
-                self.__excluded_shape_attributes[id(geometry)] = self.__shape_attribs(shape)
+                self.__excluded_shape_attributes[id(geometry)] = self.__attributes(shape)
         elif not self.__warn_create:
             log.warning('Cannot add shapes to filter after it has been created...')
             self.__warn_create = True
@@ -58,21 +65,24 @@ class ShapeFilter:
         if self.__excluded_shape_rtree is None:
             self.__excluded_shape_rtree = shapely.strtree.STRtree(self.__excluded_shape_geometries)
 
-    def filter(self, shape):
-    #=======================
+    def filter(self, shape: Shape) -> bool:
+    #======================================
         if self.__excluded_shape_rtree is not None:
             geometry = shape.geometry
             if 'Polygon' in geometry.geom_type:
-                if (self.__shape_excluded(geometry)
-                 or self.__shape_excluded(geometry, overlap=0.80)
-                 or self.__shape_excluded(geometry, attributes=self.__shape_attribs(shape))):
+                if ((attribs := self.__shape_excluded(geometry)) is not None
+                 or (attribs := self.__shape_excluded(geometry, overlap=0.80)) is not None
+                 or (attribs := self.__shape_excluded(geometry, attributes=self.__attributes(shape))) is not None):
                     shape.properties['exclude'] = True
+                    shape.properties.update(attribs)
+                    return True
         elif not self.__warn_filter:
             log.warning('Shape filter has not been created...')
             self.__warn_filter = True
+        return False
 
-    def __shape_excluded(self, geometry, overlap=0.98, attributes=None, show=False):
-    #===============================================================================
+    def __shape_excluded(self, geometry: BaseGeometry, overlap=0.98, attributes=None, show=False) -> Optional[dict]:
+    #===============================================================================================================
         if self.__excluded_shape_rtree is not None:
             intersecting_shapes_indices = self.__excluded_shape_rtree.query(geometry)
             for index in intersecting_shapes_indices:
@@ -83,14 +93,13 @@ class ShapeFilter:
                         if (intersecting_area >= overlap*geometry.area
                         and intersecting_area >= overlap*g.area):
                             if show:
-                                attribs = self.__excluded_shape_attributes[id(g)]
-                                log.info(f'Excluded at {100*overlap}% by {attribs}')
-                            return True
+                                log.info(f'Excluded by {100*overlap}% overlap')
+                            return self.__excluded_shape_attributes[id(g)]
                     elif attributes == self.__excluded_shape_attributes[id(g)]:
                         if show:
-                            log.info(f'Excluded by {attributes}')
-                        return True
-        return False
+                            log.info(f'Excluded by {attributes} match')
+                        return attributes
+        return None
 
 #===============================================================================
 
@@ -100,11 +109,11 @@ class ShapeFilters:
         self.__svg_shape_filter = ShapeFilter() if svg_filter is None else svg_filter
 
     @property
-    def map_filter(self):
+    def map_filter(self) -> ShapeFilter:
         return self.__map_shape_filter
 
     @property
-    def svg_filter(self):
+    def svg_filter(self) -> ShapeFilter:
         return self.__svg_shape_filter
 
 #===============================================================================
