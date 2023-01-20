@@ -606,7 +606,7 @@ class SvgLayer(object):
                 geometry = shapely.geometry.Polygon(coordinates).buffer(0)
             else:
                 geometry = shapely.geometry.LineString(coordinates)
-                if shape.name.trim().startswith('.') and 'closed' in shape.name:
+                if shape.name.strip().startswith('.') and 'closed' in shape.name:
                     coordinates.append(coordinates[0])
                     geometry = shapely.geometry.Polygon(coordinates).buffer(0)
             shape_kind = pptx_geometry.shape_kind
