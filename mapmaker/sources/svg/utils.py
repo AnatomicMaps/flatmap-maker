@@ -311,7 +311,7 @@ def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
         geometry = None
 
     if geometry is not None and not geometry.is_valid:
-        if geometry.geom_type == 'Polygon':
+        if 'Polygon' in geometry.geom_type:
             # Try smoothing out boundary irregularities
             geometry = geometry.buffer(20)
         if not geometry.is_valid:
