@@ -77,7 +77,7 @@ class MapRepository:
     def __init__(self, working_dir: pathlib.Path):
         try:
             self.__repo = git.Repo(working_dir)
-            self.__repo_path = pathlib.Path(self.__repo.working_dir).absolute()
+            self.__repo_path = pathlib.Path(os.path.abspath(working_dir))
             self.__changed_items = [ item.a_path for item in self.__repo.index.diff(None) ]
             self.__staged_items = [ item.a_path for item in self.__repo.index.diff('Head') ]
             self.__untracked_files = self.__repo.untracked_files
@@ -102,7 +102,7 @@ class MapRepository:
         if self.__repo is not None:
             if path.startswith('file://'):
                 path = path[7:]
-            full_path = pathlib.Path(path).absolute()
+            full_path = pathlib.Path(os.path.abspath(path))
             if full_path.is_relative_to(self.__repo_path):
                 return str(full_path.relative_to(self.__repo_path))
 
