@@ -156,13 +156,16 @@ ARROW_MARKERS = {
 def add_marker_definitions(drawing):
 #===================================
     # arrowhead markers (see https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)
+    # 18 Jan 2023: markers appear in Chrome with black fill; no markers in Firefox
     for id, path in ARROW_MARKERS.items():
         marker = drawing.marker(id=id,
                                 viewBox="0 0 10 10",
                                 refX="5", refY="5",
-                                markerWidth="6", markerHeight="6",
+                                markerUnits="userSpaceOnUse",
+                                markerWidth="6",
+                                markerHeight="6",
                                 orient="auto")
-        marker.add(drawing.path(d=path))
+        marker.add(drawing.path(d=path))   ## , fill='context-stroke' is not supported by svgwrite
         drawing.defs.add(marker)
 
 def marker_id(marker_def, end):
@@ -355,7 +358,7 @@ class SvgLayer(object):
         self.__colour_map = ColourMap(ppt_theme, slide)
         self.__dwg = svgwrite.Drawing(filename=None, size=None)
         self.__dwg.attribs['viewBox'] = f'0 0 {size[0]} {size[1]}'
-## WIP  add_marker_definitions(self.__dwg)
+        add_marker_definitions(self.__dwg)
         self.__id = None
         self.__models = None
         if slide.has_notes_slide:
@@ -592,10 +595,10 @@ class SvgLayer(object):
             # Exclude connectors when filtering shapes
             exclude_shape = True
 
-## WIP      if 'type' in shape.line.headEnd or 'type' in shape.line.tailEnd:
-## WIP          svg_path.set_markers((marker_id(shape.line.headEnd, 'head'),
-## WIP                                None,
-## WIP                                marker_id(shape.line.tailEnd, 'tail')))
+            if 'type' in shape.line.headEnd or 'type' in shape.line.tailEnd:
+                svg_path.set_markers((marker_id(shape.line.headEnd, 'head'),
+                                      None, marker_id(shape.line.tailEnd, 'tail')
+                                    ))
 
         if not exclude_shape:
             # Use shapely to get geometry
