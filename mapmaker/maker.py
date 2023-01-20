@@ -49,7 +49,6 @@ from .knowledgebase import KnowledgeStore
 from .output.geojson import GeoJSONOutput
 from .output.mbtiles import MBTiles
 from .output.styling import MapStyle
-from .output.tilejson import tile_json
 from .output.tilemaker import RasterTileMaker
 
 from .settings import settings
