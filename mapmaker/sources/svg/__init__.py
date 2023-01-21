@@ -73,9 +73,9 @@ class SVGSource(MapSource):
         # Transform from SVG pixels to world coordinates
         self.__transform = Transform([[WORLD_METRES_PER_PIXEL,                      0, 0],
                                       [                     0, WORLD_METRES_PER_PIXEL, 0],
-                                      [                     0,                         0, 1]])@np.array([[1,  0, -width/2.0],
-                                                                                                         [0, -1,  height/2.0],
-                                                                                                         [0,  0,         1.0]])
+                                      [                     0,                         0, 1]])@np.array([[1.0,  0.0,  -width/2.0],
+                                                                                                         [0.0, -1.0,  height/2.0],
+                                                                                                         [0.0,  0.0,         1.0]])
         top_left = self.__transform.transform_point((0, 0))
         bottom_right = self.__transform.transform_point((width, height))
         # southwest and northeast corners

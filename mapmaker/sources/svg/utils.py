@@ -94,7 +94,7 @@ def length_as_pixels(length):
 
 COMMANDS = set('MmZzLlHhVvCcSsQqTtAa')
 COMMAND_RE = re.compile("([MmZzLlHhVvCcSsQqTtAa])")
-FLOAT_RE = re.compile("[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?")
+FLOAT_RE = re.compile(r"[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?")
 
 def parse_svg_path(path):
     for x in COMMAND_RE.split(path):
@@ -167,7 +167,7 @@ def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
     second_cubic_control = None
     second_quad_control = None
     while pos < len(path_tokens):
-        if isinstance(path_tokens[pos], str) and path_tokens[pos].isalpha():
+        if isinstance(path_tokens[pos], str) and path_tokens[pos].isalpha():    # type: ignore
             cmd = path_tokens[pos]
             pos += 1
         # Else repeat previous command with new coordinates

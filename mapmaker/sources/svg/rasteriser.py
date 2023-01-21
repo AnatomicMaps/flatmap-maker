@@ -21,7 +21,6 @@
 import base64
 import contextlib
 import math
-import re
 
 #===============================================================================
 
@@ -37,13 +36,11 @@ import webcolors
 
 #===============================================================================
 
-from .. import WORLD_METRES_PER_PIXEL
-
 from mapmaker.geometry import extent_to_bounds, Transform, reflect_point
 from mapmaker.properties.markup import parse_markup
 from mapmaker.utils import ProgressBar, log
-from mapmaker.utils.image import image_size
 
+from .. import WORLD_METRES_PER_PIXEL
 from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
@@ -143,7 +140,7 @@ class CanvasDrawingObject(object):
 
     def intersects(self, bbox):
     #==========================
-        return bbox is not None and (self.__bbox is None or self.__prep_bbox.intersects(bbox))
+        return bbox is not None and (self.__bbox is None or self.__bbox.intersects(bbox))
 
     @contextlib.contextmanager
     def transformed_clipped_canvas(self, canvas):
@@ -263,9 +260,9 @@ class SVGTiler(object):
             [WORLD_METRES_PER_PIXEL/self.__scaling[0],                                        0, 0],
             [                                       0, WORLD_METRES_PER_PIXEL/self.__scaling[1], 0],
             [                                       0,                                        0, 1]])
-           @np.array([[1,  0, -self.__scaling[0]*self.__size[0]/2.0],
-                      [0, -1,  self.__scaling[1]*self.__size[1]/2.0],
-                      [0,  0,                                               1.0]]))
+           @np.array([[1.0,  0.0, -self.__scaling[0]*self.__size[0]/2.0],
+                      [0.0, -1.0,  self.__scaling[1]*self.__size[1]/2.0],
+                      [0.0,  0.0,                                   1.0]]))
 
         self.__tile_size = tile_set.tile_size
         self.__tile_origin = tile_set.start_coords
@@ -362,7 +359,7 @@ class SVGTiler(object):
             elif element.tag in [SVG_NS('linearGradient'), SVG_NS('radialGradient')]:
                 self.__definitions.add_definition(element)
                 continue
-            if element.tag == SVG_NS('clipPath'):
+            elif element.tag == SVG_NS('clipPath'):
                 self.__add_clip_path(element)
             else:
                 drawing_objects.extend(self.__draw_element(wrapped_element, parent_transform, parent_style))
@@ -487,7 +484,6 @@ class SVGTiler(object):
                         stroke_opacity = 0.5
                     elif 'id' in properties or 'class' in properties:
                         stroked = False
-            if stroked:
                 opacity = stroke_opacity*float(element_style.get('stroke-opacity', 1.0))
                 paint = skia.Paint(AntiAlias=True,
                     Style=skia.Paint.kStroke_Style,
@@ -531,9 +527,9 @@ class SVGTiler(object):
                     pixel_bytes = self.__source_path.join_path(image_href).get_data()
                 if pixel_bytes is not None:
                     pixel_array = np.frombuffer(pixel_bytes, dtype=np.uint8)
-                    pixels = cv2.imdecode(pixel_array, cv2.IMREAD_UNCHANGED)
+                    pixels = cv2.imdecode(pixel_array, cv2.IMREAD_UNCHANGED)    # type: ignore
                     if pixels.shape[2] == 3:
-                        pixels = cv2.cvtColor(pixels, cv2.COLOR_RGB2RGBA)
+                        pixels = cv2.cvtColor(pixels, cv2.COLOR_RGB2RGBA)       # type: ignore
                     image = skia.Image.fromarray(pixels, colorType=skia.kBGRA_8888_ColorType)
                     width = float(element.attrib.get('width', image.width()))
                     height = float(element.attrib.get('height', image.height()))
@@ -573,7 +569,6 @@ class SVGTiler(object):
         if element.tag == SVG_NS('path'):
             tokens = list(parse_svg_path(element.attrib.get('d', '')))
             path = SVGTiler.__path_from_tokens(tokens)
-
         elif element.tag == SVG_NS('rect'):
             (width, height) = (length_as_pixels(element.attrib.get('width', 0)),
                                length_as_pixels(element.attrib.get('height', 0)))
@@ -594,30 +589,25 @@ class SVGTiler(object):
                 path = skia.Path.Rect((x, y, width, height))
             else:
                 path = skia.Path.RRect((x, y, width, height), rx, ry)
-
         elif element.tag == SVG_NS('line'):
             x1 = length_as_pixels(element.attrib.get('x1', 0))
             y1 = length_as_pixels(element.attrib.get('y1', 0))
             x2 = length_as_pixels(element.attrib.get('x2', 0))
             y2 = length_as_pixels(element.attrib.get('y2', 0))
             path = SVGTiler.__path_from_tokens(['M', x1, y1, x2, y2])
-
         elif element.tag == SVG_NS('polyline'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
             path = SVGTiler.__path_from_tokens(['M'] + points)
-
         elif element.tag == SVG_NS('polygon'):
             points = [ float(p) for p in element.attrib.get('points', '').replace(',', ' ').split() ]
             skia_points = [skia.Point(*points[n:n+2]) for n in range(0, len(points), 2)]
             path = skia.Path.Polygon(skia_points, True)
-
         elif element.tag == SVG_NS('circle'):
             r = length_as_pixels(element.attrib.get('r', 0))
             if r == 0: return None
             (cx, cy) = (length_as_pixels(element.attrib.get('cx', 0)),
                         length_as_pixels(element.attrib.get('cy', 0)))
             path = skia.Path.Circle(cx, cy, r)
-
         elif element.tag == SVG_NS('ellipse'):
             (rx, ry) = (length_as_pixels(element.attrib.get('rx', 0)),
                         length_as_pixels(element.attrib.get('ry', 0)))
@@ -625,7 +615,8 @@ class SVGTiler(object):
             (cx, cy) = (length_as_pixels(element.attrib.get('cx', 0)),
                         length_as_pixels(element.attrib.get('cy', 0)))
             path = skia.Path.Oval(skia.Rect(cx-rx, cy-ry, cx+rx, cy+ry))
-
+        else:
+            path = None
         return path
 
     @staticmethod
@@ -633,10 +624,12 @@ class SVGTiler(object):
     #==============================
         moved = False
         first_point = None
-        current_point = None
-        closed = False
+        current_point = []
         path = skia.Path()
         pos = 0
+        cmd = ''
+        second_cubic_control = None
+        second_quad_control = None
         while pos < len(tokens):
             if isinstance(tokens[pos], str) and tokens[pos].isalpha():
                 cmd = tokens[pos]
@@ -696,8 +689,8 @@ class SVGTiler(object):
                     if n == (n_params - 4):
                         second_cubic_control = pt
                     coords.extend(pt)
+                    current_point = pt
                 path.cubicTo(*coords)
-                current_point = pt
 
             elif cmd in ['l', 'L', 'h', 'H', 'v', 'V']:
                 if cmd in ['l', 'L']:
@@ -761,14 +754,13 @@ class SVGTiler(object):
                     if n == (n_params - 4):
                         second_quad_control = pt
                     coords.extend(pt)
+                    current_point = pt
                 path.quadTo(*coords)
-                current_point = pt
 
             elif cmd in ['z', 'Z']:
                 if first_point is not None and current_point != first_point:
                     pass
                     #path.close()
-                closed = True
                 first_point = None
 
             else:

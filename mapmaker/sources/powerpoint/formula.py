@@ -144,17 +144,17 @@ class Geometry(object):
     def __init__(self, shape):
         self.__xfrm = shape.element.xfrm
 
-        if shape.shape_type in [MSO_SHAPE_TYPE.AUTO_SHAPE, MSO_SHAPE_TYPE.TEXT_BOX]:
+        if shape.shape_type in [MSO_SHAPE_TYPE.AUTO_SHAPE, MSO_SHAPE_TYPE.TEXT_BOX]:    # type: ignore
             self.__shape_kind = shape.element.prstGeom.attrib['prst']
             self.__geometry = Shapes.lookup(self.__shape_kind)
             adjustments = shape.element.prstGeom.avLst
 
-        elif shape.shape_type == MSO_SHAPE_TYPE.FREEFORM:
+        elif shape.shape_type == MSO_SHAPE_TYPE.FREEFORM:                               # type: ignore
             self.__shape_kind = 'freeform'
             self.__geometry = shape.element.spPr.custGeom
             adjustments = None
 
-        elif (shape.shape_type == MSO_SHAPE_TYPE.PICTURE
+        elif (shape.shape_type == MSO_SHAPE_TYPE.PICTURE                                # type: ignore
            or isinstance(shape, pptx.shapes.connector.Connector)):
             self.__shape_kind = shape.element.spPr.prstGeom.attrib['prst']
             self.__geometry = Shapes.lookup(self.__shape_kind)
