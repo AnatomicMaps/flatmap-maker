@@ -389,7 +389,7 @@ class SvgLayer(object):
             if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE                   # type: ignore
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM                     # type: ignore
              or shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX                     # type: ignore
-             or pptx_shape.shape_type == MSO_SHAPE_TYPE.LINE):                  # type: ignore
+             or shape.shape_type == MSO_SHAPE_TYPE.LINE):                       # type: ignore
                 self.process_shape(shape, svg_parent, transform,                # type: ignore
                                    group_colour=group_colour)
             elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:                      # type: ignore
