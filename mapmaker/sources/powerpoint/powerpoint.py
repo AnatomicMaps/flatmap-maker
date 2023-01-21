@@ -67,6 +67,12 @@ def pptx_resolve(qname: str) -> str:
 
 #===============================================================================
 
+
+# (colour, opacity)
+ColourPair = tuple[Optional[str], float]
+
+#===============================================================================
+
 class Slide():
     def __init__(self, index: int, slide: PptxSlide, theme: Theme, transform: Transform):
         self.__id = None
@@ -98,19 +104,22 @@ class Slide():
     def slide_id(self) -> int:
         return self.__slide.slide_id
 
-    def shape(self, id: int) -> Optional[Shape]:
-    #===========================================
+    def shape(self, id: int) -> Optional[PowerpointShape]:
+    #=====================================================
         return self.__shapes_by_id.get(id)
 
     def process(self) -> TreeList:
     #=============================
         # Return the slide's group structure as a nested list of Shapes
-        return self.__process_pptx_shapes(self.__slide.shapes, self.__transform, show_progress=True)  # type: ignore
+        return self.__process_pptx_shapes(self.__slide.shapes,      # type: ignore
+                                          self.__transform, show_progress=True)
 
-    def __get_colour(self, shape: PptxConnector | PptxGroupShape | PptxShape, group_colour=None) -> tuple[Optional[str], float]:
-    #===========================================================================================================================
-        def colour_from_fill(shape, fill):
-            if fill.type == MSO_FILL_TYPE.SOLID:                 # type: ignore
+
+    def __get_colour(self, shape: PptxConnector | PptxGroupShape | PptxShape,
+                     group_colour: Optional[ColourPair]=None) -> ColourPair:
+    #=======================================================================
+        def colour_from_fill(shape, fill) -> ColourPair:
+            if fill.type == MSO_FILL_TYPE.SOLID:                    # type: ignore
                 return (self.__colour_map.lookup(fill.fore_color),
                         fill.fore_color.alpha)
             elif fill.type == MSO_FILL_TYPE.GRADIENT:               # type: ignore
@@ -177,8 +186,9 @@ class Slide():
 ###                       })
 
     def __process_pptx_shapes(self, pptx_shapes: PptxGroupShapes | PptxSlideShapes,
-                              transform: Transform, group_colour=None, show_progress=False) -> TreeList:
-    #===================================================================================================
+                              transform: Transform, group_colour: Optional[ColourPair]=None,
+                              show_progress=False) -> TreeList:
+    #========================================================================================
         def text_alignment(shape) -> tuple[str, str]:
             para = shape.text_frame.paragraphs[0].alignment
             vertical = shape.text_frame.vertical_anchor

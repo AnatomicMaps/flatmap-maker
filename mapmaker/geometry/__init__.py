@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from math import acos, cos, sin, sqrt, degrees, radians
+from math import acos, cos, sin, sqrt, pi as PI
 import warnings
 
 #===============================================================================
@@ -29,6 +29,7 @@ import pyproj
 
 import shapely.affinity
 import shapely.geometry
+from shapely.geometry.base import BaseGeometry
 import shapely.ops
 import shapely.wkt
 
@@ -38,6 +39,7 @@ import transforms3d
 
 from mapmaker.utils import log
 
+# Exports
 from .feature_search import FeatureSearch
 
 #===============================================================================
@@ -73,8 +75,8 @@ def bounds_to_extent(bounds):
 
 def extent_to_bounds(extent):
 #============================
-    sw = mercator_transformer.transform(*extent[:2], direction=pyproj.enums.TransformDirection.INVERSE)
-    ne = mercator_transformer.transform(*extent[2:], direction=pyproj.enums.TransformDirection.INVERSE)
+    sw = mercator_transformer.transform(*extent[:2], direction=pyproj.enums.TransformDirection.INVERSE)     # type: ignore
+    ne = mercator_transformer.transform(*extent[2:], direction=pyproj.enums.TransformDirection.INVERSE)     # type: ignore
     return (sw[0], sw[1], ne[0], ne[1])
 
 def mercator_transform(geometry):
@@ -374,7 +376,7 @@ def connect_dividers(dividers, debug):
 
 #===============================================================================
 
-def normalised_coords(rectangle):
+def normalised_coords(rectangle: BaseGeometry):
     centroid = rectangle.centroid.coords[0]
     coords = rectangle.exterior.coords[:-1]
     top_right = None
@@ -384,6 +386,6 @@ def normalised_coords(rectangle):
             if top_right is None or coords[n][1] > y_max:
                 top_right = n
                 y_max = coords[n][1]
-    return np.roll(coords, -top_right, axis=0)
+    return np.roll(coords, -top_right, axis=0)  # type: ignore
 
 #===============================================================================

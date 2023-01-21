@@ -18,13 +18,12 @@
 #
 #===============================================================================
 
-from __future__ import annotations
 from collections import OrderedDict
-from math import sqrt, sin, cos, acos, pi as PI
+from math import sqrt, sin, cos, pi as PI
 import os
 from pathlib import Path
 import re
-from typing import Optional
+from typing import Any, Optional
 
 #===============================================================================
 
@@ -34,6 +33,7 @@ import svgwrite
 from svgwrite.base import BaseElement as SvgElement
 from tqdm import tqdm
 import transforms3d
+import svgwrite.gradients
 
 #===============================================================================
 
@@ -49,7 +49,6 @@ from beziers.quadraticbezier import QuadraticBezier
 
 #===============================================================================
 
-import pptx.shapes.connector
 from pptx import Presentation
 from pptx.dml.fill import FillFormat
 from pptx.enum.dml import MSO_FILL_TYPE, MSO_LINE_DASH_STYLE
@@ -58,9 +57,11 @@ from pptx.enum.text import MSO_VERTICAL_ANCHOR as MSO_ANCHOR
 from pptx.enum.text import PP_PARAGRAPH_ALIGNMENT as PP_ALIGN
 from pptx.util import Length
 
-from pptx.shapes.base import BaseShape as PptxShape
+from pptx.shapes.autoshape import Shape as PptxShape
+from pptx.shapes.connector import Connector as PptxConnector
 from pptx.shapes.group import GroupShape as PptxGroupShape
 from pptx.shapes.shapetree import GroupShapes as PptxGroupShapes
+from pptx.shapes.shapetree import SlideShapes as PptxSlideShapes
 from pptx.slide import Slide as PptxSlide
 
 #===============================================================================
@@ -113,11 +114,11 @@ def text_alignment(shape):
 #=========================
     para = shape.text_frame.paragraphs[0].alignment
     vertical = shape.text_frame.vertical_anchor
-    return ('left' if para in [PP_ALIGN.LEFT, PP_ALIGN.DISTRIBUTE, PP_ALIGN.JUSTIFY, PP_ALIGN.JUSTIFY_LOW] else
-            'right' if para == PP_ALIGN.RIGHT else
+    return ('left' if para in [PP_ALIGN.LEFT, PP_ALIGN.DISTRIBUTE, PP_ALIGN.JUSTIFY, PP_ALIGN.JUSTIFY_LOW] else  # type: ignore
+            'right' if para == PP_ALIGN.RIGHT else              # type: ignore
             'centre',
-            'top' if vertical == MSO_ANCHOR.TOP else
-            'bottom' if vertical == MSO_ANCHOR.BOTTOM else
+            'top' if vertical == MSO_ANCHOR.TOP else            # type: ignore
+            'bottom' if vertical == MSO_ANCHOR.BOTTOM else      # type: ignore
             'middle')
 
 def text_content(shape):
@@ -349,6 +350,8 @@ class Transform(object):
     def transform_point(self, point):
     #================================
         return (self.__matrix@[point[0], point[1], 1.0])[:2]
+# (colour, opacity)
+ColourPair = tuple[Optional[str], float]
 
 #===============================================================================
 
@@ -356,7 +359,7 @@ class SvgLayer(object):
     def __init__(self, size, slide: PptxSlide, slide_number: int, ppt_theme, kind: str='base', shape_filter=None, quiet=False):
         self.__slide = slide
         self.__colour_map = ColourMap(ppt_theme, slide)
-        self.__dwg = svgwrite.Drawing(filename=None, size=None)
+        self.__dwg = svgwrite.Drawing(size=None)
         self.__dwg.attribs['viewBox'] = f'0 0 {size[0]} {size[1]}'
         add_marker_definitions(self.__dwg)
         self.__id = None
@@ -391,44 +394,45 @@ class SvgLayer(object):
     #===========================
         self.__dwg.write(file_object, pretty=True, indent=4)
 
-    def get_colour(self, shape: PptxShape, group_colour: Optional[str]=None) -> tuple[Optional[str], float]:
-    #=======================================================================================================
-        def colour_from_fill(shape, fill):
-            if fill.type == MSO_FILL_TYPE.SOLID:
+    def __get_colour(self, shape: PptxConnector | PptxGroupShape | PptxShape,
+                     group_colour: Optional[ColourPair]=None) -> ColourPair:
+    #=======================================================================
+        def colour_from_fill(shape, fill) -> ColourPair:
+            if fill.type == MSO_FILL_TYPE.SOLID:                                    # type: ignore
                 return (self.__colour_map.lookup(fill.fore_color),
                         fill.fore_color.alpha)
-            elif fill.type == MSO_FILL_TYPE.GRADIENT:
+            elif fill.type == MSO_FILL_TYPE.GRADIENT:                               # type: ignore
                 log.warning(f'{shape.name}: gradient fill ignored')
-            elif fill.type == MSO_FILL_TYPE.GROUP:
+            elif fill.type == MSO_FILL_TYPE.GROUP:                                  # type: ignore
                 if group_colour is not None:
                     return group_colour
-            elif fill.type is not None and fill.type != MSO_FILL_TYPE.BACKGROUND:
+            elif fill.type is not None and fill.type != MSO_FILL_TYPE.BACKGROUND:   # type: ignore
                 log.warning(f'{shape.name}: unsupported fill type: {fill.type}')
             return (None, 1.0)
 
         colour = None
         alpha = 1.0
-        if shape.shape_type == MSO_SHAPE_TYPE.GROUP:
+        if shape.shape_type == MSO_SHAPE_TYPE.GROUP:                                # type: ignore
             colour, alpha = colour_from_fill(shape, FillFormat.from_fill_parent(shape.element.grpSpPr))
-        elif shape.shape_type != MSO_SHAPE_TYPE.LINE:
-#        if not isinstance(shape, pptx.shapes.connector.Connector):  ## ????
-            colour, alpha = colour_from_fill(shape, shape.fill)
-        elif shape.line.fill.type == MSO_FILL_TYPE.SOLID:
-            colour = self.__colour_map.lookup(shape.line.color)
-            alpha = shape.line.fill.fore_color.alpha
-        elif shape.line.fill.type is None:
+        elif shape.shape_type != MSO_SHAPE_TYPE.LINE:                               # type: ignore
+            colour, alpha = colour_from_fill(shape, shape.fill)                     # type: ignore
+        elif shape.line.fill.type == MSO_FILL_TYPE.SOLID:                           # type: ignore
+            colour = self.__colour_map.lookup(shape.line.color)                     # type: ignore
+            alpha = shape.line.fill.fore_color.alpha                                # type: ignore
+        elif shape.line.fill.type is None:                                          # type: ignore
             # Check for a fill colour in the <style> block
             xml = etree.fromstring(shape.element.xml)
             if (scheme_colour := xml.find('.//p:style/a:fillRef/a:schemeClr',
                                             namespaces=PPTX_NAMESPACE)) is not None:
                 colour = self.__colour_map.scheme_colour(scheme_colour.attrib['val'])
-        elif shape.line.fill.type != MSO_FILL_TYPE.BACKGROUND:
-            log.warning(f'{shape.name}: unsupported line fill type: {shape.line.fill.type}')
+        elif shape.line.fill.type != MSO_FILL_TYPE.BACKGROUND:                      # type: ignore
+            log.warning(f'{shape.name}: unsupported line fill type: {shape.line.fill.type}')  # type: ignore
         return (colour, alpha)
 
     def process(self, transform: Transform):
     #=======================================
-        self.process_shape_list(self.__slide.shapes, self.__dwg, transform,  not self.__quiet)
+        self.process_shape_list(self.__slide.shapes,                                # type: ignore
+                                self.__dwg, transform, show_progress=not self.__quiet)
         if self.__kind == 'base' and self.__shape_filter is not None:
             self.__shape_filter.create_filter()
 
@@ -437,25 +441,28 @@ class SvgLayer(object):
         svg_group = self.__dwg.g(id=group.shape_id)
         add_markup(svg_group, group.name)
         svg_parent.add(svg_group)
-        self.process_shape_list(group.shapes, svg_group, transform@DrawMLTransform(group).matrix(),
-                                group_colour=self.get_colour(group))
+        self.process_shape_list(group.shapes, svg_group,                            # type: ignore
+                                transform@DrawMLTransform(group), group_colour=self.__get_colour(group))
 
-    def process_shape_list(self, shapes: PptxGroupShapes, svg_parent: SvgElement, transform: Transform, group_colour: str=None, show_progress: bool=False):
-    #===================================================================================================
+    def process_shape_list(self, shapes: PptxGroupShapes | PptxSlideShapes, svg_parent: SvgElement,
+                           transform: Transform, group_colour: Optional[ColourPair]=None,
+                           show_progress: bool=False):
+    #===============================================================================================
         if show_progress:
             print('Processing shape list...')
             progress_bar = tqdm(total=len(shapes),
                 unit='shp', ncols=40,
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for shape in shapes:
-            if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
-             or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM
-             or shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX
-             or isinstance(shape, pptx.shapes.connector.Connector)):
-                self.process_shape(shape, svg_parent, transform, group_colour=group_colour)
-            elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
-                self.process_group(shape, svg_parent, transform)
-            elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+            if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE                   # type: ignore
+             or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM                     # type: ignore
+             or shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX                     # type: ignore
+             or pptx_shape.shape_type == MSO_SHAPE_TYPE.LINE):                  # type: ignore
+                self.process_shape(shape, svg_parent, transform,                # type: ignore
+                                   group_colour=group_colour)
+            elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:                      # type: ignore
+                self.process_group(shape, svg_parent, transform)                # type: ignore
+            elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:                    # type: ignore
                 pass
             else:
                 print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
@@ -464,8 +471,9 @@ class SvgLayer(object):
         if show_progress:
             progress_bar.close()
 
-    def process_shape(self, shape: PptxShape, svg_parent: SvgElement, transform: Transform, group_colour: str=None):
-    #===============================================================================================================
+    def process_shape(self, shape: PptxConnector | PptxShape, svg_parent: SvgElement,
+                      transform: Transform, group_colour: Optional[ColourPair]=None):
+    #================================================================================
 
         closed = False
         coordinates = []
@@ -560,8 +568,8 @@ class SvgLayer(object):
         exclude_text = True
         svg_text = None
         label = None
-        colour, alpha = self.get_colour(shape, group_colour)
-        if not isinstance(shape, pptx.shapes.connector.Connector):
+        colour, alpha = self.__get_colour(shape, group_colour)
+        if pptx_shape.shape_type != MSO_SHAPE_TYPE.LINE:                            # type: ignore
             svg_path.attribs.update(self.__get_fill(shape, group_colour))
             label = text_content(shape)
             if self.__shape_filter is not None and len(coordinates) > 2 and closed:
@@ -642,19 +650,22 @@ class SvgLayer(object):
     #===============================================================================================================================
         # Draw text if base map
 
+        ##for paragraph in shape.text_frame.paragraphs:
+        ##  for text_run in paragraph.runs:
+
         style = {}
-        font = shape.text_frame.paragraphs[0].runs[0].font
-        font_size = round(font.size/EMU_PER_PIXEL)
+        font = shape.text_frame.paragraphs[0].runs[0].font          # type: ignore
+        font_size = round(font.size/EMU_PER_PIXEL)                  # type: ignore
         if font.name is not None:   ## Else need to get from theme
             style['font-family'] = font.name
         style['font-size'] = f'{font_size}px'
         style['font-weight'] = 700 if font.bold else 400
         if font.italic:
             style['font-size'] = 'italic'
-        if font.color.type is not None:
+        if font.color.type is not None:                             # type: ignore
             style['fill'] = self.__colour_map.lookup(font.color)
-            if font.color.alpha != 1.0:
-                style['fill-opacity'] = font.color.alpha
+            if font.color.alpha != 1.0:                             # type: ignore
+                style['fill-opacity'] = font.color.alpha            # type: ignore
 
         svg_text = self.__dwg.text(label)   ## text_run.text
         svg_text.attribs['style'] = ' '.join([f'{name}: {value};' for name, value in style.items()])
@@ -684,29 +695,29 @@ class SvgLayer(object):
             svg_text.attribs['y'] += font_size + TEXT_MARGINS[1]
         return svg_text
 
-    def __get_fill(self, shape: PptxShape, group_colour: str) -> dict[str, Any]:
-    #===========================================================================
+    def __get_fill(self, shape: PptxConnector | PptxShape, group_colour: Optional[ColourPair]=None) -> dict[str, Any]:
+    #=================================================================================================================
         fill_attribs = {}
-        colour, alpha = self.get_colour(shape, group_colour)
-        if (shape.fill.type == MSO_FILL_TYPE.SOLID
-         or shape.fill.type == MSO_FILL_TYPE.GROUP):
+        colour, alpha = self.__get_colour(shape, group_colour)
+        if (shape.fill.type == MSO_FILL_TYPE.SOLID                      # type: ignore
+         or shape.fill.type == MSO_FILL_TYPE.GROUP):                    # type: ignore
             fill_attribs['fill'] = colour
             if alpha < 1.0:
                 fill_attribs['opacity'] = alpha
-        elif shape.fill.type == MSO_FILL_TYPE.GRADIENT:
+        elif shape.fill.type == MSO_FILL_TYPE.GRADIENT:                 # type: ignore
             self.__gradient_id += 1
             gradient = Gradient(self.__dwg, self.__gradient_id, shape, self.__colour_map)
             fill_attribs['fill'] = gradient.url
-        elif shape.fill.type is None:
+        elif shape.fill.type is None:                                   # type: ignore
             fill_attribs['fill'] = '#FF0000'
             fill_attribs['opacity'] = 1.0
-        elif shape.fill.type != MSO_FILL_TYPE.BACKGROUND:
-            print('Unsupported fill type: {}'.format(shape.fill.type))
+        elif shape.fill.type != MSO_FILL_TYPE.BACKGROUND:               # type: ignore
+            print('Unsupported fill type: {}'.format(shape.fill.type))  # type: ignore
         return fill_attribs
 
     @staticmethod
-    def __get_link(shape: PptxShape) -> str:
-    #=======================================
+    def __get_link(shape: PptxConnector | PptxShape) -> Optional[str]:
+    #=================================================================
         shape_xml = etree.fromstring(shape.element.xml)
         for link_ref in shape_xml.findall('.//a:hlinkClick', namespaces=PPTX_NAMESPACE):
             r_id = link_ref.attrib[pptx_resolve('r:id')]
@@ -714,10 +725,10 @@ class SvgLayer(object):
              and shape.part.rels[r_id].reltype == 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink'):
                 return shape.part.rels[r_id].target_ref
 
-    def __get_stroke(self, shape: PptxShape) -> dict[str, Any]:
-    #==========================================================
+    def __get_stroke(self, shape: PptxConnector | PptxShape) -> dict[str, Any]:
+    #==========================================================================
         stroke_attribs = {}
-        stroke_width = points_to_pixels(max(Length(shape.line.width).pt, MIN_STROKE_WIDTH))
+        stroke_width = points_to_pixels(max(Length(shape.line.width).pt, MIN_STROKE_WIDTH))  # type: ignore
         stroke_attribs['stroke-width'] = stroke_width
         shape_xml = etree.fromstring(shape.element.xml)
 
@@ -728,26 +739,26 @@ class SvgLayer(object):
                     line_dash = prop.attrib.get('val', 'solid')
                     break
         try:
-            dash_style = shape.line.dash_style
+            dash_style = shape.line.dash_style                          # type: ignore
         except KeyError:
             dash_style = None
         if line_dash is not None or dash_style is not None:
-            if dash_style == MSO_LINE_DASH_STYLE.DASH:
+            if dash_style == MSO_LINE_DASH_STYLE.DASH:                  # type: ignore
                 stroke_attribs['stroke-dasharray'] = 4*stroke_width
             elif line_dash == 'sysDot':
                 stroke_attribs['stroke-dasharray'] = '{} {} {} {}'.format(4*stroke_width, stroke_width, stroke_width, stroke_width)
-            elif line_dash == MSO_LINE_DASH_STYLE.LONG_DASH:
+            elif line_dash == MSO_LINE_DASH_STYLE.LONG_DASH:            # type: ignore
                 stroke_attribs['stroke-dasharray'] = '{} {}'.format(4*stroke_width, stroke_width)
-            elif dash_style == MSO_LINE_DASH_STYLE.SQUARE_DOT:
+            elif dash_style == MSO_LINE_DASH_STYLE.SQUARE_DOT:          # type: ignore
                 stroke_attribs['stroke-dasharray'] = '{} {}'.format(2*stroke_width, stroke_width)
-            elif dash_style == MSO_LINE_DASH_STYLE.ROUND_DOT:
+            elif dash_style == MSO_LINE_DASH_STYLE.ROUND_DOT:           # type: ignore
                 stroke_attribs['stroke-dasharray'] = '{} {}'.format(stroke_width, stroke_width)
             elif line_dash != 'solid':
                 print(f'Unsupported line dash style: {dash_style}/{line_dash}')
 
-        if shape.line.fill.type == MSO_FILL_TYPE.SOLID:
-            stroke_attribs['stroke'] = self.__colour_map.lookup(shape.line.color)
-            alpha = shape.line.fill.fore_color.alpha
+        if shape.line.fill.type == MSO_FILL_TYPE.SOLID:                 # type: ignore
+            stroke_attribs['stroke'] = self.__colour_map.lookup(shape.line.color)  # type: ignore
+            alpha = shape.line.fill.fore_color.alpha                    # type: ignore
             if alpha < 1.0:
                 stroke_attribs['stroke-opacity'] = alpha
         elif (line_style := shape_xml.find('.//p:style/a:lnRef', namespaces=PPTX_NAMESPACE)) is not None:
@@ -755,10 +766,10 @@ class SvgLayer(object):
                 if prop.tag == DML('schemeClr'):
                     scheme_colour = prop.attrib.get('val')
                     stroke_attribs['stroke'] = self.__colour_map.scheme_colour(scheme_colour)
-        elif shape.line.fill.type is None:
+        elif shape.line.fill.type is None:                              # type: ignore
             stroke_attribs['stroke'] = 'none'
-        elif shape.line.fill.type != MSO_FILL_TYPE.BACKGROUND:
-            print('Unsupported line fill type: {}'.format(shape.line.fill.type))
+        elif shape.line.fill.type != MSO_FILL_TYPE.BACKGROUND:          # type: ignore
+            print('Unsupported line fill type: {}'.format(shape.line.fill.type))  # type: ignore
 
         return stroke_attribs
 

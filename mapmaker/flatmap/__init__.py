@@ -52,7 +52,6 @@ class FlatMap(object):
         self.__manifest = manifest
         self.__local_id = manifest.id
         self.__models = manifest.models
-        self.__map_area = None
         self.__extent = None
         self.__centre = None
         self.__min_zoom = maker.zoom[0]
@@ -323,7 +322,7 @@ class FlatMap(object):
             #       being rotated by some multiple of 90 degrees.
             src = np.array(normalised_coords(boundary_feature.geometry.minimum_rotated_rectangle), dtype="float32")
             dst = np.array(normalised_coords(feature.geometry.minimum_rotated_rectangle), dtype="float32")
-            transform = Transform(cv2.getPerspectiveTransform(src, dst))
+            transform = Transform(cv2.getPerspectiveTransform(src, dst))        # type: ignore
 
             minzoom = feature.property('maxzoom') + 1
             if feature.property('type') != 'nerve':
