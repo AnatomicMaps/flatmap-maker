@@ -716,31 +716,32 @@ class SvgLayer(object):
     def __get_stroke(self, shape: PptxShape) -> dict[str, Any]:
     #==========================================================
         stroke_attribs = {}
-        line_style = None
+        stroke_width = points_to_pixels(max(Length(shape.line.width).pt, MIN_STROKE_WIDTH))
+        stroke_attribs['stroke-width'] = stroke_width
         shape_xml = etree.fromstring(shape.element.xml)
+
+        line_dash = None
         if (line_props := shape_xml.find('.//p:spPr/a:ln', namespaces=PPTX_NAMESPACE)) is not None:
             for prop in line_props.getchildren():
                 if prop.tag == DML('prstDash'):
-                    line_style = prop.attrib.get('val', 'solid')
+                    line_dash = prop.attrib.get('val', 'solid')
                     break
         try:
             dash_style = shape.line.dash_style
         except KeyError:
             dash_style = None
-        if line_style is not None or dash_style is not None:
+        if line_dash is not None or dash_style is not None:
             if dash_style == MSO_LINE_DASH_STYLE.DASH:
-                print('DASH', dash_style, line_style)
                 stroke_attribs['stroke-dasharray'] = 4*stroke_width
-            elif line_style == 'sysDot':
+            elif line_dash == 'sysDot':
                 stroke_attribs['stroke-dasharray'] = '{} {} {} {}'.format(4*stroke_width, stroke_width, stroke_width, stroke_width)
-            elif dash_style == MSO_LINE_DASH_STYLE.LONG_DASH:
-                print('LONG_DASH', dash_style, line_style)
+            elif line_dash == MSO_LINE_DASH_STYLE.LONG_DASH:
                 stroke_attribs['stroke-dasharray'] = '{} {}'.format(4*stroke_width, stroke_width)
             elif dash_style == MSO_LINE_DASH_STYLE.SQUARE_DOT:
-                print('SQUARE_DOT', dash_style, line_style)
                 stroke_attribs['stroke-dasharray'] = '{} {}'.format(2*stroke_width, stroke_width)
-            elif line_style != 'solid':
-                print(f'Unsupported line dash style: {dash_style}/{line_style}')
+            elif line_dash != 'solid':
+                print(f'Unsupported line dash style: {dash_style}/{line_dash}')
+
         if shape.line.fill.type == MSO_FILL_TYPE.SOLID:
             stroke_attribs['stroke'] = self.__colour_map.lookup(shape.line.color)
             alpha = shape.line.fill.fore_color.alpha
@@ -750,8 +751,6 @@ class SvgLayer(object):
             stroke_attribs['stroke'] = 'none'
         elif shape.line.fill.type != MSO_FILL_TYPE.BACKGROUND:
             print('Unsupported line fill type: {}'.format(shape.line.fill.type))
-        stroke_width = points_to_pixels(max(Length(shape.line.width).pt, MIN_STROKE_WIDTH))
-        stroke_attribs['stroke-width'] = stroke_width
 
         return stroke_attribs
 
