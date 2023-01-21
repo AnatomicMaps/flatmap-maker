@@ -32,6 +32,9 @@ from mapmaker.geometry import Transform
 
 class DrawMLTransform(Transform):
     def __init__(self, shape, bbox=None):
+        if bbox is None:
+            bbox = (shape.width, shape.height)
+
         xfrm = shape.element.xfrm
 
         # From Section L.4.7.6 of ECMA-376 Part 1
