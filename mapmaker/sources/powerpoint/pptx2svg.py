@@ -474,11 +474,8 @@ class SvgLayer(object):
         svg_path = self.__dwg.path(id=shape.shape_id, fill='none', class_='non-scaling-stroke')
 
         for path in pptx_geometry.path_list:
-
             bbox = (shape.width, shape.height) if path.w is None else (path.w, path.h)
             T = transform@DrawMLTransform(shape, bbox).matrix()
-
-            shape_size = T.scale_length(bbox)
 
             current_point = []
             first_point = None
@@ -554,6 +551,10 @@ class SvgLayer(object):
                     coordinates.extend(bezier_sample(bz))
                 else:
                     print('Unknown path element: {}'.format(c.tag))
+
+        bbox = (shape.width, shape.height)
+        T = transform@DrawMLTransform(shape, bbox).matrix()
+        shape_size = T.scale_length(bbox)
 
         exclude_shape = False
         exclude_text = True
