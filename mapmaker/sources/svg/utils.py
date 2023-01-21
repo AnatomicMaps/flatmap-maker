@@ -75,8 +75,8 @@ __unit_scaling = {
     'ex': None,      # ex/pt depends on current font size
     }
 
-def length_as_pixels(length):
-#============================
+def length_as_pixels(length: str | float) -> float:
+#==================================================
     if not isinstance(length, str):
         return length
     match = re.search(r'(.*)(em|ex|px|in|cm|mm|pt|pc|%)', length)
@@ -87,6 +87,10 @@ def length_as_pixels(length):
         if scaling is None:
             raise ValueError('Unsupported units: {}'.format(length))
         return scaling*float(match.group(1))
+
+def length_as_points(length: str | float) -> float:
+#==================================================
+    return length_as_pixels(length)/__unit_scaling['pt']
 
 #===============================================================================
 

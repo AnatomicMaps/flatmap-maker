@@ -44,7 +44,7 @@ from .. import WORLD_METRES_PER_PIXEL
 from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import svg_markup, length_as_pixels, parse_svg_path, SVG_NS, XLINK_HREF
+from .utils import svg_markup, length_as_pixels, length_as_points, parse_svg_path, SVG_NS, XLINK_HREF
 
 #===============================================================================
 
@@ -187,7 +187,12 @@ class CanvasImage(CanvasDrawingObject):
 class CanvasText(CanvasDrawingObject):
     def __init__(self, text, attribs, parent_transform, transform_attribute, clip_path):
         self.__text = text
-        self.__font = skia.Font(skia.Typeface('Calibri', skia.FontStyle.Bold()), 10)
+        style_rules = dict([rule.split(':', 1) for rule in [rule.strip() for rule in attribs.get('style', '')[:-1].split(';')]])
+        self.__font = skia.Font(skia.Typeface(style_rules.get('font-family', 'Calibri'),
+                                              skia.FontStyle(int(style_rules.get('font-weight', skia.FontStyle.kNormal_Weight)),
+                                                             skia.FontStyle.kNormal_Width,
+                                                             skia.FontStyle.kUpright_Slant)),
+                                length_as_points(style_rules.get('font-size', 10)))
         self.__pos = [float(attribs['x']), float(attribs['y'])]
         text_width = self.__font.measureText(text)
         text_height = self.__font.getSpacing()
