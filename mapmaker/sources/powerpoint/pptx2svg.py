@@ -739,6 +739,8 @@ class SvgLayer(object):
                 stroke_attribs['stroke-dasharray'] = '{} {}'.format(4*stroke_width, stroke_width)
             elif dash_style == MSO_LINE_DASH_STYLE.SQUARE_DOT:
                 stroke_attribs['stroke-dasharray'] = '{} {}'.format(2*stroke_width, stroke_width)
+            elif dash_style == MSO_LINE_DASH_STYLE.ROUND_DOT:
+                stroke_attribs['stroke-dasharray'] = '{} {}'.format(stroke_width, stroke_width)
             elif line_dash != 'solid':
                 print(f'Unsupported line dash style: {dash_style}/{line_dash}')
 
