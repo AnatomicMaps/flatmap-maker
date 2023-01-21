@@ -68,7 +68,7 @@ from pptx.slide import Slide as PptxSlide
 
 from mapmaker.geometry.beziers import bezier_sample
 from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
-from mapmaker.utils import FilePath, log
+from mapmaker.utils import FilePath, log, ProgressBar
 
 from .colour import ColourMap, Theme
 from .formula import Geometry, radians
@@ -450,9 +450,10 @@ class SvgLayer(object):
     #===============================================================================================
         if show_progress:
             print('Processing shape list...')
-            progress_bar = tqdm(total=len(shapes),
-                unit='shp', ncols=40,
-                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
+        progress_bar = ProgressBar(show=show_progress,
+            total=len(shapes),
+            unit='shp', ncols=40,
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
         for shape in shapes:
             if (shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE                   # type: ignore
              or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM                     # type: ignore
@@ -466,10 +467,8 @@ class SvgLayer(object):
                 pass
             else:
                 print('"{}" {} not processed...'.format(shape.name, str(shape.shape_type)))
-            if show_progress:
-                progress_bar.update(1)
-        if show_progress:
-            progress_bar.close()
+            progress_bar.update(1)
+        progress_bar.close()
 
     def process_shape(self, shape: PptxConnector | PptxShape, svg_parent: SvgElement,
                       transform: Transform, group_colour: Optional[ColourPair]=None):
