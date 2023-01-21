@@ -53,6 +53,7 @@ IMAGE_MEDIA_TYPES = ['image/jpeg', 'image/png']
 #===============================================================================
 
 IGNORED_SVG_TAGS = [
+    SVG_NS('a'),
     SVG_NS('style'),
     SVG_NS('title'),
 ]
