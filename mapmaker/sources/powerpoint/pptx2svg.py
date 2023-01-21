@@ -28,11 +28,8 @@ from typing import Any, Optional
 #===============================================================================
 
 from lxml import etree
-import numpy as np
 import svgwrite
 from svgwrite.base import BaseElement as SvgElement
-from tqdm import tqdm
-import transforms3d
 import svgwrite.gradients
 
 #===============================================================================
@@ -66,6 +63,7 @@ from pptx.slide import Slide as PptxSlide
 
 #===============================================================================
 
+from mapmaker.geometry import Transform
 from mapmaker.geometry.beziers import bezier_sample
 from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
 from mapmaker.utils import FilePath, log, ProgressBar
@@ -74,6 +72,7 @@ from .colour import ColourMap, Theme
 from .formula import Geometry, radians
 from .presets import DML
 from .powerpoint import Shape, SHAPE_TYPE
+from .transform import DrawMLTransform
 
 #===============================================================================
 
@@ -282,74 +281,6 @@ class Gradient(object):
 
 #===============================================================================
 
-class DrawMLTransform(object):
-    def __init__(self, shape, bbox=None):
-        if bbox is None:
-            bbox = (shape.width, shape.height)
-
-        xfrm = shape.element.xfrm
-
-        # From Section L.4.7.6 of ECMA-376 Part 1
-        (Bx, By) = ((xfrm.chOff.x, xfrm.chOff.y)
-                        if xfrm.chOff is not None else
-                    (0, 0))
-        (Dx, Dy) = ((xfrm.chExt.cx, xfrm.chExt.cy)
-                        if xfrm.chExt is not None else
-                    bbox)
-        (Bx_, By_) = (xfrm.off.x, xfrm.off.y)
-        (Dx_, Dy_) = (xfrm.ext.cx, xfrm.ext.cy)
-        theta = xfrm.rot*PI/180.0
-        Fx = -1 if xfrm.flipH else 1
-        Fy = -1 if xfrm.flipV else 1
-        T_st = np.array([[Dx_/Dx,      0, Bx_ - (Dx_/Dx)*Bx] if Dx != 0 else [1, 0, Bx_],
-                         [     0, Dy_/Dy, By_ - (Dy_/Dy)*By] if Dy != 0 else [0, 1, By_],
-                         [     0,      0,                 1]])
-        U = np.array([[1, 0, -(Bx_ + Dx_/2.0)],
-                      [0, 1, -(By_ + Dy_/2.0)],
-                      [0, 0,                1]])
-        R = np.array([[cos(theta), -sin(theta), 0],
-                      [sin(theta),  cos(theta), 0],
-                      [0,                    0, 1]])
-        Flip = np.array([[Fx,  0, 0],
-                         [ 0, Fy, 0],
-                         [ 0,  0, 1]])
-        T_rf = np.linalg.inv(U)@R@Flip@U
-        self.__T = T_rf@T_st
-
-    def matrix(self):
-        return self.__T
-
-#===============================================================================
-
-class Transform(object):
-    def __init__(self, matrix):
-        self.__matrix = np.array(matrix)
-
-    def __matmul__(self, matrix):
-        return Transform(self.__matrix@np.array(matrix))
-
-    def __str__(self):
-        return str(self.__matrix)
-
-    def rotate_angle(self, angle):
-    #==============================
-        rotation = transforms3d.affines.decompose(self.__matrix)[1]
-        theta = acos(rotation[0, 0])
-        if rotation[0, 1] >= 0:
-            theta = 2*PI - theta
-        angle = angle + theta
-        while angle >= 2*PI:
-            angle -= 2*PI
-        return angle
-
-    def scale_length(self, length):
-    #==============================
-        scaling = transforms3d.affines.decompose(self.__matrix)[2]
-        return (abs(scaling[0]*length[0]), abs(scaling[1]*length[1]))
-
-    def transform_point(self, point):
-    #================================
-        return (self.__matrix@[point[0], point[1], 1.0])[:2]
 # (colour, opacity)
 ColourPair = tuple[Optional[str], float]
 
@@ -482,7 +413,7 @@ class SvgLayer(object):
 
         for path in pptx_geometry.path_list:
             bbox = (shape.width, shape.height) if path.w is None else (path.w, path.h)
-            T = transform@DrawMLTransform(shape, bbox).matrix()
+            T = transform@DrawMLTransform(shape, bbox)
 
             current_point = []
             first_point = None
@@ -560,7 +491,7 @@ class SvgLayer(object):
                     print('Unknown path element: {}'.format(c.tag))
 
         bbox = (shape.width, shape.height)
-        T = transform@DrawMLTransform(shape, bbox).matrix()
+        T = transform@DrawMLTransform(shape, bbox)
         shape_size = T.scale_length(bbox)
 
         exclude_shape = False
