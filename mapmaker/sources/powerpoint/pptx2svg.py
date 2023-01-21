@@ -69,7 +69,7 @@ from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, 
 from mapmaker.utils import FilePath, log, ProgressBar
 
 from .colour import ColourMap, Theme
-from .formula import Geometry, radians
+from .formula import Geometry, radians_from_st_angle
 from .presets import DML
 from .powerpoint import Shape, SHAPE_TYPE
 from .transform import DrawMLTransform
@@ -424,8 +424,8 @@ class SvgLayer(object):
                 if   c.tag == DML('arcTo'):
                     wR = pptx_geometry.attrib_value(c, 'wR')
                     hR = pptx_geometry.attrib_value(c, 'hR')
-                    stAng = radians(pptx_geometry.attrib_value(c, 'stAng'))
-                    swAng = radians(pptx_geometry.attrib_value(c, 'swAng'))
+                    stAng = radians_from_st_angle(pptx_geometry.attrib_value(c, 'stAng'))
+                    swAng = radians_from_st_angle(pptx_geometry.attrib_value(c, 'swAng'))
                     p1 = ellipse_point(wR, hR, stAng)
                     p2 = ellipse_point(wR, hR, stAng + swAng)
                     pt = (current_point[0] - p1[0] + p2[0],

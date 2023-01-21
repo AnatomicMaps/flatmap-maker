@@ -41,7 +41,7 @@ from .presets import Shapes
 
 STANGLE_PER_DEGREE = 60000
 
-def radians(x):
+def radians_from_st_angle(x):
     return x*math.pi/(STANGLE_PER_DEGREE*180)
 
 def st_angle(x):
@@ -99,14 +99,14 @@ class Evaluator(object):
             if v(x) != 0.0
             else v("cd4" if v(y) >= 0 else "3cd4")
         ),
-        "tan": lambda v, x, y: v(x) * math.tan(radians(v(y))),  # Tangent Formula
+        "tan": lambda v, x, y: v(x) * math.tan(radians_from_st_angle(v(y))),  # Tangent Formula
         "cat2": lambda v, x, y, z: (  # Cosine ArcTan Formula
             v(x)
             * math.cos(math.atan(v(z) / v(y)))
             if v(y) != 0.0
             else 0.0
         ),
-        "cos": lambda v, x, y: v(x) * math.cos(radians(v(y))),  # Cosine Formula
+        "cos": lambda v, x, y: v(x) * math.cos(radians_from_st_angle(v(y))),  # Cosine Formula
         "sat2": lambda v, x, y, z: (  # Sine ArcTan Formula
             v(x)
             * math.sin(math.atan(v(z) / v(y)))
@@ -115,7 +115,7 @@ class Evaluator(object):
             if v(z) >= 0
             else -v(x)
         ),
-        "sin": lambda v, x, y: v(x) * math.sin(radians(v(y))),  # Sine Formula
+        "sin": lambda v, x, y: v(x) * math.sin(radians_from_st_angle(v(y))),  # Sine Formula
         "mod": lambda v, x, y, z: math.sqrt(
             v(x) ** 2 + v(y) ** 2 + v(z) ** 2
         ),  # Modulo Formula

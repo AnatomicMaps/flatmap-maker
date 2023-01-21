@@ -39,7 +39,7 @@ from mapmaker.geometry.beziers import bezier_sample
 from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
 from mapmaker.utils import log
 
-from .formula import Geometry, radians
+from .formula import Geometry, radians_from_st_angle
 from .presets import DML
 from .transform import DrawMLTransform
 
@@ -66,8 +66,8 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
             if   c.tag == DML('arcTo'):
                 (wR, hR) = ((pptx_geometry.attrib_value(c, 'wR'),
                              pptx_geometry.attrib_value(c, 'hR')))
-                stAng = radians(pptx_geometry.attrib_value(c, 'stAng'))
-                swAng = radians(pptx_geometry.attrib_value(c, 'swAng'))
+                stAng = radians_from_st_angle(pptx_geometry.attrib_value(c, 'stAng'))
+                swAng = radians_from_st_angle(pptx_geometry.attrib_value(c, 'swAng'))
                 p1 = ellipse_point(wR, hR, stAng)
                 p2 = ellipse_point(wR, hR, stAng + swAng)
                 pt = (current_point[0] - p1[0] + p2[0],
