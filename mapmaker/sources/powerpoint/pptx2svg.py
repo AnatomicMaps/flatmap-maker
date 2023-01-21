@@ -759,6 +759,7 @@ class SvgLayer(object):
 
 class Pptx2Svg(object):
     def __init__(self, powerpoint_href, kind='base', shape_filter=None, quiet=True):
+        self.__source_name = Path(powerpoint_href).stem
         ppt_bytes = FilePath(powerpoint_href).get_BytesIO()
         self.__pptx = Presentation(ppt_bytes)
         self.__theme = Theme(ppt_bytes)
@@ -804,11 +805,16 @@ class Pptx2Svg(object):
     def save_layers(self, output_dir):
     #=================================
         self.__saved_svg = OrderedDict()
+        layer_ids = len(self.__svg_layers) > 1
         for layer in self.__svg_layers:
-            filename = f'{layer.id}.svg'
-            with open(os.path.join(output_dir, filename), 'w', encoding='utf-8') as fp:
+            if layer_ids:
+                filename = f'{self.__source_name}-{layer.id}.svg'
+            else:
+                filename = f'{self.__source_name}.svg'
+            svg_file = os.path.join(output_dir, filename)
+            with open(svg_file, 'w', encoding='utf-8') as fp:
                 layer.save(fp)
-            self.__saved_svg[layer.id] = filename
+            self.__saved_svg[layer.id] = svg_file
         return self.__saved_svg
 
     def update_manifest(self, manifest):
