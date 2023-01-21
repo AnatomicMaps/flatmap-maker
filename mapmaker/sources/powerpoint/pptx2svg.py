@@ -750,6 +750,11 @@ class SvgLayer(object):
             alpha = shape.line.fill.fore_color.alpha
             if alpha < 1.0:
                 stroke_attribs['stroke-opacity'] = alpha
+        elif (line_style := shape_xml.find('.//p:style/a:lnRef', namespaces=PPTX_NAMESPACE)) is not None:
+            for prop in line_style.getchildren():
+                if prop.tag == DML('schemeClr'):
+                    scheme_colour = prop.attrib.get('val')
+                    stroke_attribs['stroke'] = self.__colour_map.scheme_colour(scheme_colour)
         elif shape.line.fill.type is None:
             stroke_attribs['stroke'] = 'none'
         elif shape.line.fill.type != MSO_FILL_TYPE.BACKGROUND:
