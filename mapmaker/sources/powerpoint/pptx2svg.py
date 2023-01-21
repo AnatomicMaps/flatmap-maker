@@ -590,8 +590,6 @@ class SvgLayer(object):
             and self.__kind == 'base' and label is not None):
                 svg_text = self.__draw_shape_label(shape, label, shape_size, T)
 
-            svg_path.attribs.update(self.__get_stroke(shape))
-
         elif True:  #####  WIP self.__shape_filter is not None:   ## No filter for pptx2celldel ??
             # Exclude connectors when filtering shapes
             exclude_shape = True
@@ -602,6 +600,8 @@ class SvgLayer(object):
                                     ))
 
         if not exclude_shape:
+            svg_path.attribs.update(self.__get_stroke(shape))
+
             # Use shapely to get geometry
             if closed:
                 geometry = shapely.geometry.Polygon(coordinates).buffer(0)
