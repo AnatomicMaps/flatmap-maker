@@ -800,7 +800,7 @@ class Pptx2Svg(object):
         layer.process(self.__transform)
         self.__svg_layers.append(layer)
         if slide_number == 1:
-            if not layer.id.startswith('slide-'):
+            if layer.id is not None and not layer.id.startswith('slide-'):
                 self.__id = layer.id
             self.__models = layer.models
 
