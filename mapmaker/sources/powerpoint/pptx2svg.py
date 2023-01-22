@@ -30,6 +30,10 @@ from typing import Any, Optional
 from lxml import etree
 import svgwrite
 import svgwrite.gradients
+from svgwrite.base import BaseElement as SvgElement
+from svgwrite.container import Group as SvgGroup
+from svgwrite.container import Hyperlink as SvgHyperlink
+from svgwrite.text import Text as SvgText
 
 #===============================================================================
 
@@ -354,7 +358,7 @@ class SvgLayer(object):
 
     def process_group(self, group: PptxGroupShape, svg_parent: SvgElement, transform: Transform):
     #============================================================================================
-        svg_group = self.__dwg.g(id=group.shape_id)
+        svg_group = SvgGroup(id=group.shape_id)
         add_markup(svg_group, group.name)
         svg_parent.add(svg_group)
         self.process_shape_list(group.shapes, svg_group,                            # type: ignore
@@ -454,7 +458,7 @@ class SvgLayer(object):
             if (hyperlink := self.__get_link(shape)) is not None:
                 if label is None:
                     label = hyperlink
-                link_element = self.__dwg.a(href=hyperlink)
+                link_element = SvgHyperlink(href=hyperlink)
                 link_element.add(svg_path)
                 if svg_text is not None:
                     link_element.add(svg_text)
@@ -491,7 +495,7 @@ class SvgLayer(object):
             if font.color.alpha != 1.0:                             # type: ignore
                 style['fill-opacity'] = font.color.alpha            # type: ignore
 
-        svg_text = self.__dwg.text(label)   ## text_run.text
+        svg_text = SvgText(label)   ## text_run.text
         svg_text.attribs['style'] = ' '.join([f'{name}: {value};' for name, value in style.items()])
 
         shape_pos = transform.transform_point((0, 0))
