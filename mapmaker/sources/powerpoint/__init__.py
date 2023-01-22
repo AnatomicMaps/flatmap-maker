@@ -20,14 +20,13 @@
 
 from __future__ import annotations
 from io import BytesIO, StringIO
-import os
 
 #===============================================================================
 
 from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import MapLayer
 from mapmaker.settings import settings
-from mapmaker.utils import log, FilePath, TreeList
+from mapmaker.utils import log, TreeList
 
 from .. import MapSource, RasterSource
 
@@ -109,7 +108,6 @@ class PowerpointSource(MapSource):
         self.__powerpoint = Powerpoint(source_href)
         self.bounds = self.__powerpoint.bounds   # Set bounds of MapSource
         self.__slides: list[Slide] = self.__powerpoint.slides
-        self.__pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_href)[0]))
         if shape_filters is not None:
             self.__map_shape_filter = shape_filters.map_filter
             self.__svg_shape_filter = shape_filters.svg_filter
