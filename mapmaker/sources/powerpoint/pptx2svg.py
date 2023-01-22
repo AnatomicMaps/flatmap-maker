@@ -498,7 +498,7 @@ class SvgLayer(object):
         exclude_text = True
         svg_text = None
         label = None
-        colour, alpha = self.__get_colour(shape, group_colour)
+        colour, opacity = self.__get_colour(shape, group_colour)
         if shape.shape_type != MSO_SHAPE_TYPE.LINE:                                 # type: ignore
             svg_path.attribs.update(self.__get_fill(shape, group_colour))
             label = text_content(shape)
@@ -509,7 +509,7 @@ class SvgLayer(object):
                 geometry = shapely.geometry.Polygon(coordinates).buffer(0)
                 properties = {
                     'colour': colour,
-                    'alpha': alpha
+                    'opacity': opacity
                 }
                 if label is not None:
                     properties['label'] = label
@@ -628,12 +628,12 @@ class SvgLayer(object):
     def __get_fill(self, shape: PptxConnector | PptxShape, group_colour: Optional[ColourPair]=None) -> dict[str, Any]:
     #=================================================================================================================
         fill_attribs = {}
-        colour, alpha = self.__get_colour(shape, group_colour)
+        colour, opacity = self.__get_colour(shape, group_colour)
         if (shape.fill.type == MSO_FILL_TYPE.SOLID                      # type: ignore
          or shape.fill.type == MSO_FILL_TYPE.GROUP):                    # type: ignore
             fill_attribs['fill'] = colour
-            if alpha < 1.0:
-                fill_attribs['opacity'] = alpha
+            if opacity < 1.0:
+                fill_attribs['opacity'] = opacity
         elif shape.fill.type == MSO_FILL_TYPE.GRADIENT:                 # type: ignore
             self.__gradient_id += 1
             gradient = Gradient(self.__dwg, self.__gradient_id, shape, self.__colour_map)

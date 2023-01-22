@@ -44,7 +44,7 @@ class Shape:
 
     @property
     def opacity(self) -> float:
-        return self.properties.get('alpha', 1.0)
+        return self.properties.get('opacity', 1.0)
 
     @property
     def colour(self) -> Optional[str]:
