@@ -74,11 +74,11 @@ ColourPair = tuple[Optional[str], float]
 #===============================================================================
 
 class Slide():
-    def __init__(self, index: int, slide: PptxSlide, theme: Theme, transform: Transform):
+    def __init__(self, index: int, pptx_slide: PptxSlide, theme: Theme, transform: Transform):
         self.__id = None
         # Get any layer directives
-        if slide.has_notes_slide:
-            notes_slide = slide.notes_slide
+        if pptx_slide.has_notes_slide:
+            notes_slide = pptx_slide.notes_slide
             notes_text = notes_slide.notes_text_frame.text
             if notes_text.startswith('.'):
                 layer_directive = parse_layer_directive(notes_text)
@@ -87,8 +87,8 @@ class Slide():
                                  .format(index+1, notes_text))
                 if 'id' in layer_directive:
                     self.__id = layer_directive['id']
-        self.__colour_map = ColourMap(theme, slide)
-        self.__slide = slide
+        self.__colour_map = ColourMap(theme, pptx_slide)
+        self.__pptx_slide = pptx_slide
         self.__transform = transform
         self.__shapes_by_id: dict[int, Shape] = {}
 
@@ -97,12 +97,12 @@ class Slide():
         return self.__id
 
     @property
-    def slide(self) -> PptxSlide:
-        return self.__slide
+    def pptx_slide(self) -> PptxSlide:
+        return self.__pptx_slide
 
     @property
     def slide_id(self) -> int:
-        return self.__slide.slide_id
+        return self.__pptx_slide.slide_id
 
     def shape(self, id: int) -> Optional[PowerpointShape]:
     #=====================================================
@@ -111,7 +111,7 @@ class Slide():
     def process(self) -> TreeList:
     #=============================
         # Return the slide's group structure as a nested list of Shapes
-        return self.__process_pptx_shapes(self.__slide.shapes,      # type: ignore
+        return self.__process_pptx_shapes(self.__pptx_slide.shapes,      # type: ignore
                                           self.__transform, show_progress=True)
 
 

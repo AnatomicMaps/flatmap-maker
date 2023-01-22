@@ -30,13 +30,15 @@ from mapmaker.utils import log, FilePath, TreeList
 
 from .. import MapSource, RasterSource
 
-from .powerpoint import Powerpoint, Shape, Slide, SHAPE_TYPE
-from .powerpoint import PptxSlide
+from .powerpoint import Powerpoint, Slide
+
+# Exports
+from .powerpoint import Slide, SHAPE_TYPE
 
 #===============================================================================
 
 class PowerpointSlide(MapLayer):
-    def __init__(self, source: PowerpointSource, slide: PptxSlide, slide_number: int):
+    def __init__(self, source: PowerpointSource, slide: Slide, slide_number: int):
         if slide.id is not None:
             id = slide.id
         else:
@@ -125,7 +127,7 @@ class PowerpointSource(MapSource):
             log('Slide {}, {}'.format(slide_number, slide_layer.id))
             if settings.get('saveDrawML'):
                 with open(self.flatmap.full_filename(f'{slide_layer.id}.xml'), 'w') as xml:
-                    xml.write(slide.element.xml)
+                    xml.write(slide.pptx_slide.element.xml)
             slide_layer.process()
             self.add_layer(slide_layer)
 
