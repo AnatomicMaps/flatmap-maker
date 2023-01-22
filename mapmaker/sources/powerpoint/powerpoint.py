@@ -93,7 +93,7 @@ class Slide():
         self.__shapes_by_id: dict[int, Shape] = {}
 
     @property
-    def id(self) -> int | None:
+    def id(self) -> Optional[str]:
         return self.__id
 
     @property
