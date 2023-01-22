@@ -19,7 +19,7 @@
 #===============================================================================
 
 from collections import OrderedDict
-from math import sqrt, sin, cos, pi as PI
+from math import sqrt, sin, cos
 import os
 from pathlib import Path
 import re
@@ -29,20 +29,7 @@ from typing import Any, Optional
 
 from lxml import etree
 import svgwrite
-from svgwrite.base import BaseElement as SvgElement
 import svgwrite.gradients
-
-#===============================================================================
-
-import shapely.geometry
-import shapely.strtree
-
-#===============================================================================
-
-from beziers.cubicbezier import CubicBezier
-from beziers.path import BezierPath
-from beziers.point import Point as BezierPoint
-from beziers.quadraticbezier import QuadraticBezier
 
 #===============================================================================
 
@@ -64,12 +51,10 @@ from pptx.slide import Slide as PptxSlide
 #===============================================================================
 
 from mapmaker.geometry import Transform
-from mapmaker.geometry.beziers import bezier_sample
-from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
 from mapmaker.utils import FilePath, log, ProgressBar
 
 from .colour import ColourMap, Theme
-from .formula import Geometry, radians_from_st_angle
+from .geometry import get_shape_geometry
 from .presets import DML
 from .powerpoint import Shape, SHAPE_TYPE
 from .transform import DrawMLTransform
@@ -405,90 +390,9 @@ class SvgLayer(object):
                       transform: Transform, group_colour: Optional[ColourPair]=None):
     #================================================================================
 
-        closed = False
-        coordinates = []
-        pptx_geometry = Geometry(shape)
-
-        svg_path = self.__dwg.path(id=shape.shape_id, fill='none', class_='non-scaling-stroke')
-
-        for path in pptx_geometry.path_list:
-            bbox = (shape.width, shape.height) if path.w is None else (path.w, path.h)
-            T = transform@DrawMLTransform(shape, bbox)
-
-            current_point = []
-            first_point = None
-            moved = False
-
-            exclude_shape = False
-            for c in path.getchildren():
-                if   c.tag == DML('arcTo'):
-                    wR = pptx_geometry.attrib_value(c, 'wR')
-                    hR = pptx_geometry.attrib_value(c, 'hR')
-                    stAng = radians_from_st_angle(pptx_geometry.attrib_value(c, 'stAng'))
-                    swAng = radians_from_st_angle(pptx_geometry.attrib_value(c, 'swAng'))
-                    p1 = ellipse_point(wR, hR, stAng)
-                    p2 = ellipse_point(wR, hR, stAng + swAng)
-                    pt = (current_point[0] - p1[0] + p2[0],
-                          current_point[1] - p1[1] + p2[1])
-                    phi = T.rotate_angle(0)
-                    large_arc_flag = 0
-                    svg_path.push('A', *T.scale_length((wR, hR)),
-                                       180*phi/PI, large_arc_flag, 1,
-                                       *T.transform_point(pt))
-                    large_arc_flag = 1 if swAng >= PI else 0
-                    segs = bezier_segments_from_arc_endpoints(tuple2(wR, hR),
-                                        0, large_arc_flag, 1,
-                                        tuple2(*current_point), tuple2(*pt),
-                                        T)
-                    coordinates.extend(bezier_sample(BezierPath.fromSegments(segs)))
-                    current_point = pt
-                elif c.tag == DML('close'):
-                    svg_path.push('Z')
-                    closed = True
-                    if first_point is not None and current_point != first_point:
-                        coordinates.append(T.transform_point(first_point))
-                    first_point = None
-                elif c.tag == DML('cubicBezTo'):
-                    coords = []
-                    bz_coords = [BezierPoint(*T.transform_point(current_point))]
-                    for p in c.getchildren():
-                        pt = pptx_geometry.point(p)
-                        coords.extend(T.transform_point(pt))
-                        bz_coords.append(BezierPoint(*T.transform_point(pt)))
-                        current_point = pt
-                    svg_path.push('C', *coords)
-                    bz = CubicBezier(*bz_coords)
-                    coordinates.extend(bezier_sample(bz))
-                elif c.tag == DML('lnTo'):
-                    pt = pptx_geometry.point(c.pt)
-                    coords = T.transform_point(pt)
-                    svg_path.push('L', *coords)
-                    if moved:
-                        coordinates.append(T.transform_point(current_point))
-                        moved = False
-                    coordinates.append(coords)
-                    current_point = pt
-                elif c.tag == DML('moveTo'):
-                    pt = pptx_geometry.point(c.pt)
-                    coords = T.transform_point(pt)
-                    svg_path.push('M', *coords)
-                    if first_point is None:
-                        first_point = pt
-                    moved = True
-                    current_point = pt
-                elif c.tag == DML('quadBezTo'):
-                    coords = []
-                    bz_coords = [BezierPoint(*T.transform_point(current_point))]
-                    for p in c.getchildren():
-                        pt = pptx_geometry.point(p)
-                        coords.extend(T.transform_point(pt))
-                        bz_coords.append(BezierPoint(*T.transform_point(pt)))
-                        current_point = pt
-                    svg_path.push('Q', *coords)
-                    bz = QuadraticBezier(*bz_coords)
-                    coordinates.extend(bezier_sample(bz))
-                else:
-                    print('Unknown path element: {}'.format(c.tag))
+        properties = {}
+        geometry = get_shape_geometry(shape, transform, properties)
+        svg_path = properties['svg-path']
 
         bbox = (shape.width, shape.height)
         T = transform@DrawMLTransform(shape, bbox)
@@ -502,24 +406,23 @@ class SvgLayer(object):
         if shape.shape_type != MSO_SHAPE_TYPE.LINE:                                 # type: ignore
             svg_path.attribs.update(self.__get_fill(shape, group_colour))
             label = text_content(shape)
-            if self.__shape_filter is not None and len(coordinates) > 2 and closed:
+            if self.__shape_filter is not None and properties.get('closed'):
                 # Apply filter to closed shapes
                 ## this doesn't work for shapes drawn using arcTo or *BezTo commands
                 ## OK for FC since (most) shapes are rectangular (but not circular nodes...)
-                geometry = shapely.geometry.Polygon(coordinates).buffer(0)
-                properties = {
+                shape_properties = {
                     'colour': colour,
                     'opacity': opacity
                 }
                 if label is not None:
-                    properties['label'] = label
-                closed_shape = Shape(SHAPE_TYPE.FEATURE, shape.shape_id, geometry, properties)
+                    shape_properties['label'] = label
+                closed_shape = Shape(SHAPE_TYPE.FEATURE, shape.shape_id, geometry, shape_properties)
                 if self.__kind == 'base':
                     self.__shape_filter.add_shape(closed_shape)
                 elif self.__kind == 'layer':
                     self.__shape_filter.filter(closed_shape)
-                exclude_shape = properties.get('exclude', False)
-                exclude_text = properties.get('exclude-text', False)
+                exclude_shape = shape_properties.get('exclude', False)
+                exclude_text = shape_properties.get('exclude-text', False)
             else:
                 exclude_text = False
 
@@ -540,16 +443,7 @@ class SvgLayer(object):
         if not exclude_shape:
             svg_path.attribs.update(self.__get_stroke(shape))
 
-            # Use shapely to get geometry
-            if closed:
-                geometry = shapely.geometry.Polygon(coordinates).buffer(0)
-            else:
-                geometry = shapely.geometry.LineString(coordinates)
-                if shape.name.strip().startswith('.') and 'closed' in shape.name:
-                    coordinates.append(coordinates[0])
-                    geometry = shapely.geometry.Polygon(coordinates).buffer(0)
-            shape_kind = pptx_geometry.shape_kind
-
+            shape_kind = properties['shape-kind']
             if (shape_kind is not None
              and not shape_kind.startswith('star')
              and shape_size[0]*shape_size[1] < 200):

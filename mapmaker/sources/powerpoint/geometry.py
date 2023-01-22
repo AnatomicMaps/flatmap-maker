@@ -29,8 +29,8 @@ from beziers.point import Point as BezierPoint
 from beziers.quadraticbezier import QuadraticBezier
 
 from pptx.shapes.base import BaseShape as PptxShape
-
 import shapely.geometry
+from svgwrite.path import Path as SvgPath
 
 #===============================================================================
 
@@ -54,6 +54,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
     coordinates = []
     bezier_segments = []
     pptx_geometry = Geometry(shape)
+    svg_path = SvgPath(id=shape.shape_id, fill='none', class_='non-scaling-stroke')
     for path in pptx_geometry.path_list:
         bbox = (shape.width, shape.height) if path.w is None or path.h is None else (path.w, path.h)
         T = transform@DrawMLTransform(shape, bbox)
@@ -79,69 +80,87 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
                                     T)
                 bezier_segments.extend(segs)
                 coordinates.extend(bezier_sample(BezierPath.fromSegments(segs)))
+                phi = T.rotate_angle(0)
+                svg_path.push('A', *T.scale_length((wR, hR)),
+                                   math.degrees(phi), 0, 1,
+                                   *T.transform_point(pt))
                 current_point = pt
 
             elif c.tag == DML('close'):
                 if first_point is not None and current_point != first_point:
                     coordinates.append(T.transform_point(first_point))
+                svg_path.push('Z')
                 closed = True
                 first_point = None
                 # Close current pptx_geometry and start a new one...
 
             elif c.tag == DML('cubicBezTo'):
                 coords = [BezierPoint(*T.transform_point(current_point))]
+                svg_coords = []
                 for p in c.getchildren():
                     pt = pptx_geometry.point(p)
-                    coords.append(BezierPoint(*T.transform_point(pt)))
+                    xy = T.transform_point(pt)
+                    coords.append(BezierPoint(*xy))
+                    svg_coords.extend(xy)
                     current_point = pt
                 bz = CubicBezier(*coords)
                 bezier_segments.append(bz)
                 coordinates.extend(bezier_sample(bz))
+                svg_path.push('C', *svg_coords)
 
             elif c.tag == DML('lnTo'):
-                pt = pptx_geometry.point(c.pt)
                 if moved:
                     coordinates.append(T.transform_point(current_point))
                     moved = False
-                coordinates.append(T.transform_point(pt))
+                pt = pptx_geometry.point(c.pt)
+                xy = T.transform_point(pt)
+                coordinates.append(xy)
+                svg_path.push('L', *xy)
                 current_point = pt
 
             elif c.tag == DML('moveTo'):
+                moved = True
                 pt = pptx_geometry.point(c.pt)
+                xy = T.transform_point(pt)
+                svg_path.push('M', *xy)
                 if first_point is None:
                     first_point = pt
                 current_point = pt
-                moved = True
 
             elif c.tag == DML('quadBezTo'):
                 coords = [BezierPoint(*T.transform_point(current_point))]
+                svg_coords = []
                 for p in c.getchildren():
                     pt = pptx_geometry.point(p)
+                    xy = T.transform_point(pt)
                     coords.append(BezierPoint(*T.transform_point(pt)))
+                    svg_coords.extend(xy)
                     current_point = pt
                 bz = QuadraticBezier(*coords)
                 bezier_segments.append(bz)
                 coordinates.extend(bezier_sample(bz))
+                svg_path.push('Q', *svg_coords)
 
             else:
                 log.warning('Unknown path element: {}'.format(c.tag))
 
+    if len(coordinates) and properties is not None and properties.get('closed', False):
+        # We return a polygon if flagged as `closed`
+        coordinates.append(coordinates[0])
+        closed = True
+
     if properties is not None:
         properties['bezier-segments'] = bezier_segments
+        properties['closed'] = closed
         properties['shape-kind'] = pptx_geometry.shape_kind
+        properties['svg-path'] = svg_path
 
     if len(coordinates) == 0:
         return None
     elif closed:
-        geometry = shapely.geometry.Polygon(coordinates).buffer(0)
+        return shapely.geometry.Polygon(coordinates).buffer(0)
     else:
-        geometry = shapely.geometry.LineString(coordinates)
-        if properties is not None and properties.get('closed', False):
-            # Return a polygon if flagged as `closed`
-            coordinates.append(coordinates[0])
-            return shapely.geometry.Polygon(coordinates).buffer(0)
-
-    return geometry
+        return shapely.geometry.LineString(coordinates)
 
 #===============================================================================
 

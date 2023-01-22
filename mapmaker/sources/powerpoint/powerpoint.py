@@ -46,9 +46,9 @@ from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import FilePath, log, ProgressBar, TreeList
 
 from .colour import ColourMap, Theme
+from .geometry import get_shape_geometry
 from .presets import DML
 from .transform import DrawMLTransform
-from .utils import get_shape_geometry
 
 #===============================================================================
 
