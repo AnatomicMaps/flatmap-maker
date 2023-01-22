@@ -20,7 +20,6 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from io import BytesIO, StringIO
 from pathlib import Path
 from typing import Optional
 
@@ -34,10 +33,8 @@ import shapely.strtree
 from mapmaker.settings import settings
 from mapmaker.utils import log, FilePath, TreeList
 
-from .. import RasterSource
 from ..powerpoint import PowerpointSource, PowerpointSlide
 from ..powerpoint.powerpoint import Shape, Slide, SHAPE_TYPE
-from ..powerpoint.pptx2svg import Pptx2Svg
 from ..shapefilter import ShapeFilter, ShapeFilters
 
 #===============================================================================
@@ -143,69 +140,12 @@ class FCShapeFilters(ShapeFilters):
 class FCPowerpoint(PowerpointSource):
     def __init__(self, flatmap, id, source_href, source_kind, source_range=None, shape_filters=None, annotator=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind, source_range=source_range, SlideClass=FCSlide)
+        super().__init__(flatmap, id, source_href, source_kind=source_kind,
+                         source_range=source_range, SlideClass=FCSlide,
+                         shape_filters=shape_filters)
         self.__annotator = annotator
-        if shape_filters is not None:
-            self.__map_shape_filter = shape_filters.map_filter
-            self.__svg_shape_filter = shape_filters.svg_filter
-        else:
-            self.__map_shape_filter = None
-            self.__svg_shape_filter = None
 
-    def annotate(self, slide):
-    #=========================
-        if self.__annotator is None:
-            return
-        for id in slide.systems:
-            self.__annotator.add_system(slide.fc_features[id].label, self.id)
-        for id in slide.organs:
-            self.__annotator.add_organ(slide.fc_features[id].label, self.id,
-                tuple(slide.fc_features[system_id].label for system_id in slide.fc_features[id].parents if system_id != 0)
-                )
-        for feature in slide.fc_features.values():
-            if feature.label != '':
-                organ_id = None
-                for parent in feature.parents:
-                    if parent in slide.organs:
-                        organ_id = parent
-                        break
-                if organ_id is not None:
-                    if len(feature.parents) > 1:
-                        log.warning(f'FTU {feature} in multiple organs')
-                    else:
-                        self.__annotator.add_ftu(slide.fc_features[organ_id].label, feature.label, self.id)
 
-    def filter_map_shape(self, shape):
-    #=================================
-        # Called as each shape is extracted from a slide
-        if self.__map_shape_filter is not None:
-            if self.kind == 'base':
-                self.__map_shape_filter.add_shape(shape)
-            elif self.kind == 'layer':
-                self.__map_shape_filter.filter(shape)
-
-    def process(self):
-    #=================
-        super().process()
-        if self.__map_shape_filter is not None and self.kind == 'base':
-            self.__map_shape_filter.create_filter()
-
-    def get_raster_source(self):
-    #===========================
-        return RasterSource('svg', self.__get_raster_data)
-
-    def __get_raster_data(self):
-    #===========================
-        svg_extractor = Pptx2Svg(self.source_href,
-            kind=self.kind, shape_filter=self.__svg_shape_filter)
-        svg_extractor.slides_to_svg()
-        svg = StringIO()
-        for layer in svg_extractor.svg_layers:    ### this just gets the first slide...
-            layer.save(svg)
-            break
-        svg_bytes = BytesIO(svg.getvalue().encode('utf-8'))
-        svg.close()
-        svg_bytes.seek(0)
-        return svg_bytes
 
 #===============================================================================
 

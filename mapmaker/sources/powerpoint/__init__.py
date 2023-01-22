@@ -19,6 +19,7 @@
 #===============================================================================
 
 from __future__ import annotations
+from io import BytesIO, StringIO
 import os
 
 #===============================================================================
@@ -31,6 +32,7 @@ from mapmaker.utils import log, FilePath, TreeList
 from .. import MapSource, RasterSource
 
 from .powerpoint import Powerpoint, Slide
+from .pptx2svg import Pptx2Svg
 
 # Exports
 from .powerpoint import Slide, SHAPE_TYPE
@@ -100,20 +102,38 @@ class PowerpointSlide(MapLayer):
 #===============================================================================
 
 class PowerpointSource(MapSource):
-    def __init__(self, flatmap, id, source_href, source_kind='slides', source_range=None, SlideClass=PowerpointSlide):
+    def __init__(self, flatmap, id, source_href, source_kind='slides', source_range=None,
+                 SlideClass=PowerpointSlide, shape_filters=None):
         super().__init__(flatmap, id, source_href, source_kind, source_range=source_range)
         self.__SlideClass = SlideClass
         self.__powerpoint = Powerpoint(source_href)
         self.bounds = self.__powerpoint.bounds   # Set bounds of MapSource
         self.__slides: list[Slide] = self.__powerpoint.slides
         self.__pdf_source = FilePath('{}_cleaned.pdf'.format(os.path.splitext(source_href)[0]))
+        if shape_filters is not None:
+            self.__map_shape_filter = shape_filters.map_filter
+            self.__svg_shape_filter = shape_filters.svg_filter
+        else:
+            self.__map_shape_filter = None
+            self.__svg_shape_filter = None
 
     @property
     def transform(self):
         return self.__powerpoint.transform
 
+    def filter_map_shape(self, shape):
+    #=================================
+        # Called as each shape is extracted from a slide
+        if self.__map_shape_filter is not None:
+            if self.kind == 'base':
+                self.__map_shape_filter.add_shape(shape)
+            elif self.kind == 'layer':
+                self.__map_shape_filter.filter(shape)
+
     def process(self):
     #=================
+        if self.__map_shape_filter is not None and self.kind == 'base':
+            self.__map_shape_filter.create_filter()
         if self.source_range is None:
             slide_numbers = range(1, len(self.__slides)+1)
         else:
@@ -133,6 +153,28 @@ class PowerpointSource(MapSource):
 
     def get_raster_source(self):
     #===========================
-        log.error('Upgrade in progress -- rasterising of PDFs not available')
+        return RasterSource('svg', self.__get_raster_data)
+
+    def __get_raster_data(self):
+    #===========================
+        svg_extractor = Pptx2Svg(self.source_href,
+            kind=self.kind, shape_filter=self.__svg_shape_filter)
+
+        # slides to SVG is simply slide_to_svg for all slides in the PPT, using the GLOBAL svg shape filter
+        # Do we need a local, secondary filter??
+        # PowerpointSource.__slides is the list of PPTX Slide objects
+        # Use slide number to access local FCSlide layer (which has a svg_filter(shape) method??)
+
+        svg_extractor.slides_to_svg()
+
+        ## Have option to keep intermediate SVG??
+        svg = StringIO()
+        for layer in svg_extractor.svg_layers:    ### this just gets the first slide...
+            layer.save(svg)
+            break
+        svg_bytes = BytesIO(svg.getvalue().encode('utf-8'))
+        svg.close()
+        svg_bytes.seek(0)
+        return svg_bytes
 
 #===============================================================================
