@@ -261,7 +261,7 @@ class RasterSource(object):
 
 # Export our sources here to avoid circular imports
 
-from .fc_powerpoint import FCPowerpoint
+from .fc_powerpoint import FCPowerpointSource
 from .mbfbioscience import MBFSource
 from .powerpoint import PowerpointSource
 from .svg import SVGSource

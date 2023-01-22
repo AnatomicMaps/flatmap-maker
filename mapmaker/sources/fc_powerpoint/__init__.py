@@ -137,9 +137,9 @@ class FCShapeFilters(ShapeFilters):
 
 #===============================================================================
 
-class FCPowerpoint(PowerpointSource):
     def __init__(self, flatmap, id, source_href, source_kind, source_range=None, shape_filters=None, annotator=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind, source_range=source_range, SlideClass=FCSlide)
+class FCPowerpointSource(PowerpointSource):
         super().__init__(flatmap, id, source_href, source_kind=source_kind,
                          source_range=source_range, SlideClass=FCSlide,
                          shape_filters=shape_filters)
@@ -150,7 +150,7 @@ class FCPowerpoint(PowerpointSource):
 #===============================================================================
 
 class FCSlide(PowerpointSlide):
-    def __init__(self, source: FCPowerpoint, slide: Slide, slide_number: int):
+    def __init__(self, source: FCPowerpointSource, slide: Slide, slide_number: int):
         super().__init__(source, slide, slide_number)
         self.__fc_features: dict[int, FCFeature] = {
             0: FCFeature(0, self.outer_geometry)

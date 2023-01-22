@@ -53,7 +53,7 @@ from .output.tilemaker import RasterTileMaker
 
 from .settings import settings
 
-from .sources import FCPowerpoint, MBFSource, PowerpointSource, SVGSource
+from .sources import FCPowerpointSource, MBFSource, PowerpointSource, SVGSource
 from .sources.fc_powerpoint import ShapeFilters as FCShapeFilters
 from .sources.fc_powerpoint import create_annotator as create_fc_annotator
 
@@ -482,7 +482,7 @@ class MapMaker(object):
             href = source['href']
             if settings['functionalConnectivity']:
                 if kind in ['base', 'layer']:
-                    source_layer = FCPowerpoint(self.__flatmap, id, href, kind,
+                    source_layer = FCPowerpointSource(self.__flatmap, id, href, kind,
                                         source_range=get_range(source.get('slides')),
                                         shape_filters=self.__shape_filters,
                                         annotator=self.__FC_annotator,
