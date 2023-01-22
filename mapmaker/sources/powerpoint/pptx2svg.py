@@ -499,7 +499,7 @@ class SvgLayer(object):
         svg_text = None
         label = None
         colour, alpha = self.__get_colour(shape, group_colour)
-        if pptx_shape.shape_type != MSO_SHAPE_TYPE.LINE:                            # type: ignore
+        if shape.shape_type != MSO_SHAPE_TYPE.LINE:                                 # type: ignore
             svg_path.attribs.update(self.__get_fill(shape, group_colour))
             label = text_content(shape)
             if self.__shape_filter is not None and len(coordinates) > 2 and closed:
