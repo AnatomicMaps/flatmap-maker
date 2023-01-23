@@ -64,7 +64,7 @@ class SVGCleaner(object):
 
     def __filter(self, element, parent=None):
     #========================================
-        if self.__exclude(element):
+        if parent is not None and self.__exclude(element):
             parent.remove(element)
             return
         for child in element:

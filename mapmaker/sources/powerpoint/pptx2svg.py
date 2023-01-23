@@ -57,7 +57,7 @@ from pptx.slide import Slide as PptxSlide
 from mapmaker.geometry import Transform
 from mapmaker.utils import FilePath, log, ProgressBar
 
-from .colour import ColourMap, Theme
+from .colour import ColourMap, ColourTheme
 from .geometry import get_shape_geometry
 from .presets import DML
 from .powerpoint import Shape, SHAPE_TYPE
@@ -608,7 +608,7 @@ class Pptx2Svg(object):
         self.__source_name = Path(powerpoint_href).stem
         ppt_bytes = FilePath(powerpoint_href).get_BytesIO()
         self.__pptx = Presentation(ppt_bytes)
-        self.__theme = Theme(ppt_bytes)
+        self.__colour_theme = ColourTheme(ppt_bytes)
         self.__slides = self.__pptx.slides
         (pptx_width, pptx_height) = (self.__pptx.slide_width, self.__pptx.slide_height)
         self.__transform = Transform([[1.0/EMU_PER_PIXEL,                 0, 0],
@@ -633,7 +633,7 @@ class Pptx2Svg(object):
 
     def slide_to_svg(self, slide, slide_number):
     #===========================================
-        layer = SvgLayer(self.__svg_size, slide, slide_number, self.__theme,
+        layer = SvgLayer(self.__svg_size, slide, slide_number, self.__colour_theme,
                          kind=self.__kind, shape_filter=self.__shape_filter,
                          quiet=self.__quiet)
         layer.process(self.__transform)

@@ -105,7 +105,7 @@ class FCFeature:
         self.properties['class'] = cls
 
     @property
-    def feature_id(self):
+    def feature_id(self) -> Optional[str]:
         return self.properties.get('id')
 
     ## Maybe have set_feature_id() so more explicit

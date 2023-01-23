@@ -74,7 +74,7 @@ class GitState(Enum):
 class MapRepository:
     def __init__(self, working_dir: pathlib.Path):
         try:
-            self.__repo = git.Repo(working_dir)
+            self.__repo = git.Repo(working_dir)                               # type: ignore
             self.__repo_path = pathlib.Path(os.path.abspath(working_dir))
             self.__changed_items = [ item.a_path for item in self.__repo.index.diff(None) ]
             self.__staged_items = [ item.a_path for item in self.__repo.index.diff('HEAD') ]
@@ -118,7 +118,7 @@ class MapRepository:
             raw_folder = ('blob/' if url.host.endswith('github.com') else
                           'rawfile/' if url.host.endswith('physiomeproject.org') else
                           '')
-            self.__upstream_base = f'{url.protocol}://{url.host}{url.port}/{url.owner}/{url.repo}/{raw_folder}{self.__repo.head.commit.hexsha}/'
+            self.__upstream_base = f'{url.protocol}://{url.host}{url.port}/{url.owner}/{url.repo}/{raw_folder}{self.__repo.head.commit.hexsha}/'  # type: ignore
 
     def status(self, path: str) -> GitState:
     #=======================================
@@ -559,8 +559,8 @@ class MapMaker(object):
         # the map's metadata
         tile_db = MBTiles(self.__mbtiles_file)
         tile_db.add_metadata(compressed=compressed)
-        tile_db.add_metadata(center=','.join([str(x) for x in self.__flatmap.centre]),
-                             bounds=','.join([str(x) for x in self.__flatmap.extent]))
+        tile_db.add_metadata(center=','.join([str(x) for x in self.__flatmap.centre]),      # type: ignore
+                             bounds=','.join([str(x) for x in self.__flatmap.extent]))      # type: ignore
         tile_db.execute("COMMIT")
         tile_db.close();
 
