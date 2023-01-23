@@ -139,10 +139,6 @@ class MapLayer(FeatureLayer):
         return self.__detail_features
 
     @property
-    def details_layer(self):
-        return self.__details_layer
-
-    @property
     def outer_geometry(self):
         return self.__outer_geometry
 
