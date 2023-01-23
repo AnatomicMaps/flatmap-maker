@@ -38,7 +38,7 @@ from .powerpoint import Slide, SHAPE_TYPE
 
 #===============================================================================
 
-class PowerpointSlide(MapLayer):
+class PowerpointLayer(MapLayer):
     def __init__(self, source: PowerpointSource, slide: Slide, slide_number: int):
         if slide.id is not None:
             id = slide.id
@@ -102,9 +102,9 @@ class PowerpointSlide(MapLayer):
 
 class PowerpointSource(MapSource):
     def __init__(self, flatmap, id, source_href, source_kind='slides', source_range=None,
-                 SlideClass=PowerpointSlide, shape_filters=None):
+                 SlideLayerClass=PowerpointLayer, shape_filters=None):
         super().__init__(flatmap, id, source_href, source_kind, source_range=source_range)
-        self.__SlideClass = SlideClass
+        self.__SlideLayerClass = SlideLayerClass
         self.__powerpoint = Powerpoint(source_href)
         self.bounds = self.__powerpoint.bounds   # Set bounds of MapSource
         self.__slides: list[Slide] = self.__powerpoint.slides
@@ -141,7 +141,7 @@ class PowerpointSource(MapSource):
             if slide_number < 1 or slide_number >= (len(self.__slides) + 1):
                 continue
             slide = self.__slides[slide_number - 1]
-            slide_layer = self.__SlideClass(self, slide, slide_number)
+            slide_layer = self.__SlideLayerClass(self, slide, slide_number)
             log('Slide {}, {}'.format(slide_number, slide_layer.id))
             if settings.get('saveDrawML'):
                 with open(self.flatmap.full_filename(f'{slide_layer.id}.xml'), 'w') as xml:
@@ -161,7 +161,7 @@ class PowerpointSource(MapSource):
         # slides to SVG is simply slide_to_svg for all slides in the PPT, using the GLOBAL svg shape filter
         # Do we need a local, secondary filter??
         # PowerpointSource.__slides is the list of PPTX Slide objects
-        # Use slide number to access local FCSlide layer (which has a svg_filter(shape) method??)
+        # Use slide number to access local FCSlideLayer (which has a svg_filter(shape) method??)
 
         svg_extractor.slides_to_svg()
 

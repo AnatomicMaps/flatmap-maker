@@ -20,7 +20,6 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Optional
 
 #===============================================================================
@@ -31,10 +30,9 @@ import shapely.strtree
 #===============================================================================
 
 from mapmaker.settings import settings
-from mapmaker.utils import log, FilePath, TreeList
+from mapmaker.utils import log, TreeList
 
-from ..powerpoint import PowerpointSource, PowerpointSlide
-from ..powerpoint.powerpoint import Shape, Slide, SHAPE_TYPE
+from ..powerpoint import PowerpointSource, PowerpointLayer, Slide, SHAPE_TYPE
 from ..shapefilter import ShapeFilter, ShapeFilters
 
 #===============================================================================
@@ -66,8 +64,8 @@ def create_annotator(annotation_file: str) -> Annotator:
 @dataclass
 class Connector:
     id: str
-    source: int
-    target: int
+    source: Optional[int]
+    target: Optional[int]
     geometry: shapely.geometry.base.BaseGeometry
     arrows: int
     properties: dict[str, str] = field(default_factory=dict)
@@ -141,7 +139,7 @@ class FCShapeFilters(ShapeFilters):
         super().__init__(flatmap, id, source_href, source_kind=source_kind, source_range=source_range, SlideClass=FCSlide)
 class FCPowerpointSource(PowerpointSource):
         super().__init__(flatmap, id, source_href, source_kind=source_kind,
-                         source_range=source_range, SlideClass=FCSlide,
+                         source_range=source_range, SlideLayerClass=FCSlideLayer,
                          shape_filters=shape_filters)
         self.__annotator = annotator
 
@@ -149,7 +147,7 @@ class FCPowerpointSource(PowerpointSource):
 
 #===============================================================================
 
-class FCSlide(PowerpointSlide):
+class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending `Slide`??
     def __init__(self, source: FCPowerpointSource, slide: Slide, slide_number: int):
         super().__init__(source, slide, slide_number)
         self.__fc_features: dict[int, FCFeature] = {
