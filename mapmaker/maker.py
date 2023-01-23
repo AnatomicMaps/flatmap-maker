@@ -140,9 +140,13 @@ class MapRepository:
 #===============================================================================
 
 class Manifest:
-    def __init__(self, manifest_path, single_file=None, id=None):
+    def __init__(self, manifest_path, single_file=None, id=None, ignore_git=False):
         self.__path = FilePath(manifest_path)
-        self.__repo = MapRepository(pathlib.Path(manifest_path).parent)
+
+        if ignore_git:
+            self.__repo = None
+        else:
+            self.__repo = MapRepository(pathlib.Path(manifest_path).parent)
         self.__url = self.__path.url
         self.__connections = {}
         self.__connectivity = []
@@ -221,7 +225,7 @@ class Manifest:
 
     @property
     def git_status(self):
-        if self.__repo.sha is not None:
+        if self.__repo is not None and self.__repo.sha is not None:
             return {
                 'sha': self.__repo.sha,
                 'remotes': self.__repo.remotes
@@ -257,8 +261,10 @@ class Manifest:
 
     @property
     def url(self):
-        blob_url = self.__repo.path_blob_url(self.__url)
-        return self.__url if blob_url is None else blob_url
+        if self.__repo is not None:
+            if (blob_url := self.__repo.path_blob_url(self.__url)) is not None:
+                return blob_url
+        return self.__url
 
     @property
     def uuid(self):
@@ -272,7 +278,7 @@ class Manifest:
 
     def __check_committed(self, path):
     #=================================
-        if not settings.get('authoring', False):
+        if self.__repo is not None:
             git_state = self.__repo.status(path)
             if git_state != GitState.DONTCARE:
                 message = ('unknown to git' if git_state == GitState.UNKNOWN else
@@ -331,7 +337,8 @@ class MapMaker(object):
 
         # Check we have been given a map source and get our manifest
         if 'source' in options:
-            self.__manifest = Manifest(options['source'], single_file=options.get('singleFile'), id=options.get('id'))
+            self.__manifest = Manifest(options['source'], single_file=options.get('singleFile'), id=options.get('id'),
+                                                          ignore_git=settings.get('authoring', False))
         else:
             raise ValueError('No source manifest specified')
         self.__id = self.__manifest.id
