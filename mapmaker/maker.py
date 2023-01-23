@@ -375,11 +375,14 @@ class MapMaker(object):
         # Exclude shapes from a layer if they are in the base layer (FC maps)
         self.__shape_filters = None
 
-        # For annotating functional connectivity diagrams
-        self.__FC_annotator = None
+        # An annotator (for functional connectivity)
+        if self.__manifest.annotation is not None:
+            self.__annotator = create_annotator(self.__manifest.annotation)
+        else:
+            self.__annotator = None
 
         # The map we are making
-        self.__flatmap = FlatMap(self.__manifest, self)
+        self.__flatmap = FlatMap(self.__manifest, self, self.__annotator)
 
     @property
     def id(self):
@@ -411,9 +414,9 @@ class MapMaker(object):
         if len(self.__flatmap) == 0:
             raise ValueError('No map layers in sources...')
 
-        # Save functional connectivity annotation
-        if self.__FC_annotator is not None:
-            self.__FC_annotator.save()
+        # Save annotation
+        if self.__annotator is not None:
+            self.__annotator.save()
 
         # Output all features (as GeoJSON)
         self.__output_geojson()
@@ -471,10 +474,6 @@ class MapMaker(object):
         settings['functionalConnectivity'] = (self.__manifest.kind == 'functional')
         if settings['functionalConnectivity']:
             self.__shape_filters = FCShapeFilters()
-            if self.__manifest.annotation is not None:
-                self.__FC_annotator = create_fc_annotator(self.__manifest.annotation)
-            else:
-                self.__FC_annotator = None
         for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
             id = source.get('id')
             kind = source.get('kind')
@@ -484,7 +483,6 @@ class MapMaker(object):
                     source_layer = FCPowerpointSource(self.__flatmap, id, href, kind,
                                         source_range=get_range(source.get('slides')),
                                         shape_filters=self.__shape_filters,
-                                        annotator=self.__FC_annotator,
                                         )
                 else:
                     raise ValueError('Unsupported FC kind: {}'.format(kind))

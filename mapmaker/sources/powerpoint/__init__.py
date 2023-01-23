@@ -69,6 +69,7 @@ class PowerpointLayer(MapLayer):
         shapes = self._extract_shapes()
         features = self.__process_shape_list(shapes)
         self.add_features('Slide', features, outermost=True)
+        self.__slide.annotate(self.flatmap.annotator)
 
     def __process_shape_list(self, shapes: TreeList) -> list[Feature]:
     #=================================================================

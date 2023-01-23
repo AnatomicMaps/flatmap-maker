@@ -45,7 +45,7 @@ from .layers import MapLayer
 #===============================================================================
 
 class FlatMap(object):
-    def __init__(self, manifest, maker):
+    def __init__(self, manifest, maker, annotator=None):
         self.__id = maker.id
         self.__uuid = maker.uuid
         self.__map_dir = maker.map_dir
@@ -56,6 +56,8 @@ class FlatMap(object):
         self.__centre = None
         self.__min_zoom = maker.zoom[0]
         self.__feature_map = None
+        self.__annotations = {}
+        self.__annotator = annotator
 
     def __len__(self):
         return self.__visible_layer_count
@@ -63,6 +65,10 @@ class FlatMap(object):
     @property
     def annotations(self):
         return self.__annotations
+
+    @property
+    def annotator(self):
+        return self.__annotator
 
     @property
     def area(self):

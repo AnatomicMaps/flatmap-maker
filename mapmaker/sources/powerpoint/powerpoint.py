@@ -116,6 +116,10 @@ class Slide():
                                                  self.__transform, show_progress=True))
         return shapes
 
+    def annotate(self, annotator: Annotator):
+    #========================================
+        pass
+
     def __get_colour(self, shape: PptxConnector | PptxGroupShape | PptxShape,
                      group_colour: Optional[ColourPair]=None) -> ColourPair:
     #=======================================================================

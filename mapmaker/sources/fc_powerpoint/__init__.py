@@ -62,15 +62,11 @@ class FCShapeFilters(ShapeFilters):
 
 class FCPowerpointSource(PowerpointSource):
     def __init__(self, flatmap, id, source_href, source_kind, source_range=None,
-                 shape_filters=None, annotator: Optional[Annotator]=None):
+                 shape_filters=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind,
                          source_range=source_range, SlideLayerClass=FCSlideLayer,
                          shape_filters=shape_filters)
-        self.__annotator = annotator
 
-    @property
-    def annotator(self) -> Optional[Annotator]:
-        return self.__annotator
 
 
 #===============================================================================
@@ -79,7 +75,6 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
     def __init__(self, source: FCPowerpointSource, slide: Slide, slide_number: int):
         super().__init__(source, slide, slide_number)
         self.__outer_geometry_prepared = shapely.prepared.prep(self.outer_geometry)
-        self.__annotator = self.source.annotator
         self.__fc_features: dict[int, FCFeature] = {
             0: FCFeature(0, self.outer_geometry)
         }
@@ -95,7 +90,6 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
     def process(self):
     #=================
         super().process()
-        self.__annotate()
 
         # Find circuits
 
@@ -112,7 +106,42 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
                         seen_nodes.add(target)
             elif degree >= 3:
                 log.warning(f'Node {source}/{degree} is a branch point...')
+    def annotate(self, annotator: Annotator):
+    #========================================
+        # Called after shapes have been extracted
 
+        ## This is where we could set shape attributes from existing annotation...
+
+        for id in self.__systems:
+            annotator.add_system(self.__fc_features[id].name, self.source_id)
+
+        for id in self.__organs:
+            annotator.add_organ(self.__fc_features[id].name, self.source_id,
+                tuple(self.__fc_features[system_id].name for system_id in self.__fc_features[id].parents if system_id > 0)
+                )
+
+        for feature in self.__fc_features.values():
+            self.__annotate_feature(feature, annotator)
+
+
+    def __annotate_feature(self, feature: FCFeature,  annotator: Annotator):
+    #=======================================================================
+        if (feature.name != ''
+        and (annotation := annotator.find_annotation(feature.name)) is None):
+            organ_id = None
+            for parent in feature.parents:
+                if parent in self.__organs:
+                    # Can have multiple parents
+                    organ_id = parent
+                    break
+            if organ_id is not None:
+                if len(feature.parents) > 1:
+                    log.warning(f'FTU {feature} in multiple organs')
+                else:
+                    organ_name = self.__fc_features[organ_id].name
+                    annotation = annotator.find_ftu_by_names(organ_name, feature.name)
+                    if annotation is None:
+                        annotation = annotator.add_ftu(self.__fc_features[organ_id].name, feature.name, self.source_id)
 
         connector_set = ConnectorSet('functional')
         for feature in self.features:
@@ -159,52 +188,7 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
 
         return shapes
 
-    def __annotate(self):
-    #====================
-        # Called after shapes have been extracted
 
-        ## This is where we could set shape attributes from existing annotation...
-
-        if self.__annotator is None:
-            return
-
-        for id in self.__systems:
-            self.__annotator.add_system(self.__fc_features[id].name, self.id)
-
-        for id in self.__organs:
-            self.__annotator.add_organ(self.__fc_features[id].name, self.id,
-                tuple(self.__fc_features[system_id].name for system_id in self.__fc_features[id].parents if system_id != 0)
-                )
-
-        for feature in self.__fc_features.values():
-            #print(feature)
-            self.__annotate_feature(feature)
-
-        ##for shape_id, connector in self.__connectors.items():
-        ##    print('CONN:', shape_id, connector)
-
-    def __annotate_feature(self, feature: FCFeature):
-    #================================================
-        if (self.__annotator is not None
-        and (annotation := self.__annotator.find_annotation(feature.feature_id)) is None
-        and feature.name != ''):
-            organ_id = None
-            for parent in feature.parents:
-                if parent in self.__organs:
-                    # Can have multiple parents
-                    organ_id = parent
-                    break
-            if organ_id is not None:
-                if len(feature.parents) > 1:
-                    log.warning(f'FTU {feature} in multiple organs')
-                else:
-                    organ_name = self.__fc_features[organ_id].name
-                    annotation = self.__annotator.find_ftu_by_names(organ_name, feature.name)
-                    if annotation is None:
-                        annotation = self.__annotator.add_ftu(self.__fc_features[organ_id].name, feature.name, self.id)
-        ##if annotation is not None:
-        ##    pass
-            # get/set id, etc
 
     def __extract_components(self, shapes: TreeList):
     #================================================
