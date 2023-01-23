@@ -23,14 +23,14 @@ class TreeList(list):
     """
     A ``tree`` structure implemented as a list with branches (sub-trees) being embedded lists.
     """
-    def flatten(self):
+    def flatten(self, skip=0):
         """
         Return leaves of the tree as a ``list`` in depth-first order.
         """
         flattened = []
-        for element in self:
+        for element in self[skip:]:
             if isinstance(element, TreeList):
-                flattened.extend(element.flatten())
+                flattened.extend(element.flatten(skip=skip))
             else:
                 flattened.append(element)
         return flattened
