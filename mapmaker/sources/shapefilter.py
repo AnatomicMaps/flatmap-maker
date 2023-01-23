@@ -52,7 +52,7 @@ class ShapeFilter:
     def add_shape(self, shape: Shape):
     #=================================
         geometry = shape.geometry
-        if self.__excluded_shape_rtree is None:
+        if geometry is not None and self.__excluded_shape_rtree is None:
             if 'Polygon' in geometry.geom_type:
                 self.__excluded_shape_geometries.append(geometry)
                 self.__excluded_shape_attributes[id(geometry)] = self.__attributes(shape)
@@ -75,7 +75,7 @@ class ShapeFilter:
     #======================================
         if self.__excluded_shape_rtree is not None:
             geometry = shape.geometry
-            if 'Polygon' in geometry.geom_type:
+            if geometry is not None and 'Polygon' in geometry.geom_type:
                 if ((attribs := self.__shape_excluded(geometry)) is not None
                  or (attribs := self.__shape_excluded(geometry, overlap=0.80)) is not None
                  or (attribs := self.__shape_excluded(geometry, attributes=self.__attributes(shape))) is not None):
@@ -106,20 +106,5 @@ class ShapeFilter:
                             log.info(f'Excluded by {attributes} match')
                         return attributes
         return None
-
-#===============================================================================
-
-class ShapeFilters:
-    def __init__(self, map_filter=None, svg_filter=None):
-        self.__map_shape_filter = ShapeFilter() if map_filter is None else map_filter
-        self.__svg_shape_filter = ShapeFilter() if svg_filter is None else svg_filter
-
-    @property
-    def map_filter(self) -> ShapeFilter:
-        return self.__map_shape_filter
-
-    @property
-    def svg_filter(self) -> ShapeFilter:
-        return self.__svg_shape_filter
 
 #===============================================================================

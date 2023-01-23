@@ -54,7 +54,7 @@ from .output.tilemaker import RasterTileMaker
 from .settings import settings
 
 from .sources import FCPowerpointSource, MBFSource, PowerpointSource, SVGSource
-from .sources.fc_powerpoint import ShapeFilters as FCShapeFilters
+from .sources.shapefilter import ShapeFilter
 
 #===============================================================================
 
@@ -373,7 +373,7 @@ class MapMaker(object):
         settings['KNOWLEDGE_STORE'] = knowledge_store
 
         # Exclude shapes from a layer if they are in the base layer (FC maps)
-        self.__shape_filters = None
+        self.__shape_filter = None
 
         # An annotator (for functional connectivity)
         if self.__manifest.annotation is not None:
@@ -471,19 +471,19 @@ class MapMaker(object):
                 else:
                     return [int(source_range)]
 
-        settings['functionalConnectivity'] = (self.__manifest.kind == 'functional')
-        if settings['functionalConnectivity']:
-            self.__shape_filters = FCShapeFilters()
+        if self.__manifest.kind == 'functional':
+            settings['functionalConnectivity'] = True
+            self.__shape_filter = ShapeFilter()
         for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
             id = source.get('id')
             kind = source.get('kind')
             href = source['href']
             if settings['functionalConnectivity']:
                 if kind in ['base', 'layer']:
-                    source_layer = FCPowerpointSource(self.__flatmap, id, href, kind,
-                                        source_range=get_range(source.get('slides')),
-                                        shape_filters=self.__shape_filters,
-                                        )
+                    source_layer = FCPowerpointSource(self.__flatmap, id, href,
+                                                      source_kind=kind,
+                                                      source_range=get_range(source.get('slides')),
+                                                      shape_filter=self.__shape_filter)
                 else:
                     raise ValueError('Unsupported FC kind: {}'.format(kind))
             elif kind == 'slides':

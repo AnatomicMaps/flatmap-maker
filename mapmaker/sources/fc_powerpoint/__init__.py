@@ -37,48 +37,30 @@ from mapmaker.settings import settings
 from mapmaker.sources import MapBounds
 from mapmaker.utils import log, TreeList
 
-from ..shapefilter import ShapeFilter, ShapeFilters
 from ..powerpoint import PowerpointSource, Slide, SHAPE_TYPE
+from ..shapefilter import ShapeFilter
 from ..powerpoint.colour import ColourTheme
 
 #===============================================================================
 
 from .features import CONNECTION_CLASSES, Connector, FC, FC_Class, FCFeature
-#===============================================================================
-
-class SVGShapeFilter(ShapeFilter):
-    def add_shape(self, shape):
-        super().add_shape(shape)
-
-    def filter(self, shape):
-        super().filter(shape)
-
-class MapShapeFilter(ShapeFilter):
-    def add_shape(self, shape):
-        super().add_shape(shape)
-
-class FCShapeFilters(ShapeFilters):
-    def __init__(self):
-        super().__init__(map_filter=MapShapeFilter, svg_filter=SVGShapeFilter)
 
 #===============================================================================
 
 class FCPowerpointSource(PowerpointSource):
     def __init__(self, flatmap, id, source_href, source_kind, source_range=None,
-                 shape_filters=None):
+                 shape_filter: Optional[ShapeFilter]=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind,
-                         shape_filters=shape_filters)
-                         source_range=source_range, SlideClass=FCSlide,
+                         source_range=source_range, shape_filter=shape_filter,
                          SlideClass=FCSlide)
-
-
 
 #===============================================================================
 
 class FCSlide(Slide):
     def __init__(self, source_id: str, kind: str, index: int, pptx_slide: PptxSlide, theme: ColourTheme,
-                 bounds: MapBounds, transform: Transform):
+                 bounds: MapBounds, transform: Transform, shape_filter: Optional[ShapeFilter]=None):
         super().__init__(source_id, kind, index, pptx_slide, theme, bounds, transform)
+        self.__shape_filter = shape_filter
         self.__outer_geometry_prepared = shapely.prepared.prep(self.geometry)
         self.__fc_features: dict[int, FCFeature] = {
             0: FCFeature(0, self.geometry)
@@ -96,9 +78,12 @@ class FCSlide(Slide):
     #=================
         shapes = super().process()
 
-        # Find circuits
+        if self.kind == 'base' and self.__shape_filter is not None:
+            self.__shape_filter.create_filter()
+
         self.__extract_shapes(shapes)
 
+        # Find circuits
         seen_nodes = set()
         self.__circuit_graph = nx.Graph()
         for (source, degree) in self.__connection_graph.degree():       # type: ignore
@@ -112,6 +97,8 @@ class FCSlide(Slide):
                         seen_nodes.add(target)
             elif degree >= 3:
                 log.warning(f'Node {source}/{degree} is a branch point...')
+        return shapes
+
     def annotate(self, annotator: Annotator):
     #========================================
         # Called after shapes have been extracted
@@ -128,7 +115,6 @@ class FCSlide(Slide):
 
         for feature in self.__fc_features.values():
             self.__annotate_feature(feature, annotator)
-
 
     def __annotate_feature(self, feature: FCFeature,  annotator: Annotator):
     #=======================================================================
@@ -158,7 +144,12 @@ class FCSlide(Slide):
             # Add the shape to the filter if we are processing a base map,
             # or exclude it from the layer because it is similar to those
             # in the base map
-            self.source.filter_map_shape(shape)
+            if self.__shape_filter is not None:
+                if self.kind == 'base':
+                    self.__shape_filter.add_shape(shape)
+                elif self.kind == 'layer':
+                    self.__shape_filter.filter(shape)
+
             if shape.id in self.__systems:
                 shape.properties.pop('name', None)  # We don't want System tooltips...
             kind = shape.properties.get('shape-kind')
@@ -182,8 +173,6 @@ class FCSlide(Slide):
                 shape.properties['type'] = 'line-dash' if path_type.endswith('-post') else 'line'
 
         return shapes
-
-
 
     def __extract_components(self, shapes: TreeList):
     #================================================
@@ -358,7 +347,6 @@ class FCSlide(Slide):
                     warnings.append(f'Colour {colour} is not a known connector class (shape {shape_id})')
 
                 system = self.__system_feature(shape_id)
-
                 if system is None:
                     # NB. 'Breasts' are in three systems but none are assigned...
                     warnings.append(f'Cannot determine system for connector {shape_id} in FTU {label}')

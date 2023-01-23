@@ -87,7 +87,6 @@ class PowerpointLayer(MapLayer):
                 if grouped_feature is not None:
                     features.append(grouped_feature)
             else:
-##                print('>>>>>>>>>>>>>>>', shape.type, shape.label)
                 properties = shape.properties
                 self.source.check_markup_errors(properties)
                 if 'tile-layer' not in properties:
@@ -109,14 +108,8 @@ class PowerpointLayer(MapLayer):
 
 class PowerpointSource(MapSource):
     def __init__(self, flatmap, id, source_href, source_kind='slides', source_range=None,
-                 SlideClass=Slide, shape_filters=None):
+                 shape_filter=None, SlideClass=Slide):
         super().__init__(flatmap, id, source_href, source_kind, source_range=source_range)
-        if shape_filters is not None:
-            self.__map_shape_filter = shape_filters.map_filter
-            self.__svg_shape_filter = shape_filters.svg_filter
-        else:
-            self.__map_shape_filter = None
-            self.__svg_shape_filter = None
         self.__powerpoint = Powerpoint(id, source_href, source_kind, shape_filter=shape_filter, SlideClass=SlideClass)
         self.bounds = self.__powerpoint.bounds   # Sets bounds of MapSource
         self.__slides = self.__powerpoint.slides
@@ -125,19 +118,8 @@ class PowerpointSource(MapSource):
     def transform(self):
         return self.__powerpoint.transform
 
-    def filter_map_shape(self, shape):
-    #=================================
-        # Called as each shape is extracted from a slide
-        if self.__map_shape_filter is not None:
-            if self.kind == 'base':
-                self.__map_shape_filter.add_shape(shape)
-            elif self.kind == 'layer':
-                self.__map_shape_filter.filter(shape)
-
     def process(self):
     #=================
-        if self.__map_shape_filter is not None and self.kind == 'base':
-            self.__map_shape_filter.create_filter()
         if self.source_range is None:
             slide_numbers = range(1, len(self.__slides)+1)
         else:
@@ -161,8 +143,7 @@ class PowerpointSource(MapSource):
 
     def __get_raster_data(self):
     #===========================
-        svg_extractor = Pptx2Svg(self.source_href,
-            kind=self.kind, shape_filter=self.__svg_shape_filter)
+        svg_extractor = Pptx2Svg(self.source_href,  kind=self.kind)
 
         # slides to SVG is simply slide_to_svg for all slides in the PPT, using the GLOBAL svg shape filter
         # Do we need a local, secondary filter??

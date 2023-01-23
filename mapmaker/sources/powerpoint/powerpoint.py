@@ -44,6 +44,7 @@ from mapmaker.geometry import Transform
 from mapmaker.properties.markup import parse_layer_directive, parse_markup
 from mapmaker.sources import MapBounds, WORLD_METRES_PER_EMU
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
+from mapmaker.sources.shapefilter import ShapeFilter
 from mapmaker.utils import FilePath, log, ProgressBar, TreeList
 
 from .colour import ColourMap, ColourTheme
@@ -80,7 +81,8 @@ ColourPair = tuple[Optional[str], float]
 
 class Slide:
     def __init__(self, source_id: str, kind: str, index: int, pptx_slide: PptxSlide,
-                 theme: ColourTheme, bounds: MapBounds, transform: Transform):
+                 theme: ColourTheme, bounds: MapBounds, transform: Transform,
+                 shape_filter: Optional[ShapeFilter]=None):
         self.__source_id = source_id
         self.__kind = kind
         self.__id = None
