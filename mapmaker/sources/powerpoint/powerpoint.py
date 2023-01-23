@@ -40,6 +40,7 @@ from pptx.slide import Slide as PptxSlide
 
 #===============================================================================
 
+from mapmaker.annotation import Annotator
 from mapmaker.geometry import Transform
 from mapmaker.properties.markup import parse_layer_directive, parse_markup
 from mapmaker.sources import MapBounds, WORLD_METRES_PER_EMU
