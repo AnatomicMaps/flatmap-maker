@@ -65,6 +65,12 @@ class ShapeFilter:
         if self.__excluded_shape_rtree is None:
             self.__excluded_shape_rtree = shapely.strtree.STRtree(self.__excluded_shape_geometries)
 
+    def reset_filter(self):
+    #=======================
+        if self.__excluded_shape_rtree is not None:
+            del self.__excluded_shape_rtree
+        self.create_filter()
+
     def filter(self, shape: Shape) -> bool:
     #======================================
         if self.__excluded_shape_rtree is not None:
