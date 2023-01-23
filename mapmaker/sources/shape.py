@@ -27,8 +27,9 @@ from shapely.geometry.base import BaseGeometry
 #===============================================================================
 
 class SHAPE_TYPE(Enum):
-    FEATURE = 1
-    CONNECTOR = 2
+    CONNECTOR = 1
+    FEATURE = 2
+    GROUP = 3
 
 #===============================================================================
 
