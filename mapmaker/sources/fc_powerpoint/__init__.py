@@ -39,10 +39,12 @@ from ..shapefilter import ShapeFilter, ShapeFilters
 
 #===============================================================================
 
+from .annotation import Annotator
 from .features import CONNECTION_CLASSES, Connector, FC, FC_Class, FCFeature
 from .json_annotator import JsonAnnotator
 from .xlsx_annotator import XlsxAnnotator
-from .annotation import Annotator
+
+#===============================================================================
 
 def create_annotator(annotation_file: str) -> Annotator:
 #=======================================================
