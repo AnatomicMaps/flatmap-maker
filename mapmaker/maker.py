@@ -78,7 +78,7 @@ class MapRepository:
             self.__repo = git.Repo(working_dir)
             self.__repo_path = pathlib.Path(os.path.abspath(working_dir))
             self.__changed_items = [ item.a_path for item in self.__repo.index.diff(None) ]
-            self.__staged_items = [ item.a_path for item in self.__repo.index.diff('Head') ]
+            self.__staged_items = [ item.a_path for item in self.__repo.index.diff('HEAD') ]
             self.__untracked_files = self.__repo.untracked_files
             self.__set_upstream_base()
         except git.InvalidGitRepositoryError:
