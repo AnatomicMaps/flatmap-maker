@@ -76,6 +76,7 @@ class GeoJSONOutput(object):
                 continue
             properties = feature.properties.copy()
             properties.pop('bezier-segments', None)   # Don't export Bezier segments
+            properties.pop('pptx-shape', None)        # Don't export Powerpoint shape
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)

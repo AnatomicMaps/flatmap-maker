@@ -263,7 +263,8 @@ class Slide():
                         if label != '':
                             shape_properties['label'] = label
                             shape_properties['align'] = text_alignment(pptx_shape)
-                    shape = Shape(shape_type, pptx_shape.shape_id, geometry, shape_properties)
+                    shape_properties['pptx-shape'] = pptx_shape
+                    shape = PowerpointShape(shape_type, pptx_shape.shape_id, geometry, shape_properties)
                     self.__shapes_by_id[shape.id] = shape
                     shapes.append(shape)
                 elif geometry is None:
