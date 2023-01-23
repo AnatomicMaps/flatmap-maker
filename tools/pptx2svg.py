@@ -19,16 +19,15 @@
 #===============================================================================
 
 import json
-import os
-from urllib.parse import urljoin
 
 #===============================================================================
 
+from mapmaker.settings import settings
 from mapmaker.sources.powerpoint.pptx2svg import Pptx2Svg
 
 #===============================================================================
 
-__version__ = '1.2.0'
+__version__ = '2.0.0-a.1'
 
 #===============================================================================
 
@@ -40,62 +39,43 @@ def main():
     from pathlib import Path
     import sys
 
-    parser = argparse.ArgumentParser(description='Convert Powerpoint slides to SVG.')
+    parser = argparse.ArgumentParser(description='Convert flatmap Powerpoint slides to SVG.')
 
     parser.add_argument('-v', '--version', action='version', version=__version__)
+    parser.add_argument('-d', '--debug', action='store_true', help='output debugging information')
 
-    #parser.add_argument('-d', '--debug', action='store_true', help='save DrawML to aid with debugging')
     #parser.add_argument('-q', '--quiet', action='store_true', help='do not show progress bar')
     #parser.add_argument('-x', '--export-shapes', action='store_true', help='export closed shapes as JSON')
     #parser.add_argument('--exclude-shapes', metavar='FILENAME', help='previously exported shapes to exclude from SVG')
     #
     # --celldl option?? Pass to Pptx2Svg
 
-    parser.add_argument('--powerpoint', metavar='POWERPOINT_FILE',
-                        help='the Powerpoint file to convert')
-    parser.add_argument('--map', dest='map_dir', metavar='MAP_DIR',
-                        help='directory containing a flatmap manifest specifying sources')
+    parser.add_argument('manifest', metavar='MANIFEST',
+                        help='a flatmap manifest specifying Powerpoint sources')
 
     args = parser.parse_args()
+    settings['debug'] = args.debug
 
-    if args.powerpoint is None and args.map_dir is None:
-        sys.exit('A map directory or Powerpoint file must be specified')
-    elif args.powerpoint is not None and args.map_dir is not None:
-        sys.exit('Cannot specify both a map directory and a Powerpoint file')
+    manifest_path = Path(args.manifest)
+    map_dir = manifest_path.parent
+    with open(manifest_path, 'rb') as fp:
+        manifest = json.loads(fp.read())
 
-    if args.map_dir:
-        manifest_file = os.path.join(args.map_dir, 'manifest.json')
-        with open(manifest_file, 'rb') as fp:
-            manifest = json.loads(fp.read())
-        for source in manifest['sources']:
-            if source['kind'] == 'slides':
-                manifest_path = Path(manifest_file).absolute().as_posix()
-                args.powerpoint = urljoin(manifest_path, source['href'])
-                break
-        if args.powerpoint is None:
-            sys.exit('No Powerpoint file specified in manifest')
-        args.output_dir = args.map_dir
-    else:
-        manifest = { 'sources': [] }
-        ##args.output_dir = Path(args.powerpoint).parent.as_posix()   ## <<<<<<<<<<<<<<
-        args.output_dir = Path('.')
+    slide_kinds = ['base', 'layer'] if manifest.get('kind') == 'functional' else ['slides']
+    powerpoints = []
+    for source in manifest['sources']:
+        if source['kind'] in slide_kinds:
+            powerpoints.append(str(map_dir / source['href']))
+    if len(powerpoints) == 0:
+        sys.exit('No Powerpoint files specified in manifest')
 
-    print(f'Processing {args.powerpoint}...')
-    extractor = Pptx2Svg(args.powerpoint)
-    extractor.slides_to_svg()
-    svg_files = extractor.save_layers(args.output_dir)
-
-    if args.map_dir:
-        # Update an existing manifest
-        extractor.update_manifest(manifest)
-        manifest_temp_file = os.path.join(args.output_dir, 'manifest.temp')
-        with open(manifest_temp_file, 'w') as output:
-            output.write(json.dumps(manifest, indent=4))
-        manifest_file = os.path.join(args.output_dir, 'manifest.json')
-        os.rename(manifest_temp_file, manifest_file)
-        print(f'Manifest saved as `{manifest_file}`')
-    else:
-        print(f'Slides saved as {", ".join([name for name in svg_files.values()])}')
+    for powerpoint in powerpoints:
+        print(f'Processing {powerpoint}...')
+        extractor = Pptx2Svg(powerpoint)
+        extractor.slides_to_svg()
+        print(f'{powerpoint} slides saved as:')
+        for layer_id, svg_file in extractor.save_layers(map_dir).items():
+            print(f'    {layer_id}: {svg_file}')
 
 #===============================================================================
 
