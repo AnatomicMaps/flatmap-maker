@@ -238,7 +238,7 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
         self.__extract_components(shapes)
         self.__label_connectors(shapes)
 
-        for shape in shapes.flatten():
+        for shape in shapes.flatten(skip=1):
             # Add the shape to the filter if we are processing a base map,
             # or exclude it from the layer because it is similar to those
             # in the base map
@@ -318,7 +318,7 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
     #================================================
         geometries = [self.outer_geometry]
         shape_ids = {id(self.outer_geometry): 0}     # id(geometry) --> shape.id
-        for shape in shapes.flatten():
+        for shape in shapes.flatten(skip=1):
             shape_id = shape.id
             geometry = shape.geometry
             if shape.type == SHAPE_TYPE.FEATURE and geometry.geom_type == 'Polygon':
@@ -399,7 +399,7 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
                 self.__set_relationships(shape_id, parent_id)
 
         # Now extract connections between features
-        for shape in shapes.flatten():
+        for shape in shapes.flatten(skip=1):
             if shape.type == SHAPE_TYPE.CONNECTOR:
                 shape.properties['messages'] = []
                 shape_id = shape.id
@@ -489,7 +489,7 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
 
     def __label_connectors(self, shapes: TreeList):
     #==============================================
-        for shape in shapes.flatten():
+        for shape in shapes.flatten(skip=1):
             if shape.type == SHAPE_TYPE.CONNECTOR:
                 node_0 = self.__connector_node(shape.properties.get('connection-start', None))
                 node_1 = self.__connector_node(shape.properties.get('connection-end', None))

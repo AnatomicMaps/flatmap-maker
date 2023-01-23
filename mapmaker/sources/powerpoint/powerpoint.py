@@ -111,9 +111,10 @@ class Slide():
     def process(self) -> TreeList:
     #=============================
         # Return the slide's group structure as a nested list of Shapes
-        return self.__process_pptx_shapes(self.__pptx_slide.shapes,      # type: ignore
-                                          self.__transform, show_progress=True)
-
+        shapes = TreeList([None])
+        shapes.extend(self.__process_pptx_shapes(self.__pptx_slide.shapes,      # type: ignore
+                                                 self.__transform, show_progress=True))
+        return shapes
 
     def __get_colour(self, shape: PptxConnector | PptxGroupShape | PptxShape,
                      group_colour: Optional[ColourPair]=None) -> ColourPair:
@@ -152,8 +153,15 @@ class Slide():
 
     def __process_group(self, group: PptxGroupShape, transform: Transform) -> TreeList:
     #==================================================================================
-        return self.__process_pptx_shapes(group.shapes, transform@DrawMLTransform(group),       # type: ignore
-                                          group_colour=self.__get_colour(group))
+        colour = self.__get_colour(group)
+        shapes = TreeList([PowerpointShape(SHAPE_TYPE.GROUP, group.shape_id, None, {
+            'colour': colour[0],
+            'opacity': colour[1],
+            'pptx-shape': group
+        })])
+        shapes.extend(self.__process_pptx_shapes(group.shapes, transform@DrawMLTransform(group),    # type: ignore
+                                                 group_colour=colour))
+        return shapes
 
 ###        if len(shapes) < 2:  ## shapes[0] might be a TreeList ##
 ###                             ## or shapes[0].type != SHAPE_TYPE.FEATURE:

@@ -73,7 +73,7 @@ class PowerpointLayer(MapLayer):
     def __process_shape_list(self, shapes: TreeList) -> list[Feature]:
     #=================================================================
         features = []
-        for shape in shapes:
+        for shape in shapes[1:]:
             if isinstance(shape, TreeList):
                 group_features = self.__process_shape_list(shape)
                 grouped_feature = self.add_features('Group', group_features)
