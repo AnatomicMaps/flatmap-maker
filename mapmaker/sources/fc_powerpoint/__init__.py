@@ -20,15 +20,20 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+import enum
 from typing import Optional
 
 #===============================================================================
 
+import networkx as nx
+
 import shapely.geometry
+import shapely.prepared
 import shapely.strtree
 
 #===============================================================================
 
+from mapmaker.properties import ConnectorSet
 from mapmaker.settings import settings
 from mapmaker.utils import log, TreeList
 
@@ -37,9 +42,6 @@ from ..shapefilter import ShapeFilter, ShapeFilters
 
 #===============================================================================
 
-CONNECTOR_CLASSES = {
-    '#FF0000': 'symp',     # Source is in Brain/spinal cord
-    '#0070C0': 'sensory',  # Target is in Brain/spinal cord
 from .json_annotator import JsonAnnotator
 from .xlsx_annotator import XlsxAnnotator
 from .annotation import Annotator
@@ -55,9 +57,29 @@ def create_annotator(annotation_file: str) -> Annotator:
 
 #===============================================================================
 
+CONNECTION_CLASSES = {
+    '#FF0000': 'symp',      # Source is in Brain/spinal cord
+    '#0070C0': 'sensory',   # Target is in Brain/spinal cord
     '#4472C4': 'sensory',
-    '#548235': 'para',     # Source is in Brain/spinal cord
+    '#548135': 'para',      # Source is in Brain/spinal cord
+    '#548235': 'para',      # Source is in Brain/spinal cord
+    '#FFC000': 'connector', # An inline connector
 }
+
+#===============================================================================
+
+class FC_Class(enum.Enum):
+    UNKNOWN = 0
+    BRAIN = enum.auto()
+
+class FC(enum.IntFlag):
+    # Values can be or'd together...
+    UNKNOWN   = 0
+    SYSTEM    = 1
+    ORGAN     = 2
+    FTU       = 4
+    NERVE     = 64
+    CONNECTED = 256
 
 #===============================================================================
 
@@ -75,6 +97,8 @@ class Connector:
 @dataclass
 class FCFeature:
     id: int
+    kind: FC = field(default=FC.UNKNOWN, init=False)
+    fc_class: FC_Class = field(default=FC_Class.UNKNOWN, init=False)
     geometry: shapely.geometry.base.BaseGeometry
     properties: dict[str, str] = field(default_factory=dict)
     children: list[int] = field(default_factory=list, init=False)
@@ -83,10 +107,11 @@ class FCFeature:
     def __post_init__(self):
         label = self.properties.pop('label', '').replace('\t', '|').strip()
         self.properties['name'] = label
+        label = self.properties.pop('hyperlink', label)
         self.properties['label'] = f'{self.id}: {label}' if settings.get('authoring', False) else label
 
     def __str__(self):
-        return f'FCFeature(id={self.id}, children={self.children}, parents={self.parents}, properties={self.properties})'
+        return f'FCFeature({self.id}: {str(self.kind)}/{str(self.fc_class)}, parents={self.parents}, children={self.children} {self.name})'
 
     @property
     def colour(self):
@@ -99,6 +124,14 @@ class FCFeature:
     @feature_class.setter
     def feature_class(self, cls):
         self.properties['class'] = cls
+
+    @property
+    def feature_id(self):
+        return self.properties.get('id')
+
+    @feature_id.setter
+    def feature_id(self, id):
+        self.properties['id'] = id
 
     @property
     def label(self):
@@ -135,14 +168,17 @@ class FCShapeFilters(ShapeFilters):
 
 #===============================================================================
 
-    def __init__(self, flatmap, id, source_href, source_kind, source_range=None, shape_filters=None, annotator=None):
-        super().__init__(flatmap, id, source_href, source_kind=source_kind, source_range=source_range, SlideClass=FCSlide)
 class FCPowerpointSource(PowerpointSource):
+    def __init__(self, flatmap, id, source_href, source_kind, source_range=None,
+                 shape_filters=None, annotator: Optional[Annotator]=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind,
                          source_range=source_range, SlideLayerClass=FCSlideLayer,
                          shape_filters=shape_filters)
         self.__annotator = annotator
 
+    @property
+    def annotator(self) -> Optional[Annotator]:
+        return self.__annotator
 
 
 #===============================================================================
@@ -150,47 +186,133 @@ class FCPowerpointSource(PowerpointSource):
 class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending `Slide`??
     def __init__(self, source: FCPowerpointSource, slide: Slide, slide_number: int):
         super().__init__(source, slide, slide_number)
+        self.__outer_geometry_prepared = shapely.prepared.prep(self.outer_geometry)
+        self.__annotator = self.source.annotator
         self.__fc_features: dict[int, FCFeature] = {
             0: FCFeature(0, self.outer_geometry)
         }
-        self.__connectors: list[Connector] = []
+        self.__connectors: dict[int, Connector] = {}
         self.__systems: set[int] = set()
         self.__organs: set[int] = set()
-
-    @property
-    def connectors(self) -> list[Connector]:
-        return self.__connectors
-
-    @property
-    def fc_features(self) -> dict[int, FCFeature]:
-        return self.__fc_features
-
-    @property
-    def organs(self) -> set[int]:
-        return self.__organs
-
-    @property
-    def systems(self) -> set[int]:
-        return self.__systems
+        self.__connection_graph = nx.Graph()
+        self.__circuit_graph = nx.Graph()
+        self.__unknown_colours = set()
+        self.__seen_shape_kinds = set()
+        self.__smallest_shape_area = 10000000000
 
     def process(self):
     #=================
         super().process()
-        self.source.annotate(self)
+        self.__annotate()
 
-    def _extract_shapes(self) -> TreeList:
+        # Find circuits
+
+        seen_nodes = set()
+        self.__circuit_graph = nx.Graph()
+        for (source, degree) in self.__connection_graph.degree():       # type: ignore
+            if degree == 1 and source not in seen_nodes:
+                self.__circuit_graph.add_node(source)
+                seen_nodes.add(source)
+                for target, _ in nx.shortest_path(self.__connection_graph, source=source).items():  # type: ignore
+                    if target != source and self.__connection_graph.degree(target) == 1:
+                        self.__circuit_graph.add_node(target)
+                        self.__circuit_graph.add_edge(source, target)
+                        seen_nodes.add(target)
+            elif degree >= 3:
+                log.warning(f'Node {source}/{degree} is a branch point...')
+
+
+        connector_set = ConnectorSet('functional')
+        for feature in self.features:
+            if feature.properties.get('shape-type') == 'connector':
+                #shape.properties['type'] = 'line-dash' if ganglion == 'pre' else 'line'
+                #print(shape.properties)
+                connector_set.add(feature.properties['shape-id'],
+                                  feature.properties['kind'],
+                                  feature.geojson_id)
+        self.source.flatmap.map_properties.pathways.add_connector_set(connector_set)
+
+    def _extract_shapes(self) -> TreeList:      #! Called at start of ``process()``
     #=====================================
-        shapes = super()._extract_shapes()
+        shapes = super()._extract_shapes()      #! This will process the actual Pptx slide
         self.__extract_components(shapes)
         self.__label_connectors(shapes)
+
         for shape in shapes.flatten():
             # Add the shape to the filter if we are processing a base map,
             # or exclude it from the layer because it is similar to those
             # in the base map
             self.source.filter_map_shape(shape)
             if shape.id in self.__systems:
-                shape.properties.pop('label', None)  # We don't want System tooltips...
+                shape.properties.pop('name', None)  # We don't want System tooltips...
+            kind = shape.properties.get('shape-kind')
+            if kind not in self.__seen_shape_kinds:
+                self.__seen_shape_kinds.add(kind)
+                if shape.geometry.area < self.__smallest_shape_area:
+                    self.__smallest_shape_area = shape.geometry.area
+
+            if shape.type == SHAPE_TYPE.CONNECTOR:
+                shape.properties['shape-type'] = 'connector'
+                shape.properties['shape-id'] = shape.id
+                shape.properties['tile-layer'] = 'pathways'
+                kind = shape.properties.pop('kind', 'unknown')
+                ganglion = shape.properties.pop('ganglion')
+                ## get dash style from pptx. cf. pptx2svg
+                if kind in ['para', 'symp']:
+                    path_type = f'{kind}-{ganglion}'
+                else:
+                    path_type = kind
+                shape.properties['kind'] = path_type
+                shape.properties['type'] = 'line-dash' if path_type.endswith('-post') else 'line'
+
         return shapes
+
+    def __annotate(self):
+    #====================
+        # Called after shapes have been extracted
+
+        ## This is where we could set shape attributes from existing annotation...
+
+        if self.__annotator is None:
+            return
+
+        for id in self.__systems:
+            self.__annotator.add_system(self.__fc_features[id].name, self.id)
+
+        for id in self.__organs:
+            self.__annotator.add_organ(self.__fc_features[id].name, self.id,
+                tuple(self.__fc_features[system_id].name for system_id in self.__fc_features[id].parents if system_id != 0)
+                )
+
+        for feature in self.__fc_features.values():
+            #print(feature)
+            self.__annotate_feature(feature)
+
+        ##for shape_id, connector in self.__connectors.items():
+        ##    print('CONN:', shape_id, connector)
+
+    def __annotate_feature(self, feature: FCFeature):
+    #================================================
+        if (self.__annotator is not None
+        and (annotation := self.__annotator.find_annotation(feature.feature_id)) is None
+        and feature.name != ''):
+            organ_id = None
+            for parent in feature.parents:
+                if parent in self.__organs:
+                    # Can have multiple parents
+                    organ_id = parent
+                    break
+            if organ_id is not None:
+                if len(feature.parents) > 1:
+                    log.warning(f'FTU {feature} in multiple organs')
+                else:
+                    organ_name = self.__fc_features[organ_id].name
+                    annotation = self.__annotator.find_ftu_by_names(organ_name, feature.name)
+                    if annotation is None:
+                        annotation = self.__annotator.add_ftu(self.__fc_features[organ_id].name, feature.name, self.id)
+        ##if annotation is not None:
+        ##    pass
+            # get/set id, etc
 
     def __extract_components(self, shapes: TreeList):
     #================================================
@@ -199,53 +321,25 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
         for shape in shapes.flatten():
             shape_id = shape.id
             geometry = shape.geometry
-            if shape.type == SHAPE_TYPE.FEATURE and shape.geometry.geom_type == 'Polygon':
-                geometries.append(geometry)
-                shape_ids[id(geometry)] = shape_id
-                self.__fc_features[shape_id] = FCFeature(shape_id, geometry, shape.properties.copy())
-            elif shape.type == SHAPE_TYPE.CONNECTOR:
-                start_id = shape.properties.get('connection-start')
-                end_id = shape.properties.get('connection-end')
-                start_arrow = shape.properties.get('head-end', 'none') != 'none'
-                end_arrow = shape.properties.get('tail-end', 'none') != 'none'
-                if start_arrow and not end_arrow:
-                    start_id, end_id = end_id, start_id
-                    if start_id is not None:
-                        shape.properties['connection-start'] = start_id
-                    if end_id is not None:
-                        shape.properties['connection-end'] = end_id
-                    arrows = 1
-                elif start_arrow and end_arrow:
-                    arrows = 2     ## Do we create two connections???
-                elif not start_arrow and not end_arrow:
-                    arrows = 0
-                else:
-                    arrows = 1
-                line_style = shape.properties.pop('line-style', '').lower()
-                if 'dot' in line_style or 'dash' in line_style:
-                    shape.properties['type'] = 'line-dash'   # pre-ganglionic
-                else:
-                    shape.properties['type'] = 'line'        # post-ganglionic
-
-                self.__connectors.append(Connector(shape_id, start_id, end_id, geometry, arrows, shape.properties))
-
-# ********               if start is None or end is None:
-#                    ## Still add as connector but use colour/width to highlight
-#                    log.warning('{} ends are missing: {} --> {}'
-#                                .format(shape.properties['shape-name'], start, end))
-#                elif arrows == 0:
-#                    log.warning('{} has no direction'
-# *********                                .format(shape.properties['shape-name']))
+            if shape.type == SHAPE_TYPE.FEATURE and geometry.geom_type == 'Polygon':
+                # We are only interested in features actually on the slide
+                if self.__outer_geometry_prepared.contains(geometry):
+                    geometries.append(geometry)
+                    shape_ids[id(geometry)] = shape_id
+                    ## feature properties != shape.properties for FCFeatures
+                    self.__fc_features[shape_id] = FCFeature(shape_id, geometry, shape.properties.copy())
+                    if settings.get('authoring', False):    # For resulting map feature
+                        shape.properties['label'] = self.__fc_features[shape_id].label
 
         # Use a spatial index to find shape containment hierarchy
         idx = shapely.strtree.STRtree(geometries)
 
-        # We use two passes to find the feature's spatial hierarchy
+        # We use two passes to find the feature's spatial ordering
         non_system_features = {}
         for shape_id, feature in self.__fc_features.items():
             if shape_id > 0:     # self.__fc_features[0] == entire slide
                 # List of geometries that intersect the feature
-                intersecting_geometries = idx.query(feature.geometry)
+                intersecting_geometries: list[int] = idx.query(feature.geometry)
 
                 # Sort geometries by area, smallest item first
                 overlaps = [shape_ids[i[0]]
@@ -264,10 +358,14 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
         ## smaller and >= 80% common area ==> containment
                         break
                     parent_index += 1
+
                 if (overlaps[parent_index] == 0
-                and feature.label != ''
-                and feature.label[-1].isupper()):
+                and feature.name != ''
+                and feature.name[-1].isupper()):
                     self.__systems.add(shape_id)
+                    feature.kind = FC.SYSTEM
+                    if feature.name.startswith('BRAIN'):
+                        feature.fc_class = FC_Class.BRAIN
                     self.__set_relationships(shape_id, 0)
                 else:
                     non_system_features[shape_id] = overlaps
@@ -286,17 +384,68 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
                 parent_index += 1
             parent_id = overlaps[parent_index]
             if parent_id in self.__systems:
-                if feature.label != '':
+                if feature.name != '':
                     self.__organs.add(shape_id)
+                    feature.kind = FC.ORGAN
                 self.__set_relationships(shape_id, parent_id)
                 for system_id in self.__systems:
                     if (system_id != parent_id
                     and self.__fc_features[system_id].geometry.contains(feature.geometry)):
                         self.__set_relationships(shape_id, system_id)
             else:
-                if parent_id == 0 and feature.label != '':
+                if parent_id == 0 and feature.name != '':
                     self.__organs.add(shape_id)
+                    feature.kind = FC.ORGAN
                 self.__set_relationships(shape_id, parent_id)
+
+        # Now extract connections between features
+        for shape in shapes.flatten():
+            if shape.type == SHAPE_TYPE.CONNECTOR:
+                shape.properties['messages'] = []
+                shape_id = shape.id
+                start_id = shape.properties.get('connection-start')
+                end_id = shape.properties.get('connection-end')
+                # Drop connections to features that aren't on the slide
+                if start_id in self.__fc_features:
+                    self.__fc_features[start_id].kind |= FC.CONNECTED
+                    self.__connection_graph.add_node(start_id)    #### Include slide id with ppt id so connection_graph is over entire map...
+                else:
+                    shape.properties['messages'].append(f'Connector {shape_id} is not connected to a start node: {shape.kind}/{shape.name}')
+                    shape.properties['connection-start'] = None
+                    shape.properties['kind'] = 'error'
+                    start_id = None
+                if end_id in self.__fc_features:
+                    self.__fc_features[end_id].kind |= FC.CONNECTED
+                    self.__connection_graph.add_node(end_id)
+                else:
+                    shape.properties['messages'].append(f'Connector {shape_id} is not connected to an end node: {shape.kind}/{shape.name}')
+                    shape.properties['connection-end'] = None
+                    shape.properties['kind'] = 'error'
+                    end_id = None
+                if start_id is not None and end_id is not None:
+                    self.__connection_graph.add_edge(start_id, end_id)
+                start_arrow = shape.properties.get('head-end', 'none') != 'none'
+                end_arrow = shape.properties.get('tail-end', 'none') != 'none'
+                if start_arrow and not end_arrow:
+                    start_id, end_id = end_id, start_id
+                    if start_id is not None:
+                        shape.properties['connection-start'] = start_id
+                    if end_id is not None:
+                        shape.properties['connection-end'] = end_id
+                    arrows = 1
+                elif start_arrow and end_arrow:
+                    arrows = 2     ## Do we create two connections???
+                elif not start_arrow and not end_arrow:
+                    arrows = 0
+                else:
+                    arrows = 1
+                line_style = shape.properties.pop('line-style', '').lower()
+                if 'dot' in line_style or 'dash' in line_style:
+                    shape.properties['ganglion'] = 'pre'         # pre-ganglionic
+                else:
+                    shape.properties['ganglion'] = 'post'        # post-ganglionic
+
+                self.__connectors[shape.id] = Connector(shape.id, start_id, end_id, shape.geometry, arrows, shape.properties)
 
     def __set_relationships(self, child: int, parent: int):
     #======================================================
@@ -305,59 +454,101 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
 
     def __ftu_label(self, shape_id: int) -> str:
     #===========================================
-        while (label := self.__fc_features[shape_id].label) == '':
+        while self.__fc_features[shape_id].name == '':
             if shape_id == 0 or shape_id in self.__organs:
                 break
             shape_id = self.__fc_features[shape_id].parents[0]
-        return label
+        return self.__fc_features[shape_id].label
 
-    def __system_label(self, shape_id: int) -> str:
-    #==============================================
+    def __system_feature(self, shape_id: int) -> Optional[FCFeature]:
+    #================================================================
         while shape_id != 0 and shape_id not in self.__systems:
             shape_id = self.__fc_features[shape_id].parents[0]
-        return self.__fc_features[shape_id].label if shape_id != 0 else ''
+        return self.__fc_features[shape_id] if shape_id != 0 else None
 
-    def __connector_class(self, shape_id: int) -> str:
-    #=================================================
-        return CONNECTOR_CLASSES.get(self.__fc_features[shape_id].colour, 'unknown')
-
-    def __connector_end_label(self, shape_id: Optional[int]) -> str:
-    #===============================================================
+    def __connector_node(self, shape_id: Optional[int]) -> Optional[tuple[str, str, FC_Class, list[str]]]:
+    #================================================================================================
         if shape_id is not None:
             if (label := self.__ftu_label(shape_id)) != '':
-                cls = self.__connector_class(shape_id)
-                if cls == 'unknown':
-                    # NB. Some of these are have junction colours...
-                    log.warning(f'FTU {label} has unknown class for connector {shape_id}, colour: {self.__fc_features[shape_id].colour}')
-                    return ''
-                system_label = self.__system_label(shape_id)
-                if system_label == '':
+                warnings: list[str] = []
+
+                if (colour := self.__fc_features[shape_id].colour) in self.__unknown_colours:
+                    cls = 'unknown'
+                elif (cls := CONNECTION_CLASSES.get('colour', 'unknown')) == 'unknown':
+                    self.__unknown_colours.add(colour)
+                    # NB. Some of these are for junction colours...
+                    warnings.append(f'Colour {colour} is not a known connector class (shape {shape_id})')
+
+                system = self.__system_feature(shape_id)
+
+                if system is None:
                     # NB. 'Breasts' are in three systems but none are assigned...
-                    log.warning(f'Cannot determine system for connector {shape_id} in FTU {label}')
-                    return ''
-                if cls == 'sensory':
-                    end = 'Target' if system_label.startswith('BRAIN') else 'Source'
-                else:
-                    end = 'Source' if system_label.startswith('BRAIN') else 'Target'
-                return f'{end}: {label}'
-        return ''
+                    warnings.append(f'Cannot determine system for connector {shape_id} in FTU {label}')
+
+                return (cls, label, system.fc_class if system is not None else FC_Class.UNKNOWN, warnings)
 
     def __label_connectors(self, shapes: TreeList):
     #==============================================
         for shape in shapes.flatten():
-            if shape.type == SHAPE_TYPE.CONNECTOR and 'label' not in shape.properties:
-                label_1 = self.__connector_end_label(shape.properties.pop('connection-start', None))
-                label_2 = self.__connector_end_label(shape.properties.pop('connection-end', None))
-                route_labels = []
-                if label_1.startswith('Source'):
-                    route_labels.append(label_1)
-                elif label_2.startswith('Source'):
-                    route_labels.append(label_2)
-                if label_1.startswith('Target'):
-                    route_labels.append(label_1)
-                elif label_2.startswith('Target'):
-                    route_labels.append(label_2)
-                if len(route_labels):
-                    shape.properties['label'] = '<br/>'.join(route_labels)
+            if shape.type == SHAPE_TYPE.CONNECTOR:
+                node_0 = self.__connector_node(shape.properties.get('connection-start', None))
+                node_1 = self.__connector_node(shape.properties.get('connection-end', None))
+                messages = shape.properties['messages']
+                kind = 'unknown'
+                label = ''
+                if node_0 is not None and node_1 is not None:
+                    messages.extend(node_0[3])
+                    messages.extend(node_1[3])
+                    kind = node_0[0]
+                    if node_0[0] != node_1[0]:
+                        if 'connector' not in [node_0[0], node_1[0]]:
+                            messages.append(f'Ends of connector have different kinds: {[node_0[0], node_1[0]]}')
+                        elif node_0[0] == 'connector':
+                            kind = node_1[0]
+                    if not node_0[2] == FC_Class.BRAIN and not node_1[2] == FC_Class.BRAIN:
+                        messages.append(f'Connection is not to/or from the brain')
+                        label = f'({node_0[1]}, {node_1[1]})'
+                    elif node_0[2] == FC_Class.BRAIN:
+                        if kind == 'sensory':
+                            label = f'({node_1[1]}, {node_0[1]})'
+                        else:
+                            label = f'({node_0[1]}, {node_1[1]})'
+                    elif kind == 'sensory':
+                        label = f'({node_0[1]}, {node_1[1]})'
+                    else:
+                        label = f'({node_1[1]}, {node_0[1]})'
+                elif node_0 is not None:
+                    messages.extend(node_0[3])
+                    kind = node_0[0]
+                    if node_0[2] == FC_Class.BRAIN:
+                        if kind == 'sensory':
+                            label = f'(..., {node_0[1]})'
+                        else:
+                            label = f'({node_0[1]}, ...)'
+                elif node_1 is not None:
+                    messages.extend(node_1[3])
+                    kind = node_1[0]
+                    if node_1[2] == FC_Class.BRAIN:
+                        if kind == 'sensory':
+                            label = f'({node_1[1]}, ...)'
+                        else:
+                            label = f'(..., {node_1[1]})'
+                # If there are warning messages then set ``kind`` to highlight
+                # the connector and report the messages
+                if kind == 'unknown':
+                    messages.append('Unknown connection kind')
+                elif len(messages):
+                    kind = 'error'
+                if settings.get('authoring', False):
+                    for warning in messages:
+                        log.warning(warning)
+                    messages.insert(0, f'{shape.id}: {label}')
+                    shape.properties['label'] = '<br/>'.join(messages)
+                else:
+                    for warning in messages:
+                        log.warning(f'{warning}: {node_0[:3] if node_0 is not None else node_0}/{node_1[:3] if node_1 is not None else node_1}')
+                    shape.properties['label'] = label
+                if 'kind' not in shape.properties:
+                    shape.properties['kind'] = kind
 
 #===============================================================================
