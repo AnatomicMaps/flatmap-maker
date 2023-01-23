@@ -76,8 +76,8 @@ class FCSlide(Slide):
 
     def process(self):
     #=================
-        shapes = super().process()
-        self.__extract_shapes(shapes)
+        super().process()
+        self.__extract_shapes()
 
         # Find circuits
         seen_nodes = set()
@@ -93,7 +93,7 @@ class FCSlide(Slide):
                         seen_nodes.add(target)
             elif degree >= 3:
                 log.warning(f'Node {source}/{degree} is a branch point...')
-        return shapes
+        return self.shapes
 
     def annotate(self, annotator: Annotator):
     #========================================
@@ -130,13 +130,13 @@ class FCSlide(Slide):
                     annotation = annotator.find_ftu_by_names(organ_name, feature.name)
                     if annotation is None:
                         annotation = annotator.add_ftu(self.__fc_features[organ_id].name, feature.name, self.source_id)
-    def __extract_shapes(self, shapes: TreeList) -> TreeList:
-    #========================================================
 
-        self.__extract_components(shapes)
-        self.__label_connectors(shapes)
+    def __extract_shapes(self):
+    #==========================
+        self.__extract_components()
+        self.__label_connectors()
 
-        for shape in shapes.flatten(skip=1):
+        for shape in self.shapes.flatten(skip=1):
             # Add the shape to the filter if we are processing a base map,
             # or exclude it from the layer because it is similar to those
             # in the base map
@@ -168,14 +168,12 @@ class FCSlide(Slide):
                 shape.properties['kind'] = path_type
                 shape.properties['type'] = 'line-dash' if path_type.endswith('-post') else 'line'
 
-        return shapes
-
-    def __extract_components(self, shapes: TreeList):
-    #================================================
+    def __extract_components(self):
+    #==============================
         # First extract features
         geometries = [self.geometry]
         shape_ids = {id(self.geometry): 0}     # id(geometry) --> shape.id
-        for shape in shapes.flatten(skip=1):
+        for shape in self.shapes.flatten(skip=1):
             shape_id = shape.id
             geometry = shape.geometry
             if shape.type == SHAPE_TYPE.FEATURE and geometry.geom_type == 'Polygon':
@@ -262,7 +260,7 @@ class FCSlide(Slide):
                 self.__set_relationships(shape_id, parent_id)
 
         # Now extract connections between features
-        for shape in shapes.flatten(skip=1):
+        for shape in self.shapes.flatten(skip=1):
             if shape.type == SHAPE_TYPE.CONNECTOR:
                 shape.properties['messages'] = []
                 shape_id = shape.id
@@ -349,9 +347,9 @@ class FCSlide(Slide):
 
                 return (cls, label, system.fc_class if system is not None else FC_Class.UNKNOWN, warnings)
 
-    def __label_connectors(self, shapes: TreeList):
-    #==============================================
-        for shape in shapes.flatten(skip=1):
+    def __label_connectors(self):
+    #============================
+        for shape in self.shapes.flatten(skip=1):
             if shape.type == SHAPE_TYPE.CONNECTOR:
                 node_0 = self.__connector_node(shape.properties.get('connection-start', None))
                 node_1 = self.__connector_node(shape.properties.get('connection-end', None))

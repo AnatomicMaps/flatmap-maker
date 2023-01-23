@@ -101,6 +101,7 @@ class Slide:
         self.__pptx_slide = pptx_slide
         self.__geometry = shapely.geometry.box(*bounds)
         self.__transform = transform
+        self.__shapes = TreeList()
         self.__shapes_by_id: dict[int, PowerpointShape] = {}
 
     @property
@@ -120,6 +121,10 @@ class Slide:
         return self.__pptx_slide
 
     @property
+    def shapes(self) -> TreeList:
+        return self.__shapes
+
+    @property
     def slide_id(self) -> int:
         return self.__pptx_slide.slide_id
 
@@ -134,11 +139,11 @@ class Slide:
     def process(self) -> TreeList:
     #=============================
         # Return the slide's group structure as a nested list of Shapes
-        shapes = TreeList([PowerpointShape(SHAPE_TYPE.GROUP, -1, self.__geometry)])
-        self.__shapes_by_id[-1] = shapes[0]
-        shapes.extend(self.__process_pptx_shapes(self.__pptx_slide.shapes,      # type: ignore
-                                                 self.__transform, show_progress=True))
-        return shapes
+        self.__shapes = TreeList([PowerpointShape(SHAPE_TYPE.GROUP, -1, self.__geometry)])
+        self.__shapes_by_id[-1] = self.__shapes[0]
+        self.__shapes.extend(self.__process_pptx_shapes(self.__pptx_slide.shapes,      # type: ignore
+                                                        self.__transform, show_progress=True))
+        return self.__shapes
 
     def annotate(self, annotator: Annotator):
     #========================================
