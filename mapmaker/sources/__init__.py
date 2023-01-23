@@ -38,6 +38,10 @@ if TYPE_CHECKING:
 
 #===============================================================================
 
+MapBounds = tuple[float, float, float, float]
+
+#===============================================================================
+
 # Internal PPT units are EMUs (English Metric Units)
 EMU_PER_INCH  = 914400
 
@@ -127,7 +131,7 @@ class MapSource(object):
         self.__source_range = source_range
         self.__errors: list[tuple[str, str]] = []
         self.__layers: list[MapLayer] = []
-        self.__bounds: tuple[float, float, float, float] = (0, 0, 0, 0)
+        self.__bounds: MapBounds = (0, 0, 0, 0)
         self.__raster_source = None
 
     @property
@@ -135,7 +139,7 @@ class MapSource(object):
         return None
 
     @property
-    def bounds(self) -> tuple[float, float, float, float]:
+    def bounds(self) -> MapBounds:
         """
         :returns: The map's (SE, NW) bounds in WGS84 metres.
         :rtype: tuple(float, float, float, float)
@@ -143,7 +147,7 @@ class MapSource(object):
         return self.__bounds
 
     @bounds.setter
-    def bounds(self, bounds: tuple[float, float, float, float]):
+    def bounds(self, bounds: MapBounds):
         self.__bounds = bounds
 
     @property
@@ -151,7 +155,7 @@ class MapSource(object):
         return self.__errors
 
     @property
-    def extent(self) -> tuple[float, float, float, float]:
+    def extent(self) -> MapBounds:
         """
         :returns: The map's (SE, NW) bounds as decimal latitude and longitude coordinates.
         :rtype: tuple(float, float, float, float)

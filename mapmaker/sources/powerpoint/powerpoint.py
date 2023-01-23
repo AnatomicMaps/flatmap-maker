@@ -24,6 +24,7 @@ from typing import Optional
 
 from lxml import etree
 import numpy as np
+import shapely.geometry
 
 from pptx import Presentation
 from pptx.dml.fill import FillFormat
@@ -41,11 +42,11 @@ from pptx.slide import Slide as PptxSlide
 
 from mapmaker.geometry import Transform
 from mapmaker.properties.markup import parse_layer_directive, parse_markup
-from mapmaker.sources import WORLD_METRES_PER_EMU
+from mapmaker.sources import MapBounds, WORLD_METRES_PER_EMU
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import FilePath, log, ProgressBar, TreeList
 
-from .colour import ColourMap, Theme
+from .colour import ColourMap, ColourTheme
 from .geometry import get_shape_geometry
 from .presets import DML
 from .transform import DrawMLTransform
@@ -67,14 +68,21 @@ def pptx_resolve(qname: str) -> str:
 
 #===============================================================================
 
+class PowerpointShape(Shape):
+    pass
+
+#===============================================================================
 
 # (colour, opacity)
 ColourPair = tuple[Optional[str], float]
 
 #===============================================================================
 
-class Slide():
-    def __init__(self, index: int, pptx_slide: PptxSlide, theme: Theme, transform: Transform):
+class Slide:
+    def __init__(self, source_id: str, kind: str, index: int, pptx_slide: PptxSlide,
+                 theme: ColourTheme, bounds: MapBounds, transform: Transform):
+        self.__source_id = source_id
+        self.__kind = kind
         self.__id = None
         # Get any layer directives
         if pptx_slide.has_notes_slide:
@@ -83,14 +91,22 @@ class Slide():
             if notes_text.startswith('.'):
                 layer_directive = parse_layer_directive(notes_text)
                 if 'error' in layer_directive:
-                    log.error('error', 'Slide {}: invalid layer directive: {}'
-                                 .format(index+1, notes_text))
+                    log.error('error', f'Slide {index+1}: invalid layer directive: {notes_text}')
                 if 'id' in layer_directive:
                     self.__id = layer_directive['id']
         self.__colour_map = ColourMap(theme, pptx_slide)
         self.__pptx_slide = pptx_slide
+        self.__geometry = shapely.geometry.box(*bounds)
         self.__transform = transform
-        self.__shapes_by_id: dict[int, Shape] = {}
+        self.__shapes_by_id: dict[int, PowerpointShape] = {}
+
+    @property
+    def geometry(self) -> shapely.geometry.base.BaseGeometry:
+        return self.__geometry
+
+    @property
+    def kind(self) -> str:
+        return self.__kind
 
     @property
     def id(self) -> Optional[str]:
@@ -104,6 +120,10 @@ class Slide():
     def slide_id(self) -> int:
         return self.__pptx_slide.slide_id
 
+    @property
+    def source_id(self):
+        return self.__source_id
+
     def shape(self, id: int) -> Optional[PowerpointShape]:
     #=====================================================
         return self.__shapes_by_id.get(id)
@@ -111,7 +131,8 @@ class Slide():
     def process(self) -> TreeList:
     #=============================
         # Return the slide's group structure as a nested list of Shapes
-        shapes = TreeList([None])
+        shapes = TreeList([PowerpointShape(SHAPE_TYPE.GROUP, -1, self.__geometry)])
+        self.__shapes_by_id[-1] = shapes[0]
         shapes.extend(self.__process_pptx_shapes(self.__pptx_slide.shapes,      # type: ignore
                                                  self.__transform, show_progress=True))
         return shapes
@@ -163,6 +184,7 @@ class Slide():
             'opacity': colour[1],
             'pptx-shape': group
         })])
+        self.__shapes_by_id[group.shape_id] = shapes[-1]
         shapes.extend(self.__process_pptx_shapes(group.shapes, transform@DrawMLTransform(group),    # type: ignore
                                                  group_colour=colour))
         return shapes
@@ -297,7 +319,8 @@ class Slide():
 #===============================================================================
 
 class Powerpoint():
-    def __init__(self, source_href: str):
+    def __init__(self, source_id: str, source_href: str, source_kind: str, shape_filter: Optional[ShapeFilter]=None,
+                 SlideClass=Slide):
         ppt_bytes = FilePath(source_href).get_BytesIO()
         pptx = Presentation(ppt_bytes)
 
@@ -312,11 +335,12 @@ class Powerpoint():
         # southwest and northeast corners
         self.__bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
-        theme = Theme(ppt_bytes)
-        self.__slides: list[Slide] = [Slide(n, slide, theme, self.__transform) for n, slide in enumerate(pptx.slides)]
+        theme = ColourTheme(ppt_bytes)
+        self.__slides: list[Slide] = [SlideClass(source_id, source_kind, n, slide, theme, self.__bounds, self.__transform, shape_filter=shape_filter)
+                                            for n, slide in enumerate(pptx.slides)]
 
     @property
-    def bounds(self) -> tuple[float, float, float, float]:
+    def bounds(self) -> MapBounds:
         return self.__bounds
 
     @property

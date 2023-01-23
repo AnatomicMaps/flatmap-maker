@@ -34,7 +34,7 @@ from .presets import DML, ThemeDefinition
 
 #===============================================================================
 
-class Theme(object):
+class ColourTheme(object):
     def __init__(self, pptx_source):
         with ZipFile(pptx_source, 'r') as presentation:
             for info in presentation.infolist():

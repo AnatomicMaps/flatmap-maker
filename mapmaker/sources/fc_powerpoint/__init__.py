@@ -22,6 +22,7 @@ from typing import Optional
 
 #===============================================================================
 
+from pptx.slide import Slide as PptxSlide
 import networkx as nx
 
 import shapely.geometry
@@ -30,13 +31,15 @@ import shapely.strtree
 
 #===============================================================================
 
-from mapmaker.properties import ConnectorSet
 from mapmaker.annotation import Annotator
+from mapmaker.geometry import Transform
 from mapmaker.settings import settings
+from mapmaker.sources import MapBounds
 from mapmaker.utils import log, TreeList
 
-from ..powerpoint import PowerpointSource, PowerpointLayer, Slide, SHAPE_TYPE
 from ..shapefilter import ShapeFilter, ShapeFilters
+from ..powerpoint import PowerpointSource, Slide, SHAPE_TYPE
+from ..powerpoint.colour import ColourTheme
 
 #===============================================================================
 
@@ -64,19 +67,21 @@ class FCPowerpointSource(PowerpointSource):
     def __init__(self, flatmap, id, source_href, source_kind, source_range=None,
                  shape_filters=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind,
-                         source_range=source_range, SlideLayerClass=FCSlideLayer,
                          shape_filters=shape_filters)
+                         source_range=source_range, SlideClass=FCSlide,
+                         SlideClass=FCSlide)
 
 
 
 #===============================================================================
 
-class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending `Slide`??
-    def __init__(self, source: FCPowerpointSource, slide: Slide, slide_number: int):
-        super().__init__(source, slide, slide_number)
-        self.__outer_geometry_prepared = shapely.prepared.prep(self.outer_geometry)
+class FCSlide(Slide):
+    def __init__(self, source_id: str, kind: str, index: int, pptx_slide: PptxSlide, theme: ColourTheme,
+                 bounds: MapBounds, transform: Transform):
+        super().__init__(source_id, kind, index, pptx_slide, theme, bounds, transform)
+        self.__outer_geometry_prepared = shapely.prepared.prep(self.geometry)
         self.__fc_features: dict[int, FCFeature] = {
-            0: FCFeature(0, self.outer_geometry)
+            0: FCFeature(0, self.geometry)
         }
         self.__connectors: dict[int, Connector] = {}
         self.__systems: set[int] = set()
@@ -89,9 +94,10 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
 
     def process(self):
     #=================
-        super().process()
+        shapes = super().process()
 
         # Find circuits
+        self.__extract_shapes(shapes)
 
         seen_nodes = set()
         self.__circuit_graph = nx.Graph()
@@ -142,20 +148,9 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
                     annotation = annotator.find_ftu_by_names(organ_name, feature.name)
                     if annotation is None:
                         annotation = annotator.add_ftu(self.__fc_features[organ_id].name, feature.name, self.source_id)
+    def __extract_shapes(self, shapes: TreeList) -> TreeList:
+    #========================================================
 
-        connector_set = ConnectorSet('functional')
-        for feature in self.features:
-            if feature.properties.get('shape-type') == 'connector':
-                #shape.properties['type'] = 'line-dash' if ganglion == 'pre' else 'line'
-                #print(shape.properties)
-                connector_set.add(feature.properties['shape-id'],
-                                  feature.properties['kind'],
-                                  feature.geojson_id)
-        self.source.flatmap.map_properties.pathways.add_connector_set(connector_set)
-
-    def _extract_shapes(self) -> TreeList:      #! Called at start of ``process()``
-    #=====================================
-        shapes = super()._extract_shapes()      #! This will process the actual Pptx slide
         self.__extract_components(shapes)
         self.__label_connectors(shapes)
 
@@ -192,8 +187,9 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
 
     def __extract_components(self, shapes: TreeList):
     #================================================
-        geometries = [self.outer_geometry]
-        shape_ids = {id(self.outer_geometry): 0}     # id(geometry) --> shape.id
+        # First extract features
+        geometries = [self.geometry]
+        shape_ids = {id(self.geometry): 0}     # id(geometry) --> shape.id
         for shape in shapes.flatten(skip=1):
             shape_id = shape.id
             geometry = shape.geometry
@@ -230,7 +226,9 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
                 # Exclude larger features we partially intersect
                 while parent_index < len(overlaps):
                     parent_geometry = self.__fc_features[overlaps[parent_index]].geometry
-                    if parent_geometry.intersection(feature.geometry).area >= 0.8*feature.geometry.area:
+                    if (parent_geometry is not None
+                    and feature.geometry is not None
+                    and parent_geometry.intersection(feature.geometry).area >= 0.8*feature.geometry.area):
         ## smaller and >= 80% common area ==> containment
                         break
                     parent_index += 1
@@ -252,7 +250,9 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
             parent_index = overlaps.index(shape_id) + 1
             while parent_index < len(overlaps):
                 parent_geometry = self.__fc_features[overlaps[parent_index]].geometry
-                assert parent_geometry.area >= feature.geometry.area
+                assert (parent_geometry is not None
+                   and feature.geometry is not None
+                   and parent_geometry.area >= feature.geometry.area)
                 if parent_geometry.intersection(feature.geometry).area >= 0.8*feature.geometry.area:
                 #if parent_geometry.contains(feature.geometry):
     ## smaller and >= 80% common area ==> containment
@@ -265,8 +265,10 @@ class FCSlideLayer(PowerpointLayer):   ## Shouldn't this be `FCSlide`, extending
                     feature.kind = FC.ORGAN
                 self.__set_relationships(shape_id, parent_id)
                 for system_id in self.__systems:
+                    geometry = self.__fc_features[system_id].geometry
                     if (system_id != parent_id
-                    and self.__fc_features[system_id].geometry.contains(feature.geometry)):
+                    and geometry is not None
+                    and geometry.contains(feature.geometry)):
                         self.__set_relationships(shape_id, system_id)
             else:
                 if parent_id == 0 and feature.name != '':

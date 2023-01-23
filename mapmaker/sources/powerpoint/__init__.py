@@ -25,6 +25,7 @@ from io import BytesIO, StringIO
 
 from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import MapLayer
+from mapmaker.properties import ConnectorSet
 from mapmaker.settings import settings
 from mapmaker.utils import log, TreeList
 
@@ -60,15 +61,20 @@ class PowerpointLayer(MapLayer):
     def slide_number(self):
         return self.__slide_number
 
-    def _extract_shapes(self) -> TreeList:              # Override in sub-class
-    #=====================================
-        return self.__slide.process()
-
     def process(self):
     #=================
-        shapes = self._extract_shapes()
+        shapes = self.__slide.process()
         features = self.__process_shape_list(shapes)
         self.add_features('Slide', features, outermost=True)
+        connector_set = ConnectorSet('functional')
+        for feature in self.features:
+            if feature.properties.get('shape-type') == 'connector':
+                #shape.properties['type'] = 'line-dash' if ganglion == 'pre' else 'line'
+                #print(shape.properties)
+                connector_set.add(feature.properties['shape-id'],
+                                  feature.properties['kind'],
+                                  feature.geojson_id)
+        self.source.flatmap.map_properties.pathways.add_connector_set(connector_set)
         self.__slide.annotate(self.flatmap.annotator)
 
     def __process_shape_list(self, shapes: TreeList) -> list[Feature]:
@@ -103,18 +109,17 @@ class PowerpointLayer(MapLayer):
 
 class PowerpointSource(MapSource):
     def __init__(self, flatmap, id, source_href, source_kind='slides', source_range=None,
-                 SlideLayerClass=PowerpointLayer, shape_filters=None):
+                 SlideClass=Slide, shape_filters=None):
         super().__init__(flatmap, id, source_href, source_kind, source_range=source_range)
-        self.__SlideLayerClass = SlideLayerClass
-        self.__powerpoint = Powerpoint(source_href)
-        self.bounds = self.__powerpoint.bounds   # Set bounds of MapSource
-        self.__slides: list[Slide] = self.__powerpoint.slides
         if shape_filters is not None:
             self.__map_shape_filter = shape_filters.map_filter
             self.__svg_shape_filter = shape_filters.svg_filter
         else:
             self.__map_shape_filter = None
             self.__svg_shape_filter = None
+        self.__powerpoint = Powerpoint(id, source_href, source_kind, shape_filter=shape_filter, SlideClass=SlideClass)
+        self.bounds = self.__powerpoint.bounds   # Sets bounds of MapSource
+        self.__slides = self.__powerpoint.slides
 
     @property
     def transform(self):
@@ -142,7 +147,7 @@ class PowerpointSource(MapSource):
             if slide_number < 1 or slide_number >= (len(self.__slides) + 1):
                 continue
             slide = self.__slides[slide_number - 1]
-            slide_layer = self.__SlideLayerClass(self, slide, slide_number)
+            slide_layer = PowerpointLayer(self, slide, slide_number)
             log('Slide {}, {}'.format(slide_number, slide_layer.id))
             if settings.get('saveDrawML'):
                 with open(self.flatmap.full_filename(f'{slide_layer.id}.xml'), 'w') as xml:
