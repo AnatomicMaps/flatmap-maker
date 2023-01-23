@@ -77,10 +77,6 @@ class FCSlide(Slide):
     def process(self):
     #=================
         shapes = super().process()
-
-        if self.kind == 'base' and self.__shape_filter is not None:
-            self.__shape_filter.create_filter()
-
         self.__extract_shapes(shapes)
 
         # Find circuits

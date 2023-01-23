@@ -59,11 +59,14 @@ class Functional2CellDL:
                 powerpoint = Powerpoint(id, href, kind, shape_filter=self.__shape_filter, SlideClass=FCSlide)
             else:
                 raise ValueError('Unsupported FC kind: {}'.format(kind))
-
             for slide in powerpoint.slides:
                 slide.process()
                 if self.__annotator is not None:
                     slide.annotate(self.__annotator)
+            if kind == 'base':
+                # Processing has added shapes to the filter so now create it
+                # so it can be used by subsequent layers
+                self.__shape_filter.create_filter()
 
     def save(self):
         # Don't save annotator ??

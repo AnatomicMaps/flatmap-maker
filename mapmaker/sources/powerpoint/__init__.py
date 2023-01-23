@@ -113,6 +113,7 @@ class PowerpointSource(MapSource):
         self.__powerpoint = Powerpoint(id, source_href, source_kind, shape_filter=shape_filter, SlideClass=SlideClass)
         self.bounds = self.__powerpoint.bounds   # Sets bounds of MapSource
         self.__slides = self.__powerpoint.slides
+        self.__shape_filter = shape_filter
 
     @property
     def transform(self):
@@ -136,6 +137,10 @@ class PowerpointSource(MapSource):
                     xml.write(slide.pptx_slide.element.xml)
             slide_layer.process()
             self.add_layer(slide_layer)
+        if self.kind == 'base' and self.__shape_filter is not None:
+            # Processing has added shapes to the filter so now create it
+            # so it can be used by subsequent layers
+            self.__shape_filter.create_filter()
 
     def get_raster_source(self):
     #===========================
