@@ -42,8 +42,8 @@ from mapmaker.utils import configure_logging, log, FilePath
 
 #===============================================================================
 
+from .annotation import create_annotator
 from .flatmap import FlatMap
-
 from .knowledgebase import KnowledgeStore
 
 from .output.geojson import GeoJSONOutput
@@ -55,7 +55,6 @@ from .settings import settings
 
 from .sources import FCPowerpointSource, MBFSource, PowerpointSource, SVGSource
 from .sources.fc_powerpoint import ShapeFilters as FCShapeFilters
-from .sources.fc_powerpoint import create_annotator as create_fc_annotator
 
 #===============================================================================
 

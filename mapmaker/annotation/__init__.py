@@ -34,37 +34,20 @@ from mapmaker.utils import log, relative_path
 
 # select bm25(fts_labels), entity, label from fts_labels where label match ? order by bm25(fts), entity desc
 
-try:
-    @dataclass(kw_only=True)  # Requires Python 3.10
-    class Annotation:
-        identifier: str = field(default_factory=str)
-        name: str = field(default_factory=str)
-        term: str = field(default_factory=str)
-        sources: set[str] = field(default_factory=set)
+@dataclass(kw_only=True)  # Requires Python 3.10
+class Annotation:
+    identifier: str = field(default_factory=str)
+    name: str = field(default_factory=str)
+    term: str = field(default_factory=str)
+    sources: set[str] = field(default_factory=set)
 
-        def as_dict(self):
-            result = {}
-            if self.identifier: result['id'] = self.identifier
-            if self.name: result['name'] = self.name
-            if self.term: result['term'] = self.term
-            if self.sources: result['sources'] = sorted(self.sources)
-            return result
-
-except TypeError:
-    class Annotation:
-        def __init__(self, identifier: str='', name: str='', term: str='', sources: set[str]=set()):
-            self.identifier = identifier
-            self.name = name
-            self.term = term
-            self.sources = sources
-
-        def as_dict(self):
-            result = {}
-            if self.identifier: result['id'] = self.identifier
-            if self.name: result['name'] = self.name
-            if self.term: result['term'] = self.term
-            if self.sources: result['sources'] = sorted(self.sources)
-            return result
+    def as_dict(self):
+        result = {}
+        if self.identifier: result['id'] = self.identifier
+        if self.name: result['name'] = self.name
+        if self.term: result['term'] = self.term
+        if self.sources: result['sources'] = sorted(self.sources)
+        return result
 
 ## parent ??
 
@@ -80,7 +63,7 @@ class Annotator:
         self.__annotation_file = Path(annotation_file)
         self.__systems_by_name: dict[str, Annotation] = {}                          #! System name -> Annotation
         self.__organs_with_systems_by_name: dict[str, tuple[Annotation, set[str]]] = {}   #! Organ name -> (Annotation, Systems)
-        self.__ftus_by_name_organ: dict[tuple[str, str], Annotation] = {}                #! (Organ, FTU name) -> Annotation
+        self.__ftus_by_name_organ: dict[tuple[str, str], Annotation] = {}                 #! (Organ, FTU name) -> Annotation
         self.__annotations_by_id: dict[str, Annotation] = {}
         self.__connectivity: list = []  ## networkx.Graph()   ???
         self.load()
@@ -130,7 +113,7 @@ class Annotator:
         return annotation
 
     def add_organ(self, name: str, source: str, system_names: Iterable[str]):
-    #==========================================================================
+    #========================================================================
         if name in self.__organs_with_systems_by_name:
             self.__organs_with_systems_by_name[name][1].update(system_names)
         else:
@@ -177,5 +160,21 @@ class Annotator:
     def save(self):
     #==============
         pass
+
+#===============================================================================
+
+from .json_annotator import JsonAnnotator
+from .xlsx_annotator import XlsxAnnotator
+
+#===============================================================================
+
+def create_annotator(annotation_file: str) -> Annotator:
+#=======================================================
+    if annotation_file.endswith('.json'):
+        return JsonAnnotator(annotation_file)
+    elif annotation_file.endswith('.xlsx'):
+        return XlsxAnnotator(annotation_file)
+    else:
+        raise TypeError('Unsupported annotation file format: {annotation_file}')
 
 #===============================================================================

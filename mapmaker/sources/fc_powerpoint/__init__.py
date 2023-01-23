@@ -31,6 +31,7 @@ import shapely.strtree
 #===============================================================================
 
 from mapmaker.properties import ConnectorSet
+from mapmaker.annotation import Annotator
 from mapmaker.settings import settings
 from mapmaker.utils import log, TreeList
 
@@ -39,22 +40,7 @@ from ..shapefilter import ShapeFilter, ShapeFilters
 
 #===============================================================================
 
-from .annotation import Annotator
 from .features import CONNECTION_CLASSES, Connector, FC, FC_Class, FCFeature
-from .json_annotator import JsonAnnotator
-from .xlsx_annotator import XlsxAnnotator
-
-#===============================================================================
-
-def create_annotator(annotation_file: str) -> Annotator:
-#=======================================================
-    if annotation_file.endswith('.json'):
-        return JsonAnnotator(annotation_file)
-    elif annotation_file.endswith('.xlsx'):
-        return XlsxAnnotator(annotation_file)
-    else:
-        raise TypeError('Unsupported annotation file format: {annotation_file}')
-
 #===============================================================================
 
 class SVGShapeFilter(ShapeFilter):

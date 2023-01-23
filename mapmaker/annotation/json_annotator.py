@@ -23,7 +23,7 @@ import json
 
 #===============================================================================
 
-from .annotation import Annotation, Annotator
+from . import Annotation, Annotator
 
 #===============================================================================
 
