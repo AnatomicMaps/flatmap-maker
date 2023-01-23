@@ -18,9 +18,6 @@
 #
 #===============================================================================
 
-from __future__ import annotations
-from dataclasses import dataclass, field
-import enum
 from typing import Optional
 
 #===============================================================================
@@ -42,6 +39,7 @@ from ..shapefilter import ShapeFilter, ShapeFilters
 
 #===============================================================================
 
+from .features import CONNECTION_CLASSES, Connector, FC, FC_Class, FCFeature
 from .json_annotator import JsonAnnotator
 from .xlsx_annotator import XlsxAnnotator
 from .annotation import Annotator
@@ -54,100 +52,6 @@ def create_annotator(annotation_file: str) -> Annotator:
         return XlsxAnnotator(annotation_file)
     else:
         raise TypeError('Unsupported annotation file format: {annotation_file}')
-
-#===============================================================================
-
-CONNECTION_CLASSES = {
-    '#FF0000': 'symp',      # Source is in Brain/spinal cord
-    '#0070C0': 'sensory',   # Target is in Brain/spinal cord
-    '#4472C4': 'sensory',
-    '#548135': 'para',      # Source is in Brain/spinal cord
-    '#548235': 'para',      # Source is in Brain/spinal cord
-    '#FFC000': 'connector', # An inline connector
-}
-
-#===============================================================================
-
-class FC_Class(enum.Enum):
-    UNKNOWN = 0
-    BRAIN = enum.auto()
-
-class FC(enum.IntFlag):
-    # Values can be or'd together...
-    UNKNOWN   = 0
-    SYSTEM    = 1
-    ORGAN     = 2
-    FTU       = 4
-    NERVE     = 64
-    CONNECTED = 256
-
-#===============================================================================
-
-@dataclass
-class Connector:
-    id: str
-    source: Optional[int]
-    target: Optional[int]
-    geometry: shapely.geometry.base.BaseGeometry
-    arrows: int
-    properties: dict[str, str] = field(default_factory=dict)
-
-#===============================================================================
-
-@dataclass
-class FCFeature:
-    id: int
-    kind: FC = field(default=FC.UNKNOWN, init=False)
-    fc_class: FC_Class = field(default=FC_Class.UNKNOWN, init=False)
-    geometry: shapely.geometry.base.BaseGeometry
-    properties: dict[str, str] = field(default_factory=dict)
-    children: list[int] = field(default_factory=list, init=False)
-    parents: list[int] = field(default_factory=list, init=False)
-
-    def __post_init__(self):
-        label = self.properties.pop('label', '').replace('\t', '|').strip()
-        self.properties['name'] = label
-        label = self.properties.pop('hyperlink', label)
-        self.properties['label'] = f'{self.id}: {label}' if settings.get('authoring', False) else label
-
-    def __str__(self):
-        return f'FCFeature({self.id}: {str(self.kind)}/{str(self.fc_class)}, parents={self.parents}, children={self.children} {self.name})'
-
-    @property
-    def colour(self):
-        return self.properties.get('colour')
-
-    @property
-    def feature_class(self):
-        return self.properties.get('class')
-
-    @feature_class.setter
-    def feature_class(self, cls):
-        self.properties['class'] = cls
-
-    @property
-    def feature_id(self):
-        return self.properties.get('id')
-
-    @feature_id.setter
-    def feature_id(self, id):
-        self.properties['id'] = id
-
-    @property
-    def label(self):
-        return self.properties.get('label', self.name)
-
-    @property
-    def models(self):
-        return self.properties.get('models')
-
-    @property
-    def name(self):
-        return self.properties.get('name', '')
-
-    @models.setter
-    def models(self, model):
-        self.properties['models'] = model
 
 #===============================================================================
 
