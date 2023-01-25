@@ -116,22 +116,9 @@ def text_content(shape):
 
 #===============================================================================
 
-def emu_to_pixels(emu):
-#======================
-    return emu/EMU_PER_PIXEL
-
 def points_to_pixels(pts):
 #=========================
     return pts*PIXELS_PER_IN/POINTS_PER_IN
-
-#===============================================================================
-
-def ellipse_point(a, b, theta):
-#==============================
-    a_sin_theta = a*sin(theta)
-    b_cos_theta = b*cos(theta)
-    circle_radius = sqrt(a_sin_theta**2 + b_cos_theta**2)
-    return (a*b_cos_theta/circle_radius, b*a_sin_theta/circle_radius)
 
 #===============================================================================
 

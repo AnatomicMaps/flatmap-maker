@@ -39,7 +39,6 @@ from pptx.oxml.xmlchemy import (
     Choice,
     OneAndOnlyOne,
     RequiredAttribute,
-    ZeroOrMore,
     ZeroOrOne,
     ZeroOrOneChoice
 )
