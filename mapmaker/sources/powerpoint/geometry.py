@@ -80,9 +80,10 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
                                     T)
                 bezier_segments.extend(segs)
                 coordinates.extend(bezier_sample(BezierPath.fromSegments(segs)))
-                phi = T.rotate_angle(0)
+                phi = math.degrees(T.rotate_angle(0))
+                sweep_angle = 1 if abs(phi) <= 90 else 0
                 svg_path.push('A', *T.scale_length((wR, hR)),
-                                   math.degrees(phi), 0, 1,
+                                   phi, large_arc_flag, sweep_angle,
                                    *T.transform_point(pt))
                 current_point = pt
 
