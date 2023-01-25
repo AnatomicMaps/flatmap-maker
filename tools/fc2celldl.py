@@ -19,12 +19,10 @@
 #===============================================================================
 
 from mapmaker.annotation import create_annotator
-
 from mapmaker.maker import Manifest
-
 from mapmaker.sources.fc_powerpoint import FCSlide
 from mapmaker.sources.powerpoint.powerpoint import Powerpoint
-
+from mapmaker.sources.powerpoint.svgutils import SvgFromShapes
 from mapmaker.sources.shapefilter import ShapeFilter
 
 #===============================================================================
@@ -37,12 +35,13 @@ class Functional2CellDL:
             self.__annotator = create_annotator(manifest.annotation)
         else:
             self.__annotator = None
+        self.__celldl = SvgFromShapes()
 
     def process(self):
+    #=================
         def kind_order(source):
             kind = source.get('kind', '')
             return ('0' if kind in ['base', 'slides'] else '1') + kind
-
         have_base = False
         for source in sorted(self.__manifest.sources, key=kind_order):
             kind = source.get('kind')
@@ -59,18 +58,22 @@ class Functional2CellDL:
                 powerpoint = Powerpoint(id, href, kind, shape_filter=self.__shape_filter, SlideClass=FCSlide)
             else:
                 raise ValueError('Unsupported FC kind: {}'.format(kind))
+            if kind == 'base':
+                self.__celldl.set_transform(powerpoint)
             for slide in powerpoint.slides:
                 slide.process()
                 if self.__annotator is not None:
                     slide.annotate(self.__annotator)
+                self.__celldl.add_slide(slide, base_slide=kind=='base')
             if kind == 'base':
                 # Processing has added shapes to the filter so now create it
                 # so it can be used by subsequent layers
                 self.__shape_filter.create_filter()
 
-    def save(self):
+    def save(self, file_object):
+    #===========================
         # Don't save annotator ??
-        pass
+        self.__celldl.save(file_object)
 
 #===============================================================================
 
@@ -95,7 +98,9 @@ def main():
 
     fc2celldl = Functional2CellDL(manifest)
     fc2celldl.process()
-    fc2celldl.save()
+
+    with open('test.celldl.svg', 'w', encoding='utf-8') as fp:
+        fc2celldl.save(fp)
 
 #===============================================================================
 

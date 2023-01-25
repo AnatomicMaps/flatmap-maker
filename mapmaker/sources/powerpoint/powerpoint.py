@@ -89,6 +89,11 @@ class Slide:
         self.__shapes = TreeList()
         self.__shapes_by_id: dict[int, PowerpointShape] = {}
 
+
+    @property
+    def colour_map(self) -> ColourMap:
+        return self.__colour_map
+
     @property
     def geometry(self) -> shapely.geometry.base.BaseGeometry:
         return self.__geometry

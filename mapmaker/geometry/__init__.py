@@ -113,6 +113,12 @@ class Transform(object):
     def matrix(self):
         return self.__matrix
 
+    @property
+    def svg_matrix(self):
+        return np.array([self.__matrix[0, 0], self.__matrix[1, 0],
+                         self.__matrix[0, 1], self.__matrix[1, 1],
+                         self.__matrix[0, 2], self.__matrix[1, 2]])
+
     def flatten(self):
     #=================
         return self.__matrix.flatten()
