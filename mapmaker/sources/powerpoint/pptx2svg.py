@@ -57,7 +57,7 @@ from pptx.slide import Slide as PptxSlide
 from mapmaker.geometry import Transform
 from mapmaker.utils import FilePath, log, ProgressBar
 
-from .colour import ColourMap, ColourTheme
+from .colour import ColourMap, ColourPair, ColourTheme
 from .geometry import get_shape_geometry
 from .presets import DRAWINGML
 from .powerpoint import Shape, SHAPE_TYPE
@@ -267,11 +267,6 @@ class Gradient(object):
         return 'url(#{})'.format(self.__id)
 
 ## WIP  Want list of unique gradient definitions
-
-#===============================================================================
-
-# (colour, opacity)
-ColourPair = tuple[Optional[str], float]
 
 #===============================================================================
 

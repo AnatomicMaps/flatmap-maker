@@ -35,6 +35,11 @@ from .presets import DRAWINGML, ThemeDefinition
 
 #===============================================================================
 
+# (colour, opacity)
+ColourPair = tuple[Optional[str], float]
+
+#===============================================================================
+
 class ColourTheme(object):
     def __init__(self, pptx_source):
         with ZipFile(pptx_source, 'r') as presentation:
