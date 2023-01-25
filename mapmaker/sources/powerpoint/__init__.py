@@ -41,15 +41,11 @@ from .powerpoint import Slide, SHAPE_TYPE
 
 class PowerpointLayer(MapLayer):
     def __init__(self, source: PowerpointSource, slide: Slide, slide_number: int):
-        if slide.id is not None:
-            id = slide.id
-        else:
-            id = f'{source.id}_slide-{slide_number:02d}'
         if source.source_range is None:
             exported = slide_number == 1
         else:
             exported = slide_number == source.source_range[0]
-        super().__init__(id, source, exported=exported)
+        super().__init__(slide.id, source, exported=exported)
         self.__slide = slide
         self.__slide_number = slide_number
 
