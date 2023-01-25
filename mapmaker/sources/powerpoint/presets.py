@@ -46,8 +46,28 @@ from pptx.oxml.xmlchemy import (
 
 #===============================================================================
 
-def DML(tag):
-    return '{{http://schemas.openxmlformats.org/drawingml/2006/main}}{}'.format(tag)
+PPTX_NAMESPACE = {
+    'a': "http://schemas.openxmlformats.org/drawingml/2006/main",
+    'p': "http://schemas.openxmlformats.org/presentationml/2006/main",
+    'r': "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+}
+
+def DRAWINGML(tag):
+    return f'{{http://schemas.openxmlformats.org/drawingml/2006/main}}{tag}'
+
+def pptx_resolve(qname: str) -> str:
+#===================================
+    parts = qname.split(':', 1)
+    if len(parts) == 2 and parts[0] in PPTX_NAMESPACE:
+        return f'{{{PPTX_NAMESPACE[parts[0]]}}}{parts[1]}'
+    return qname
+
+def pptx_uri(qname: str) -> str:
+#===============================
+    parts = qname.split(':', 1)
+    if len(parts) == 2 and parts[0] in PPTX_NAMESPACE:
+        return f'{PPTX_NAMESPACE[parts[0]]}/{parts[1]}'
+    return qname
 
 #===============================================================================
 

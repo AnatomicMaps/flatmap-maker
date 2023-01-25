@@ -59,7 +59,7 @@ from mapmaker.utils import FilePath, log, ProgressBar
 
 from .colour import ColourMap, ColourTheme
 from .geometry import get_shape_geometry
-from .presets import DML
+from .presets import DRAWINGML
 from .powerpoint import Shape, SHAPE_TYPE
 from .transform import DrawMLTransform
 
@@ -563,7 +563,7 @@ class SvgLayer(object):
         line_dash = None
         if (line_props := shape_xml.find('.//p:spPr/a:ln', namespaces=PPTX_NAMESPACE)) is not None:
             for prop in line_props.getchildren():
-                if prop.tag == DML('prstDash'):
+                if prop.tag == DRAWINGML('prstDash'):
                     line_dash = prop.attrib.get('val', 'solid')
                     break
         try:
@@ -591,7 +591,7 @@ class SvgLayer(object):
                 stroke_attribs['stroke-opacity'] = alpha
         elif (line_style := shape_xml.find('.//p:style/a:lnRef', namespaces=PPTX_NAMESPACE)) is not None:
             for prop in line_style.getchildren():
-                if prop.tag == DML('schemeClr'):
+                if prop.tag == DRAWINGML('schemeClr'):
                     scheme_colour = prop.attrib.get('val')
                     stroke_attribs['stroke'] = self.__colour_map.scheme_colour(scheme_colour)
         elif shape.line.fill.type is None:                              # type: ignore

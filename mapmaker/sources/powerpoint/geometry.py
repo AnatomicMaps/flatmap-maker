@@ -40,7 +40,7 @@ from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, 
 from mapmaker.utils import log
 
 from .formula import Geometry, radians_from_st_angle
-from .presets import DML
+from .presets import DRAWINGML
 from .transform import DrawMLTransform
 
 #===============================================================================
@@ -64,7 +64,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
         moved = False
 
         for c in path.getchildren():
-            if   c.tag == DML('arcTo'):
+            if   c.tag == DRAWINGML('arcTo'):
                 (wR, hR) = ((pptx_geometry.attrib_value(c, 'wR'),
                              pptx_geometry.attrib_value(c, 'hR')))
                 stAng = radians_from_st_angle(pptx_geometry.attrib_value(c, 'stAng'))
@@ -87,7 +87,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
                                    *T.transform_point(pt))
                 current_point = pt
 
-            elif c.tag == DML('close'):
+            elif c.tag == DRAWINGML('close'):
                 if first_point is not None and current_point != first_point:
                     coordinates.append(T.transform_point(first_point))
                 svg_path.push('Z')
@@ -95,7 +95,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
                 first_point = None
                 # Close current pptx_geometry and start a new one...
 
-            elif c.tag == DML('cubicBezTo'):
+            elif c.tag == DRAWINGML('cubicBezTo'):
                 coords = [BezierPoint(*T.transform_point(current_point))]
                 svg_coords = []
                 for p in c.getchildren():
@@ -109,7 +109,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
                 coordinates.extend(bezier_sample(bz))
                 svg_path.push('C', *svg_coords)
 
-            elif c.tag == DML('lnTo'):
+            elif c.tag == DRAWINGML('lnTo'):
                 if moved:
                     coordinates.append(T.transform_point(current_point))
                     moved = False
@@ -119,7 +119,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
                 svg_path.push('L', *xy)
                 current_point = pt
 
-            elif c.tag == DML('moveTo'):
+            elif c.tag == DRAWINGML('moveTo'):
                 moved = True
                 pt = pptx_geometry.point(c.pt)
                 xy = T.transform_point(pt)
@@ -128,7 +128,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
                     first_point = pt
                 current_point = pt
 
-            elif c.tag == DML('quadBezTo'):
+            elif c.tag == DRAWINGML('quadBezTo'):
                 coords = [BezierPoint(*T.transform_point(current_point))]
                 svg_coords = []
                 for p in c.getchildren():

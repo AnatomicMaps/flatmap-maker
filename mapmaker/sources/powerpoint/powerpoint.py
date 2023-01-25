@@ -50,23 +50,8 @@ from mapmaker.utils import FilePath, log, ProgressBar, TreeList
 
 from .colour import ColourMap, ColourTheme
 from .geometry import get_shape_geometry
-from .presets import DML
+from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
 from .transform import DrawMLTransform
-
-#===============================================================================
-
-PPTX_NAMESPACE = {
-    'p': "http://schemas.openxmlformats.org/presentationml/2006/main",
-    'a': "http://schemas.openxmlformats.org/drawingml/2006/main",
-    'r': "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-}
-
-def pptx_resolve(qname: str) -> str:
-#===================================
-    parts = qname.split(':', 1)
-    if len(parts) == 2 and parts[0] in PPTX_NAMESPACE:
-        return f'{{{PPTX_NAMESPACE[parts[0]]}}}{parts[1]}'
-    return qname
 
 #===============================================================================
 
@@ -270,7 +255,7 @@ class Slide:
                                                     namespaces=PPTX_NAMESPACE):
                         r_id = link_ref.attrib[pptx_resolve('r:id')]
                         if (r_id in pptx_shape.part.rels
-                         and pptx_shape.part.rels[r_id].reltype == 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink'):
+                         and pptx_shape.part.rels[r_id].reltype == pptx_uri('r:hyperlink')):
                             shape_properties['hyperlink'] = pptx_shape.part.rels[r_id].target_ref
                             break
                     if pptx_shape.shape_type == MSO_SHAPE_TYPE.LINE:            # type: ignore
@@ -279,9 +264,9 @@ class Slide:
                         if (connection := shape_xml.find('.//p:nvCxnSpPr/p:cNvCxnSpPr',
                                                         namespaces=PPTX_NAMESPACE)) is not None:
                             for c in connection.getchildren():
-                                if c.tag == DML('stCxn'):
+                                if c.tag == DRAWINGML('stCxn'):
                                     shape_properties['connection-start'] = int(c.attrib['id'])
-                                elif c.tag == DML('endCxn'):
+                                elif c.tag == DRAWINGML('endCxn'):
                                     shape_properties['connection-end'] = int(c.attrib['id'])
                         line_style = 'solid'
                         head_end = 'none'
@@ -289,11 +274,11 @@ class Slide:
                         if (line_props := shape_xml.find('.//p:spPr/a:ln',
                                                         namespaces=PPTX_NAMESPACE)) is not None:
                             for prop in line_props.getchildren():
-                                if prop.tag == DML('prstDash'):
+                                if prop.tag == DRAWINGML('prstDash'):
                                     line_style = prop.attrib.get('val', 'solid')
-                                elif prop.tag == DML('headEnd'):
+                                elif prop.tag == DRAWINGML('headEnd'):
                                     head_end = prop.attrib.get('type', 'none')
-                                elif prop.tag == DML('tailEnd'):
+                                elif prop.tag == DRAWINGML('tailEnd'):
                                     tail_end = prop.attrib.get('type', 'none')
                         shape_properties['line-style'] = line_style
                         shape_properties['head-end'] = head_end

@@ -20,6 +20,7 @@
 
 import colorsys
 from zipfile import ZipFile
+from typing import Optional
 
 #===============================================================================
 
@@ -30,7 +31,7 @@ from pptx.enum.dml import MSO_COLOR_TYPE, MSO_FILL_TYPE, MSO_THEME_COLOR, MSO_LI
 
 #===============================================================================
 
-from .presets import DML, ThemeDefinition
+from .presets import DRAWINGML, ThemeDefinition
 
 #===============================================================================
 
@@ -53,15 +54,15 @@ class ColourMap(object):
         self.__colour_defs = {}
         for colour_def in ppt_theme.colour_scheme():
             defn = colour_def[0]
-            if defn.tag == DML('sysClr'):
+            if defn.tag == DRAWINGML('sysClr'):
                 self.__colour_defs[colour_def.tag] = RGBColor.from_string(defn.attrib['lastClr'])
-            elif defn.tag == DML('srgbClr'):
+            elif defn.tag == DRAWINGML('srgbClr'):
                 self.__colour_defs[colour_def.tag] = RGBColor.from_string(defn.val)
         # The slide's layout master can have colour aliases
         colour_map = slide.slide_layout.slide_master.element.clrMap.attrib
         for key, value in colour_map.items():
             if key != value:
-                self.__colour_defs[DML(key)] = self.__colour_defs[DML(value)]
+                self.__colour_defs[DRAWINGML(key)] = self.__colour_defs[DRAWINGML(value)]
 
     def lookup(self, colour_format):
     #===============================
@@ -69,7 +70,7 @@ class ColourMap(object):
             rgb = colour_format.rgb
         elif colour_format.type == MSO_COLOR_TYPE.SCHEME:
             key = MSO_THEME_COLOR.to_xml(colour_format.theme_color)
-            rgb = self.__colour_defs[DML(key)]
+            rgb = self.__colour_defs[DRAWINGML(key)]
         elif colour_format.type == MSO_COLOR_TYPE.PRESET:
             return colour_format._color._xClr.attrib['val']
         else:
@@ -101,7 +102,7 @@ class ColourMap(object):
 
     def scheme_colour(self, name):
     #=============================
-        key = DML(name)
+        key = DRAWINGML(name)
         if key in self.__colour_defs:
             return f'#{str(self.__colour_defs[key])}'
 
