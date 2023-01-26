@@ -87,8 +87,7 @@ class Slide:
         self.__geometry = shapely.geometry.box(*bounds)
         self.__transform = transform
         self.__shapes = TreeList()
-        self.__shapes_by_id: dict[int, PowerpointShape] = {}
-
+        self.__shapes_by_id: dict[str, PowerpointShape] = {}
 
     @property
     def colour_map(self) -> ColourMap:
@@ -122,15 +121,22 @@ class Slide:
     def source_id(self):
         return self.__source_id
 
-    def shape(self, id: int) -> Optional[PowerpointShape]:
+    def shape(self, id: str) -> Optional[PowerpointShape]:
     #=====================================================
         return self.__shapes_by_id.get(id)
+
+    def __new_shape(self, type, id: int, geometry, properties=None) -> PowerpointShape:
+    #==================================================================================
+        shape_id = f'{self.__id}/{id}'
+        shape = (PowerpointShape(type, shape_id, geometry, properties) if properties is not None
+            else PowerpointShape(type, shape_id, geometry))
+        self.__shapes_by_id[shape_id] = shape
+        return shape
 
     def process(self) -> TreeList:
     #=============================
         # Return the slide's group structure as a nested list of Shapes
-        self.__shapes = TreeList([PowerpointShape(SHAPE_TYPE.GROUP, -1, self.__geometry)])
-        self.__shapes_by_id[-1] = self.__shapes[0]
+        self.__shapes = TreeList([self.__new_shape(SHAPE_TYPE.GROUP, 'root', self.__geometry)])
         self.__shapes.extend(self.__process_pptx_shapes(self.__pptx_slide.shapes,      # type: ignore
                                                         self.__transform, show_progress=True))
         return self.__shapes
@@ -177,12 +183,11 @@ class Slide:
     def __process_group(self, group: PptxGroupShape, transform: Transform) -> TreeList:
     #==================================================================================
         colour = self.__get_colour(group)
-        shapes = TreeList([PowerpointShape(SHAPE_TYPE.GROUP, group.shape_id, None, {
+        shapes = TreeList([self.__new_shape(SHAPE_TYPE.GROUP, group.shape_id, None, {
             'colour': colour[0],
             'opacity': colour[1],
             'pptx-shape': group
         })])
-        self.__shapes_by_id[group.shape_id] = shapes[-1]
         shapes.extend(self.__process_pptx_shapes(group.shapes, transform@DrawMLTransform(group),    # type: ignore
                                                  group_colour=colour))
         return shapes
@@ -296,8 +301,7 @@ class Slide:
                             shape_properties['label'] = label
                             shape_properties['align'] = text_alignment(pptx_shape)
                     shape_properties['pptx-shape'] = pptx_shape
-                    shape = PowerpointShape(shape_type, pptx_shape.shape_id, geometry, shape_properties)
-                    self.__shapes_by_id[shape.id] = shape
+                    shape = self.__new_shape(shape_type, pptx_shape.shape_id, geometry, shape_properties)
                     shapes.append(shape)
                 elif geometry is None:
                     log.warning(f'Shape "{shape_name}" {pptx_shape.shape_type}/{shape_properties.get("shape-kind")} not processed -- cannot get geometry')

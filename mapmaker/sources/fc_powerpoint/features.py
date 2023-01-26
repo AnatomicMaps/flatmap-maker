@@ -61,8 +61,8 @@ class FC(enum.IntFlag):
 @dataclass
 class Connector:
     id: str
-    source: Optional[int]
-    target: Optional[int]
+    source: Optional[str]
+    target: Optional[str]
     geometry: shapely.geometry.base.BaseGeometry
     arrows: int
     properties: dict[str, str] = field(default_factory=dict)
@@ -71,13 +71,13 @@ class Connector:
 
 @dataclass
 class FCFeature:
-    id: int
+    id: str
     kind: FC = field(default=FC.UNKNOWN, init=False)
     fc_class: FC_Class = field(default=FC_Class.UNKNOWN, init=False)
     geometry: shapely.geometry.base.BaseGeometry
     properties: dict[str, str] = field(default_factory=dict)
-    children: list[int] = field(default_factory=list, init=False)
-    parents: list[int] = field(default_factory=list, init=False)
+    children: list[str] = field(default_factory=list, init=False)
+    parents: list[str] = field(default_factory=list, init=False)
 
     def __post_init__(self):
         label = self.properties.pop('label', '').replace('\t', '|').strip()

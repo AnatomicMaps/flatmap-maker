@@ -62,12 +62,12 @@ class FCSlide(Slide):
         super().__init__(source_id, kind, index, pptx_slide, theme, bounds, transform)
         self.__shape_filter = shape_filter
         self.__outer_geometry_prepared = shapely.prepared.prep(self.geometry)
-        self.__fc_features: dict[int, FCFeature] = {
-            0: FCFeature(0, self.geometry)
+        self.__fc_features: dict[str, FCFeature] = {
+            '': FCFeature('', self.geometry)
         }
-        self.__connectors: dict[int, Connector] = {}
-        self.__systems: set[int] = set()
-        self.__organs: set[int] = set()
+        self.__connectors: dict[str, Connector] = {}
+        self.__systems: set[str] = set()
+        self.__organs: set[str] = set()
         self.__connection_graph = nx.Graph()
         self.__circuit_graph = nx.Graph()
         self.__unknown_colours = set()
@@ -106,7 +106,7 @@ class FCSlide(Slide):
 
         for id in self.__organs:
             annotator.add_organ(self.__fc_features[id].name, self.source_id,
-                tuple(self.__fc_features[system_id].name for system_id in self.__fc_features[id].parents if system_id > 0)
+                tuple(self.__fc_features[system_id].name for system_id in self.__fc_features[id].parents if system_id != '')
                 )
 
         for feature in self.__fc_features.values():
@@ -172,7 +172,7 @@ class FCSlide(Slide):
     #==============================
         # First extract features
         geometries = [self.geometry]
-        shape_ids = {id(self.geometry): 0}     # id(geometry) --> shape.id
+        shape_ids = {id(self.geometry): ''}     # id(geometry) --> shape.id
         for shape in self.shapes.flatten(skip=1):
             shape_id = shape.id
             geometry = shape.geometry
@@ -192,7 +192,7 @@ class FCSlide(Slide):
         # We use two passes to find the feature's spatial ordering
         non_system_features = {}
         for shape_id, feature in self.__fc_features.items():
-            if shape_id > 0:     # self.__fc_features[0] == entire slide
+            if shape_id != '':     # self.__fc_features[''] == entire slide
                 # List of geometries that intersect the feature
                 intersecting_geometries: list[int] = idx.query(feature.geometry)
 
@@ -223,7 +223,7 @@ class FCSlide(Slide):
                     feature.kind = FC.SYSTEM
                     if feature.name.startswith('BRAIN'):
                         feature.fc_class = FC_Class.BRAIN
-                    self.__set_relationships(shape_id, 0)
+                    self.__set_relationships(shape_id, '')
                 else:
                     non_system_features[shape_id] = overlaps
 
@@ -308,12 +308,12 @@ class FCSlide(Slide):
 
                 self.__connectors[shape.id] = Connector(shape.id, start_id, end_id, shape.geometry, arrows, shape.properties)
 
-    def __set_relationships(self, child: int, parent: int):
+    def __set_relationships(self, child: str, parent: str):
     #======================================================
         self.__fc_features[child].parents.append(parent)
         self.__fc_features[parent].children.append(child)
 
-    def __ftu_label(self, shape_id: int) -> str:
+    def __ftu_label(self, shape_id: str) -> str:
     #===========================================
         while self.__fc_features[shape_id].name == '':
             if shape_id == 0 or shape_id in self.__organs:
@@ -321,14 +321,14 @@ class FCSlide(Slide):
             shape_id = self.__fc_features[shape_id].parents[0]
         return self.__fc_features[shape_id].label
 
-    def __system_feature(self, shape_id: int) -> Optional[FCFeature]:
+    def __system_feature(self, shape_id: str) -> Optional[FCFeature]:
     #================================================================
         while shape_id != 0 and shape_id not in self.__systems:
             shape_id = self.__fc_features[shape_id].parents[0]
         return self.__fc_features[shape_id] if shape_id != 0 else None
 
-    def __connector_node(self, shape_id: Optional[int]) -> Optional[tuple[str, str, FC_Class, list[str]]]:
-    #================================================================================================
+    def __connector_node(self, shape_id: Optional[str]) -> Optional[tuple[str, str, FC_Class, list[str]]]:
+    #=====================================================================================================
         if shape_id is not None:
             if (label := self.__ftu_label(shape_id)) != '':
                 warnings: list[str] = []

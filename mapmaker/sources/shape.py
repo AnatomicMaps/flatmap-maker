@@ -36,7 +36,7 @@ class SHAPE_TYPE(Enum):
 @dataclass
 class Shape:
     type: SHAPE_TYPE
-    id: int
+    id: str
     geometry: Optional[BaseGeometry]
     properties: dict[str, Any] = field(default_factory=dict)
 
