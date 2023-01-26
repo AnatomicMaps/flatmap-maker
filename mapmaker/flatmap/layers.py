@@ -48,7 +48,7 @@ class FeatureLayer(object):
         self.__flatmap = flatmap
         self.__annotations = {}
         self.__exported = exported
-        self.__description = 'Layer {}'.format(id)
+        self.__description = f'{id} layer'.capitalize()
         self.__features: list[Feature] = []
 
     @property
@@ -167,7 +167,7 @@ class MapLayer(FeatureLayer):
     def add_raster_layer(self, id, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):
     #===============================================================================================
         if map_source.raster_source is not None:
-            self.__raster_layers.append(RasterLayer(id, extent, map_source, min_zoom, local_world_to_base))
+            self.__raster_layers.append(RasterLayer(id.replace('/', '_'), extent, map_source, min_zoom, local_world_to_base))
 
     def add_features(self, group_name, features, tile_layer='features', outermost=False):
     #====================================================================================

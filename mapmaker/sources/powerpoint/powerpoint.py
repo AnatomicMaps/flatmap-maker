@@ -71,7 +71,7 @@ class Slide:
                  shape_filter: Optional[ShapeFilter]=None):
         self.__source_id = source_id
         self.__kind = kind
-        layer_id = 'layer-{:02d}'.format(index+1)
+        self.__id = 'slide-{:02d}'.format(index+1)
         # Get any layer directives
         if pptx_slide.has_notes_slide:
             notes_slide = pptx_slide.notes_slide
@@ -81,8 +81,7 @@ class Slide:
                 if 'error' in layer_directive:
                     log.error('error', f'Slide {index+1}: invalid layer directive: {notes_text}')
                 if 'id' in layer_directive:
-                    layer_id = layer_directive['id']
-        self.__id = f'{source_id}/{layer_id}'
+                    self.__id = layer_directive['id']
         self.__colour_map = ColourMap(theme, pptx_slide)
         self.__pptx_slide = pptx_slide
         self.__geometry = shapely.geometry.box(*bounds)

@@ -40,12 +40,12 @@ from .powerpoint import Slide, SHAPE_TYPE
 #===============================================================================
 
 class PowerpointLayer(MapLayer):
-    def __init__(self, source: PowerpointSource, slide: Slide, slide_number: int):
+    def __init__(self, source: PowerpointSource, id: str, slide: Slide, slide_number: int):
         if source.source_range is None:
             exported = slide_number == 1
         else:
             exported = slide_number == source.source_range[0]
-        super().__init__(slide.id, source, exported=exported)
+        super().__init__(id, source, exported=exported)
         self.__slide = slide
         self.__slide_number = slide_number
 
@@ -126,8 +126,12 @@ class PowerpointSource(MapSource):
             if slide_number < 1 or slide_number >= (len(self.__slides) + 1):
                 continue
             slide = self.__slides[slide_number - 1]
-            slide_layer = PowerpointLayer(self, slide, slide_number)
-            log('Slide {}, {}'.format(slide_number, slide_layer.id))
+            if slide_number == 1 and len(slide_numbers) == 1:
+                id = self.id
+            else:
+                id = f'{self.id}/{slide.id}'
+            slide_layer = PowerpointLayer(self, id, slide, slide_number)
+            log(f'Slide {slide_number}, {slide_layer.id}')
             if settings.get('saveDrawML'):
                 with open(self.flatmap.full_filename(f'{slide_layer.id}.xml'), 'w') as xml:
                     xml.write(slide.pptx_slide.element.xml)
