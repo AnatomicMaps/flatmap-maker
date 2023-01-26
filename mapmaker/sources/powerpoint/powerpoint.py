@@ -337,9 +337,16 @@ class Powerpoint():
         # southwest and northeast corners
         self.__bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
-        theme = ColourTheme(ppt_bytes)
-        self.__slides: list[Slide] = [SlideClass(source_id, source_kind, n, slide, theme, self.__bounds, self.__transform, shape_filter=shape_filter)
-                                            for n, slide in enumerate(pptx.slides)]
+        colour_theme = ColourTheme(ppt_bytes)
+        self.__slides: list[Slide] = [SlideClass(source_id,
+                                                 source_kind,
+                                                 slide_index,
+                                                 slide,
+                                                 colour_theme,
+                                                 self.__bounds,
+                                                 self.__transform,
+                                                 shape_filter=shape_filter)
+                                            for slide_index, slide in enumerate(pptx.slides)]
 
     @property
     def bounds(self) -> MapBounds:

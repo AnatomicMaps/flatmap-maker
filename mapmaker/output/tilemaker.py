@@ -287,10 +287,6 @@ class RasterTiler(object):
         return self.__image_rect
 
     @property
-    def tile_coords_to_world(self):
-        return self.__tile_coords_to_world
-
-    @property
     def tile_size(self):
         return self.__tile_size
 
@@ -402,7 +398,7 @@ class RasterTileMaker(object):
         self.__raster_layer = raster_layer
         self.__max_zoom = max_zoom
         self.__id = raster_layer.id
-        self.__database_path = os.path.join(output_dir, '{}.mbtiles'.format(raster_layer.id))
+        self.__database_path = os.path.join(output_dir, f'{raster_layer.id}.mbtiles')
         self.__min_zoom = raster_layer.min_zoom
         self.__tile_set = TileSet(raster_layer.extent, max_zoom)
 

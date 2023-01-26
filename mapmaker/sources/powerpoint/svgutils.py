@@ -59,9 +59,6 @@ from .powerpoint import Powerpoint, PowerpointShape, Slide
 
 #===============================================================================
 
-POINTS_PER_IN = 72
-
-
 # Minimum width for a stroked path in points
 MIN_STROKE_WIDTH = 0.5
 
@@ -299,8 +296,8 @@ class SvgFromSlide:
     def __process_shape(self, shape: PowerpointShape, svg_parent: SvgElement,
                               group_colour: Optional[ColourPair]=None):
     #========================================================================
-        pptx_shape = shape.properties['pptx-shape']
-        svg_path = shape.properties['svg-path']
+        pptx_shape = shape.properties.pop('pptx-shape')
+        svg_path = shape.properties.pop('svg-path')
 
         ##bbox = (shape.width, shape.height)
         ##shape_size = T.scale_length(bbox)  ## from ppt??
@@ -320,9 +317,7 @@ class SvgFromSlide:
                 pass
                 ##svg_text = self.__draw_shape_label(pptx_shape, label, shape_size)  ## need bbox pos, size
 
-
         elif shape.type == SHAPE_TYPE.CONNECTOR:
-
             if 'type' in pptx_shape.line.headEnd or 'type' in pptx_shape.line.tailEnd:      # type: ignore
                 svg_path.set_markers((marker_id(pptx_shape.line.headEnd, 'head'),           # type: ignore
                                       None, marker_id(pptx_shape.line.tailEnd, 'tail')      # type: ignore

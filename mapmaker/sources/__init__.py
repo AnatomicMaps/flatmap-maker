@@ -42,8 +42,10 @@ MapBounds = tuple[float, float, float, float]
 
 #===============================================================================
 
+POINTS_PER_INCH = 72
+
 # Internal PPT units are EMUs (English Metric Units)
-EMU_PER_INCH  = 914400
+EMU_PER_INCH = 914400
 
 # EPSG:3857 Mercator projection meters
 WORLD_METRES_PER_EMU = 0.1   ## This to become a command line parameter...
@@ -52,8 +54,10 @@ WORLD_METRES_PER_EMU = 0.1   ## This to become a command line parameter...
 # SVG pixel resolution
 PIXELS_PER_INCH = 96
 EMU_PER_PIXEL = EMU_PER_INCH/PIXELS_PER_INCH
+EMU_PER_POINT = EMU_PER_INCH/POINTS_PER_INCH
 
 WORLD_METRES_PER_PIXEL = WORLD_METRES_PER_EMU*EMU_PER_PIXEL
+WORLD_METRES_PER_POINT = WORLD_METRES_PER_EMU*EMU_PER_POINT
 
 # MBF Bioscience units to EPSG:3857 coordinates
 WORLD_METRES_PER_UM = 100

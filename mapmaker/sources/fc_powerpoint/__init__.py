@@ -2,7 +2,7 @@
 #
 #  Flatmap viewer and annotation tools
 #
-#  Copyright (c) 2019 - 2022  David Brooks
+#  Copyright (c) 2019 - 2023  David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ from mapmaker.annotation import Annotator
 from mapmaker.geometry import Transform
 from mapmaker.settings import settings
 from mapmaker.sources import MapBounds
-from mapmaker.utils import log, TreeList
+from mapmaker.utils import log
 
 from ..powerpoint import PowerpointSource, Slide, SHAPE_TYPE
 from ..shapefilter import ShapeFilter
