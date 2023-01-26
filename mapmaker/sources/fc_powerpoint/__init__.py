@@ -216,7 +216,7 @@ class FCSlide(Slide):
                         break
                     parent_index += 1
 
-                if (overlaps[parent_index] == 0
+                if (overlaps[parent_index] == ''
                 and feature.name != ''
                 and feature.name[-1].isupper()):
                     self.__systems.add(shape_id)
@@ -254,7 +254,7 @@ class FCSlide(Slide):
                     and geometry.contains(feature.geometry)):
                         self.__set_relationships(shape_id, system_id)
             else:
-                if parent_id == 0 and feature.name != '':
+                if parent_id == '' and feature.name != '':
                     self.__organs.add(shape_id)
                     feature.kind = FC.ORGAN
                 self.__set_relationships(shape_id, parent_id)
