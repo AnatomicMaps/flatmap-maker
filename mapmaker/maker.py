@@ -629,9 +629,8 @@ class MapMaker(object):
             map_index['taxon'] = self.__flatmap.models
         if self.__manifest.biological_sex is not None:
             map_index['biologicalSex'] = self.__manifest.biological_sex
-        if settings.get('authoring', False):
-            map_index['style'] = 'authoring'
-        elif settings.get('functionalConnectivity', False):
+        map_index['authoring'] = settings.get('authoring', False)
+        if settings.get('functionalConnectivity', False):
             map_index['style'] = 'fcdiagram'
         else:
             map_index['style'] = 'flatmap'
