@@ -39,20 +39,24 @@ class JsonAnnotator(Annotator):
                     self.add_system_annotation(Annotation(identifier=system.get('id', ''),
                                                           name=system['name'],
                                                           term=system.get('term', ''),
-                                                          sources=set(system.get('sources', [])))
+                                                          sources=set(system.get('sources', [])),
+                                                          properties=system.get('properties', {})
+                                                          )
                                               )
                 for organ in annotations['organs']:
                     self.add_organ_with_systems_annotation(Annotation(identifier=organ.get('id', ''),
                                                                       name=organ['name'],
                                                                       term=organ.get('term', ''),
-                                                                      sources=set(organ.get('sources', []))),
+                                                                      sources=set(organ.get('sources', [])),
+                                                                      properties=organ.get('properties', {})),
                                                            set(organ.get('systems', [])))
                 for ftu in annotations['ftus']:
                     full_id = ftu.get('full-id', ftu.get('id', ''))
                     self.add_ftu_with_organ_annotation(Annotation(identifier=full_id,
                                                                   name=ftu['name'],
                                                                   term=ftu.get('term', ''),
-                                                                  sources=set(ftu.get('sources', []))),
+                                                                  sources=set(ftu.get('sources', [])),
+                                                                  properties=ftu.get('properties', {})),
                                                        ftu['organ'])
             except (AttributeError, KeyError):
                 print(f'{self.annotation_file} is in wrong format, ignored')

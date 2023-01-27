@@ -40,6 +40,7 @@ class Annotation:
     name: str = field(default_factory=str)
     term: str = field(default_factory=str)
     sources: set[str] = field(default_factory=set)
+    properties: dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self):
         result = {}
@@ -47,6 +48,7 @@ class Annotation:
         if self.name: result['name'] = self.name
         if self.term: result['term'] = self.term
         if self.sources: result['sources'] = sorted(self.sources)
+        if len(self.properties): result['properties'] = self.properties
         return result
 
 ## parent ??
