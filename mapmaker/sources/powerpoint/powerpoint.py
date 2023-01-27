@@ -25,6 +25,7 @@ from typing import Optional
 from lxml import etree
 import numpy as np
 import shapely.geometry
+import shapely.ops
 
 from pptx import Presentation
 from pptx.dml.fill import FillFormat
@@ -176,47 +177,52 @@ class Slide:
             log.warning(f'{shape.name}: unsupported line fill type: {shape.line.fill.type}')    # type: ignore
         return (colour, alpha)
 
-    def __process_group(self, group: PptxGroupShape, transform: Transform) -> TreeList:
-    #==================================================================================
+
+    def __shapes_as_group(self, group: PptxGroupShape, shapes: TreeList) -> Shape | TreeList:
+    #========================================================================================
+        if len(shapes) < 2:  ## shapes[0] might be a TreeList ##
+            return shapes    ## or shapes[0].type != SHAPE_TYPE.FEATURE:
+        colour = shapes[0].colour
+        label = shapes[0].label
+        alignment = shapes[0].properties.get('align')
+        geometry = [shapes[0].geometry]
+        for shape in shapes[1:]:
+            if (isinstance(shape, TreeList)
+             or shape.type != SHAPE_TYPE.FEATURE
+             or colour != shape.colour):
+                return shapes
+            if label == '':
+                label = shape.label
+                alignment = shape.properties.get('align')
+            elif shape.label != '' and label != shape.label:
+                return shapes
+            geometry.append(shape.geometry)
+        # Merge a group of shapes that are all the same colour
+        # having a common label into a single shape
+        return Shape(SHAPE_TYPE.FEATURE, group.shape_id,
+                      shapely.ops.unary_union(geometry), {
+                        'colour': colour,
+                        'label': label,
+                        'shape-name': group.name,
+                        'text-align': alignment
+                       })
+
+    def __process_group(self, group: PptxGroupShape, transform: Transform) -> Shape | TreeList:
+    #==========================================================================================
         colour = self.__get_colour(group)
+        group_shapes = self.__shapes_as_group(group,
+                            self.__process_pptx_shapes(group.shapes,        # type: ignore
+                                transform@DrawMLTransform(group),
+                                group_colour=colour))
+        if isinstance(group_shapes, Shape):
+            return group_shapes
         shapes = TreeList([self.__new_shape(SHAPE_TYPE.GROUP, group.shape_id, None, {
             'colour': colour[0],
             'opacity': colour[1],
             'pptx-shape': group
         })])
-        shapes.extend(self.__process_pptx_shapes(group.shapes, transform@DrawMLTransform(group),    # type: ignore
-                                                 group_colour=colour))
+        shapes.extend(group_shapes)
         return shapes
-
-###        if len(shapes) < 2:  ## shapes[0] might be a TreeList ##
-###                             ## or shapes[0].type != SHAPE_TYPE.FEATURE:
-###            return shapes
-###
-###        colour = shapes[0].properties['colour']
-###        label = shapes[0].label
-###        alignment = shapes[0].properties.get('align')
-###        geometry = [shapes[0].geometry]
-###        for shape in shapes[1:]:
-###            if shape.type != SHAPE_TYPE.FEATURE or colour != shape.properties['colour']:
-###                return shapes
-###            if label == '':
-###                label = shape.label
-###                alignment = shape.properties.get('align')
-###            elif shape.label != '':
-###                return shapes
-###            geometry.append(shape.geometry)
-###        if label == '':
-###            return shapes
-###
-###        # Merge a group of shapes that are all the same colour and with only
-###        # one having a label into a single shape
-###        return Shape(SHAPE_TYPE.FEATURE, group.shape_id,
-###                      shapely.ops.unary_union(geometry), {
-###                        'colour': colour,
-###                        'label': label,
-###                        'shape-name': group.name,
-###                        'text-align': alignment
-###                       })
 
     def __process_pptx_shapes(self, pptx_shapes: PptxGroupShapes | PptxSlideShapes,
                               transform: Transform, group_colour: Optional[ColourPair]=None,
