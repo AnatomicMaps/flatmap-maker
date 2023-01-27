@@ -53,7 +53,6 @@ IMAGE_MEDIA_TYPES = ['image/jpeg', 'image/png']
 #===============================================================================
 
 IGNORED_SVG_TAGS = [
-    SVG_NS('a'),
     SVG_NS('style'),
     SVG_NS('title'),
 ]
@@ -368,7 +367,8 @@ class SVGTiler(object):
             elif element.tag == SVG_NS('clipPath'):
                 self.__add_clip_path(element)
             else:
-                drawing_objects.extend(self.__draw_element(wrapped_element, parent_transform, parent_style))
+                drawing_objects.extend(
+                    self.__draw_element(wrapped_element, parent_transform, parent_style))
         progress_bar.close()
         return drawing_objects
 
@@ -419,6 +419,10 @@ class SVGTiler(object):
             canvas_group = self.__draw_group(wrapped_element, parent_transform, parent_style)
             if canvas_group.is_valid:
                 drawing_objects.append(canvas_group)
+
+        elif element.tag == SVG_NS('a'):
+            link_elements = self.__draw_element_list(wrapped_element, parent_transform, parent_style)
+            drawing_objects.extend(link_elements)
 
         elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
                              SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
