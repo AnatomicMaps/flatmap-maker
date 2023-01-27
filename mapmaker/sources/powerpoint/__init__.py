@@ -59,7 +59,7 @@ class PowerpointLayer(MapLayer):
 
     def process(self):
     #=================
-        shapes = self.__slide.process()
+        shapes = self.__slide.process(self.flatmap.annotator)
         features = self.__process_shape_list(shapes)
         self.add_features('Slide', features, outermost=True)
         connector_set = ConnectorSet('functional')
@@ -71,7 +71,6 @@ class PowerpointLayer(MapLayer):
                                   feature.properties['kind'],
                                   feature.geojson_id)
         self.source.flatmap.map_properties.pathways.add_connector_set(connector_set)
-        self.__slide.annotate(self.flatmap.annotator)
 
     def __process_shape_list(self, shapes: TreeList) -> list[Feature]:
     #=================================================================

@@ -64,23 +64,24 @@ class JsonAnnotator(Annotator):
     def save(self):
     #==============
         annotations = {
-            'systems': [ self.get_system(name).as_dict()
+            'systems': [ self.get_system_by_name(name).as_dict()    # type: ignore
                             for name in sorted(self.system_names)],
             'organs': [],
             'ftus': []
         }
-        for n, name in enumerate(sorted(self.organ_names)):
-            (annotation, systems) = self.get_organ_with_systems(name)
-            organ_dict = annotation.as_dict()
-            if systems: organ_dict.update({'systems': sorted(systems)})
-            annotations['organs'].append(organ_dict)
+        for name in sorted(self.organ_names):
+            if (organ_systems := self.get_organ_with_systems(name)) is not None:
+                organ_dict = organ_systems[0].as_dict()
+                if organ_systems[1]: organ_dict.update({'systems': sorted(organ_systems[1])})
+                annotations['organs'].append(organ_dict)
         for key in sorted(self.ftu_names_with_organ):
             ftu_dict = self.get_ftu_with_organ(*key).as_dict()
             ftu_dict['organ'] = key[0]
             if 'id' in ftu_dict:
                 id = ftu_dict['id'].split('/')[-1]
                 ftu_dict['id'] = id
-                if (organ_id := self.get_organ_with_systems(ftu_dict['organ'])[0].identifier):
+                if ((organ_systems := self.get_organ_with_systems(ftu_dict['organ'])) is not None
+                and (organ_id := organ_systems[0].identifier)):
                     ftu_dict['full-id'] = f'{organ_id}/{id}'
             annotations['ftus'].append(ftu_dict)
 

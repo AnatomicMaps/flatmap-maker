@@ -75,10 +75,10 @@ class FCSlide(Slide):
         self.__seen_shape_kinds = set()
         self.__smallest_shape_area = 10000000000
 
-    def process(self):
-    #=================
-        super().process()
-        self.__extract_shapes()
+    def process(self, annotator: Annotator):
+    #=======================================
+        super().process(annotator)
+        self.__extract_shapes(annotator)
 
         # Find circuits
         seen_nodes = set()
@@ -96,19 +96,23 @@ class FCSlide(Slide):
                 log.warning(f'Node {source}/{degree} is a branch point...')
         return self.shapes
 
-    def annotate(self, annotator: Annotator):
-    #========================================
+    def __add_annotation(self, annotator: Annotator):
+    #================================================
         # Called after shapes have been extracted
 
         ## This is where we could set shape attributes from existing annotation...
 
         for id in self.__systems:
-            annotator.add_system(self.__fc_features[id].name, self.source_id)
+            if (name := self.__fc_features[id].name) != '':
+                annotation = annotator.get_system_annotation(name, self.source_id)
+                self.__fc_features[id].properties.update(annotation.properties)
 
         for id in self.__organs:
-            annotator.add_organ(self.__fc_features[id].name, self.source_id,
-                tuple(self.__fc_features[system_id].name for system_id in self.__fc_features[id].parents if system_id != '')
+            annotation = annotator.get_organ_annotation(self.__fc_features[id].name, self.source_id,
+                tuple(self.__fc_features[system_id].name
+                    for system_id in self.__fc_features[id].parents if system_id != '')
                 )
+            self.__fc_features[id].properties.update(annotation.properties)
 
         for feature in self.__fc_features.values():
             self.__annotate_feature(feature, annotator)
@@ -130,11 +134,13 @@ class FCSlide(Slide):
                     organ_name = self.__fc_features[organ_id].name
                     annotation = annotator.find_ftu_by_names(organ_name, feature.name)
                     if annotation is None:
-                        annotation = annotator.add_ftu(self.__fc_features[organ_id].name, feature.name, self.source_id)
+                        annotation = annotator.get_ftu_annotation(self.__fc_features[organ_id].name, feature.name, self.source_id)
+                    feature.properties.update(annotation.properties)
 
-    def __extract_shapes(self):
-    #==========================
+    def __extract_shapes(self, annotator: Annotator):
+    #================================================
         self.__extract_components()
+        self.__add_annotation(annotator)
         self.__label_connectors()
 
         for shape in self.shapes.flatten(skip=1):

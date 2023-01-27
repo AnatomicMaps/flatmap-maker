@@ -21,7 +21,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 #===============================================================================
 
@@ -90,8 +90,8 @@ class Annotator:
     #==============================================
         return self.__ftus_by_name_organ[(name, organ_name)]
 
-    def get_system(self, name):
-    #==========================
+    def get_system_by_name(self, name):
+    #==================================
         return self.__systems_by_name.get(name)
 
     def get_organ_with_systems(self, name):
@@ -106,28 +106,35 @@ class Annotator:
     #======================================================================================
         return self.__ftus_by_name_organ.get((organ_name, ftu_name))
 
-    def add_ftu(self, organ_name: str, ftu_name: str, source: str) -> Annotation:
-    #==============================================================================
+    def get_ftu_annotation(self, organ_name: str, ftu_name: str, source: str) -> Annotation:
+    #=======================================================================================
         if (annotation := self.find_ftu_by_names(organ_name, ftu_name)) is None:
             annotation = Annotation(name=ftu_name)
+            self.__add_annotation(annotation)
             self.__ftus_by_name_organ[(organ_name, ftu_name)] = annotation
         annotation.sources.add(source)
         return annotation
 
-    def add_organ(self, name: str, source: str, system_names: Iterable[str]):
-    #========================================================================
-        if name in self.__organs_with_systems_by_name:
-            self.__organs_with_systems_by_name[name][1].update(system_names)
+    def get_organ_annotation(self, name: str, source: str, system_names: Iterable[str]):
+    #===================================================================================
+        if (organ_system := self.__organs_with_systems_by_name.get(name)) is not None:
+            annotation = organ_system[0]
+            organ_system[1].update(system_names)
         else:
-            self.__organs_with_systems_by_name[name] = (Annotation(name=name), set(system_names))
-        self.__organs_with_systems_by_name[name][0].sources.add(source)
+            annotation = Annotation(name=name)
+            self.__add_annotation(annotation)
+            self.__organs_with_systems_by_name[name] = (annotation, set(system_names))
+        annotation.sources.add(source)
+        return annotation
 
-    def add_system(self, name: str, source: str):
-    #=============================================
-        if name != '':
-            if name not in self.__systems_by_name:
-                self.__systems_by_name[name] = Annotation(name=name)
-            self.__systems_by_name[name].sources.add(source)
+    def get_system_annotation(self, name: str, source: str):
+    #=======================================================
+        if (annotation := self.__systems_by_name.get(name)) is None:
+            annotation = Annotation(name=name)
+            self.__add_annotation(annotation)
+            self.__systems_by_name[name] = annotation
+        self.__systems_by_name[name].sources.add(source)
+        return annotation
 
     def __add_annotation(self, annotation: Annotation):
     #==================================================
@@ -137,6 +144,7 @@ class Annotator:
             else:
                 self.__annotations_by_id[annotation.identifier] = annotation
 
+    # The following three methods are used by the sub-classed loaders
     def add_ftu_with_organ_annotation(self, annotation: Annotation, organ: str):
     #===========================================================================
         if (key := (organ, annotation.name)) not in self.__ftus_by_name_organ:

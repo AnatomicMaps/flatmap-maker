@@ -123,7 +123,7 @@ class XlsxAnnotator(Annotator):
         worksheet.write_string(0, 2, 'Term')
         worksheet.write_string(0, 3, 'Sources...')
         for row, name in enumerate(sorted(self.system_names)):
-            annotation = self.get_system(name)
+            annotation = self.get_system_by_name(name)
             worksheet.write_string(row + 1, 0, name)
             worksheet.write_string(row + 1, 1, annotation.identifier)
             worksheet.write_string(row + 1, 2, annotation.term)

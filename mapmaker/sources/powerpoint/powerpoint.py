@@ -133,17 +133,13 @@ class Slide:
         self.__shapes_by_id[shape_id] = shape
         return shape
 
-    def process(self) -> TreeList:
-    #=============================
+    def process(self, annotator: Annotator) -> TreeList:
+    #===================================================
         # Return the slide's group structure as a nested list of Shapes
         self.__shapes = TreeList([self.__new_shape(SHAPE_TYPE.GROUP, 'root', self.__geometry)])
         self.__shapes.extend(self.__process_pptx_shapes(self.__pptx_slide.shapes,      # type: ignore
                                                         self.__transform, show_progress=True))
         return self.__shapes
-
-    def annotate(self, annotator: Annotator):
-    #========================================
-        pass
 
     def __get_colour(self, shape: PptxConnector | PptxGroupShape | PptxShape,
                      group_colour: Optional[ColourPair]=None) -> ColourPair:
