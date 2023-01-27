@@ -34,6 +34,7 @@ import shapely.strtree
 from mapmaker.annotation import Annotator
 from mapmaker.geometry import Transform
 from mapmaker.settings import settings
+from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.sources import MapBounds
 from mapmaker.utils import log
 
@@ -63,7 +64,7 @@ class FCSlide(Slide):
         self.__shape_filter = shape_filter
         self.__outer_geometry_prepared = shapely.prepared.prep(self.geometry)
         self.__fc_features: dict[str, FCFeature] = {
-            '': FCFeature('', self.geometry)
+            '': FCFeature(Shape(SHAPE_TYPE.LAYER, '', self.geometry))
         }
         self.__connectors: dict[str, Connector] = {}
         self.__systems: set[str] = set()
@@ -182,9 +183,9 @@ class FCSlide(Slide):
                     geometries.append(geometry)
                     shape_ids[id(geometry)] = shape_id
                     ## feature properties != shape.properties for FCFeatures
-                    self.__fc_features[shape_id] = FCFeature(shape_id, geometry, shape.properties.copy())
                     if settings.get('authoring', False):    # For resulting map feature
                         shape.properties['label'] = self.__fc_features[shape_id].label
+                    self.__fc_features[shape_id] = FCFeature(shape)
 
         # Use a spatial index to find shape containment hierarchy
         idx = shapely.strtree.STRtree(geometries)

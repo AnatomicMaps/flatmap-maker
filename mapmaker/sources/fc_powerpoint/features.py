@@ -29,6 +29,7 @@ import shapely.geometry
 #===============================================================================
 
 from mapmaker.settings import settings
+from mapmaker.sources.shape import Shape, SHAPE_TYPE
 
 #===============================================================================
 
@@ -69,13 +70,12 @@ class Connector:
 
 #===============================================================================
 
+
 @dataclass
 class FCFeature:
-    id: str
+    shape: Shape
     kind: FC = field(default=FC.UNKNOWN, init=False)
     fc_class: FC_Class = field(default=FC_Class.UNKNOWN, init=False)
-    geometry: shapely.geometry.base.BaseGeometry
-    properties: dict[str, str] = field(default_factory=dict)
     children: list[str] = field(default_factory=list, init=False)
     parents: list[str] = field(default_factory=list, init=False)
 
@@ -114,6 +114,14 @@ class FCFeature:
         self.properties['id'] = id
 
     @property
+    def geometry(self):
+        return self.shape.geometry
+
+    @property
+    def id(self):
+        return self.shape.id
+
+    @property
     def label(self):
         return self.properties.get('label', self.name)
 
@@ -128,5 +136,13 @@ class FCFeature:
     @models.setter
     def models(self, model):
         self.properties['models'] = model
+    @property
+    def properties(self):
+        return self.shape.properties
+
+    @property
+    def type(self):
+        return self.shape.type
+
 
 #===============================================================================
