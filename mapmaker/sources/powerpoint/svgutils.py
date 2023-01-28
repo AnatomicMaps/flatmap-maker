@@ -49,9 +49,11 @@ from pptx.shapes.group import GroupShape as PptxGroupShape
 #===============================================================================
 
 from mapmaker.geometry import Transform
-from mapmaker.sources import WORLD_METRES_PER_PIXEL, WORLD_METRES_PER_POINT
+from mapmaker.sources import EMU_PER_METRE, MapBounds, WORLD_METRES_PER_PIXEL, WORLD_METRES_PER_POINT
 from mapmaker.sources.shape import SHAPE_TYPE
 from mapmaker.utils import log, TreeList
+
+from ..fc_powerpoint.features import FC
 
 from .colour import ColourPair, ColourMap
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
@@ -75,7 +77,7 @@ def text_alignment(shape):
             'centre',
             'top' if vertical == MSO_ANCHOR.TOP else            # type: ignore
             'bottom' if vertical == MSO_ANCHOR.BOTTOM else      # type: ignore
-            'middle')
+            'top')
 
 def text_content(shape):
 #=======================
@@ -246,9 +248,6 @@ class SvgFromSlide:
         self.__colour_map = slide.colour_map
         self.__gradient_id = 0
 
-## we still need emu -> px transform, adjusted by intermediates...
-## but only to get bbox of shape label??  pos and size
-
     def add_shape_svgs(self, svg_parent: SvgElement):
     #================================================
         self.__process_shape_list(self.__slide.shapes, svg_parent)
@@ -299,11 +298,9 @@ class SvgFromSlide:
         pptx_shape = shape.properties.pop('pptx-shape')
         svg_element = shape.properties.pop('svg-element')
 
-        ##bbox = (shape.width, shape.height)
-        ##shape_size = T.scale_length(bbox)  ## from ppt??
+        exclude_text = shape.properties.get('fc-kind') != FC.SYSTEM
 
         exclude_shape = False
-        exclude_text = not self.__base_slide
         svg_text = None
         label = None
         metadata = {}
@@ -314,8 +311,6 @@ class SvgFromSlide:
             svg_element.attribs.update(self.__get_fill(pptx_shape, group_colour))
             label = text_content(pptx_shape)    ### shape.label
             if not exclude_text and label is not None:
-                pass
-                ##svg_text = self.__draw_shape_label(pptx_shape, label, shape_size)  ## need bbox pos, size
 
         elif shape.type == SHAPE_TYPE.CONNECTOR:
             if 'type' in pptx_shape.line.headEnd or 'type' in pptx_shape.line.tailEnd:      # type: ignore
@@ -334,6 +329,7 @@ class SvgFromSlide:
 ## rdflib for layer/slide
 ## dump as metadata when saving...
 
+                svg_text = self.__draw_shape_label(pptx_shape, label, shape.geometry.bounds)    # type: ignore
         if not exclude_shape:
             svg_element.attribs.update(self.__get_stroke(pptx_shape))
 
@@ -365,19 +361,16 @@ class SvgFromSlide:
             else:
                 add_markup(svg_element, pptx_shape.name)
 
-
-    def __draw_shape_label(self, pptx_shape: PptxShape, label: str, shape_size: tuple[float, float], transform: Transform) -> SvgElement:
-    #===============================================================================================================================
-        # Draw text if base map
-
-        ##for paragraph in shape.text_frame.paragraphs:
-        ##  for text_run in paragraph.runs:
+    def __draw_shape_label(self, pptx_shape: PptxShape, label: str, bbox: MapBounds) -> SvgElement:
+    #==============================================================================================
+        shape_pos = (bbox[0], bbox[3])
+        shape_size = (bbox[2]-bbox[0], bbox[3]-bbox[1])
 
         style = {}
         font = pptx_shape.text_frame.paragraphs[0].runs[0].font     # type: ignore
-        font_size = round(font.size/EMU_PER_PIXEL)                  # type: ignore
-        if font.name is not None:   ## Else need to get from theme
-            style['font-family'] = font.name
+        font_size = round(font.size/EMU_PER_METRE)                  # type: ignore
+
+        style['font-family'] = font.name if font.name is not None else 'Calibri'
         style['font-size'] = f'{font_size}px'
         style['font-weight'] = 700 if font.bold else 400
         if font.italic:
@@ -390,34 +383,25 @@ class SvgFromSlide:
         svg_text = SvgText(label)   ## text_run.text
         svg_text.attribs['style'] = ' '.join([f'{name}: {value};' for name, value in style.items()])
 
-        shape_pos = transform.transform_point((0, 0))
-        svg_text.attribs['x'] = shape_pos[0]    ## use ppt x, y of shape??
-        svg_text.attribs['y'] = shape_pos[1]
+        svg_text.attribs['x'] =  shape_pos[0]
+        svg_text.attribs['y'] = -shape_pos[1]
         (halign, valign) = text_alignment(pptx_shape)
 
-        #print(label, shape.text_frame._bodyPr.get('anchor'), text_alignment(shape),
-        #    (shape.text_frame.margin_left, shape.text_frame.margin_bottom)
-        #    )
+        if pptx_shape.rotation != 0:
+            rotation = f'rotate({-pptx_shape.rotation}, {shape_pos[0]+shape_size[0]/2.0}, {shape_pos[1]-shape_size[1]/2.0})'
+        else:
+            rotation = ''
 
-        #    See here for text rotation ideas -- https://github.com/yWorks/svg2pdf.js/blob/master/src/textchunk.ts
-
-        ##if shape.rotation != 0:
-        ##    svg_text.attribs['transform'] = f'rotate(10)' #{shape.rotation})'
-        ## need to translate, rotate, and then translate back
-        ## Also use ``transform`` from above??
-        ##
-        ## End up with text grouped with path, with both path/text having relative positions wrt group
-        ## and group having the definitive position (and markup)??
 
         if halign == 'right':
             svg_text.attribs['text-anchor'] = 'end'
-            svg_text.attribs['x'] += shape_size[0] - TEXT_MARGINS[0]
+            svg_text.attribs['x'] += shape_size[0] - TEXT_MARGINS[0]*WORLD_METRES_PER_PIXEL
         elif halign == 'centre':
             svg_text.attribs['text-anchor'] = 'middle'
             svg_text.attribs['x'] += shape_size[0]/2
         else:   # Default to 'left'
             svg_text.attribs['text-anchor'] = 'start'
-            svg_text.attribs['x'] += TEXT_MARGINS[0]
+            svg_text.attribs['x'] += TEXT_MARGINS[0]*WORLD_METRES_PER_PIXEL
         if valign == 'bottom':
             svg_text.attribs['dominant-baseline'] = 'auto'
             svg_text.attribs['y'] += shape_size[1]
@@ -426,8 +410,11 @@ class SvgFromSlide:
             svg_text.attribs['y'] += shape_size[1]/2
         else:   # Default to 'top'
             svg_text.attribs['dominant-baseline'] = 'auto'
-            svg_text.attribs['y'] += font_size + TEXT_MARGINS[1]
-        return svg_text
+            svg_text.attribs['y'] += font_size + TEXT_MARGINS[1]*WORLD_METRES_PER_PIXEL
+
+        text_group = SvgGroup(transform=f'{rotation} scale(1.0, -1.0)')
+        text_group.add(svg_text)
+        return text_group
 
 
     def __get_colour(self, pptx_shape: PptxConnector | PptxGroupShape | PptxShape,
