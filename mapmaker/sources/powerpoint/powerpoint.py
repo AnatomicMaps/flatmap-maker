@@ -280,21 +280,9 @@ class Slide:
                                     shape_properties['connection-start'] = int(c.attrib['id'])
                                 elif c.tag == DRAWINGML('endCxn'):
                                     shape_properties['connection-end'] = int(c.attrib['id'])
-                        line_style = 'solid'
-                        head_end = 'none'
-                        tail_end = 'none'
-                        if (line_props := shape_xml.find('.//p:spPr/a:ln',
-                                                        namespaces=PPTX_NAMESPACE)) is not None:
-                            for prop in line_props.getchildren():
-                                if prop.tag == DRAWINGML('prstDash'):
-                                    line_style = prop.attrib.get('val', 'solid')
-                                elif prop.tag == DRAWINGML('headEnd'):
-                                    head_end = prop.attrib.get('type', 'none')
-                                elif prop.tag == DRAWINGML('tailEnd'):
-                                    tail_end = prop.attrib.get('type', 'none')
-                        shape_properties['line-style'] = line_style
-                        shape_properties['head-end'] = head_end
-                        shape_properties['tail-end'] = tail_end
+                        shape_properties['line-style'] = pptx_shape.line.prstDash                   # type: ignore
+                        shape_properties['head-end'] = pptx_shape.line.headEnd.get('type', 'none')  # type: ignore
+                        shape_properties['tail-end'] = pptx_shape.line.tailEnd.get('type', 'none')  # type: ignore
                         shape_properties['stroke-width'] = abs(transform.scale_length((int(pptx_shape.line.width.emu), 0))[0])  # type: ignore
                     else:
                         shape_type = SHAPE_TYPE.FEATURE

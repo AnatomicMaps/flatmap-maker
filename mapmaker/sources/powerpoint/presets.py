@@ -257,7 +257,7 @@ ColorFormat.tint = property(lambda self: (self._color._xClr.tint.val            
 
 #===============================================================================
 
-# Monkey patching line properties to get end types...
+# Monkey patching line properties to get end and dash types...
 
 CT_LineProperties.headEnd = ZeroOrOne("a:headEnd")                              # type: ignore
 CT_LineProperties.headEnd.populate_class_members(CT_LineProperties, "headEnd")  # type: ignore
@@ -270,5 +270,11 @@ CT_LineProperties.tailEnd.populate_class_members(CT_LineProperties, "tailEnd")  
 LineFormat.tailEnd = property(lambda self: (self._ln.tailEnd.attrib             # type: ignore
                                   if self._ln is not None and self._ln.tailEnd is not None
                                   else {}))
+
+CT_LineProperties.prstDash = ZeroOrOne("a:prstDash")                              # type: ignore
+CT_LineProperties.prstDash.populate_class_members(CT_LineProperties, "prstDash")  # type: ignore
+LineFormat.prstDash = property(lambda self: (self._ln.prstDash.attrib['val']      # type: ignore
+                                  if self._ln is not None and self._ln.prstDash is not None
+                                  else 'solid'))
 
 #===============================================================================

@@ -504,12 +504,7 @@ class SvgFromSlide:
         stroke_width = points_to_meters(max(Length(pptx_shape.line.width).pt, MIN_STROKE_WIDTH))  # type: ignore
         stroke_attribs['stroke-width'] = stroke_width
         shape_xml = etree.fromstring(pptx_shape.element.xml)
-        line_dash = None
-        if (line_props := shape_xml.find('.//p:spPr/a:ln', namespaces=PPTX_NAMESPACE)) is not None:
-            for prop in line_props.getchildren():
-                if prop.tag == DRAWINGML('prstDash'):
-                    line_dash = prop.attrib.get('val', 'solid')
-                    break
+        line_dash = pptx_shape.line.prstDash                                        # type: ignore
         try:
             dash_style = pptx_shape.line.dash_style                                 # type: ignore
         except KeyError:
