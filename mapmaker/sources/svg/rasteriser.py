@@ -495,10 +495,20 @@ class SVGTiler(object):
                     elif 'id' in properties or 'class' in properties:
                         stroked = False
                 opacity = stroke_opacity*float(element_style.get('stroke-opacity', 1.0))
+                dasharray = element_style.get('stroke-dasharray')
+                if dasharray is not None:
+                    pattern = [float(d) for d in dasharray.replace(',', ' ').split()]
+                    if (len(pattern) % 2) == 1:
+                        pattern = 2*pattern
+                    print('dash', pattern)
+                    path_effect = skia.DashPathEffect.Make(pattern, 0.0)
+                else:
+                    path_effect = None
                 paint = skia.Paint(AntiAlias=True,
                     Style=skia.Paint.kStroke_Style,
                     Color=make_colour(stroke, opacity),
                     StrokeWidth=float(element_style.get('stroke-width', 1.0)),
+                    PathEffect=path_effect,
                     )
                 stroke_linejoin = element_style.get('stroke-linejoin')
                 if stroke_linejoin == 'bevel':
