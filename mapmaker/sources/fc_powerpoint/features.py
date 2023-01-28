@@ -82,7 +82,6 @@ class FCFeature:
     def __post_init__(self):
         label = self.properties.pop('label', '').replace('\t', '|').strip()
         self.properties['name'] = label
-        label = self.properties.pop('hyperlink', label)
         self.properties['label'] = f'{self.id}: {label}' if settings.get('authoring', False) else label
 
     ## post init to assigh organ_class
