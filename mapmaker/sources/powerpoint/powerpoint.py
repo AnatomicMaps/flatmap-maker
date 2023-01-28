@@ -136,9 +136,9 @@ class Slide:
     #=====================================================
         return self.__shapes_by_id.get(id)
 
-    def __new_shape(self, type, id: int, geometry, properties=None) -> PowerpointShape:
+    def __new_shape(self, type, id: str, geometry, properties=None) -> PowerpointShape:
     #==================================================================================
-        shape_id = f'{self.__id}/{id}'
+        shape_id = f'{self.__source_id}/{self.__id}/{id}'
         shape = (PowerpointShape(type, shape_id, geometry, properties) if properties is not None
             else PowerpointShape(type, shape_id, geometry))
         self.__shapes_by_id[shape_id] = shape
