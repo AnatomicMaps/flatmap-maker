@@ -226,7 +226,7 @@ class Slide:
                                 'shape-kind': shapes[0].kind,
                                 'text-align': alignment,
                                 'pptx-shape': pptx_shape,
-                                'svg-path': svg_element
+                                'svg-element': svg_element
                                 })
 
     def __process_group(self, group: PptxGroupShape, transform: Transform) -> Shape | TreeList:

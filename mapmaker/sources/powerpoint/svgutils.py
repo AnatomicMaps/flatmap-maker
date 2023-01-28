@@ -297,7 +297,7 @@ class SvgFromSlide:
                               group_colour: Optional[ColourPair]=None):
     #========================================================================
         pptx_shape = shape.properties.pop('pptx-shape')
-        svg_path = shape.properties.pop('svg-path')
+        svg_element = shape.properties.pop('svg-element')
 
         ##bbox = (shape.width, shape.height)
         ##shape_size = T.scale_length(bbox)  ## from ppt??
@@ -311,7 +311,7 @@ class SvgFromSlide:
         colour, opacity = self.__get_colour(pptx_shape, group_colour)  ## ????
 
         if shape.type == SHAPE_TYPE.FEATURE:
-            svg_path.attribs.update(self.__get_fill(pptx_shape, group_colour))
+            svg_element.attribs.update(self.__get_fill(pptx_shape, group_colour))
             label = text_content(pptx_shape)    ### shape.label
             if not exclude_text and label is not None:
                 pass
@@ -335,8 +335,8 @@ class SvgFromSlide:
 ## dump as metadata when saving...
 
         if not exclude_shape:
+            svg_element.attribs.update(self.__get_stroke(pptx_shape))
 
-            svg_path.attribs.update(self.__get_stroke(pptx_shape))
 
             shape_kind = shape.properties['shape-kind']
 
@@ -350,21 +350,20 @@ class SvgFromSlide:
                 if label is None:
                     label = hyperlink
                 link_element = SvgHyperlink(href=hyperlink)
-                link_element.add(svg_path)
+                link_element.add(svg_element)
                 if svg_text is not None:
                     link_element.add(svg_text)
                 svg_parent.add(link_element)
             else:
-                svg_parent.add(svg_path)
+                svg_parent.add(svg_element)
                 if svg_text is not None:
                     svg_parent.add(svg_text)
-
             if label is not None:
-                add_markup(svg_path, label)  # Set's <title>
+                add_markup(svg_element, label)  # Set's <title>
                 if svg_text is not None:
                     add_markup(svg_text, label)   ## shape.label
             else:
-                add_markup(svg_path, pptx_shape.name)
+                add_markup(svg_element, pptx_shape.name)
 
 
     def __draw_shape_label(self, pptx_shape: PptxShape, label: str, shape_size: tuple[float, float], transform: Transform) -> SvgElement:

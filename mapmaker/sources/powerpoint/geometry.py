@@ -154,7 +154,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
         properties['bezier-segments'] = bezier_segments
         properties['closed'] = closed
         properties['shape-kind'] = pptx_geometry.shape_kind
-        properties['svg-path'] = svg_path
+        properties['svg-element'] = svg_path
 
     if len(coordinates) == 0:
         return None
