@@ -25,7 +25,9 @@ from typing import Optional
 from lxml import etree
 import numpy as np
 import shapely.geometry
+from shapely.geometry.base import BaseGeometry
 import shapely.ops
+from svgwrite.path import Path as SvgPath
 
 from pptx import Presentation
 from pptx.dml.fill import FillFormat
@@ -53,6 +55,14 @@ from .colour import ColourMap, ColourTheme
 from .geometry import get_shape_geometry
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
 from .transform import DrawMLTransform
+
+
+#===============================================================================
+
+def svg_path_from_geometry(geometry: BaseGeometry):
+    svg_element = etree.fromstring(geometry.svg())
+    if svg_element.tag == 'path':
+        return SvgPath(**svg_element.attrib)
 
 #===============================================================================
 
@@ -177,35 +187,47 @@ class Slide:
             log.warning(f'{shape.name}: unsupported line fill type: {shape.line.fill.type}')    # type: ignore
         return (colour, alpha)
 
-
     def __shapes_as_group(self, group: PptxGroupShape, shapes: TreeList) -> Shape | TreeList:
     #========================================================================================
-        if len(shapes) < 2:  ## shapes[0] might be a TreeList ##
-            return shapes    ## or shapes[0].type != SHAPE_TYPE.FEATURE:
+        # Merge a group of overlapping shapes that are all the same colour
+        # and have a common label into a single shape
+        if (len(shapes) < 2
+         or isinstance(shapes[0], TreeList)
+         or shapes[0].type != SHAPE_TYPE.FEATURE):
+            return shapes
         colour = shapes[0].colour
         label = shapes[0].label
         alignment = shapes[0].properties.get('align')
-        geometry = [shapes[0].geometry]
+        geometries = [shapes[0].geometry]
+        pptx_shape = shapes[0].properties['pptx-shape']
         for shape in shapes[1:]:
             if (isinstance(shape, TreeList)
              or shape.type != SHAPE_TYPE.FEATURE
              or colour != shape.colour):
                 return shapes
-            if label == '':
-                label = shape.label
-                alignment = shape.properties.get('align')
-            elif shape.label != '' and label != shape.label:
-                return shapes
-            geometry.append(shape.geometry)
-        # Merge a group of shapes that are all the same colour
-        # having a common label into a single shape
-        return Shape(SHAPE_TYPE.FEATURE, group.shape_id,
-                      shapely.ops.unary_union(geometry), {
-                        'colour': colour,
-                        'label': label,
-                        'shape-name': group.name,
-                        'text-align': alignment
-                       })
+            if shape.label != '':
+                if label == '':
+                    label = shape.label
+                    alignment = shape.properties.get('align')
+                    pptx_shape = shape.properties['pptx-shape']
+                elif label != shape.label:
+                    return shapes
+            geometries.append(shape.geometry)
+        geometry = shapely.ops.unary_union(geometries)
+        if geometry.geom_type != 'Polygon':
+            return shapes
+        svg_element = svg_path_from_geometry(geometry)
+        if svg_element is None:
+            return shapes
+        return self.__new_shape(SHAPE_TYPE.FEATURE, group.shape_id, geometry, {
+                                'colour': colour,
+                                'label': label,
+                                'shape-name': group.name,
+                                'shape-kind': shapes[0].kind,
+                                'text-align': alignment,
+                                'pptx-shape': pptx_shape,
+                                'svg-path': svg_element
+                                })
 
     def __process_group(self, group: PptxGroupShape, transform: Transform) -> Shape | TreeList:
     #==========================================================================================
