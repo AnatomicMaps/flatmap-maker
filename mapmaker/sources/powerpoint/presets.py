@@ -221,37 +221,37 @@ oxml.register_element_cls("p:grpSpPr", CT_GroupShapePropertiesUpdated)
 # Monkey patching color to get colour properties...
 
 oxml.register_element_cls('a:alpha', CT_Percentage)
-_BaseColorElement.alpha = ZeroOrOne("a:alpha")
-_BaseColorElement.alpha.populate_class_members(_BaseColorElement, "alpha")
-ColorFormat.alpha = property(lambda self: (self._color._xClr.alpha.val
+_BaseColorElement.alpha = ZeroOrOne("a:alpha")                                  # type: ignore
+_BaseColorElement.alpha.populate_class_members(_BaseColorElement, "alpha")      # type: ignore
+ColorFormat.alpha = property(lambda self: (self._color._xClr.alpha.val          # type: ignore
                                  if self._color._xClr.alpha is not None
                                  else 1.0))
 
-ColorFormat.lumMod = property(lambda self: (self._color._xClr.lumMod.val
+ColorFormat.lumMod = property(lambda self: (self._color._xClr.lumMod.val        # type: ignore
                                   if self._color._xClr.lumMod is not None
                                   else 1.0))
-ColorFormat.lumOff = property(lambda self: (self._color._xClr.lumOff.val
+ColorFormat.lumOff = property(lambda self: (self._color._xClr.lumOff.val        # type: ignore
                                   if self._color._xClr.lumOff is not None
                                   else 0.0))
 
 oxml.register_element_cls("a:satMod", CT_Percentage)
-_BaseColorElement.satMod = ZeroOrOne("a:satMod")
-_BaseColorElement.satMod.populate_class_members(_BaseColorElement, "satMod")
-ColorFormat.satMod = property(lambda self: (self._color._xClr.satMod.val
+_BaseColorElement.satMod = ZeroOrOne("a:satMod")                                # type: ignore
+_BaseColorElement.satMod.populate_class_members(_BaseColorElement, "satMod")    # type: ignore
+ColorFormat.satMod = property(lambda self: (self._color._xClr.satMod.val        # type: ignore
                                   if self._color._xClr.satMod is not None
                                   else 1.0))
 
 oxml.register_element_cls("a:shade", CT_Percentage)
-_BaseColorElement.shade = ZeroOrOne("a:shade")
-_BaseColorElement.shade.populate_class_members(_BaseColorElement, "shade")
-ColorFormat.shade = property(lambda self: (self._color._xClr.shade.val
+_BaseColorElement.shade = ZeroOrOne("a:shade")                                  # type: ignore
+_BaseColorElement.shade.populate_class_members(_BaseColorElement, "shade")      # type: ignore
+ColorFormat.shade = property(lambda self: (self._color._xClr.shade.val          # type: ignore
                                   if self._color._xClr.shade is not None
                                   else 1.0))
 
 oxml.register_element_cls("a:tint", CT_Percentage)
-_BaseColorElement.tint = ZeroOrOne("a:tint")
-_BaseColorElement.tint.populate_class_members(_BaseColorElement, "tint")
-ColorFormat.tint = property(lambda self: (self._color._xClr.tint.val
+_BaseColorElement.tint = ZeroOrOne("a:tint")                                    # type: ignore
+_BaseColorElement.tint.populate_class_members(_BaseColorElement, "tint")        # type: ignore
+ColorFormat.tint = property(lambda self: (self._color._xClr.tint.val            # type: ignore
                                   if self._color._xClr.tint is not None
                                   else 0.0))
 
@@ -259,15 +259,15 @@ ColorFormat.tint = property(lambda self: (self._color._xClr.tint.val
 
 # Monkey patching line properties to get end types...
 
-CT_LineProperties.headEnd = ZeroOrOne("a:headEnd")
-CT_LineProperties.headEnd.populate_class_members(CT_LineProperties, "headEnd")
-LineFormat.headEnd = property(lambda self: (self._ln.headEnd.attrib
+CT_LineProperties.headEnd = ZeroOrOne("a:headEnd")                              # type: ignore
+CT_LineProperties.headEnd.populate_class_members(CT_LineProperties, "headEnd")  # type: ignore
+LineFormat.headEnd = property(lambda self: (self._ln.headEnd.attrib             # type: ignore
                                   if self._ln is not None and self._ln.headEnd is not None
                                   else {}))
 
-CT_LineProperties.tailEnd = ZeroOrOne("a:tailEnd")
-CT_LineProperties.tailEnd.populate_class_members(CT_LineProperties, "tailEnd")
-LineFormat.tailEnd = property(lambda self: (self._ln.tailEnd.attrib
+CT_LineProperties.tailEnd = ZeroOrOne("a:tailEnd")                              # type: ignore
+CT_LineProperties.tailEnd.populate_class_members(CT_LineProperties, "tailEnd")  # type: ignore
+LineFormat.tailEnd = property(lambda self: (self._ln.tailEnd.attrib             # type: ignore
                                   if self._ln is not None and self._ln.tailEnd is not None
                                   else {}))
 
