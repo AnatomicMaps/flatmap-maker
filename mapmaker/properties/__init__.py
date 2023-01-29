@@ -193,13 +193,12 @@ class ExternalProperties(object):
         if authoring:
             # Show id and classes in label if authoring
             labels = []
+            if (label := feature_properties.get('label', '')):
+                labels.append(label)
+            if (shape_id := feature_properties.get('shape-id')) is not None:
+                labels.append(f'Shape: {shape_id}')
             if (model := feature_properties.get('models')) is not None:
                 labels.append(f'Models: {model}')
-            if (label := feature_properties.get('label')) is not None:
-                if settings.get('functionalConnectivity', False):
-                    labels.append(label)
-                else:
-                    labels.append(f'Label: {label}')
             if (type := feature_properties.get('type')) is not None:
                 labels.append(f'Type: {type}')
             if len(classes):
