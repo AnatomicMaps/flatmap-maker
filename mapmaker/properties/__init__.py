@@ -207,6 +207,8 @@ class ExternalProperties(object):
                 labels.append(f'Id: {id}')
             if len(labels):  # We don't want empty tooltips
                 feature_properties['label'] = '\n'.join(labels)
+        elif 'label' in feature_properties and feature_properties['label'] in [None, '']:
+            del feature_properties['label']   # So empty values doesn't get passed to the viewer
 
         # Hide network node features when not authoring or not a FC flatmap
         if not (authoring or settings.get('functionalConnectivity', False)):
