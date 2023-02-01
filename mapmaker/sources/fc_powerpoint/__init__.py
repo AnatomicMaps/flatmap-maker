@@ -23,7 +23,6 @@ from typing import Optional
 #===============================================================================
 
 from pptx.slide import Slide as PptxSlide
-import networkx as nx
 
 import shapely.geometry
 import shapely.prepared
@@ -33,18 +32,23 @@ import shapely.strtree
 
 from mapmaker.annotation import Annotator
 from mapmaker.geometry import Transform
-from mapmaker.settings import settings
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.sources import MapBounds
 from mapmaker.utils import log
 
-from ..powerpoint import PowerpointSource, Slide, SHAPE_TYPE
+from ..powerpoint import PowerpointSource, Slide
 from ..shapefilter import ShapeFilter
 from ..powerpoint.colour import ColourTheme
 
 #===============================================================================
 
-from .features import CONNECTION_CLASSES, Connector, FC, FC_Class, FCFeature
+from .components import FCComponent, FC_CLASS, FC_TYPE
+from .connections import Connections
+
+#===============================================================================
+
+MIN_OVERLAP_FRACTION = 0.2  # Smaller geometry and >= 20% common area ==> containment
+                            # e.g. `cochlear nuclei` and `pons`
 
 #===============================================================================
 
@@ -57,91 +61,34 @@ class FCPowerpointSource(PowerpointSource):
 
 #===============================================================================
 
+# The outer geometry of the slide
+SLIDE_LAYER_ID = 'SLIDE-LAYER-ID'
+
 class FCSlide(Slide):
     def __init__(self, source_id: str, kind: str, index: int, pptx_slide: PptxSlide, theme: ColourTheme,
                  bounds: MapBounds, transform: Transform, shape_filter: Optional[ShapeFilter]=None):
         super().__init__(source_id, kind, index, pptx_slide, theme, bounds, transform)
         self.__shape_filter = shape_filter
-        self.__outer_geometry_prepared = shapely.prepared.prep(self.geometry)
-        self.__fc_features: dict[str, FCFeature] = {
-            '': FCFeature(Shape(SHAPE_TYPE.LAYER, '', self.geometry))
+        self.__components: dict[str, FCComponent] = {
+            SLIDE_LAYER_ID: FCComponent(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry))
         }
-        self.__connectors: dict[str, Connector] = {}
-        self.__systems: set[str] = set()
+        self.__connections = Connections()
         self.__organs: set[str] = set()
-        self.__connection_graph = nx.Graph()
-        self.__circuit_graph = nx.Graph()
-        self.__unknown_colours = set()
-        self.__seen_shape_kinds = set()
-        self.__smallest_shape_area = 10000000000
+        self.__nerves: set[str] = set()
+        self.__systems: set[str] = set()
 
     def process(self, annotator: Annotator):
     #=======================================
         super().process(annotator)
         self.__extract_shapes(annotator)
 
-        # Find circuits
-        seen_nodes = set()
-        self.__circuit_graph = nx.Graph()
-        for (source, degree) in self.__connection_graph.degree():       # type: ignore
-            if degree == 1 and source not in seen_nodes:
-                self.__circuit_graph.add_node(source)
-                seen_nodes.add(source)
-                for target, _ in nx.shortest_path(self.__connection_graph, source=source).items():  # type: ignore
-                    if target != source and self.__connection_graph.degree(target) == 1:
-                        self.__circuit_graph.add_node(target)
-                        self.__circuit_graph.add_edge(source, target)
-                        seen_nodes.add(target)
-            elif degree >= 3:
-                log.warning(f'Node {source}/{degree} is a branch point...')
+
         return self.shapes
-
-    def __add_annotation(self, annotator: Annotator):
-    #================================================
-        # Called after shapes have been extracted
-
-        ## This is where we could set shape attributes from existing annotation...
-
-        for id in self.__systems:
-            if (name := self.__fc_features[id].name) != '':
-                annotation = annotator.get_system_annotation(name, self.source_id)
-                self.__fc_features[id].properties.update(annotation.properties)
-
-        for id in self.__organs:
-            annotation = annotator.get_organ_annotation(self.__fc_features[id].name, self.source_id,
-                tuple(self.__fc_features[system_id].name
-                    for system_id in self.__fc_features[id].parents if system_id != '')
-                )
-            self.__fc_features[id].properties.update(annotation.properties)
-
-        for feature in self.__fc_features.values():
-            self.__annotate_feature(feature, annotator)
-
-    def __annotate_feature(self, feature: FCFeature,  annotator: Annotator):
-    #=======================================================================
-        if (feature.name != ''
-        and (annotation := annotator.find_annotation(feature.name)) is None):
-            organ_id = None
-            for parent in feature.parents:
-                if parent in self.__organs:
-                    # Can have multiple parents
-                    organ_id = parent
-                    break
-            if organ_id is not None:
-                if len(feature.parents) > 1:
-                    log.warning(f'FTU {feature} in multiple organs')
-                else:
-                    organ_name = self.__fc_features[organ_id].name
-                    annotation = annotator.find_ftu_by_names(organ_name, feature.name)
-                    if annotation is None:
-                        annotation = annotator.get_ftu_annotation(self.__fc_features[organ_id].name, feature.name, self.source_id)
-                    feature.properties.update(annotation.properties)
 
     def __extract_shapes(self, annotator: Annotator):
     #================================================
         self.__extract_components()
         self.__add_annotation(annotator)
-        self.__label_connectors()
 
         for shape in self.shapes.flatten(skip=1):
             # Add the shape to the filter if we are processing a base map,
@@ -154,268 +101,186 @@ class FCSlide(Slide):
                     self.__shape_filter.filter(shape)
 
             if shape.id in self.__systems:
-                shape.properties.pop('name', None)  # We don't want System tooltips...
-            kind = shape.properties.get('shape-kind')
-            if kind not in self.__seen_shape_kinds:
-                self.__seen_shape_kinds.add(kind)
-                if shape.geometry.area < self.__smallest_shape_area:
-                    self.__smallest_shape_area = shape.geometry.area
+                shape.properties.pop('name', None)   # We don't want System tooltips...
+                shape.properties.pop('label', None)  # We don't want System tooltips...
 
-            if shape.type == SHAPE_TYPE.CONNECTOR:
-                shape.properties['shape-type'] = 'connector'
+            if shape.type == SHAPE_TYPE.CONNECTION:
+                shape.properties['shape-type'] = 'connection'
                 shape.properties['shape-id'] = shape.id
                 shape.properties['tile-layer'] = 'pathways'
-                kind = shape.properties.pop('kind', 'unknown')
-                ganglion = shape.properties.pop('ganglion')
-                ## get dash style from pptx. cf. pptx2svg
-                if kind in ['para', 'symp']:
-                    path_type = f'{kind}-{ganglion}'
-                else:
-                    path_type = kind
-                shape.properties['kind'] = path_type
-                shape.properties['type'] = 'line-dash' if path_type.endswith('-post') else 'line'
+            else:
+                pass
 
     def __extract_components(self):
     #==============================
-        # First extract features
+        # First extract shape geometries and create a spatial index
+        # to find their containment hierarchy
+
+        component_ids = {id(self.geometry): SLIDE_LAYER_ID}     # id(geometry) --> shape.id
         geometries = [self.geometry]
-        shape_ids = {id(self.geometry): ''}     # id(geometry) --> shape.id
+        outer_geometry = shapely.prepared.prep(self.geometry)
         for shape in self.shapes.flatten(skip=1):
             shape_id = shape.id
             geometry = shape.geometry
-            if shape.type == SHAPE_TYPE.FEATURE and geometry.geom_type == 'Polygon':
+            if shape.type == SHAPE_TYPE.FEATURE and 'Polygon' in geometry.geom_type:
                 # We are only interested in features actually on the slide
-                if self.__outer_geometry_prepared.contains(geometry):
+                if outer_geometry.contains(geometry):
                     geometries.append(geometry)
-                    shape_ids[id(geometry)] = shape_id
-                    ## feature properties != shape.properties for FCFeatures
-                    if settings.get('authoring', False):    # For resulting map feature
-                        shape.properties['label'] = self.__fc_features[shape_id].label
-                    self.__fc_features[shape_id] = FCFeature(shape)
+                    component_ids[id(geometry)] = shape_id
+                    self.__components[shape_id] = FCComponent(shape)
+            elif shape.type == SHAPE_TYPE.CONNECTION:
+                self.__components[shape_id] = FCComponent(shape)
 
-        # Use a spatial index to find shape containment hierarchy
+        # Spatial index to find component containment hierarchy
         idx = shapely.strtree.STRtree(geometries)
 
-        # We use two passes to find the feature's spatial ordering
+        # We use two passes to find a component's spatial order, first
+        # identifying SYSTEMs and then the features within a system.
         non_system_features = {}
-        for shape_id, feature in self.__fc_features.items():
-            if shape_id != '':     # self.__fc_features[''] == entire slide
-                # List of geometries that intersect the feature
-                intersecting_geometries: list[int] = idx.query(feature.geometry)
+        for component_id, component in self.__components.items():
+            if (component_id != SLIDE_LAYER_ID     # not entire slide
+            and component.shape.type == SHAPE_TYPE.FEATURE):
+                # List of geometries that intersect the component
+                intersecting_geometries: list[int] = idx.query(component.geometry)
 
                 # Sort geometries by area, smallest item first
-                overlaps = [shape_ids[i[0]]
+                overlaps = [component_ids[i[0]]
                                 for i in sorted([(id(geometries[index]), geometries[index].area)
                                                     for index in intersecting_geometries],
                                                 key = lambda x: x[1])
                            ]
 
                 # Immediate parent is the object immediately larger than the feature
-                parent_index = overlaps.index(shape_id) + 1
+                parent_index = overlaps.index(component_id) + 1
 
                 # Exclude larger features we partially intersect
                 while parent_index < len(overlaps):
-                    parent_geometry = self.__fc_features[overlaps[parent_index]].geometry
+                    parent_geometry = self.__components[overlaps[parent_index]].geometry
                     if (parent_geometry is not None
-                    and feature.geometry is not None
-                    and parent_geometry.intersection(feature.geometry).area >= 0.8*feature.geometry.area):
-        ## smaller and >= 80% common area ==> containment
+                    and component.geometry is not None
+                    and parent_geometry.intersection(component.geometry).area
+                        >= MIN_OVERLAP_FRACTION*component.geometry.area):
                         break
                     parent_index += 1
-
-                if (overlaps[parent_index] == ''
-                and feature.name != ''
-                and feature.name[-1].isupper()):
-                    self.__systems.add(shape_id)
-                    feature.kind = FC.SYSTEM
-                    if feature.name.startswith('BRAIN'):
-                        feature.fc_class = FC_Class.BRAIN
-                    self.__set_relationships(shape_id, '')
+                # Systems are components with an uppercase name
+                if (overlaps[parent_index] == SLIDE_LAYER_ID
+                and component.name != '' and component.name == component.name.upper()
+                and component.fc_type == FC_TYPE.UNKNOWN):
+                    component.fc_type = FC_TYPE.SYSTEM
+                    self.__systems.add(component_id)
+                    self.__set_relationships(component, SLIDE_LAYER_ID)
                 else:
-                    non_system_features[shape_id] = overlaps
+                    non_system_features[component_id] = overlaps
+                    if component.fc_type == FC_TYPE.NERVE:
+                        self.__nerves.add(component_id)
 
-        # Now find parents of the non-system features
-        for shape_id, overlaps in non_system_features.items():
-            feature = self.__fc_features[shape_id]
-            parent_index = overlaps.index(shape_id) + 1
+        # Now find parents of the unknown non-system features
+        for component_id, overlaps in non_system_features.items():
+            component = self.__components[component_id]
+            parent_index = overlaps.index(component_id) + 1
             while parent_index < len(overlaps):
-                parent_geometry = self.__fc_features[overlaps[parent_index]].geometry
-                assert (parent_geometry is not None
-                   and feature.geometry is not None
-                   and parent_geometry.area >= feature.geometry.area)
-                if parent_geometry.intersection(feature.geometry).area >= 0.8*feature.geometry.area:
-                #if parent_geometry.contains(feature.geometry):
-    ## smaller and >= 80% common area ==> containment
+                parent_geometry = self.__components[overlaps[parent_index]].geometry
+                if (parent_geometry is not None
+                and component.geometry is not None
+                and parent_geometry.intersection(component.geometry).area
+                    >= MIN_OVERLAP_FRACTION*component.geometry.area):
                     break
                 parent_index += 1
             parent_id = overlaps[parent_index]
+            # Organs are named components contained in a system
             if parent_id in self.__systems:
-                if feature.name != '':
-                    self.__organs.add(shape_id)
-                    feature.kind = FC.ORGAN
-                self.__set_relationships(shape_id, parent_id)
-                for system_id in self.__systems:
-                    geometry = self.__fc_features[system_id].geometry
-                    if (system_id != parent_id
-                    and geometry is not None
-                    and geometry.contains(feature.geometry)):
-                        self.__set_relationships(shape_id, system_id)
+                if (component.name != ''
+                and component.fc_type == FC_TYPE.UNKNOWN):
+                    component.fc_type = FC_TYPE.ORGAN
+                    self.__organs.add(component_id)
+                    self.__set_relationships(component, parent_id)
+                    # An organ can be in more than one system so find the others
+                    for system_id in self.__systems:
+                        system = self.__components[system_id]
+                        geometry = self.__components[system_id].geometry
+                        if (system_id != parent_id
+                        and system.geometry is not None
+                        and system.geometry.contains(component.geometry)):
+                            self.__set_relationships(component, system_id)
             else:
-                if parent_id == '' and feature.name != '':
-                    self.__organs.add(shape_id)
-                    feature.kind = FC.ORGAN
-                self.__set_relationships(shape_id, parent_id)
+                self.__set_relationships(component, parent_id)
 
-        # Now extract connections between features
-        for shape in self.shapes.flatten(skip=1):
-            if shape.type == SHAPE_TYPE.CONNECTOR:
-                shape.properties['messages'] = []
-                shape_id = shape.id
-                start_id = shape.properties.get('connection-start')
-                end_id = shape.properties.get('connection-end')
-                # Drop connections to features that aren't on the slide
-                if start_id in self.__fc_features:
-                    self.__fc_features[start_id].kind |= FC.CONNECTED
-                    self.__connection_graph.add_node(start_id)    #### Include slide id with ppt id so connection_graph is over entire map...
-                else:
-                    shape.properties['messages'].append(f'Connector {shape_id} is not connected to a start node: {shape.kind}/{shape.name}')
-                    shape.properties['connection-start'] = None
-                    shape.properties['kind'] = 'error'
-                    start_id = None
-                if end_id in self.__fc_features:
-                    self.__fc_features[end_id].kind |= FC.CONNECTED
-                    self.__connection_graph.add_node(end_id)
-                else:
-                    shape.properties['messages'].append(f'Connector {shape_id} is not connected to an end node: {shape.kind}/{shape.name}')
-                    shape.properties['connection-end'] = None
-                    shape.properties['kind'] = 'error'
-                    end_id = None
-                if start_id is not None and end_id is not None:
-                    self.__connection_graph.add_edge(start_id, end_id)
-                start_arrow = shape.properties.get('head-end', 'none') != 'none'
-                end_arrow = shape.properties.get('tail-end', 'none') != 'none'
-                if start_arrow and not end_arrow:
-                    start_id, end_id = end_id, start_id
-                    if start_id is not None:
-                        shape.properties['connection-start'] = start_id
-                    if end_id is not None:
-                        shape.properties['connection-end'] = end_id
-                    arrows = 1
-                elif start_arrow and end_arrow:
-                    arrows = 2     ## Do we create two connections???
-                elif not start_arrow and not end_arrow:
-                    arrows = 0
-                else:
-                    arrows = 1
-                line_style = shape.properties.pop('line-style', '').lower()
-                if 'dot' in line_style or 'dash' in line_style:
-                    shape.properties['ganglion'] = 'pre'         # pre-ganglionic
-                else:
-                    shape.properties['ganglion'] = 'post'        # post-ganglionic
+        # Unknown named components contained in an organ are FTUs
+        for component in self.__components.values():
+            if (component.name != ''
+            and component.fc_type == FC_TYPE.UNKNOWN
+            and len(component.parents)
+            and component.parents[0] in self.__organs):
+                component.fc_type = FC_TYPE.FTU
+                if len(component.parents) != 1:
+                    log.error(f'FTU can only be in a single organ: {component}')
 
-                self.__connectors[shape.id] = Connector(shape.id, start_id, end_id, shape.geometry, arrows, shape.properties)
-
-    def __set_relationships(self, child: str, parent: str):
-    #======================================================
-        self.__fc_features[child].parents.append(parent)
-        self.__fc_features[parent].children.append(child)
-
-    def __ftu_label(self, shape_id: str) -> str:
-    #===========================================
-        while self.__fc_features[shape_id].name == '':
-            if shape_id == 0 or shape_id in self.__organs:
-                break
-            shape_id = self.__fc_features[shape_id].parents[0]
-        return self.__fc_features[shape_id].label
-
-    def __system_feature(self, shape_id: str) -> Optional[FCFeature]:
-    #================================================================
-        while shape_id != 0 and shape_id not in self.__systems:
-            shape_id = self.__fc_features[shape_id].parents[0]
-        return self.__fc_features[shape_id] if shape_id != 0 else None
-
-    def __connector_node(self, shape_id: Optional[str]) -> Optional[tuple[str, str, FC_Class, list[str]]]:
-    #=====================================================================================================
-        if shape_id is not None:
-            if (label := self.__ftu_label(shape_id)) != '':
-                warnings: list[str] = []
-
-                if (colour := self.__fc_features[shape_id].colour) in self.__unknown_colours:
-                    cls = 'unknown'
-                elif (cls := CONNECTION_CLASSES.get('colour', 'unknown')) == 'unknown':
-                    self.__unknown_colours.add(colour)
-                    # NB. Some of these are for junction colours...
-                    warnings.append(f'Colour {colour} is not a known connector class (shape {shape_id})')
-
-                system = self.__system_feature(shape_id)
-                if system is None:
-                    # NB. 'Breasts' are in three systems but none are assigned...
-                    warnings.append(f'Cannot determine system for connector {shape_id} in FTU {label}')
-
-                return (cls, label, system.fc_class if system is not None else FC_Class.UNKNOWN, warnings)
-
-    def __label_connectors(self):
-    #============================
-        for shape in self.shapes.flatten(skip=1):
-            if shape.type == SHAPE_TYPE.CONNECTOR:
-                node_0 = self.__connector_node(shape.properties.get('connection-start', None))
-                node_1 = self.__connector_node(shape.properties.get('connection-end', None))
-                messages = shape.properties['messages']
-                kind = 'unknown'
-                label = ''
-                if node_0 is not None and node_1 is not None:
-                    messages.extend(node_0[3])
-                    messages.extend(node_1[3])
-                    kind = node_0[0]
-                    if node_0[0] != node_1[0]:
-                        if 'connector' not in [node_0[0], node_1[0]]:
-                            messages.append(f'Ends of connector have different kinds: {[node_0[0], node_1[0]]}')
-                        elif node_0[0] == 'connector':
-                            kind = node_1[0]
-                    if not node_0[2] == FC_Class.BRAIN and not node_1[2] == FC_Class.BRAIN:
-                        messages.append(f'Connection is not to/or from the brain')
-                        label = f'({node_0[1]}, {node_1[1]})'
-                    elif node_0[2] == FC_Class.BRAIN:
-                        if kind == 'sensory':
-                            label = f'({node_1[1]}, {node_0[1]})'
-                        else:
-                            label = f'({node_0[1]}, {node_1[1]})'
-                    elif kind == 'sensory':
-                        label = f'({node_0[1]}, {node_1[1]})'
+        for component in self.__components.values():
+            if component.fc_type == FC_TYPE.CONNECTOR:
+                if component.fc_class == FC_CLASS.PORT:
+                    if (len(component.parents) != 1
+                     or (parent := self.__components[component.parents[0]]).fc_type != FC_TYPE.FTU):
+                        log.error(f'A connector port must be in a single FTU: {component}')
                     else:
-                        label = f'({node_1[1]}, {node_0[1]})'
-                elif node_0 is not None:
-                    messages.extend(node_0[3])
-                    kind = node_0[0]
-                    if node_0[2] == FC_Class.BRAIN:
-                        if kind == 'sensory':
-                            label = f'(..., {node_0[1]})'
-                        else:
-                            label = f'({node_0[1]}, ...)'
-                elif node_1 is not None:
-                    messages.extend(node_1[3])
-                    kind = node_1[0]
-                    if node_1[2] == FC_Class.BRAIN:
-                        if kind == 'sensory':
-                            label = f'({node_1[1]}, ...)'
-                        else:
-                            label = f'(..., {node_1[1]})'
-                # If there are warning messages then set ``kind`` to highlight
-                # the connector and report the messages
-                if kind == 'unknown':
-                    messages.append('Unknown connection kind')
-                elif len(messages):
-                    kind = 'error'
-                if settings.get('authoring', False):
-                    for warning in messages:
-                        log.warning(warning)
-                    messages.insert(0, f'{shape.id}: {label}')
-                    shape.properties['label'] = '<br/>'.join(messages)
+                        component.properties['fc-parent'] = parent.id
+                elif component.fc_class in [FC_CLASS.NODE, FC_CLASS.THROUGH]:
+                    if len(component.parents) != 1:
+                        log.error(f'A neuron node must be on a single feature: {component}')
+                    else:
+                        component.properties['fc-parent'] = component.parents[0]
+            self.__connections.add_component(component)
+
+        self.__connections.end_components()
+        for component in self.__components.values():
+            if component.fc_type == FC_TYPE.CONNECTION:
+                self.__connections.add_connection(component)
+
+    def __set_relationships(self, component, parent_id):
+    #===================================================
+        component.parents.append(parent_id)
+        self.__components[parent_id].children.append(component.id)
+
+    def __add_annotation(self, annotator: Annotator):
+    #================================================
+        # Called after shapes have been extracted
+        for id in self.__systems:
+            if (name := self.__components[id].name) != '':
+                annotation = annotator.get_system_annotation(name, self.source_id)
+                self.__components[id].properties.update(annotation.properties)
+        for id in self.__nerves:
+            if (name := self.__components[id].name) != '':
+                annotation = annotator.get_nerve_annotation(name, self.source_id)
+                self.__components[id].properties.update(annotation.properties)
+        for id in self.__organs:
+            annotation = annotator.get_organ_annotation(self.__components[id].name, self.source_id,
+                tuple(self.__components[system_id].name
+                    for system_id in self.__components[id].parents if system_id != '')
+                )
+            ## It is shape properties that need updating...
+            self.__components[id].properties.update(annotation.properties)
+
+        for component in self.__components.values():
+            self.__annotate_component(component, annotator)
+
+    def __annotate_component(self, component: FCComponent,  annotator: Annotator):
+    #=============================================================================
+        if (component.name != ''
+        and (annotation := annotator.find_annotation(component.name)) is None):
+            organ_id = None
+            for parent in component.parents:
+                if parent in self.__organs:
+                    # Can have multiple parents
+                    organ_id = parent
+                    break
+            if organ_id is not None:
+                if len(component.parents) > 1:
+                    log.warning(f'FTU {component} in multiple organs')
                 else:
-                    for warning in messages:
-                        log.warning(f'{warning}: {node_0[:3] if node_0 is not None else node_0}/{node_1[:3] if node_1 is not None else node_1}')
-                    shape.properties['label'] = label
-                if 'kind' not in shape.properties:
-                    shape.properties['kind'] = kind
+                    organ_name = self.__components[organ_id].name
+                    annotation = annotator.find_ftu_by_names(organ_name, component.name)
+                    if annotation is None:
+                        annotation = annotator.get_ftu_annotation(self.__components[organ_id].name,
+                                                                  component.name, self.source_id)
+                    component.properties.update(annotation.properties)
 
 #===============================================================================
