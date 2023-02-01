@@ -56,12 +56,16 @@ def arg_parser():
                         help="For use when checking a new map: highlight incomplete features; show centreline network; no image tiles; no neuron paths; etc")
     debug_options.add_argument('--debug', action='store_true',
                         help='Show a traceback for error exceptions')
+    debug_options.add_argument('--ignore-git', dest='ignoreGit', action='store_true',
+                        help="Don't check that sources are committed into git")
     debug_options.add_argument('--only-networks', dest='onlyNetworks', action='store_true',
                         help='Only output features that are part of a centreline network')
     debug_options.add_argument('--save-drawml', dest='saveDrawML', action='store_true',
                         help="Save a slide's DrawML for debugging")
     debug_options.add_argument('--save-geojson', dest='saveGeoJSON', action='store_true',
                         help='Save GeoJSON files for each layer')
+    debug_options.add_argument('--save-svg', dest='saveSVG', action='store_true',
+                        help='Save intermediate SVG files used to generate image tiles')
     debug_options.add_argument('--tippecanoe', dest='showTippe', action='store_true',
                         help='Show command used to run Tippecanoe')
 

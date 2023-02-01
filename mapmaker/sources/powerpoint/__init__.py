@@ -158,12 +158,18 @@ class PowerpointSource(MapSource):
 
         ## Have option to keep intermediate SVG??
         svg = StringIO()
-        for layer in svg_extractor.svg_layers:    ### this just gets the first slide...
-            layer.save(svg)
-            break
-        svg_bytes = BytesIO(svg.getvalue().encode('utf-8'))
+        svg_maker.save(svg)
+        svg_bytes = svg.getvalue().encode('utf-8')
         svg.close()
-        svg_bytes.seek(0)
-        return svg_bytes
+
+        if settings.get('saveSVG', False):
+            svg_file = pathlib_path(self.source_href).with_suffix('.raster.svg')
+            with open(svg_file, 'wb') as fp:
+                fp.write(svg_bytes)
+                log.info(f'Saved intermediate SVG as {svg_file}')
+
+        svg_data = BytesIO(svg_bytes)
+        svg_data.seek(0)
+        return svg_data
 
 #===============================================================================
