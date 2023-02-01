@@ -35,7 +35,7 @@ class JsonAnnotator(Annotator):
             with open(self.annotation_file, 'r') as fp:
                 annotations = json.loads(fp.read())
             try:
-                for system in annotations['systems']:
+                for system in annotations.get('systems', []):
                     self.add_system_annotation(Annotation(identifier=system.get('id', ''),
                                                           name=system['name'],
                                                           term=system.get('term', ''),
@@ -43,14 +43,22 @@ class JsonAnnotator(Annotator):
                                                           properties=system.get('properties', {})
                                                           )
                                               )
-                for organ in annotations['organs']:
+                for organ in annotations.get('organs'):
                     self.add_organ_with_systems_annotation(Annotation(identifier=organ.get('id', ''),
                                                                       name=organ['name'],
                                                                       term=organ.get('term', ''),
                                                                       sources=set(organ.get('sources', [])),
                                                                       properties=organ.get('properties', {})),
                                                            set(organ.get('systems', [])))
-                for ftu in annotations['ftus']:
+                for nerve in annotations.get('nerves'):
+                    self.add_system_annotation(Annotation(identifier=nerve.get('id', ''),
+                                                          name=nerve['name'],
+                                                          term=nerve.get('term', ''),
+                                                          sources=set(nerve.get('sources', [])),
+                                                          properties=nerve.get('properties', {})
+                                                          )
+                                              )
+                for ftu in annotations.get('ftus'):
                     full_id = ftu.get('full-id', ftu.get('id', ''))
                     self.add_ftu_with_organ_annotation(Annotation(identifier=full_id,
                                                                   name=ftu['name'],
@@ -66,6 +74,8 @@ class JsonAnnotator(Annotator):
         annotations = {
             'systems': [ self.get_system_by_name(name).as_dict()    # type: ignore
                             for name in sorted(self.system_names)],
+            'nerves': [ self.get_nerve_by_name(name).as_dict()      # type: ignore
+                            for name in sorted(self.nerve_names)],
             'organs': [],
             'ftus': []
         }

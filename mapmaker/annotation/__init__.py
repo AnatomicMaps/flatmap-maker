@@ -82,7 +82,8 @@ class Annotator:
             else:
                 log.warning(f'Remote FC annotation at {annotation_file} will not be updated')
         self.__annotation_file = Path(annotation_file)
-        self.__systems_by_name: dict[str, Annotation] = {}                          #! System name -> Annotation
+        self.__nerves_by_name: dict[str, Annotation] = {}                                 #! Nerve name -> Annotation
+        self.__systems_by_name: dict[str, Annotation] = {}                                #! System name -> Annotation
         self.__organs_with_systems_by_name: dict[str, tuple[Annotation, set[str]]] = {}   #! Organ name -> (Annotation, Systems)
         self.__ftus_by_name_organ: dict[tuple[str, str], Annotation] = {}                 #! (Organ, FTU name) -> Annotation
         self.__annotations_by_id: dict[str, Annotation] = {}
@@ -103,12 +104,20 @@ class Annotator:
         return self.__organs_with_systems_by_name.keys()
 
     @property
+    def nerve_names(self):
+        return self.__nerves_by_name.keys()
+
+    @property
     def system_names(self):
         return self.__systems_by_name.keys()
 
     def get_ftu_with_organ(self, name, organ_name):
     #==============================================
         return self.__ftus_by_name_organ[(name, organ_name)]
+
+    def get_nerve_by_name(self, name):
+    #=================================
+        return self.__nerves_by_name.get(name)
 
     def get_system_by_name(self, name):
     #==================================
@@ -145,6 +154,15 @@ class Annotator:
             self.__add_annotation(annotation)
             self.__organs_with_systems_by_name[name] = (annotation, set(system_names))
         annotation.sources.add(source)
+        return annotation
+
+    def get_nerve_annotation(self, name: str, source: str):
+    #======================================================
+        if (annotation := self.__nerves_by_name.get(name)) is None:
+            annotation = Annotation(name=name)
+            self.__add_annotation(annotation)
+            self.__nerves_by_name[name] = annotation
+        self.__nerves_by_name[name].sources.add(source)
         return annotation
 
     def get_system_annotation(self, name: str, source: str):
@@ -185,6 +203,12 @@ class Annotator:
     #======================================================================================
         if (name := annotation.name) not in self.__organs_with_systems_by_name:
             self.__organs_with_systems_by_name[name] = (annotation, systems)
+            self.__add_annotation(annotation)
+
+    def add_nerve_annotation(self, annotation: Annotation):
+    #=======================================================
+        if (name := annotation.name) not in self.__nerves_by_name:
+            self.__nerves_by_name[name] = annotation
             self.__add_annotation(annotation)
 
     def add_system_annotation(self, annotation: Annotation):
