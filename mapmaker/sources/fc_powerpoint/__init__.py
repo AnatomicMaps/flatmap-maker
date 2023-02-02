@@ -77,18 +77,20 @@ class FCSlide(Slide):
         self.__nerves: set[str] = set()
         self.__systems: set[str] = set()
 
-    def process(self, annotator: Annotator):
-    #=======================================
+    def process(self, annotator: Optional[Annotator]=None):
+    #======================================================
         super().process(annotator)
         self.__extract_shapes(annotator)
 
 
         return self.shapes
 
-    def __extract_shapes(self, annotator: Annotator):
-    #================================================
+    def __extract_shapes(self, annotator: Optional[Annotator]):
+    #==========================================================
         self.__extract_components()
-        self.__add_annotation(annotator)
+
+        if annotator is not None:
+            self.__add_annotation(annotator)
 
         for shape in self.shapes.flatten(skip=1):
             # Add the shape to the filter if we are processing a base map,
