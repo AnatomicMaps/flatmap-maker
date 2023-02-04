@@ -88,11 +88,12 @@ class GeoJSONOutput(object):
             else:
                 centroid = None
             tile_layer = properties['tile-layer']
+            tippe_layer = f'{self.__layer.id}_{tile_layer}'
             geojson = {
                 'type': 'Feature',
                 'id': feature.geojson_id,
                 'tippecanoe' : {
-                    'layer' : f'{self.__layer.id}_{tile_layer}'
+                    'layer' : tippe_layer
                 },
                 'geometry': shapely.geometry.mapping(mercator_geometry),
                 'properties': {
@@ -127,7 +128,7 @@ class GeoJSONOutput(object):
             # The layer's annotation had property details for each feature
             self.__layer.annotate(feature, properties)
 
-            self.__geojson_layers[properties['tile-layer']].append(geojson)
+            self.__geojson_layers[tippe_layer].append(geojson)
             progress_bar.update(1)
 
         progress_bar.close()
