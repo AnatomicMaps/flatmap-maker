@@ -68,6 +68,7 @@ from mapmaker.flatmap.feature import anatomical_node_name, full_node_name
 from mapmaker.geometry.beziers import bezier_to_linestring, closest_time_distance
 from mapmaker.geometry.beziers import coords_to_point
 from mapmaker.geometry.beziers import split_bezier_path_at_point
+from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.utils import log
 import mapmaker.utils.graph as graph_utils
 
@@ -313,7 +314,7 @@ class Network(object):
     #==============================
         # Is the ``feature`` included in this network?
         return (feature.id in self.__feature_ids
-             or feature.property('tile-layer') == 'pathways')
+             or feature.property('tile-layer') == PATHWAYS_TILE_LAYER)
 
     def __map_feature(self, feature_id):
     #===================================

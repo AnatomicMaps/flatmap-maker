@@ -109,7 +109,6 @@ class FCSlide(Slide):
             if shape.type == SHAPE_TYPE.CONNECTION:
                 shape.properties['shape-type'] = 'connection'
                 shape.properties['shape-id'] = shape.id
-                shape.properties['tile-layer'] = 'pathways'
             else:
                 pass
 

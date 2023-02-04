@@ -30,6 +30,7 @@ import shapely.ops
 
 #===============================================================================
 
+from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_PIXEL
 
@@ -39,7 +40,6 @@ from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import geometry_from_svg_path, length_as_pixels, svg_markup, parse_svg_path, SVG_NS
 
-from mapmaker.flatmap.layers import MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.settings import settings
 from mapmaker.utils import FilePath, ProgressBar, log
@@ -130,7 +130,7 @@ class SVGLayer(MapLayer):
 
     def process(self):
     #=================
-        properties = {'tile-layer': 'features'}   # Passed through to map viewer
+        properties = {'tile-layer': FEATURES_TILE_LAYER}   # Passed through to map viewer
         features = self.__process_element_list(wrap_element(self.__svg),
                                                self.__transform,
                                                properties,

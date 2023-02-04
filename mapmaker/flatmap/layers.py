@@ -42,6 +42,11 @@ from .feature import Feature
 
 #===============================================================================
 
+FEATURES_TILE_LAYER = 'features'
+PATHWAYS_TILE_LAYER = 'pathways'
+
+#===============================================================================
+
 class FeatureLayer(object):
     def __init__(self, id, flatmap, exported=False):
         self.__id = id
@@ -103,7 +108,7 @@ class FeatureLayer(object):
                     # Nerve and ``auto-hide`` features are included only if used by connectivity
                     feature.set_property('exclude', True)
             elif feature.property('type') == 'nerve':
-                feature.set_property('tile-layer', 'pathways')
+                feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
             if self.__exported:
                 # Save relationship between id/class and internal feature id
                 self.__flatmap.save_feature_for_lookup(feature)
@@ -169,8 +174,8 @@ class MapLayer(FeatureLayer):
         if map_source.raster_source is not None:
             self.__raster_layers.append(RasterLayer(id.replace('/', '_'), extent, map_source, min_zoom, local_world_to_base))
 
-    def add_features(self, group_name, features, tile_layer='features', outermost=False):
-    #====================================================================================
+    def add_features(self, group_name, features, tile_layer=FEATURES_TILE_LAYER, outermost=False):
+    #=============================================================================================
         base_properties = {
             'tile-layer': tile_layer
             }
@@ -329,7 +334,7 @@ class MapLayer(FeatureLayer):
 
             grouped_lines = []
             for feature in grouped_polygon_features:
-                if feature.property('tile-layer') != 'pathways':
+                if feature.property('tile-layer') != PATHWAYS_TILE_LAYER:
                     if feature.geom_type == 'LineString':
                         grouped_lines.append(feature.geometry)
                     elif feature.geom_type == 'MultiLineString':

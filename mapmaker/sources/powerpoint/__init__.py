@@ -24,7 +24,7 @@ from io import BytesIO, StringIO
 #===============================================================================
 
 from mapmaker.flatmap.feature import Feature
-from mapmaker.flatmap.layers import MapLayer
+from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.properties import ConnectorSet
 from mapmaker.settings import settings
 from mapmaker.utils import log, TreeList
@@ -85,7 +85,7 @@ class PowerpointLayer(MapLayer):
                 properties = shape.properties
                 self.source.check_markup_errors(properties)
                 if 'tile-layer' not in properties:
-                    properties['tile-layer'] = 'features'   # Passed through to map viewer
+                    properties['tile-layer'] = FEATURES_TILE_LAYER   # Passed through to map viewer
                 if 'error' in properties:
                     pass
                 elif 'invisible' in properties:

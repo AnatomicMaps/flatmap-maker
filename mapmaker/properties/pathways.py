@@ -31,7 +31,7 @@ import shapely.geometry
 #===============================================================================
 
 from mapmaker.flatmap.feature import Feature, FeatureMap
-from mapmaker.flatmap.layers import FeatureLayer
+from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER, FeatureLayer
 from mapmaker.knowledgebase import get_knowledge
 from mapmaker.settings import settings
 from mapmaker.utils import log, FilePath
@@ -607,7 +607,7 @@ class Pathways:
                 properties['type'] = 'nerve'
             # Have we found a path?
             if path_id is not None:
-                properties['tile-layer'] = 'pathways'
+                properties['tile-layer'] = PATHWAYS_TILE_LAYER
                 self.__layer_paths.add(path_id)
 
     def add_connectivity_model(self, model_uri, properties_data, path_filter=None, traced_paths=None):
@@ -689,7 +689,7 @@ class Pathways:
             for geometric_shape in routed_path.geometry():
                 properties = {
                     'layout': 'auto',
-                    'tile-layer': 'pathways',
+                    'tile-layer': PATHWAYS_TILE_LAYER,
                 }
                 properties.update(geometric_shape.properties)
                 path_id = properties.pop('path-id', None)
@@ -729,7 +729,7 @@ class Pathways:
             if feature.property('type') == 'nerve' and feature.geom_type == 'LineString':
                 feature.del_property('exclude')
                 feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
-                feature.set_property('tile-layer', 'pathways')
+                feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
                 # Add a polygon feature for a nerve cuff
                 properties = feature.properties.copy()
                 properties.pop('id', None)   # Otherwise we will have a duplicate id...

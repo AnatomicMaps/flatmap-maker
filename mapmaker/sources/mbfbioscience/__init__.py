@@ -34,7 +34,7 @@ import shapely.geometry
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_UM
 
-from mapmaker.flatmap.layers import MapLayer
+from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.settings import settings
 from mapmaker.sources import mask_image
@@ -143,7 +143,7 @@ class MBFSource(MapSource):
             else:
                 geometry = shapely.geometry.LineString(points)
 
-            properties = {'tile-layer': 'features'}
+            properties = {'tile-layer': FEATURES_TILE_LAYER}
             if label is not None:
                 properties['label'] = label
             if anatomical_id is not None:

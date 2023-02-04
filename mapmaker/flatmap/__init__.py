@@ -34,6 +34,7 @@ import numpy as np
 from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import normalised_coords
+from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.knowledgebase import get_knowledge
 from mapmaker.properties import ConnectorSet, ExternalProperties
 from mapmaker.settings import settings
@@ -220,7 +221,7 @@ class FlatMap(object):
                     if (feature.properties.get('centreline', False)
                       and not feature.properties.get('excluded', False)):
                         feature.set_property('kind', 'centreline')
-                        feature.set_property('tile-layer', 'pathways')
+                        feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
                         connector_set.add(feature.properties['id'],
                                           feature.properties['kind'],
                                           feature.geojson_id)
@@ -302,7 +303,7 @@ class FlatMap(object):
             new_feature.set_property('nerveId', new_feature.geojson_id)  # Used in map viewer
             ## Need to link outline feature of nerve into paths through the nerve so it is highlighted
             ## when mouse over a path through the nerve
-            new_feature.set_property('tile-layer', 'pathways')
+            new_feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
         detail_layer.add_feature(new_feature)
         return new_feature
 

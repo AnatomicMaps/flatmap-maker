@@ -30,6 +30,7 @@ import shapely.strtree
 
 #===============================================================================
 
+from mapmaker.sources import PATHWAYS_TILE_LAYER
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
@@ -175,6 +176,7 @@ class Connections:
         else:
             connection.properties['kind'] = connection.nerve_class
         connection.properties['type'] = 'line-dash' if connection.properties['kind'].endswith('-pre') else 'line'
+        connection.properties['tile-layer'] = PATHWAYS_TILE_LAYER
 
         #
         # PORTS have max 1 connection
