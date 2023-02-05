@@ -43,6 +43,9 @@ def relative_path(path: str | pathlib.Path) -> bool:
 def make_uri(path: str | pathlib.Path) -> str:
     return pathlib.Path(os.path.abspath(path)).as_uri() if relative_path(path) else str(path)
 
+def pathlib_path(path: str) -> pathlib.Path:
+    return pathlib.Path(urlparse(path).path)
+
 #===============================================================================
 
 class FilePathError(IOError):
