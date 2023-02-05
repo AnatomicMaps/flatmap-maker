@@ -287,7 +287,7 @@ class SvgFromSlide:
         for shape in shapes[1:]:
             if isinstance(shape, TreeList):
                 self.__process_group(shape, svg_parent)
-            elif shape.type in [SHAPE_TYPE.CONNECTOR, SHAPE_TYPE.FEATURE]:
+            elif shape.type in [SHAPE_TYPE.CONNECTION, SHAPE_TYPE.FEATURE]:
                 self.__process_shape(shape, svg_parent, group_colour=group_colour)
             else:
                 raise TypeError(f'Unexpected shape type: {shape.type}')
@@ -312,7 +312,6 @@ class SvgFromSlide:
             label = text_content(pptx_shape)    ### shape.label
             if not exclude_text and label is not None:
 
-        elif shape.type == SHAPE_TYPE.CONNECTOR:
             if 'type' in pptx_shape.line.headEnd or 'type' in pptx_shape.line.tailEnd:      # type: ignore
                 svg_path.set_markers((marker_id(pptx_shape.line.headEnd, 'head'),           # type: ignore
                                       None, marker_id(pptx_shape.line.tailEnd, 'tail')      # type: ignore
@@ -330,6 +329,7 @@ class SvgFromSlide:
 ## dump as metadata when saving...
 
                 svg_text = self.__draw_shape_label(pptx_shape, label, shape.geometry.bounds)    # type: ignore
+        elif shape.type == SHAPE_TYPE.CONNECTION:
         if not exclude_shape:
             svg_element.attribs.update(self.__get_stroke(pptx_shape))
 

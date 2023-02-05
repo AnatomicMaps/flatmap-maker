@@ -27,10 +27,10 @@ from shapely.geometry.base import BaseGeometry
 #===============================================================================
 
 class SHAPE_TYPE(Enum):
-    CONNECTOR = 1
-    FEATURE = 2
-    GROUP = 3
-    LAYER = 4
+    CONNECTION = 1      #! A path between FEATUREs
+    FEATURE    = 2
+    GROUP      = 3
+    LAYER      = 4
 
 #===============================================================================
 
@@ -38,11 +38,12 @@ class SHAPE_TYPE(Enum):
 class Shape:
     type: SHAPE_TYPE
     id: str
-    geometry: Optional[BaseGeometry]
+    geometry: BaseGeometry
     properties: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         self.metadata: dict[str, str] = {}  # kw_only=True field for Python 3.10
+        self.properties['shape-id'] = self.id
 
     @property
     def opacity(self) -> float:

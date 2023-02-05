@@ -294,7 +294,7 @@ class Slide:
                             break
                     if pptx_shape.shape_type == MSO_SHAPE_TYPE.LINE:            # type: ignore
                         ## cf. pptx2svg for stroke colour
-                        shape_type = SHAPE_TYPE.CONNECTOR
+                        shape_type = SHAPE_TYPE.CONNECTION
                         if (connection := shape_xml.find('.//p:nvCxnSpPr/p:cNvCxnSpPr',
                                                         namespaces=PPTX_NAMESPACE)) is not None:
                             for c in connection.getchildren():
