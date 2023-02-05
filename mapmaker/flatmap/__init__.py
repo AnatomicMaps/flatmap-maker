@@ -266,6 +266,7 @@ class FlatMap(object):
 
     def __set_feature_properties(self):
     #==================================
+        log.info('Setting feature properties. Can take a while due to SciCrunch lookups...')
         for layer in self.__layer_dict.values():
             layer.set_feature_properties(self.__map_properties)
 
@@ -363,6 +364,7 @@ class FlatMap(object):
 
     def __resolve_connectivity(self):
     #================================
+        log.info('Resolving connectivity...')
         # Route paths and set feature ids of path components
         self.__map_properties.generate_connectivity(self.__feature_map)
 
