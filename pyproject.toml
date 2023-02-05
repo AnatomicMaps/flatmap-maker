@@ -5,9 +5,9 @@ description = ""
 authors = ["David Brooks <d.brooks@auckland.ac.nz>"]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<4.0"
+python = ">=3.10,<3.12"
 python-pptx = "^0.6.21"
-numpy = "^1.23.5"
+numpy = "<1.23"
 beziers = "^0.5.0"
 requests = "^2.28.1"
 pyparsing = "^3.0.9"
@@ -38,6 +38,8 @@ multiprocess = "^0.70.13"
 gitpython = "^3.1.29"
 giturlparse = "^0.10.0"
 types-requests = "^2.28.11.2"
+anatomy_lookup = {path = "../anatomy-lookup", develop = true}
+colormath = "^3.0.0"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.982"
