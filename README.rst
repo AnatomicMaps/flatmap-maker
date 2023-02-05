@@ -25,6 +25,11 @@ It is recommended to install and run ``mapmaker`` in its own Python virtual envi
 * Create and activate a Python virtual environment in which to install ``mapmaker``.
 
 * Within this environment, install the devel ``mapmaker`` wheel, https://github.com/dbrnz/flatmap-maker/releases/download/v1.5.4/mapmaker-1.5.4-py3-none-any.whl.
+Using Conda (for Apple Silicon systems)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+See `here <M1MAC.rst>`_ to install and upgrade ``mapmaker`` in a Conda environment on an Apple Silicon based system.
+
 
 Using pipenv
 ~~~~~~~~~~~~
