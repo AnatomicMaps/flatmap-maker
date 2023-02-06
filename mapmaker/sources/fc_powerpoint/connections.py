@@ -150,12 +150,11 @@ class Connections:
             connector_id = connector.id     # What will be added to the connector's list; will change if joining
             if connector.fc_class != FC_CLASS.PORT:
                 if connector in self.__join_nodes:
-                    ## But don't join pre/post ganglionic...
                     if len(neighbours := list(self.__connection_graph.neighbors(connector_id))):
                         join_connection = self.__connection_graph.edges[connector_id, neighbours[0]]['connection']
                         if join_connection.nerve_class.split('-')[0] != connection.nerve_class.split('-')[0]:
                             log.error(f'Connections cannot be joined: {connection} and {join_connection}')
-                        elif join_connection.nerve_class == connection.nerve_class:
+                        elif join_connection.nerve_class == connection.nerve_class:   # Both will be pre- or post-
                             # Make sure the the connection ends being joined have the same direction
                             join0_coords = connection.geometry.coords
                             join1_coords = join_connection.geometry.coords
@@ -197,6 +196,11 @@ class Connections:
 
         ## Also get from properties['fc-parent'] if this identifies a NERVE
 
+        # PORTS have max 1 connection
+        # THROUGHS have max 2 connections
+        # NODES have max 2 connections
+        # JOINS have max 2 connections
+
         nerve_ids.update(self.__crosses_nerves(connection))
         self.__connection_graph.add_edge(*connection.connectors, connection=connection, nerves=list(nerve_ids))
 
@@ -211,12 +215,6 @@ class Connections:
         connection.properties['shape-id'] = connection.shape.id
         connection.properties['tile-layer'] = PATHWAYS_TILE_LAYER
 
-        #
-        # PORTS have max 1 connection
-        # THROUGHS have max 2 connections
-        # NODES have max 2 connections
-        # JOINS have max 2 connections
-        #
     def get_metadata(self) -> dict[str, Any]:
     #========================================
         return self.__metadata

@@ -430,6 +430,7 @@ class MapMaker(object):
         self.__output_geojson()
         # Generate vector tiles from GeoJSON
         self.__make_vector_tiles()
+
         # Generate image tiles as needed
         self.__check_raster_tiles()
 
