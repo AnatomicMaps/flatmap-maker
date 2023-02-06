@@ -151,7 +151,7 @@ class Connections:
             if connector.fc_class != FC_CLASS.PORT:
                 if connector in self.__join_nodes:
                     ## But don't join pre/post ganglionic...
-                    if len(neighbours := list(self.__connection_graph.neighbors(connector_id))) == 1:
+                    if len(neighbours := list(self.__connection_graph.neighbors(connector_id))):
                         join_connection = self.__connection_graph.edges[connector_id, neighbours[0]]['connection']
                         if join_connection.nerve_class.split('-')[0] != connection.nerve_class.split('-')[0]:
                             log.error(f'Connections cannot be joined: {connection} and {join_connection}')
