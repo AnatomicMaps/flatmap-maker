@@ -66,11 +66,6 @@ def svg_path_from_geometry(geometry: BaseGeometry):
 
 #===============================================================================
 
-class PowerpointShape(Shape):
-    pass
-
-#===============================================================================
-
 # (colour, opacity)
 ColourPair = tuple[Optional[str], float]
 
@@ -98,7 +93,7 @@ class Slide:
         self.__geometry = shapely.geometry.box(*bounds)
         self.__transform = transform
         self.__shapes = TreeList()
-        self.__shapes_by_id: dict[str, PowerpointShape] = {}
+        self.__shapes_by_id: dict[str, Shape] = {}
 
     @property
     def colour_map(self) -> ColourMap:
@@ -132,15 +127,15 @@ class Slide:
     def source_id(self):
         return self.__source_id
 
-    def shape(self, id: str) -> Optional[PowerpointShape]:
-    #=====================================================
+    def shape(self, id: str) -> Optional[Shape]:
+    #===========================================
         return self.__shapes_by_id.get(id)
 
-    def __new_shape(self, type, id: str, geometry, properties=None) -> PowerpointShape:
-    #==================================================================================
+    def __new_shape(self, type, id: str, geometry, properties=None) -> Shape:
+    #========================================================================
         shape_id = f'{self.__source_id}/{self.__id}/{id}'
-        shape = (PowerpointShape(type, shape_id, geometry, properties) if properties is not None
-            else PowerpointShape(type, shape_id, geometry))
+        shape = (Shape(type, shape_id, geometry, properties) if properties is not None
+            else Shape(type, shape_id, geometry))
         self.__shapes_by_id[shape_id] = shape
         return shape
 

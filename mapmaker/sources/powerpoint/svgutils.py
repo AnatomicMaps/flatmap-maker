@@ -50,14 +50,14 @@ from pptx.shapes.group import GroupShape as PptxGroupShape
 
 from mapmaker.geometry import Transform
 from mapmaker.sources import EMU_PER_METRE, MapBounds, WORLD_METRES_PER_PIXEL, WORLD_METRES_PER_POINT
-from mapmaker.sources.shape import SHAPE_TYPE
+from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log, TreeList
 
 from ..fc_powerpoint.features import FC
 
 from .colour import ColourPair, ColourMap
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
-from .powerpoint import Powerpoint, PowerpointShape, Slide
+from .powerpoint import Powerpoint, Slide
 
 #===============================================================================
 
@@ -292,9 +292,9 @@ class SvgFromSlide:
             else:
                 raise TypeError(f'Unexpected shape type: {shape.type}')
 
-    def __process_shape(self, shape: PowerpointShape, svg_parent: SvgElement,
+    def __process_shape(self, shape: Shape, svg_parent: SvgElement,
                               group_colour: Optional[ColourPair]=None):
-    #========================================================================
+    #==================================================================
         pptx_shape = shape.properties.pop('pptx-shape')
         svg_element = shape.properties.pop('svg-element')
 
