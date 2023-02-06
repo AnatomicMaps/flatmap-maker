@@ -483,7 +483,7 @@ class ConnectorSet:
     def add(self, connector_id, path_type, geojson_id):
     #==================================================
         # Need geojson id of shape's feature
-        path_id = f'{self.__id}_path_{connector_id}'
+        path_id = f'{self.__id}/{connector_id}'
         self.__connectors[path_id] = geojson_id
         self.__connectors_by_type[path_type].append(path_id)
 
