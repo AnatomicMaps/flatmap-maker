@@ -163,7 +163,7 @@ class Slide:
                 if group_colour is not None:
                     return group_colour
             elif fill.type is not None and fill.type != MSO_FILL_TYPE.BACKGROUND:   # type: ignore
-                log.warning(f'{shape.name}: unsupported fill type: {fill.type}')
+                log.warning(f'{shape.text}: unsupported fill type: {fill.type}')
             return (None, 1.0)
 
         colour = None
@@ -182,7 +182,7 @@ class Slide:
                                             namespaces=PPTX_NAMESPACE)) is not None:
                 colour = self.__colour_map.scheme_colour(scheme_colour.attrib['val'])
         elif shape.line.fill.type != MSO_FILL_TYPE.BACKGROUND:      # type: ignore
-            log.warning(f'{shape.name}: unsupported line fill type: {shape.line.fill.type}')    # type: ignore
+            log.warning(f'{shape.text}: unsupported line fill type: {shape.line.fill.type}')    # type: ignore
         return (colour, alpha)
 
     def __shapes_as_group(self, group: PptxGroupShape, shapes: TreeList) -> Shape | TreeList:
