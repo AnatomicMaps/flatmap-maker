@@ -32,10 +32,10 @@ from mapmaker.utils import log, pathlib_path, TreeList
 from .. import MapSource, RasterSource
 
 from .powerpoint import Powerpoint, Slide
-from .pptx2svg import Pptx2Svg
+from .svgutils import SvgFromShapes
 
 # Exports
-from .powerpoint import Slide, SHAPE_TYPE
+from .powerpoint import Slide
 
 #===============================================================================
 
@@ -157,18 +157,20 @@ class PowerpointSource(MapSource):
 
     def get_raster_source(self):
     #===========================
-        return RasterSource('svg', self.__get_raster_data)
+        if self.kind == 'base':  # Only rasterise base source layer
+            return RasterSource('svg', self.__get_raster_data)
 
     def __get_raster_data(self):
     #===========================
-        svg_extractor = Pptx2Svg(self.source_href,  kind=self.kind)
+        svg_maker = SvgFromShapes()                                      ## Options
+        svg_maker.set_transform(self.__powerpoint)
+        for slide in self.__powerpoint.slides:
+            svg_maker.add_slide(slide, base_slide=(self.kind=='base'))   ## Options
 
         # slides to SVG is simply slide_to_svg for all slides in the PPT, using the GLOBAL svg shape filter
         # Do we need a local, secondary filter??
         # PowerpointSource.__slides is the list of PPTX Slide objects
         # Use slide number to access local FCSlideLayer (which has a svg_filter(shape) method??)
-
-        svg_extractor.slides_to_svg()
 
         ## Have option to keep intermediate SVG??
         svg = StringIO()

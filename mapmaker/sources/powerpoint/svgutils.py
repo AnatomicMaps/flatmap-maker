@@ -53,7 +53,7 @@ from mapmaker.sources import EMU_PER_METRE, MapBounds, WORLD_METRES_PER_PIXEL, W
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log, TreeList
 
-from ..fc_powerpoint.features import FC
+from ..fc_powerpoint.components import FC_TYPE
 
 from .colour import ColourPair, ColourMap
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
@@ -252,25 +252,6 @@ class SvgFromSlide:
     #================================================
         self.__process_shape_list(self.__slide.shapes, svg_parent)
 
-    def __add_shape_svgs(self, shapes: TreeList, svg_parent: SvgElement):
-    #====================================================================
-        if shapes[0].type != SHAPE_TYPE.GROUP:
-            raise TypeError(f'Invalid shape treelist: index 0 shape type ({shapes[0].type}) != SHAPE_TYPE.GROUP')
-        for shape in shapes[1:]:
-            if isinstance(shape, TreeList):
-                svg_group = SvgGroup(id=shape[0].id)
-                self.__add_shape_svgs(shape, svg_group)
-                svg_parent.add(svg_group)
-            elif shape.type in [SHAPE_TYPE.CONNECTOR, SHAPE_TYPE.FEATURE]:
-                svg_path = shape.properties.get('svg-path')
-                # Set id to `source/slide/shape` etc
-
-                # set fill and stroke...
-
-                svg_parent.add(svg_path)
-            else:
-                raise TypeError(f'Unexpected shape type: {shape.type}')
-
     def __process_group(self, group: TreeList, svg_parent: SvgElement):
     #==================================================================
         if group[0].type != SHAPE_TYPE.GROUP:
@@ -296,52 +277,33 @@ class SvgFromSlide:
                               group_colour: Optional[ColourPair]=None):
     #==================================================================
         pptx_shape = shape.properties.pop('pptx-shape')
-        svg_element = shape.properties.pop('svg-element')
+        svg_element = shape.properties.pop('svg-element')   ## this might be a <g> elememt...
 
-        exclude_text = shape.properties.get('fc-kind') != FC.SYSTEM
+        shape.properties.pop('bezier-segments', None)
+        shape.properties.pop('messages', None)
 
-        exclude_shape = False
+        exclude_shape = shape.type != SHAPE_TYPE.FEATURE
+
+        exclude_text = shape.properties.get('fc-type') != FC_TYPE.SYSTEM
+
         svg_text = None
         label = None
-        metadata = {}
-
-        colour, opacity = self.__get_colour(pptx_shape, group_colour)  ## ????
 
         if shape.type == SHAPE_TYPE.FEATURE:
             svg_element.attribs.update(self.__get_fill(pptx_shape, group_colour))
             label = text_content(pptx_shape)    ### shape.label
             if not exclude_text and label is not None:
-
-            if 'type' in pptx_shape.line.headEnd or 'type' in pptx_shape.line.tailEnd:      # type: ignore
-                svg_path.set_markers((marker_id(pptx_shape.line.headEnd, 'head'),           # type: ignore
-                                      None, marker_id(pptx_shape.line.tailEnd, 'tail')      # type: ignore
-                                    ))
-            # get connection ends -->  metadata
-            shape_xml = etree.fromstring(pptx_shape.element.xml)
-            if (connection := shape_xml.find('.//p:nvCxnSpPr/p:cNvCxnSpPr',
-                                            namespaces=PPTX_NAMESPACE)) is not None:
-                for c in connection.getchildren():
-                    if c.tag == DRAWINGML('stCxn'):
-                        metadata['connection-start'] = int(c.attrib['id'])
-                    elif c.tag == DRAWINGML('endCxn'):
-                        metadata['connection-end'] = int(c.attrib['id'])
-## rdflib for layer/slide
-## dump as metadata when saving...
-
                 svg_text = self.__draw_shape_label(pptx_shape, label, shape.geometry.bounds)    # type: ignore
+
         elif shape.type == SHAPE_TYPE.CONNECTION:
+            if 'type' in pptx_shape.line.headEnd or 'type' in pptx_shape.line.tailEnd:          # type: ignore
+                svg_element.set_markers((marker_id(pptx_shape.line.headEnd, 'head'),            # type: ignore
+                                         None, marker_id(pptx_shape.line.tailEnd, 'tail')       # type: ignore
+                                       ))
         if not exclude_shape:
             svg_element.attribs.update(self.__get_stroke(pptx_shape))
 
 
-            shape_kind = shape.properties['shape-kind']
-
-            ##if (shape_kind is not None
-            ## and not shape_kind.startswith('star')
-            ## and shape_size[0]*shape_size[1] < 200):
-            ##    add_class(svg_path, 'connector')    ## FC
-                                                    ## cardio (circle) versus neural (rect)
-                                                    ## nerve features...
             if (hyperlink := self.__get_link(pptx_shape)) is not None:
                 if label is None:
                     label = hyperlink
