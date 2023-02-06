@@ -40,6 +40,21 @@ from .components import MAX_CONNECTION_GAP
 
 #===============================================================================
 
+def direction(coords):
+    dx = coords[1][0] - coords[0][0]
+    dy = coords[1][1] - coords[0][1]
+    magnitude = math.hypot(dx, dy)
+    return (dx/magnitude, dy/magnitude) if magnitude > 0 else None
+
+def similar_direction(dirn_0, dirn_1):
+    if dirn_0 is not None and dirn_1 is not None:
+        # Within 30º of each other (1.93 is approx. sqrt(2 + sqrt(3)))
+        return math.hypot(dirn_0[0] + dirn_1[0],
+                          dirn_0[1] + dirn_1[1]) > 1.93
+    return False
+
+#===============================================================================
+
 class Connections:
     __CONNECTOR_CLASSES = CONNECTOR_PORT_CLASSES + CONNECTOR_SYMBOL_CLASSES
 
@@ -141,21 +156,37 @@ class Connections:
                         if join_connection.nerve_class.split('-')[0] != connection.nerve_class.split('-')[0]:
                             log.error(f'Connections cannot be joined: {connection} and {join_connection}')
                         elif join_connection.nerve_class == connection.nerve_class:
-                            #print(f'Joining: {connection} and {join_connection} at {connector_id}')
-                            #print(f'Connectors: {connection.connectors} and {join_connection.connectors}')
-                            self.__join_nodes.remove(connector)
-                            self.__connection_graph.remove_edge(connector.id, neighbours[0])
-                            join_coords = join_connection.geometry.coords
-                            if end_point.distance(Point(join_coords[0])) < end_point.distance(Point(join_coords[-1])):
-                                coordinates = (list(reversed(join_coords)) + list(connection.geometry.coords) if coord_index == 0
-                                          else list(connection.geometry.coords) + list(join_coords))
+                            # Make sure the the connection ends being joined have the same direction
+                            join0_coords = connection.geometry.coords
+                            join1_coords = join_connection.geometry.coords
+                            # From above:
+                            #    end_point = Point(join0_coords[coord_index])
+                            if coord_index == 0:
+                                join0_dirn = direction(join0_coords[:coord_index+2])
                             else:
-                                coordinates = (list(join_coords) + list(connection.geometry.coords) if coord_index == 0
-                                          else list(connection.geometry.coords) + list(reversed(join_coords)))
-                            connection.set_geometry(LineString(coordinates))
-                            join_connection.properties['exclude'] = True
-                            join_connection.connectors.remove(connector.id)
-                            connector_id = join_connection.connectors.pop()
+                                join0_dirn = direction(join0_coords[coord_index-1:])
+                            if end_point.distance(Point(join1_coords[0])) < end_point.distance(Point(join1_coords[-1])):
+                                if coord_index == 0:            # join_connection start + connection start
+                                    join1_coords = list(reversed(join1_coords))
+                                    join1_dirn = direction(join1_coords[-2:])
+                                    coordinates = [join1_coords, list(join0_coords)]
+                                else:                           # connection end + join_connection start
+                                    join1_dirn = direction(join1_coords[:2])
+                                    coordinates = [list(join0_coords), list(join1_coords)]
+                            elif coord_index == 0:              # join_connection end + connection start
+                                join1_dirn = direction(join1_coords[-2:])
+                                coordinates = [list(join1_coords), list(join0_coords)]
+                            else:                               # connection end + join_connection end
+                                join1_coords = list(reversed(join1_coords))
+                                join1_dirn = direction(join1_coords[:2])
+                                coordinates = [list(join0_coords), join1_coords]
+                            if similar_direction(join0_dirn, join1_dirn):   # Within 30 degrees
+                                self.__join_nodes.remove(connector)
+                                self.__connection_graph.remove_edge(connector.id, neighbours[0])
+                                connection.set_geometry(LineString(coordinates[0]+coordinates[1]))
+                                join_connection.properties['exclude'] = True
+                                join_connection.connectors.remove(connector.id)
+                                connector_id = join_connection.connectors.pop()
                     elif len(neighbours) > 1:
                         log.error(f'Connector has too many edges from it: {connector}')
                 elif connector.fc_class != FC_CLASS.FREE_END:
