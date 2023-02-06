@@ -206,7 +206,7 @@ class Connections:
             connection.properties['kind'] = f'{parts[0][:4]}-{parts[1]}'
         else:
             connection.properties['kind'] = connection.nerve_class
-        connection.properties['type'] = 'line-dash' if connection.properties['kind'].endswith('-pre') else 'line'
+        connection.properties['type'] = 'line-dash' if connection.properties['kind'].endswith('-post') else 'line'
         connection.properties['shape-type'] = 'connection'
         connection.properties['shape-id'] = connection.shape.id
         connection.properties['tile-layer'] = PATHWAYS_TILE_LAYER
