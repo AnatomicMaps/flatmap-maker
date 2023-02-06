@@ -259,7 +259,7 @@ class Slide:
                     'middle')
         def text_content(shape) -> str:
             text = shape.text.replace('\n', ' ').replace('\xA0', ' ').replace('\v', ' ').strip() # Newline, non-breaking space, vertical-tab
-            return text if text not in ['', '.'] else ''
+            return ' '.join(text.split()) if text not in ['', '.'] else ''
 
         progress_bar = ProgressBar(show=show_progress,
             total=len(pptx_shapes),
