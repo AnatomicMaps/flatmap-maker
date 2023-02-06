@@ -59,6 +59,7 @@ class FlatMap(object):
         self.__feature_map = None
         self.__annotations = {}
         self.__annotator = annotator
+        self.__connection_set = ConnectorSet('connections')
 
     def __len__(self):
         return self.__visible_layer_count
@@ -78,6 +79,10 @@ class FlatMap(object):
     @property
     def centre(self):
         return self.__centre
+
+    @property
+    def connection_set(self):
+        return self.__connection_set
 
     @property
     def created(self):
@@ -173,6 +178,8 @@ class FlatMap(object):
         self.__set_feature_properties()
         # Initialise geographical search for annotated features
         self.__setup_feature_search()
+        # Add manual connections into the maps paths
+        self.map_properties.pathways.add_connector_set(self.__connection_set)
         # Generate metadata with connection information
         self.__resolve_connectivity()
         # Set creation time
@@ -216,16 +223,14 @@ class FlatMap(object):
         if layer.exported:
             self.__visible_layer_count += 1
             if settings.get('showCentrelines', False):
-                connector_set = ConnectorSet('centreline')
                 for feature in layer.features:
                     if (feature.properties.get('centreline', False)
                       and not feature.properties.get('excluded', False)):
                         feature.set_property('kind', 'centreline')
                         feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
-                        connector_set.add(feature.properties['id'],
-                                          feature.properties['kind'],
-                                          feature.geojson_id)
-                self.map_properties.pathways.add_connector_set(connector_set)
+                        self.__connection_set.add(feature.properties['id'],
+                                                  feature.properties['kind'],
+                                                  feature.geojson_id)
 
     def add_source_layers(self, layer_number, source):
     #=================================================

@@ -39,6 +39,19 @@ from .powerpoint import Slide, SHAPE_TYPE
 
 #===============================================================================
 
+def update_label(feature):
+    if feature.properties.get('label') is None:
+        feature.properties['label'] = ''
+    if ((name := feature.properties.get('name', '')) != ''
+     and name.lower() == feature.properties['label'].lower()):
+        name = ''
+    if feature.models and feature.properties['label'] != '':
+        feature.properties['label'] += f' ({feature.models})'
+    if name not in ['', None]:
+        feature.properties['label'] += f'\n{name}'
+
+#===============================================================================
+
 class PowerpointLayer(MapLayer):
     def __init__(self, source: PowerpointSource, id: str, slide: Slide, slide_number: int):
         if source.source_range is None:
@@ -60,17 +73,18 @@ class PowerpointLayer(MapLayer):
     def process(self):
     #=================
         shapes = self.__slide.process(self.flatmap.annotator)
+
         features = self.__process_shape_list(shapes)
         self.add_features('Slide', features, outermost=True)
-        connector_set = ConnectorSet('functional')
-        for feature in self.features:
-            if feature.properties.get('shape-type') == 'connector':
-                #shape.properties['type'] = 'line-dash' if ganglion == 'pre' else 'line'
-                #print(shape.properties)
-                connector_set.add(feature.properties['shape-id'],
-                                  feature.properties['kind'],
-                                  feature.geojson_id)
-        self.source.flatmap.map_properties.pathways.add_connector_set(connector_set)
+
+        if settings.get('functionalConnectivity', False):
+            for feature in self.features:
+                if feature.properties.get('shape-type') == 'connection':
+                    self.source.flatmap.connection_set.add(feature.properties['shape-id'],
+                                      feature.properties['kind'],
+                                      feature.geojson_id)
+                else:
+                    update_label(feature)
 
     def __process_shape_list(self, shapes: TreeList) -> list[Feature]:
     #=================================================================
