@@ -42,7 +42,7 @@ from ..powerpoint.colour import ColourTheme
 
 #===============================================================================
 
-from .components import FCComponent, FC_CLASS, FC_TYPE
+from .components import FCComponent, FC_CLASS, FC_TYPE, HYPERLINK_LABELS
 from .connections import Connections
 
 #===============================================================================
@@ -81,8 +81,7 @@ class FCSlide(Slide):
     #======================================================
         super().process(annotator)
         self.__extract_shapes(annotator)
-
-
+        self.__label_connections()
         return self.shapes
 
     def __extract_shapes(self, annotator: Optional[Annotator]):
@@ -106,31 +105,30 @@ class FCSlide(Slide):
                 shape.properties.pop('name', None)   # We don't want System tooltips...
                 shape.properties.pop('label', None)  # We don't want System tooltips...
 
-            if shape.type == SHAPE_TYPE.CONNECTION:
-                shape.properties['shape-type'] = 'connection'
-                shape.properties['shape-id'] = shape.id
-            else:
-                pass
-
     def __extract_components(self):
     #==============================
         # First extract shape geometries and create a spatial index
-        # to find their containment hierarchy
-
+        # so we can find their containment hierarchy
         component_ids = {id(self.geometry): SLIDE_LAYER_ID}     # id(geometry) --> shape.id
         geometries = [self.geometry]
         outer_geometry = shapely.prepared.prep(self.geometry)
         for shape in self.shapes.flatten(skip=1):
-            shape_id = shape.id
             geometry = shape.geometry
             if shape.type == SHAPE_TYPE.FEATURE and 'Polygon' in geometry.geom_type:
                 # We are only interested in features actually on the slide
                 if outer_geometry.contains(geometry):
+                    component = FCComponent(shape)
+                    self.__components[component.id] = component
+                    if component.fc_type == FC_TYPE.SYSTEM:
+                        self.__systems.add(component.id)
+                        self.__set_relationships(component, SLIDE_LAYER_ID)
+                    elif component.fc_type == FC_TYPE.NERVE:
+                        self.__nerves.add(component.id)
                     geometries.append(geometry)
-                    component_ids[id(geometry)] = shape_id
-                    self.__components[shape_id] = FCComponent(shape)
+                    component_ids[id(geometry)] = component.id
             elif shape.type == SHAPE_TYPE.CONNECTION:
-                self.__components[shape_id] = FCComponent(shape)
+                component = FCComponent(shape)
+                self.__components[component.id] = component
 
         # Spatial index to find component containment hierarchy
         idx = shapely.strtree.STRtree(geometries)
@@ -139,22 +137,48 @@ class FCSlide(Slide):
         # identifying SYSTEMs and then the features within a system.
         non_system_features = {}
         for component_id, component in self.__components.items():
-            if (component_id != SLIDE_LAYER_ID     # not entire slide
+            if (component.fc_type not in [FC_TYPE.LAYER, FC_TYPE.SYSTEM]  # not entire slide nor system
             and component.shape.type == SHAPE_TYPE.FEATURE):
-                # List of geometries that intersect the component
+                # Geometries that intersect the component
                 intersecting_geometries: list[int] = idx.query(component.geometry)
-
                 # Sort geometries by area, smallest item first
                 overlaps = [component_ids[i[0]]
                                 for i in sorted([(id(geometries[index]), geometries[index].area)
                                                     for index in intersecting_geometries],
                                                 key = lambda x: x[1])
                            ]
+                non_system_features[component_id] = overlaps
 
-                # Immediate parent is the object immediately larger than the feature
+        # Organs are named components contained in a system
+        for component_id, overlaps in non_system_features.items():
+            component = self.__components[component_id]
+            if component.name and component.fc_type == FC_TYPE.UNKNOWN:
                 parent_index = overlaps.index(component_id) + 1
+                while (parent_index < len(overlaps)
+                   and self.__components[overlaps[parent_index]].label == ''):
+                    parent_index += 1
+                parent = self.__components[overlaps[parent_index]]
+                if (parent.fc_type == FC_TYPE.SYSTEM
+                and parent.geometry.intersection(component.geometry).area
+                        >= MIN_OVERLAP_FRACTION*component.geometry.area):
+                    component.fc_type = FC_TYPE.ORGAN
+                    self.__organs.add(component_id)
+                    self.__set_relationships(component, parent.id)
+                    # An organ can be in more than one system so find them all
+                    parent_index += 1
+                    while parent_index < len(overlaps):
+                        parent = self.__components[overlaps[parent_index]]
+                        if (parent.fc_type == FC_TYPE.SYSTEM
+                        and parent.geometry.intersection(component.geometry).area
+                                >= MIN_OVERLAP_FRACTION*component.geometry.area):
+                            self.__set_relationships(component, parent.id)
+                        parent_index += 1
 
-                # Exclude larger features we partially intersect
+        # Set geometric parent relationship for remaining components
+        for component_id, overlaps in non_system_features.items():
+            component = self.__components[component_id]
+            if component.fc_type != FC_TYPE.ORGAN:
+                parent_index = overlaps.index(component_id) + 1
                 while parent_index < len(overlaps):
                     parent_geometry = self.__components[overlaps[parent_index]].geometry
                     if (parent_geometry is not None
@@ -163,59 +187,18 @@ class FCSlide(Slide):
                         >= MIN_OVERLAP_FRACTION*component.geometry.area):
                         break
                     parent_index += 1
-                # Systems are components with an uppercase name
-                if (overlaps[parent_index] == SLIDE_LAYER_ID
-                and component.name != '' and component.name == component.name.upper()
-                and component.fc_type == FC_TYPE.UNKNOWN):
-                    component.fc_type = FC_TYPE.SYSTEM
-                    self.__systems.add(component_id)
-                    self.__set_relationships(component, SLIDE_LAYER_ID)
-                else:
-                    non_system_features[component_id] = overlaps
-                    if component.fc_type == FC_TYPE.NERVE:
-                        self.__nerves.add(component_id)
-
-        # Now find parents of the unknown non-system features
-        for component_id, overlaps in non_system_features.items():
-            component = self.__components[component_id]
-            parent_index = overlaps.index(component_id) + 1
-            while parent_index < len(overlaps):
-                parent_geometry = self.__components[overlaps[parent_index]].geometry
-                if (parent_geometry is not None
-                and component.geometry is not None
-                and parent_geometry.intersection(component.geometry).area
-                    >= MIN_OVERLAP_FRACTION*component.geometry.area):
-                    break
-                parent_index += 1
-            parent_id = overlaps[parent_index]
-            # Organs are named components contained in a system
-            if parent_id in self.__systems:
-                if (component.name != ''
-                and component.fc_type == FC_TYPE.UNKNOWN):
-                    component.fc_type = FC_TYPE.ORGAN
-                    self.__organs.add(component_id)
-                    self.__set_relationships(component, parent_id)
-                    # An organ can be in more than one system so find the others
-                    for system_id in self.__systems:
-                        system = self.__components[system_id]
-                        geometry = self.__components[system_id].geometry
-                        if (system_id != parent_id
-                        and system.geometry is not None
-                        and system.geometry.contains(component.geometry)):
-                            self.__set_relationships(component, system_id)
-            else:
+                parent_id = overlaps[parent_index]
                 self.__set_relationships(component, parent_id)
 
-        # Unknown named components contained in an organ are FTUs
-        for component in self.__components.values():
-            if (component.name != ''
-            and component.fc_type == FC_TYPE.UNKNOWN
-            and len(component.parents)
-            and component.parents[0] in self.__organs):
-                component.fc_type = FC_TYPE.FTU
-                if len(component.parents) != 1:
-                    log.error(f'FTU can only be in a single organ: {component}')
+                # Unknown named components contained in an organ are FTUs
+                if (component.name != ''
+                and component.fc_type == FC_TYPE.UNKNOWN
+                and parent_id in self.__organs):
+                    component.fc_type = FC_TYPE.FTU
+                    if len(component.parents) != 1:
+                        log.error(f'FTU can only be in a single organ: {component}')
 
+        # Find FC parents of CONNECTORs and add them to the Connections object
         for component in self.__components.values():
             if component.fc_type == FC_TYPE.CONNECTOR:
                 if component.fc_class == FC_CLASS.PORT:
@@ -229,12 +212,19 @@ class FCSlide(Slide):
                         log.error(f'A neuron node must be on a single feature: {component}')
                     else:
                         component.properties['fc-parent'] = component.parents[0]
+                elif component.fc_class == FC_CLASS.JOIN:
+                    component.properties['exclude'] = True
             self.__connections.add_component(component)
 
+        # We now have added all CONNECTORs so let the Connections object know
         self.__connections.end_components()
         for component in self.__components.values():
             if component.fc_type == FC_TYPE.CONNECTION:
+                # Add an actual connection to the set of Connections
                 self.__connections.add_connection(component)
+            elif component.fc_type == FC_TYPE.HYPERLINK:
+                # Set hyperlink labels
+                component.properties['label'] = HYPERLINK_LABELS.get(component.fc_class, component.label)
 
     def __set_relationships(self, component, parent_id):
     #===================================================
@@ -283,5 +273,18 @@ class FCSlide(Slide):
                         annotation = annotator.get_ftu_annotation(self.__components[organ_id].name,
                                                                   component.name, self.source_id)
                     component.properties.update(annotation.properties)
+
+    def __label_connections(self):
+    #=============================
+        for connection_dict in self.__connections.as_dict():
+            connection = self.__components[connection_dict['id']]
+            end_labels = []
+            for end_id in connection_dict['ends']:
+                if (end_component := self.__components.get(end_id)) is not None:
+                    if (parent_id := end_component.properties.get('fc-parent')) is not None:
+                        parent = self.__components[parent_id]
+                        end_labels.append(f'CN: {parent.label[0:1].capitalize()}{parent.label[1:]}'
+                                       + (f' ({parent.models})' if parent.models else ''))
+            connection.properties['label'] = '\n'.join(end_labels)
 
 #===============================================================================

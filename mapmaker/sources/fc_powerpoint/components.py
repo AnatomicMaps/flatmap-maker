@@ -42,7 +42,6 @@ MAX_CONNECTION_GAP =     4000               # metres, approx. sqrt(MAX_AREA)/2
 class FC_CLASS(enum.Enum):
     UNKNOWN    = 0
     BRAIN      = enum.auto()
-    HYPERLINK  = enum.auto()
 
     NERVE      = enum.auto()
     PLEXUS     = enum.auto()
@@ -58,6 +57,10 @@ class FC_CLASS(enum.Enum):
     PORT       = enum.auto()
     THROUGH    = enum.auto()
 
+    WIKIPEDIA_HYPERLINK  = enum.auto()
+    PUBMED_HYPERLINK     = enum.auto()
+    PROVENANCE_HYPERLINK = enum.auto()
+
 class FC_TYPE(enum.IntFlag):
     UNKNOWN    = 0
     LAYER      = enum.auto()
@@ -68,6 +71,14 @@ class FC_TYPE(enum.IntFlag):
     NERVE      = enum.auto()
     CONNECTOR  = enum.auto()   # What a CONNECTION connects to
     CONNECTION = enum.auto()   # The path between CONNECTORS
+
+#===============================================================================
+
+HYPERLINK_LABELS = {
+    FC_CLASS.WIKIPEDIA_HYPERLINK:  'Wikipedia',
+    FC_CLASS.PUBMED_HYPERLINK:     'PubMed',
+    FC_CLASS.PROVENANCE_HYPERLINK: 'Provenance',
+}
 
 #===============================================================================
 
@@ -86,6 +97,22 @@ CONNECTOR_SYMBOL_CLASSES = [
     FC_CLASS.JOIN,
     FC_CLASS.THROUGH,
 ]
+
+#===============================================================================
+
+HYPERLINK_CLASSES = {
+    '#B4C7E7': FC_CLASS.WIKIPEDIA_HYPERLINK,
+    '#FFE699': FC_CLASS.PUBMED_HYPERLINK,
+    '#C5E0B4': FC_CLASS.PROVENANCE_HYPERLINK,
+}
+HYPERLINK_LAB_COLOURS = convert_lookup_table(HYPERLINK_CLASSES)
+
+def hyperlink_class(shape: Shape) -> Optional[FC_CLASS]:
+#=======================================================
+    if (shape.properties.get('shape-kind', '').startswith('star')
+    and shape.geometry.area < MAX_CONNECTOR_AREA
+    and (cls := lookup_colour_table(HYPERLINK_LAB_COLOURS, shape.colour)) is not None):
+        return cls
 
 #===============================================================================
 
@@ -121,34 +148,8 @@ NERVE_FEATURE_LAB_COLOURS = convert_lookup_table(NERVE_FEATURE_CLASSES)
 def nerve_class(shape: Shape) -> Optional[str]:
 #==============================================
     if (not shape.properties.get('shape-kind', '').startswith('star')
-        and (cls := lookup_colour_table(NERVE_FEATURE_LAB_COLOURS, shape.colour)) is not None):
+    and (cls := lookup_colour_table(NERVE_FEATURE_LAB_COLOURS, shape.colour)) is not None):
         return cls
-
-def nerve_type_and_class(shape: Shape) -> Optional[tuple[FC_TYPE, FC_CLASS, str]]:
-#=================================================================================
-    shape_kind = shape.properties.get('shape-kind', '')
-    if (shape_kind.startswith('star')
-    and shape.geometry.area < MAX_CONNECTOR_AREA):
-        return (FC_TYPE.HYPERLINK, FC_CLASS.HYPERLINK, '')
-    cls = nerve_class(shape)
-    if shape.type == SHAPE_TYPE.CONNECTION:
-        if cls in NEURON_PATH_CLASSES:
-            line_style = shape.properties.get('line-style', '').lower()
-            ganglionic = 'pre' if 'dot' in line_style or 'dash' in line_style else 'post'
-            if cls in ['sympathetic', 'parasympathetic']:
-                cls = f'{cls}-{ganglionic}'
-            return (FC_TYPE.CONNECTION, FC_CLASS.NEURON, cls)
-    elif cls is not None:
-        if (shape.geometry.area < MAX_CONNECTOR_AREA):
-            if cls in NEURON_PATH_CLASSES:
-                if shape_kind == 'rect':
-                    return (FC_TYPE.CONNECTOR, FC_CLASS.PORT, cls)
-                else:  ##  elif shape_kind == 'ellipse':
-                    return (FC_TYPE.CONNECTOR, FC_CLASS.NODE, cls)
-            elif cls in CONNECTOR_SYMBOL_CLASSES:
-                return (FC_TYPE.CONNECTOR, cls, '')
-        else:
-            return (FC_TYPE.NERVE, FC_CLASS.NERVE, cls)   ## Future: NERVE/PLEXUS/GANGLION class
 
 #===============================================================================
 
@@ -168,12 +169,39 @@ class FCComponent:
         if self.shape.type == SHAPE_TYPE.LAYER:
             self.fc_type = FC_TYPE.LAYER
         elif (self.shape.type in [SHAPE_TYPE.CONNECTION, SHAPE_TYPE.FEATURE]
-        and (type_class := nerve_type_and_class(self.shape)) is not None):
+        and (type_class := self.__get_type_and_class(label)) is not None):
             self.fc_type = type_class[0]
             self.fc_class = type_class[1]
             self.nerve_class = type_class[2]
         self.properties['name'] = label
         self.properties['label'] = label
+
+    def __get_type_and_class(self, label) -> Optional[tuple[FC_TYPE, FC_CLASS, str]]:
+    #================================================================================
+        if self.shape.type == SHAPE_TYPE.CONNECTION:
+            cls = nerve_class(self.shape)
+            if cls in NEURON_PATH_CLASSES:
+                line_style = self.shape.properties.get('line-style', '').lower()
+                ganglionic = 'pre' if 'dot' in line_style or 'dash' in line_style else 'post'
+                if cls in ['sympathetic', 'parasympathetic']:
+                    cls = f'{cls}-{ganglionic}'
+                return (FC_TYPE.CONNECTION, FC_CLASS.NEURON, cls)
+        elif (cls := hyperlink_class(self.shape)) is not None:
+            return (FC_TYPE.HYPERLINK, cls, '')
+        elif len(label) > 6 and label == label.upper():
+            return (FC_TYPE.SYSTEM, FC_CLASS.UNKNOWN, label)
+        elif (cls := nerve_class(self.shape)) is not None:
+            shape_kind = self.shape.properties.get('shape-kind', '')
+            if (self.shape.geometry.area < MAX_CONNECTOR_AREA):
+                if cls in NEURON_PATH_CLASSES:
+                    if shape_kind == 'rect':
+                        return (FC_TYPE.CONNECTOR, FC_CLASS.PORT, cls)
+                    else:  ##  elif shape_kind == 'ellipse':
+                        return (FC_TYPE.CONNECTOR, FC_CLASS.NODE, cls)
+                elif cls in CONNECTOR_SYMBOL_CLASSES:
+                    return (FC_TYPE.CONNECTOR, cls, '')
+            else:
+                return (FC_TYPE.NERVE, FC_CLASS.NERVE, cls)
 
     def __str__(self):
         shape_kind = self.shape.properties.get('shape-kind', '')

@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from typing import Optional
+from typing import Any, Optional
 
 #===============================================================================
 
@@ -33,14 +33,14 @@ CLOSE_COLOUR_DISTANCE = 5       # Perceptible on close inspection
 
 #===============================================================================
 
-def convert_lookup_table(table: dict[str, str]) -> dict[str, str]:
+def convert_lookup_table(table: dict[str, Any]) -> dict[str, Any]:
 #=================================================================
     return {
         convert_color(sRGBColor.new_from_rgb_hex(key), LabColor): value
             for key, value in table.items()
     }
 
-def lookup_colour_table(table: dict[str, str], colour: Optional[str]) -> Optional[str]:
+def lookup_colour_table(table: dict[str, str], colour: Optional[str]) -> Optional[Any]:
 #======================================================================================
     if colour is not None:
         lab_colour = convert_color(sRGBColor.new_from_rgb_hex(colour), LabColor)

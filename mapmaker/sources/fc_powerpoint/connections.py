@@ -54,8 +54,8 @@ class Connections:
         self.__nerve_geometries = []
         self.__nerve_index = None
 
-    def connections(self):
-    #=====================
+    def as_dict(self):
+    #=================
         connections = []
         for _, _, data in self.__connection_graph.edges(data=True):     # type: ignore
             connection = data['connection']                             # type: ignore
@@ -176,6 +176,8 @@ class Connections:
         else:
             connection.properties['kind'] = connection.nerve_class
         connection.properties['type'] = 'line-dash' if connection.properties['kind'].endswith('-pre') else 'line'
+        connection.properties['shape-type'] = 'connection'
+        connection.properties['shape-id'] = connection.shape.id
         connection.properties['tile-layer'] = PATHWAYS_TILE_LAYER
 
         #
