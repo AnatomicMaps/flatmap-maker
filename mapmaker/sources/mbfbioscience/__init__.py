@@ -18,8 +18,6 @@
 #
 #===============================================================================
 
-import json
-import os
 from urllib.parse import urljoin
 
 #===============================================================================
@@ -36,7 +34,6 @@ from .. import WORLD_METRES_PER_UM
 
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
-from mapmaker.settings import settings
 from mapmaker.sources import mask_image
 from mapmaker.utils import FilePath
 

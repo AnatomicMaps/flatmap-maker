@@ -18,8 +18,6 @@
 #
 #===============================================================================
 
-import os
-import re
 import tempfile
 
 #===============================================================================
@@ -31,6 +29,10 @@ import shapely.ops
 #===============================================================================
 
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
+from mapmaker.geometry import Transform
+from mapmaker.settings import settings
+from mapmaker.utils import FilePath, ProgressBar, log
+
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_PIXEL
 
@@ -39,10 +41,6 @@ from .definitions import DefinitionStore, ObjectStore
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import geometry_from_svg_path, length_as_pixels, svg_markup, parse_svg_path, SVG_NS
-
-from mapmaker.geometry import Transform
-from mapmaker.settings import settings
-from mapmaker.utils import FilePath, ProgressBar, log
 
 #===============================================================================
 
