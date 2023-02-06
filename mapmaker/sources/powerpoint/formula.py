@@ -35,7 +35,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 from mapmaker.utils import log
 
-from .presets import Shapes
+from .presets import PresetShapes
 
 #===============================================================================
 
@@ -146,7 +146,7 @@ class Geometry(object):
 
         if shape.shape_type in [MSO_SHAPE_TYPE.AUTO_SHAPE, MSO_SHAPE_TYPE.TEXT_BOX]:    # type: ignore
             self.__shape_kind = shape.element.prstGeom.attrib['prst']
-            self.__geometry = Shapes.lookup(self.__shape_kind)
+            self.__geometry = PresetShapes.lookup(self.__shape_kind)
             adjustments = shape.element.prstGeom.avLst
 
         elif shape.shape_type == MSO_SHAPE_TYPE.FREEFORM:                               # type: ignore
@@ -157,7 +157,7 @@ class Geometry(object):
         elif (shape.shape_type == MSO_SHAPE_TYPE.PICTURE                                # type: ignore
            or isinstance(shape, pptx.shapes.connector.Connector)):
             self.__shape_kind = shape.element.spPr.prstGeom.attrib['prst']
-            self.__geometry = Shapes.lookup(self.__shape_kind)
+            self.__geometry = PresetShapes.lookup(self.__shape_kind)
             adjustments = shape.element.spPr.prstGeom.avLst
 
         else:

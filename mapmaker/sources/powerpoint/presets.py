@@ -106,7 +106,7 @@ oxml.register_element_cls("drawml:presetShape", PresetShape)
 
 #===============================================================================
 
-class Shapes(object):
+class PresetShapes(object):
     definitions_ = {}
 
     with open(os.path.join(os.path.dirname(__file__), 'presetShapeDefinitions.xml'), 'rb') as defs:
@@ -115,7 +115,7 @@ class Shapes(object):
 
     @staticmethod
     def lookup(name):
-        return Shapes.definitions_[name]
+        return PresetShapes.definitions_[name]
 
 #===============================================================================
 #===============================================================================
