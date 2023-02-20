@@ -13,14 +13,14 @@ a range of sources, currently Powerpoint slides, SVG diagrams, and segmented ima
 Documentation
 -------------
 
-* https://flatmap-maker.readthedocs.io/en/v1.5-release/.
+* https://flatmap-maker.readthedocs.io/en/v1.5-release/
 
 
 Installation
 ------------
 
 We recommend that ``mapmaker`` is run in a Conda environment on a Linux or macOS system. This includes
-`Windows Subsystem for Linux <https://learn.microsoft.com/en-us/windows/wsl/install>`_ (WSL), for Microsoft
+`Windows Subsystem for Linux <https://learn.microsoft.com/en-us/windows/wsl/install>`_ (WSL) for Microsoft
 Windows systems.
 
 Prerequisites
