@@ -1,85 +1,99 @@
 .. highlight:: sh
 
+========
+Mapmaker
+========
+
 Overview
 --------
 
-Mapmaker is a Python application for generating `Mapbox <https://www.mapbox.com/>`_ compatible tilesets from a range of sources, currently Powerpoint slides, SVG diagrams, and segmented image files from MBF Biosciences.
+Mapmaker is a Python application for generating `Mapbox <https://www.mapbox.com/>`_ compatible tilesets from
+a range of sources, currently Powerpoint slides, SVG diagrams, and segmented image files from MBF Biosciences.
 
 Documentation
 -------------
 
-* https://flatmap-maker.readthedocs.io/en/v1.4/.
-
-Requirements
-------------
-
-* Python 3.10.
-* Tippecanoe, either from `here <https://github.com/mapbox/tippecanoe#installation>`_ or the latest version from `here <https://github.com/felt/tippecanoe#installation>`_
-* `COIN-OR CBC solver <https://github.com/coin-or/Cbc#binaries>`_.
+* https://flatmap-maker.readthedocs.io/en/v1.5-release/
 
 Installation
 ------------
 
-It is recommended to install and run ``mapmaker`` in its own Python virtual environment. Instructions for using `pipenv <https://pipenv.pypa.io/en/latest/#install-pipenv-today>`_ are given below, although any other virtual environment and package manager may be used instead.
+We recommend that ``mapmaker`` is run in a Conda environment on a Linux or macOS system. This includes
+`Windows Subsystem for Linux <https://learn.microsoft.com/en-us/windows/wsl/install>`_ (WSL) for Microsoft
+Windows systems.
 
-* Create and activate a Python virtual environment in which to install ``mapmaker``.
+Prerequisites
+~~~~~~~~~~~~~
+Install a ``miniforge`` environment as descibed `here <https://github.com/conda-forge/miniforge>`_.
 
-* Within this environment, install the devel ``mapmaker`` wheel, https://github.com/dbrnz/flatmap-maker/releases/download/v1.6.0-b.1/mapmaker-1.6.0-b.1-py3-none-any.whl.
+macOS
+^^^^^
+
+Apple macOS users may first have to install the ``XCode command line tools``. Check if the command line tools are installed by running::
+
+    $  xcode-select -p
+
+and if they are not, install them by running::
+
+    $ xcode-select --install
 
 
-Using Conda (for Apple Silicon systems)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-See `here <M1MAC.rst>`_ to install and upgrade ``mapmaker`` in a Conda environment on an Apple Silicon based system.
-
-
-Using pipenv
+Installation
 ~~~~~~~~~~~~
 
-* Create a directory in which to run ``mapmaker`` and change into it.
+*   Use ``git`` to clone the latest release branch::
 
-* Install ``mapmaker`` directly from GitHub with::
-
-    $ pipenv install --python 3.10 https://github.com/dbrnz/flatmap-maker/releases/download/v1.6.0-b.1/mapmaker-1.6.0-b.1-py3-none-any.whl
+    $ git clone https://github.com/AnatomicMaps/flatmap-maker/tree/v1.5-release mapmaker
 
 
-Development
------------
+*   Install mapmaker's dependenies using Conda::
 
-``mapmaker`` uses `poetry <https://python-poetry.org/docs/#installation>`_ for dependency management and packaging. To create a development environment:
+    $ cd mapmaker
+    $ conda env create -f envs/mapmaker.yaml
 
-* Clone this repository.
-* Run ``$ poetry install`` in the top-level directory of the cloned repository.
-
-Building documentation
-~~~~~~~~~~~~~~~~~~~~~~
-
-In development mode, and within the Python virtual environment::
-
-    $ cd docs
-    $ make html
 
 Running
 -------
 
-* ``mapmaker`` must be run within its Python virtual environment. For instance, first run ``$ pipenv shell`` when using ``pipenv``.
-* `SciCrunch <https://scicrunch.org/>`_ is used to lookup attributes (e.g. labels) of anatomical entities. In order to use these services a valid SciCrunch API key must be provided as the ``SCICRUNCH_API_KEY`` environment variable. (Keys are obtained by registering as a SciCrunch user).
+*   Activate ``mapmaker``'s Conda environment::
+
+    $ conda activate mapmaker
+
+*   Run::
+
+    $ python runmaker.py ARGUMENTS
+
+
+*   `SciCrunch <https://scicrunch.org/>`_ is used to lookup attributes (e.g. labels) of anatomical entities. In order
+    to use these services a valid SciCrunch API key must be provided as the ``SCICRUNCH_API_KEY`` environment variable.
+    (Keys are obtained by registering as a SciCrunch user).
+
+
+Updating
+--------
+
+From the checked-out directory and with the Conda environment active::
+
+    $  git pull
+    $  conda env update -f envs/mapmaker.yaml
+
 
 Command line help
-~~~~~~~~~~~~~~~~~
+-----------------
 
 ::
 
-    $ mapmaker --help
+    $ python runmaker.py --help
 
 .. code-block:: text
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
-                    [--clean] [--background-tiles] [--authoring]
-                    [--debug] [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
+                    [--clean] [--background-tiles] [--show-centrelines]
+                    [--authoring] [--debug] [--only-networks]
+                    [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N] [--min-zoom N]
-                    [--clean-connectivity] [--id ID] [--single-file {celldl,svg}] [--show-centrelines]
+                    [--clean-connectivity] [--id ID] [--single-file {celldl,svg}]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -94,14 +108,20 @@ Command line help
       --silent              Suppress all messages to screen
       --verbose             Show progress bars
 
-    Image tiling:
-      --clean               Remove all files from generated map's directory before generating new map
-      --background-tiles    Generate image tiles of map's layers (may take a while...)
+    Map generation:
+      --clean               Remove all files from generated map's directory before
+                            generating new map
+      --background-tiles    Generate image tiles of map's layers (may take a
+                            while...)
+      --show-centrelines    Show centrelines in generated map
 
     Diagnostics:
-      --authoring           For use when checking a new map: highlight incomplete features; show centreline network; no image tiles; no neuron paths; etc
+      --authoring           For use when checking a new map: highlight incomplete
+                            features; show centreline network; no image tiles; no
+                            neuron paths; etc
       --debug               Show a traceback for error exceptions
-      --only-networks       Only output features that are part of a centreline network
+      --only-networks       Only output features that are part of a centreline
+                            network
       --save-drawml         Save a slide's DrawML for debugging
       --save-geojson        Save GeoJSON files for each layer
       --tippecanoe          Show command used to run Tippecanoe
@@ -115,36 +135,12 @@ Command line help
       --clean-connectivity  Refresh local connectivity knowledge from SciCrunch
       --id ID               Set explicit ID for flatmap, overriding manifest
       --single-file {celldl,svg}
-                            Source is a single file of the designated type, not a flatmap manifest
-      --show-centrelines    Show centrelines in generated map
+                            Source is a single file of the designated type, not a
+                            flatmap manifest
 
     Required arguments:
       --output OUTPUT       Base directory for generated flatmaps
       --source SOURCE       URL or path of a flatmap manifest
-
-An example run
-~~~~~~~~~~~~~~
-
-::
-
-    $ mapmaker --output ./flatmaps --source ../PMR/rat --verbose
-
-.. code-block:: text
-
-    Mapmaker 1.6.0-b.1
-    100%|█████████████████████████▉| 678/679
-     98%|███████████████████████████▌| 65/66
-    Adding details...
-    Outputting GeoJson features...
-    Layer: whole-rat
-    100%|████████████████████████| 2477/2477
-    Layer: whole-rat_details
-    100%|██████████████████████████| 180/180
-    Running tippecanoe...
-    2657 features, 6439698 bytes of geometry, 25397 bytes of separate metadata, 485295 bytes of string pool
-      99.9%  10/528/531
-    Creating index and style files...
-    Generated map for NCBITaxon:10114
 
 
 Manifest files
@@ -232,3 +228,31 @@ Shape markup
 ------------
 
 TODO...
+
+
+Integration
+-----------
+
+TODO...
+
+*   Python wheel available.
+
+
+Development
+-----------
+
+``mapmaker`` uses `poetry <https://python-poetry.org/docs/#installation>`_ for dependency management and packaging. To create a development environment::
+
+    $ git clone https://github.com/AnatomicMaps/flatmap-maker.git mapmaker
+    $ cd mapmaker
+    $ poetry install
+
+
+Building documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+In development mode, and within the Python virtual environment::
+
+    $ cd docs
+    $ make html
+

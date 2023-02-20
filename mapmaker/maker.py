@@ -74,8 +74,8 @@ class GitState(Enum):
 class MapRepository:
     def __init__(self, working_dir: pathlib.Path):
         try:
-            self.__repo = git.Repo(working_dir)                               # type: ignore
-            self.__repo_path = pathlib.Path(os.path.abspath(working_dir))
+            self.__repo = git.Repo(working_dir, search_parent_directories=True)     # type:ignore
+            self.__repo_path = pathlib.Path(self.__repo.working_dir).absolute()     # type:ignore
             self.__changed_items = [ item.a_path for item in self.__repo.index.diff(None) ]
             self.__staged_items = [ item.a_path for item in self.__repo.index.diff('HEAD') ]
             self.__untracked_files = self.__repo.untracked_files
