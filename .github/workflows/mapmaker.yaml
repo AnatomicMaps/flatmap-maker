@@ -7,7 +7,7 @@ on:
 jobs:
   create-env:
     name: ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
     defaults:
       run:
         shell: bash -l {0}
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu, macos]
 
     steps:
       - name: checkout repository
@@ -28,7 +28,7 @@ jobs:
           channels: conda-forge,defaults
           auto-activate-base: false
           activate-environment: mapmaker
-          environment-file: conda/M1Mac.yaml
+          environment-file: envs/mapmaker.yaml
 
       - name: check solution
         run: |
