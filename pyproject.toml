@@ -49,9 +49,8 @@ sphinx-argparse = "^0.3.1"
 mapmaker = 'mapmaker.__main__:main'
 
 [build-system]
-# See https://github.com/chrahunt/rtd-poetry/issues/3
-requires = ["poetry_core>=1.0.0", "rtd-poetry @ https://github.com/dbrnz/rtd-poetry/archive/refs/tags/v0.1.2.tar.gz"]
-build-backend = "rtd_poetry"
+requires = ["poetry_core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [[tool.mypy.overrides]]
 module = [
