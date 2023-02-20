@@ -1,0 +1,39 @@
+name: mapmaker
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  create-env:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v3
+
+      - name: create environment with mamba
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          channels: conda-forge,defaults
+          auto-activate-base: false
+          activate-environment: mapmaker
+          environment-file: conda/M1Mac.yaml
+
+      - name: check solution
+        run: |
+          mamba env export
+
+      - name: test mapmaker
+        run: |
+          python runmaker.py --help
