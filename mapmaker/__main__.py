@@ -45,11 +45,13 @@ def arg_parser():
     log_options.add_argument('--verbose', action='store_true',
                         help="Show progress bars")
 
-    tile_options = parser.add_argument_group('Image tiling')
+    tile_options = parser.add_argument_group('Map generation')
     tile_options.add_argument('--clean', action='store_true',
-                        help="Remove all files from generated map's directory before generating new map")
+                        help="Remove all files from generated map's directory before generating the new map")
     tile_options.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
                         help="Generate image tiles of map's layers (may take a while...)")
+    tile_options.add_argument('--show-centrelines', dest='showCentrelines', action='store_true',
+                        help='Show centrelines in generated map')
 
     debug_options = parser.add_argument_group('Diagnostics')
     debug_options.add_argument('--authoring', action='store_true',
@@ -80,8 +82,6 @@ def arg_parser():
                         help='Set explicit ID for flatmap, overriding manifest')
     misc_options.add_argument('--single-file', dest='singleFile', choices=['celldl', 'svg'],
                         help='Source is a single file of the designated type, not a flatmap manifest')
-    misc_options.add_argument('--show-centrelines', dest='showCentrelines', action='store_true',
-                        help='Show centrelines in generated map')
 
     required = parser.add_argument_group('Required arguments')
     required.add_argument('--output', required=True,
