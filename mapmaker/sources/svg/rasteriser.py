@@ -21,7 +21,6 @@
 import base64
 import contextlib
 import math
-import re
 
 #===============================================================================
 
@@ -42,7 +41,6 @@ from .. import WORLD_METRES_PER_PIXEL
 from mapmaker.geometry import extent_to_bounds, Transform, reflect_point
 from mapmaker.properties.markup import parse_markup
 from mapmaker.utils import ProgressBar, log
-from mapmaker.utils.image import image_size
 
 from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
@@ -492,7 +490,7 @@ class SVGTiler(object):
                 paint = skia.Paint(AntiAlias=True,
                     Style=skia.Paint.kStroke_Style,
                     Color=make_colour(stroke, opacity),
-                    StrokeWidth=float(element_style.get('stroke-width', 1.0)),
+                    StrokeWidth=float(length_as_pixels(element_style.get('stroke-width', 1.0))),
                     )
                 stroke_linejoin = element_style.get('stroke-linejoin')
                 if stroke_linejoin == 'bevel':
