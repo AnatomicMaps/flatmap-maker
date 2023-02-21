@@ -155,7 +155,7 @@ class FCSlide(Slide):
             if component.name and component.fc_type == FC_TYPE.UNKNOWN:
                 parent_index = overlaps.index(component_id) + 1
                 while (parent_index < len(overlaps)
-                   and self.__components[overlaps[parent_index]].label == ''):
+                   and self.__components[overlaps[parent_index]].label == SLIDE_LAYER_ID):
                     parent_index += 1
                 parent = self.__components[overlaps[parent_index]]
                 if (parent.fc_type == FC_TYPE.SYSTEM
