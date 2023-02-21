@@ -507,7 +507,7 @@ class SVGTiler(object):
                 paint = skia.Paint(AntiAlias=True,
                     Style=skia.Paint.kStroke_Style,
                     Color=make_colour(stroke, opacity),
-                    StrokeWidth=float(element_style.get('stroke-width', 1.0)),
+                    StrokeWidth=float(length_as_pixels(element_style.get('stroke-width', 1.0))),
                     PathEffect=path_effect,
                     )
                 stroke_linejoin = element_style.get('stroke-linejoin')
