@@ -58,7 +58,8 @@ from .sources.shapefilter import ShapeFilter
 
 #===============================================================================
 
-UPSTREAM_MAP_REPOSITORIES = 'https://github.com/AnatomicMaps/'
+GITHUB_GIT_HOST = 'github.com'
+PHYSIOMEPROJECT_GIT_HOST = 'physiomeproject.org'
 
 #===============================================================================
 
@@ -79,22 +80,20 @@ class MapRepository:
             self.__changed_items = [ item.a_path for item in self.__repo.index.diff(None) ]
             self.__staged_items = [ item.a_path for item in self.__repo.index.diff('HEAD') ]
             self.__untracked_files = self.__repo.untracked_files
-            self.__set_upstream_base()
+            self.__upstream_base = self.__get_upstream_base()
         except git.InvalidGitRepositoryError:
-            self.__repo = None
-            if not settings.get('authoring', False):
-                log.error('Flatmap sources must be in a git managed directory')
+            raise ValueError("Flatmap sources must be in a git managed directory ('--authoring' or '--ignore-git' option intended?)")
 
     @property
-    def remotes(self) -> Optional[dict[str, str]]:
+    def remotes(self) -> dict[str, str]:
         return {
             remote.name: giturlparse.parse(remote.url).url2https
                 for remote in self.__repo.remotes
-            } if self.__repo is not None else None
+            }
 
     @property
-    def sha(self) -> Optional[str]:
-        return self.__repo.head.commit.hexsha if self.__repo is not None else None
+    def sha(self) -> str:
+        return self.__repo.head.commit.hexsha
 
     def __git_path(self, path):
         if self.__repo is not None:
@@ -104,32 +103,29 @@ class MapRepository:
             if full_path.is_relative_to(self.__repo_path):
                 return str(full_path.relative_to(self.__repo_path))
 
-    def __set_upstream_base(self) -> Optional[str]:
-        if self.__repo is not None:
-            upstream_url = None
-            for remote in self.__repo.remotes:
-                url = giturlparse.parse(remote.url).url2https
-                if upstream_url is None:
-                    upstream_url = url
-                elif url.startswith(UPSTREAM_MAP_REPOSITORIES):
-                    upstream_url = url
-                    break
-            url = giturlparse.parse(upstream_url)
-            raw_folder = ('blob/' if url.host.endswith('github.com') else
-                          'rawfile/' if url.host.endswith('physiomeproject.org') else
+    def __get_upstream_base(self) -> Optional[str]:
+        url = None
+        for remote in self.__repo.remotes:
+            https_url = giturlparse.parse(remote.url).url2https
+            url = giturlparse.parse(https_url)
+            if (url.host.endswith(GITHUB_GIT_HOST)
+             or url.host.endswith(PHYSIOMEPROJECT_GIT_HOST)):
+                break
+        if url is not None:
+            raw_folder = ('blob/' if url.host.endswith(GITHUB_GIT_HOST) else
+                          'rawfile/' if url.host.endswith(PHYSIOMEPROJECT_GIT_HOST) else
                           '')
-            self.__upstream_base = f'{url.protocol}://{url.host}{url.port}/{url.owner}/{url.repo}/{raw_folder}{self.__repo.head.commit.hexsha}/'  # type: ignore
+            return f'{url.protocol}://{url.host}{url.port}/{url.owner}/{url.repo}/{raw_folder}{self.__repo.head.commit.hexsha}/'  # type: ignore
 
     def status(self, path: str) -> GitState:
     #=======================================
-        if self.__repo is not None:
-            if (git_path := self.__git_path(path)) is not None:
-                return (GitState.UNTRACKED if git_path in self.__untracked_files else
-                        GitState.CHANGED if git_path in self.__changed_items else
-                        GitState.STAGED if git_path in self.__staged_items else
-                        GitState.DONTCARE)
-            elif not settings.get('authoring', False):
-                log.error(f"{path} is not under git control in the manifest's directory")
+        if (git_path := self.__git_path(path)) is not None:
+            return (GitState.UNTRACKED if git_path in self.__untracked_files else
+                    GitState.CHANGED if git_path in self.__changed_items else
+                    GitState.STAGED if git_path in self.__staged_items else
+                    GitState.DONTCARE)
+        else:
+            log.warning(f"{path} is not under git control in the manifest's directory")
         return GitState.UNKNOWN
 
     def path_blob_url(self, path):
@@ -142,11 +138,9 @@ class MapRepository:
 class Manifest:
     def __init__(self, manifest_path, single_file=None, id=None, ignore_git=False):
         self.__path = FilePath(manifest_path)
-
-        if ignore_git:
-            self.__repo = None
-        else:
+        if not ignore_git:
             self.__repo = MapRepository(pathlib.Path(manifest_path).parent)
+        self.__ignore_git = ignore_git
         self.__url = self.__path.url
         self.__connections = {}
         self.__connectivity = []
@@ -196,8 +190,8 @@ class Manifest:
                 self.__manifest['properties'] = self.__check_and_normalise_path(self.__manifest['properties'])
             for path in self.__manifest.get('connectivity', []):
                 self.__connectivity.append(self.__check_and_normalise_path(path))
-            if self.__uncommitted:
-                raise TypeError("Not all of the flatmap's sources are commited into git ('--authoring' option intended?)")
+            if not ignore_git and self.__uncommitted:
+                raise TypeError("Not all of the flatmap's sources are commited into git ('--authoring' or '--ignore-git' option intended?)")
 
     @property
     def anatomical_map(self):
@@ -225,7 +219,7 @@ class Manifest:
 
     @property
     def git_status(self):
-        if self.__repo is not None and self.__repo.sha is not None:
+        if not self.__ignore_git and self.__repo.sha is not None:
             return {
                 'sha': self.__repo.sha,
                 'remotes': self.__repo.remotes
@@ -261,24 +255,27 @@ class Manifest:
 
     @property
     def url(self):
-        if self.__repo is not None:
-            if (blob_url := self.__repo.path_blob_url(self.__url)) is not None:
-                return blob_url
+        if (not self.__ignore_git
+        and (blob_url := self.__repo.path_blob_url(self.__url)) is not None):
+            return blob_url
         return self.__url
 
     @property
     def uuid(self):
-        return str(uuid.uuid5(uuid.NAMESPACE_URL, self.url))
+        if not self.__ignore_git:
+            return str(uuid.uuid5(uuid.NAMESPACE_URL,
+                                  self.__repo.sha + json.dumps(self.__manifest)))
 
     def __check_and_normalise_path(self, path) -> str:
     #=================================================
         normalised_path = self.__path.join_url(path)
-        self.__check_committed(normalised_path)
+        if not self.__ignore_git:
+            self.__check_committed(normalised_path)
         return normalised_path
 
     def __check_committed(self, path):
     #=================================
-        if self.__repo is not None:
+        if not self.__ignore_git:
             git_state = self.__repo.status(path)
             if git_state != GitState.DONTCARE:
                 message = ('unknown to git' if git_state == GitState.UNKNOWN else
@@ -347,10 +344,6 @@ class MapMaker(object):
             raise ValueError('No id given for map')
         self.__uuid = self.__manifest.uuid
 
-        # Save for metadata
-        git_status = self.__manifest.git_status
-        self.__git_status = {'git-status': git_status} if git_status is not None else {}
-
         # All set to go
         log('Making map: {}'.format(self.__id))
 
@@ -358,7 +351,7 @@ class MapMaker(object):
         map_base = options.get('output')
         if not os.path.exists(map_base):
             os.makedirs(map_base)
-        self.__map_dir = os.path.join(map_base, self.__uuid)
+        self.__map_dir = os.path.join(map_base, self.__uuid if self.__uuid is not None else self.__id)
         if options.get('clean', False):
             shutil.rmtree(self.__map_dir, True)
         if not os.path.exists(self.__map_dir):
@@ -456,9 +449,9 @@ class MapMaker(object):
 
         # Show what the map is about
         if self.__flatmap.models is not None:
-            log('Generated map: {} for {}'.format(self.id, self.__flatmap.models))
+            log(f'Generated map: id: {self.id}, uuid: {self.uuid}, models: {self.__flatmap.models}, output: {self.__map_dir}')
         else:
-            log('Generated map: {}'.format(self.id))
+            log(f'Generated map: id: {self.id}, uuid: {self.uuid}, output: {self.__map_dir}')
         ## FIX v's errorCheck
         for filename in self.__geojson_files:
             if settings.get('saveGeoJSON', False):
@@ -598,7 +591,8 @@ class MapMaker(object):
         # Save flatmap's metadata, including settings used to generate map
         metadata = self.__flatmap.metadata
         metadata['settings'] = self.__options
-        metadata.update(self.__git_status)
+        if (git_status := self.__manifest.git_status) is not None:
+            metadata['git-status'] = git_status
         tile_db.add_metadata(metadata=json.dumps(metadata))
 
         # Save layer details in metadata
@@ -619,7 +613,6 @@ class MapMaker(object):
 
         map_index = {
             'id': self.__id,
-            'uuid': self.__uuid,
             'source': self.__manifest.url,
             'min-zoom': self.__zoom[0],
             'max-zoom': self.__zoom[1],
@@ -627,6 +620,8 @@ class MapMaker(object):
             'version': FLATMAP_VERSION,
             'image-layers': len(self.__raster_layers) > 0
         }
+        if self.__uuid is not None:
+            map_index['uuid'] = self.__uuid
         if self.__flatmap.models is not None:
             map_index['taxon'] = self.__flatmap.models
         if self.__manifest.biological_sex is not None:
@@ -636,7 +631,8 @@ class MapMaker(object):
             map_index['style'] = 'fcdiagram'
         else:
             map_index['style'] = 'flatmap'
-        map_index.update(self.__git_status)
+        if git_status is not None:
+            map_index['git-status'] = git_status
 
         # Create `index.json` for building a map in the viewer
         with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:

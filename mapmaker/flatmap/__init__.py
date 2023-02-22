@@ -137,7 +137,6 @@ class FlatMap(object):
         self.__created = None   # Set when map closed
         self.__metadata = {
             'id': self.__id,
-            'uuid': self.__uuid,
             'name': self.__local_id,
             # Who made the map
             'creator': 'mapmaker {}'.format(__version__),
@@ -145,6 +144,8 @@ class FlatMap(object):
             'source': self.__manifest.url,
             'version': FLATMAP_VERSION
         }
+        if self.__uuid is not None:
+            self.__metadata['uuid'] = self.__uuid
         if self.__models is not None:
             self.__metadata['taxon'] = self.__models
             if (sex := self.__manifest.biological_sex) is not None:
