@@ -476,6 +476,8 @@ class MapMaker(object):
         if self.__manifest.kind == 'functional':
             settings['functionalConnectivity'] = True
             self.__shape_filter = ShapeFilter()
+        else:
+            settings['functionalConnectivity'] = False
         for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
             id = source.get('id')
             kind = source.get('kind')
