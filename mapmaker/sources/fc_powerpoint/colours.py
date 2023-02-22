@@ -26,6 +26,14 @@ from colormath.color_objects import LabColor, sRGBColor
 from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cie2000
 
+# See https://github.com/gtaylor/python-colormath/issues/104
+import numpy
+
+def patch_asscalar(a):
+    return a.item()
+
+setattr(numpy, "asscalar", patch_asscalar)
+
 #===============================================================================
 
 # CIE Delta E 2000 color difference
