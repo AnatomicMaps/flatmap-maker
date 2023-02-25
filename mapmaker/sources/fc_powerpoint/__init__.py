@@ -42,8 +42,9 @@ from ..powerpoint.colour import ColourTheme
 
 #===============================================================================
 
-from .components import FCComponent, FC_CLASS, FC_TYPE, HYPERLINK_LABELS
-from .connections import Connections
+from .components import FCShape, CD_CLASS, FC_CLASS, FC_KIND
+from .components import ORGAN_COLOUR, NERVE_FEATURE_KINDS
+from .components import VASCULAR_KINDS, VASCULAR_REGION_COLOUR
 
 #===============================================================================
 
@@ -69,10 +70,10 @@ class FCSlide(Slide):
                  bounds: MapBounds, transform: Transform, shape_filter: Optional[ShapeFilter]=None):
         super().__init__(source_id, kind, index, pptx_slide, theme, bounds, transform)
         self.__shape_filter = shape_filter
-        self.__components: dict[str, FCComponent] = {
-            SLIDE_LAYER_ID: FCComponent(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry))
+        self.__shapes_by_id: dict[str, FCShape] = {
+            SLIDE_LAYER_ID: FCShape(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry, {'name': source_id}))
         }
-        self.__connections = Connections()
+        self.__connections: list[FCShape] = []
         self.__organs: set[str] = set()
         self.__nerves: set[str] = set()
         self.__systems: set[str] = set()
@@ -86,15 +87,15 @@ class FCSlide(Slide):
 
     def __extract_shapes(self, annotator: Optional[Annotator]):
     #==========================================================
-        self.__extract_components()
+        self.__classify_shapes()
 
         if annotator is not None:
             self.__add_annotation(annotator)
 
+        # Add shapes to the filter if we are processing a base map, or
+        # exclude them from the layer because they are similar to those
+        # in the base map
         for shape in self.shapes.flatten(skip=1):
-            # Add the shape to the filter if we are processing a base map,
-            # or exclude it from the layer because it is similar to those
-            # in the base map
             if self.__shape_filter is not None:
                 if self.kind == 'base':
                     self.__shape_filter.add_shape(shape)
@@ -104,107 +105,112 @@ class FCSlide(Slide):
             if shape.id in self.__systems:
                 shape.properties.pop('name', None)   # We don't want System tooltips...
                 shape.properties.pop('label', None)  # We don't want System tooltips...
+    def __add_parent(self, fc_shape, parent_id):
+    #===========================================
+        fc_shape.parents.append(parent_id)
+        self.__shapes_by_id[parent_id].children.append(fc_shape.id)
 
-    def __extract_components(self):
+    def __classify_shapes(self):
     #==============================
         # First extract shape geometries and create a spatial index
         # so we can find their containment hierarchy
-        component_ids = {id(self.geometry): SLIDE_LAYER_ID}     # id(geometry) --> shape.id
-        geometries = [self.geometry]
+        shape_ids = {}     # id(geometry) --> shape.id
+        geometries = []
         outer_geometry = shapely.prepared.prep(self.geometry)
         for shape in self.shapes.flatten(skip=1):
             geometry = shape.geometry
             if shape.type == SHAPE_TYPE.FEATURE and 'Polygon' in geometry.geom_type:
-                # We are only interested in features actually on the slide
+                # We are only interested in features actually on the slide that are
+                # either components or connectors
                 if outer_geometry.contains(geometry):
-                    component = FCComponent(shape)
-                    self.__components[component.id] = component
-                    if component.fc_type == FC_TYPE.SYSTEM:
-                        self.__systems.add(component.id)
-                        self.__set_relationships(component, SLIDE_LAYER_ID)
-                    elif component.fc_type == FC_TYPE.NERVE:
-                        self.__nerves.add(component.id)
-                    geometries.append(geometry)
-                    component_ids[id(geometry)] = component.id
+                    fc_shape = FCShape(shape)
+                    if fc_shape.cd_class in [CD_CLASS.COMPONENT, CD_CLASS.CONNECTOR]:
+                        self.__shapes_by_id[shape.id] = fc_shape
+                        shape_ids[id(geometry)] = shape.id
+                        geometries.append(geometry)
             elif shape.type == SHAPE_TYPE.CONNECTION:
-                component = FCComponent(shape)
-                self.__components[component.id] = component
+                self.__connections.append(FCShape(shape))
 
         # Spatial index to find component containment hierarchy
         idx = shapely.strtree.STRtree(geometries)
 
-        # We use two passes to find a component's spatial order, first
-        # identifying SYSTEMs and then the features within a system.
-        non_system_features = {}
-        for component_id, component in self.__components.items():
-            if (component.fc_type not in [FC_TYPE.LAYER, FC_TYPE.SYSTEM]  # not entire slide nor system
-            and component.shape.type == SHAPE_TYPE.FEATURE):
-                # Geometries that intersect the component
-                intersecting_geometries: list[int] = idx.query(component.geometry)
-                # Sort geometries by area, smallest item first
-                overlaps = [component_ids[i[0]]
+        # We now identify systems and for non-system features (both components and connectors)
+        # find features which overlap them
+        non_system_overlapping_features = {}
+        for shape_id, fc_shape in self.__shapes_by_id.items():
+            # Do we need a better way of detecting systems??
+            if (fc_shape.cd_class == CD_CLASS.COMPONENT
+            and len(fc_shape.name) > 6 and fc_shape.name == fc_shape.name.upper()):
+                fc_shape.fc_class = FC_CLASS.SYSTEM
+                self.__systems.add(shape_id)
+                self.__add_parent(fc_shape, SLIDE_LAYER_ID)
+            elif fc_shape.cd_class in [CD_CLASS.COMPONENT, CD_CLASS.CONNECTOR]:
+                # STRtree query returns geometries whose bounding box intersects the shape's bounding box
+                intersecting_geometries: list[int] = [id for id in idx.query(fc_shape.geometry)
+                                                        if not fc_shape.geometry.contains(geometries[id])
+                                                        and geometries[id].intersection(fc_shape.geometry).area  # type: ignore
+                                                            >= MIN_OVERLAP_FRACTION*fc_shape.geometry.area]
+                # Sort overlapping geometries by area, smallest item first, which is the immediate  parent of the shape
+                overlaps = [shape_ids[i[0]]
                                 for i in sorted([(id(geometries[index]), geometries[index].area)
                                                     for index in intersecting_geometries],
                                                 key = lambda x: x[1])
                            ]
-                non_system_features[component_id] = overlaps
+                non_system_overlapping_features[shape_id] = overlaps
 
-        # Organs are named components contained in a system
-        for component_id, overlaps in non_system_features.items():
-            component = self.__components[component_id]
-            if component.name and component.fc_type == FC_TYPE.UNKNOWN:
-                parent_index = overlaps.index(component_id) + 1
-                while (parent_index < len(overlaps)
-                   and self.__components[overlaps[parent_index]].label == SLIDE_LAYER_ID):
-                    parent_index += 1
-                parent = self.__components[overlaps[parent_index]]
-                if (parent.fc_type == FC_TYPE.SYSTEM
-                and parent.geometry.intersection(component.geometry).area
-                        >= MIN_OVERLAP_FRACTION*component.geometry.area):
-                    component.fc_type = FC_TYPE.ORGAN
-                    self.__organs.add(component_id)
-                    self.__set_relationships(component, parent.id)
-                    # An organ can be in more than one system so find them all
-                    parent_index += 1
-                    while parent_index < len(overlaps):
-                        parent = self.__components[overlaps[parent_index]]
-                        if (parent.fc_type == FC_TYPE.SYSTEM
-                        and parent.geometry.intersection(component.geometry).area
-                                >= MIN_OVERLAP_FRACTION*component.geometry.area):
-                            self.__set_relationships(component, parent.id)
-                        parent_index += 1
+        # Organs are components with ORGAN_COLOUR colour and are contained in at
+        # least one system
+        for shape_id, overlaps in non_system_overlapping_features.items():
+            fc_shape = self.__shapes_by_id[shape_id]
+            if (fc_shape.cd_class == CD_CLASS.COMPONENT
+            and ORGAN_COLOUR.matches(fc_shape.colour)):
+                fc_shape.fc_class = FC_CLASS.ORGAN
+                self.__organs.add(shape_id)
+                for overlapping_id in overlaps:
+                    if (parent := self.__shapes_by_id[overlapping_id]).fc_class == FC_CLASS.SYSTEM:
+                        self.__add_parent(fc_shape, parent.id)
+                if len(fc_shape.parents) == 0:
+                    log.error(f'An organ must be in at least one system: {fc_shape}')
+                if fc_shape.name == '':
+                    log.error(f'An organ must have a name: {fc_shape}')
 
-        # Set geometric parent relationship for remaining components
-        for component_id, overlaps in non_system_features.items():
-            component = self.__components[component_id]
-            if component.fc_type != FC_TYPE.ORGAN:
-                parent_index = overlaps.index(component_id) + 1
-                while parent_index < len(overlaps):
-                    parent_geometry = self.__components[overlaps[parent_index]].geometry
-                    if (parent_geometry is not None
-                    and component.geometry is not None
-                    and parent_geometry.intersection(component.geometry).area
-                        >= MIN_OVERLAP_FRACTION*component.geometry.area):
+        # Components within an organ are either vascular regions or FTUs
+        for shape_id, overlaps in non_system_overlapping_features.items():
+            fc_shape = self.__shapes_by_id[shape_id]
+            if (fc_shape.cd_class == CD_CLASS.COMPONENT
+            and len(overlaps) and (parent := self.__shapes_by_id[overlaps[0]]).id in self.__organs):
+                if VASCULAR_REGION_COLOUR.matches(fc_shape.colour):
+                    fc_shape.fc_class = FC_CLASS.VASCULAR
+                    fc_shape.fc_kind = FC_KIND.VASCULAR_REGION
+                    fc_shape.properties['name'] = 'vr...' ## <<<<<<<<<<<<<<<<< TEMP
+                    fc_shape.properties['label'] = 'vr...' ## <<<<<<<<<<<<<<<<< TEMP
+                    self.__add_parent(fc_shape, parent.id)
+                else:
+                    fc_shape.fc_class = FC_CLASS.FTU
+                # Vascular  regions and FTUs can only be in the one organ
+                index = 1
+                while index < len(overlaps):
+                    if (parent := self.__shapes_by_id[overlaps[index]]).id in self.__organs:
+                        log.error(f'FTUs and regions can only be in a single organ: {fc_shape}')
                         break
-                    parent_index += 1
-                parent_id = overlaps[parent_index]
-                self.__set_relationships(component, parent_id)
+                    index += 1
 
-                # Unknown named components contained in an organ are FTUs
-                if (component.name != ''
-                and component.fc_type == FC_TYPE.UNKNOWN
-                and parent_id in self.__organs):
-                    component.fc_type = FC_TYPE.FTU
-                    if len(component.parents) != 1:
-                        log.error(f'FTU can only be in a single organ: {component}')
+        # Remaining named components should be either neural or vascular
+        for shape_id, overlaps in non_system_overlapping_features.items():
+            fc_shape = self.__shapes_by_id[shape_id]
+            if (fc_shape.cd_class == CD_CLASS.COMPONENT
+            and fc_shape.fc_class == FC_CLASS.UNKNOWN
+            and fc_shape.name != ''):
+                if (kind := NERVE_FEATURE_KINDS.lookup(fc_shape.colour)) is not None:
+                    fc_shape.fc_class = FC_CLASS.NEURAL
+                    self.__nerves.add(shape_id)
+                    fc_shape.description = kind
+                elif (kind := VASCULAR_KINDS.lookup(fc_shape.colour)) is not None:
+                    if fc_shape.name == 'Basilar':
+                        print(fc_shape.shape)
+                    fc_shape.fc_class = FC_CLASS.VASCULAR
+                    fc_shape.fc_kind = kind
 
-        # Find FC parents of CONNECTORs and add them to the Connections object
-        for component in self.__components.values():
-            if component.fc_type == FC_TYPE.CONNECTOR:
-                if component.fc_class == FC_CLASS.PORT:
-                    if (len(component.parents) != 1
-                     or (parent := self.__components[component.parents[0]]).fc_type != FC_TYPE.FTU):
-                        log.error(f'A connector port must be in a single FTU: {component}')
                     else:
                         component.properties['fc-parent'] = parent.id
                 elif component.fc_class in [FC_CLASS.NODE, FC_CLASS.THROUGH]:
@@ -226,53 +232,47 @@ class FCSlide(Slide):
                 # Set hyperlink labels
                 component.properties['label'] = HYPERLINK_LABELS.get(component.fc_class, component.label)
 
-    def __set_relationships(self, component, parent_id):
-    #===================================================
-        component.parents.append(parent_id)
-        self.__components[parent_id].children.append(component.id)
-
     def __add_annotation(self, annotator: Annotator):
     #================================================
         # Called after shapes have been extracted
         for id in self.__systems:
-            if (name := self.__components[id].name) != '':
+            if (name := self.__shapes_by_id[id].name) != '':
                 annotation = annotator.get_system_annotation(name, self.source_id)
-                self.__components[id].properties.update(annotation.properties)
+                self.__shapes_by_id[id].properties.update(annotation.properties)
         for id in self.__nerves:
-            if (name := self.__components[id].name) != '':
+            if (name := self.__shapes_by_id[id].name) != '':
                 annotation = annotator.get_nerve_annotation(name, self.source_id)
-                self.__components[id].properties.update(annotation.properties)
+                self.__shapes_by_id[id].properties.update(annotation.properties)
         for id in self.__organs:
-            annotation = annotator.get_organ_annotation(self.__components[id].name, self.source_id,
-                tuple(self.__components[system_id].name
-                    for system_id in self.__components[id].parents if system_id != '')
+            annotation = annotator.get_organ_annotation(self.__shapes_by_id[id].name, self.source_id,
+                tuple(self.__shapes_by_id[system_id].name
+                    for system_id in self.__shapes_by_id[id].parents if system_id != '')
                 )
             ## It is shape properties that need updating...
-            self.__components[id].properties.update(annotation.properties)
+            self.__shapes_by_id[id].properties.update(annotation.properties)
+        for fc_shape in self.__shapes_by_id.values():
+            self.__annotate_component(fc_shape, annotator)
 
-        for component in self.__components.values():
-            self.__annotate_component(component, annotator)
-
-    def __annotate_component(self, component: FCComponent,  annotator: Annotator):
+    def __annotate_component(self, fc_shape: FCShape,  annotator: Annotator):
     #=============================================================================
-        if (component.name != ''
-        and (annotation := annotator.find_annotation(component.name)) is None):
+        if (fc_shape.name != ''
+        and (annotation := annotator.find_annotation(fc_shape.name)) is None):
             organ_id = None
-            for parent in component.parents:
+            for parent in fc_shape.parents:
                 if parent in self.__organs:
                     # Can have multiple parents
                     organ_id = parent
                     break
             if organ_id is not None:
-                if len(component.parents) > 1:
-                    log.warning(f'FTU {component} in multiple organs')
+                if len(fc_shape.parents) > 1:
+                    log.warning(f'FTU {fc_shape} in multiple organs')
                 else:
-                    organ_name = self.__components[organ_id].name
-                    annotation = annotator.find_ftu_by_names(organ_name, component.name)
+                    organ_name = self.__shapes_by_id[organ_id].name
+                    annotation = annotator.find_ftu_by_names(organ_name, fc_shape.name)
                     if annotation is None:
-                        annotation = annotator.get_ftu_annotation(self.__components[organ_id].name,
-                                                                  component.name, self.source_id)
-                    component.properties.update(annotation.properties)
+                        annotation = annotator.get_ftu_annotation(self.__shapes_by_id[organ_id].name,
+                                                                  fc_shape.name, self.source_id)
+                    fc_shape.properties.update(annotation.properties)
 
     def __label_connections(self):
     #=============================

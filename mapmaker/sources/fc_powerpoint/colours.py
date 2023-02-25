@@ -41,19 +41,30 @@ CLOSE_COLOUR_DISTANCE = 5       # Perceptible on close inspection
 
 #===============================================================================
 
-def convert_lookup_table(table: dict[str, Any]) -> dict[str, Any]:
-#=================================================================
-    return {
-        convert_color(sRGBColor.new_from_rgb_hex(key), LabColor): value
-            for key, value in table.items()
-    }
+class ColourMatcher:
+    def __init__(self, colour: str):
+        self.__colour = convert_color(sRGBColor.new_from_rgb_hex(colour), LabColor)
 
-def lookup_colour_table(table: dict[str, str], colour: Optional[str]) -> Optional[Any]:
-#======================================================================================
-    if colour is not None:
-        lab_colour = convert_color(sRGBColor.new_from_rgb_hex(colour), LabColor)
-        for key, value in table.items():
-            if delta_e_cie2000(lab_colour, key) < CLOSE_COLOUR_DISTANCE:
-                return value
+    def matches(self, colour: Optional[str]) -> bool:
+        if colour is not None:
+            lab_colour = convert_color(sRGBColor.new_from_rgb_hex(colour), LabColor)
+            return delta_e_cie2000(lab_colour, self.__colour) < CLOSE_COLOUR_DISTANCE
+        return False
+
+#===============================================================================
+
+class ColourMatcherDict:
+    def __init__(self, lookup_table: dict[str, Any]):
+        self.__lookup_table = {
+            convert_color(sRGBColor.new_from_rgb_hex(key), LabColor): value
+                for key, value in lookup_table.items()
+        }
+
+    def lookup(self, colour: Optional[str]) -> Optional[Any]:
+        if colour is not None:
+            lab_colour = convert_color(sRGBColor.new_from_rgb_hex(colour), LabColor)
+            for key, value in self.__lookup_table.items():
+                if delta_e_cie2000(lab_colour, key) < CLOSE_COLOUR_DISTANCE:
+                    return value
 
 #===============================================================================

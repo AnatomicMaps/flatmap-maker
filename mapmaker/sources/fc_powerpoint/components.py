@@ -26,7 +26,7 @@ from typing import Optional
 
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 
-from .colours import convert_lookup_table, lookup_colour_table
+from .colours import ColourMatcher, ColourMatcherDict
 
 #===============================================================================
 
@@ -39,126 +39,154 @@ MAX_CONNECTION_GAP =     4000               # metres, approx. sqrt(MAX_AREA)/2
 
 #===============================================================================
 
-class FC_CLASS(enum.Enum):
+class CD_CLASS(enum.IntFlag):
     UNKNOWN    = 0
-    BRAIN      = enum.auto()
+    LAYER      = enum.auto()
+    COMPONENT  = enum.auto()   # What has CONNECTORs
+    CONNECTOR  = enum.auto()   # What a CONNECTION connects to
+    CONNECTION = enum.auto()   # The path between CONNECTORS
+    ANNOTATION = enum.auto()   # Additional information about something
 
-    NERVE      = enum.auto()
-    PLEXUS     = enum.auto()
-    GANGLION   = enum.auto()
-    NEURON     = enum.auto()
+#===============================================================================
 
-    ARTERIAL   = enum.auto()
-    VENOUS     = enum.auto()
+class FC_KIND(enum.IntFlag):
+    UNKNOWN              = 0
+    BRAIN                = enum.auto()
+    DIAPHRAM             = enum.auto()
 
-    JOIN       = enum.auto()
-    FREE_END   = enum.auto()
-    NODE       = enum.auto()
-    PORT       = enum.auto()
-    THROUGH    = enum.auto()
+    ARTERIAL             = enum.auto()
+    VENOUS               = enum.auto()
+    PURPLE_BLOOD         = enum.auto()
+    VEIN                 = enum.auto()
+    ARTERY               = enum.auto()
+    VASCULAR_REGION      = enum.auto()
 
-    WIKIPEDIA_HYPERLINK  = enum.auto()
-    PUBMED_HYPERLINK     = enum.auto()
-    PROVENANCE_HYPERLINK = enum.auto()
+    GANGLION             = enum.auto()
+    NEURON               = enum.auto()
+    NERVE                = enum.auto()
+    PLEXUS               = enum.auto()
 
-class FC_TYPE(enum.IntFlag):
+    CONNECTOR_JOINER     = enum.auto()  # double headed arrow
+    CONNECTOR_FREE_END   = enum.auto()  # unattached connection end
+    CONNECTOR_NODE       = enum.auto()  # ganglionic node??
+    CONNECTOR_PORT       = enum.auto()  # a neural connection end in FTU
+    CONNECTOR_THROUGH    = enum.auto()  # cross in plexus and/or glanglion
+
+    HYPERLINK_WIKIPEDIA  = enum.auto()
+    HYPERLINK_PUBMED     = enum.auto()
+    HYPERLINK_PROVENANCE = enum.auto()
+
+class FC_CLASS(enum.IntFlag):
     UNKNOWN    = 0
     LAYER      = enum.auto()
     SYSTEM     = enum.auto()
     ORGAN      = enum.auto()
     FTU        = enum.auto()
+
+    DESCRIPTION = enum.auto()
     HYPERLINK  = enum.auto()
-    NERVE      = enum.auto()
-    CONNECTOR  = enum.auto()   # What a CONNECTION connects to
-    CONNECTION = enum.auto()   # The path between CONNECTORS
+
+    # Connector and Connection classes
+    NEURAL     = enum.auto()
+    VASCULAR   = enum.auto()
+
+#===============================================================================
+
+CONNECTOR_PORT_KINDS = [
+    FC_KIND.CONNECTOR_NODE,                     # small ellipse
+    FC_KIND.CONNECTOR_PORT,                     # small rect (neural); small ellipse (vascular)
+]
+
+CONNECTOR_SYMBOL_KINDS = [
+    FC_KIND.CONNECTOR_JOINER,
+    FC_KIND.CONNECTOR_JOINER,
+]
+
+CONNECTOR_KINDS = ColourMatcherDict({
+    # Markers and joiners
+    '#FFC000': FC_KIND.CONNECTOR_JOINER,        # inline connector arrow, `leftRightArrow`
+    '#ED7D31': FC_KIND.CONNECTOR_THROUGH,       # cross in plexus, `plus`
+    '#DE8444': FC_KIND.CONNECTOR_THROUGH,       # cross in cardiav ganlion, `plus`
+})
 
 #===============================================================================
 
 HYPERLINK_LABELS = {
-    FC_CLASS.WIKIPEDIA_HYPERLINK:  'Wikipedia',
-    FC_CLASS.PUBMED_HYPERLINK:     'PubMed',
-    FC_CLASS.PROVENANCE_HYPERLINK: 'Provenance',
+    FC_KIND.HYPERLINK_WIKIPEDIA:  'Wikipedia',
+    FC_KIND.HYPERLINK_PUBMED:     'PubMed',
+    FC_KIND.HYPERLINK_PROVENANCE: 'Provenance',
 }
+
+HYPERLINK_KINDS = ColourMatcherDict({
+    # small star
+    '#B4C7E7': FC_KIND.HYPERLINK_WIKIPEDIA,
+    '#FFE699': FC_KIND.HYPERLINK_PUBMED,
+    '#C5E0B4': FC_KIND.HYPERLINK_PROVENANCE,
+})
 
 #===============================================================================
 
-NEURON_PATH_CLASSES = [
-    "sympathetic",
-    "parasympathetic",
-    "sensory",
-]
 
-CONNECTOR_PORT_CLASSES = [
-    FC_CLASS.NODE,
-    FC_CLASS.PORT,
-]
+VASCULAR_KINDS = ColourMatcherDict({
+    # small ellipse, large rect, line
+    '#2F6EBA': FC_KIND.VENOUS,              # blue
+    '#EA3323': FC_KIND.ARTERIAL,            # red
+    # large rect
+    '#92A8DC': FC_KIND.VEIN,                # pale blue
+    '#F1908B': FC_KIND.ARTERY,              # pale red
+})
 
-CONNECTOR_SYMBOL_CLASSES = [
-    FC_CLASS.JOIN,
-    FC_CLASS.THROUGH,
-]
+VASCULAR_REGION_COLOUR = ColourMatcher('#FF99CC') # pink
 
 #===============================================================================
 
-HYPERLINK_CLASSES = {
-    '#B4C7E7': FC_CLASS.WIKIPEDIA_HYPERLINK,
-    '#FFE699': FC_CLASS.PUBMED_HYPERLINK,
-    '#C5E0B4': FC_CLASS.PROVENANCE_HYPERLINK,
-}
-HYPERLINK_LAB_COLOURS = convert_lookup_table(HYPERLINK_CLASSES)
+NEURON_KINDS = ColourMatcherDict({
+    # small rect, small ellipse, line
+    '#FF0000': "sympathetic",               # red
+    '#EA3323': "sympathetic",               # red
+    '#548235': "parasympathetic",           # green
+    '#5E813F': "parasympathetic",           # green
+    '#0070C0': "sensory",                   # blue
+    '#2F6EBA': "sensory",                   # blue
+    '#4472C4': "sensory",                   # blue
+    '#DE8344': "intracardiac",              # orange
+    '#68349A': "motor",                     # purple
+})
 
-def hyperlink_class(shape: Shape) -> Optional[FC_CLASS]:
-#=======================================================
-    if (shape.properties.get('shape-kind', '').startswith('star')
-    and shape.geometry.area < MAX_CONNECTOR_AREA
-    and (cls := lookup_colour_table(HYPERLINK_LAB_COLOURS, shape.colour)) is not None):
-        return cls
+#===============================================================================
+
+ORGAN_KINDS = ColourMatcherDict({
+    # large rect, line (dashed)
+    '#000000': FC_KIND.DIAPHRAM,
+})
+
+ORGAN_COLOUR = ColourMatcher('#D0CECE')
 
 #===============================================================================
 
 # Communicating branches are gradients...
-NERVE_FEATURE_CLASSES = {  # colour ==> nerve class
+NERVE_FEATURE_KINDS = ColourMatcherDict({  # colour ==> nerve kind
+    # large rect
     '#ADFCFE': 'cyan',          # e.g. upper branch of laryngeal nerve
     '#93FFFF': 'cyan',          # e.g. upper branch of internal laryngeal nerve
     '#9FCE63': 'green',         # e.g. maxillary nerve
-###    '#E5F0DB': 'pale-green',    # e.g. pterygopalatine ganglia  ### FTU colour
+    '#E5F0DB': 'pale-green',    # e.g. pterygopalatine ganglia
     '#ED70F8': 'purple',        # e.g. pharyngeal nerve
     '#ED70F8': 'purple',        # e.g. vagus nerve communicating gradient
-    '#FDF3D0': 'biege',         # e.g. pharyngeal nerve plexus
+    '#FDF3D0': 'biege',         # e.g. pharyngeal nerve plexus, cardiac ganglia
     '#FFF3CC': 'biege',         # e.g. carotid plexus
     '#FFD966': 'dark-biege',    # e.g. chorda tympani nerve
-    # Red
-    '#FF0000': "sympathetic",
-    '#EA3323': "sympathetic",
-    # Green
-    '#548235': "parasympathetic",
-    '#5E813F': "parasympathetic",
-    # Blue
-    '#0070C0': "sensory",
-    '#2F6EBA': "sensory",
-    '#4472C4': "sensory",
-    # Markers and joiners
-    '#FFC000': FC_CLASS.JOIN,           # An inline connector arrow, `leftRightArrow`
-    '#ED7D31': FC_CLASS.THROUGH,        # cross in plexus, `plus`
-}
-NERVE_FEATURE_LAB_COLOURS = convert_lookup_table(NERVE_FEATURE_CLASSES)
-
-#===============================================================================
-
-def nerve_class(shape: Shape) -> Optional[str]:
-#==============================================
-    if (not shape.properties.get('shape-kind', '').startswith('star')
-    and (cls := lookup_colour_table(NERVE_FEATURE_LAB_COLOURS, shape.colour)) is not None):
-        return cls
+})
 
 #===============================================================================
 
 @dataclass
-class FCComponent:
+class FCShape:
     shape: Shape
-    __fc_type: FC_TYPE = field(default=FC_TYPE.UNKNOWN, init=False)
-    fc_class: FC_CLASS = field(default=FC_CLASS.UNKNOWN, init=False)
-    nerve_class: str = field(default='N/A', init=False)
+    __cd_class: CD_CLASS = field(default=CD_CLASS.UNKNOWN, init=False)
+    __fc_class: FC_CLASS = field(default=FC_CLASS.UNKNOWN, init=False)
+    __fc_kind: FC_KIND = field(default=FC_KIND.UNKNOWN, init=False)
+    description: str = field(default='', init=False)
     children: list[str] = field(default_factory=list, init=False)
     parents: list[str] = field(default_factory=list, init=False)
     connectors: list[str] = field(default_factory=list, init=False)
@@ -166,59 +194,71 @@ class FCComponent:
     def __post_init__(self):
     #=======================
         label = self.properties.pop('label', '').replace('\t', '|').strip()
-        if self.shape.type == SHAPE_TYPE.LAYER:
-            self.fc_type = FC_TYPE.LAYER
-        elif (self.shape.type in [SHAPE_TYPE.CONNECTION, SHAPE_TYPE.FEATURE]
-        and (type_class := self.__get_type_and_class(label)) is not None):
-            self.fc_type = type_class[0]
-            self.fc_class = type_class[1]
-            self.nerve_class = type_class[2]
         self.properties['name'] = label
         self.properties['label'] = label
+        self.__classify()
 
-    def __get_type_and_class(self, label) -> Optional[tuple[FC_TYPE, FC_CLASS, str]]:
-    #================================================================================
-        if self.shape.type == SHAPE_TYPE.CONNECTION:
-            cls = nerve_class(self.shape)
-            if cls in NEURON_PATH_CLASSES:
-                line_style = self.shape.properties.get('line-style', '').lower()
-                ganglionic = 'pre' if 'dot' in line_style or 'dash' in line_style else 'post'
-                if cls in ['sympathetic', 'parasympathetic']:
-                    cls = f'{cls}-{ganglionic}'
-                return (FC_TYPE.CONNECTION, FC_CLASS.NEURON, cls)
-        elif (cls := hyperlink_class(self.shape)) is not None:
-            return (FC_TYPE.HYPERLINK, cls, '')
-        elif len(label) > 6 and label == label.upper():
-            return (FC_TYPE.SYSTEM, FC_CLASS.UNKNOWN, label)
-        elif (cls := nerve_class(self.shape)) is not None:
-            shape_kind = self.shape.properties.get('shape-kind', '')
-            if (self.shape.geometry.area < MAX_CONNECTOR_AREA):
-                if cls in NEURON_PATH_CLASSES:
-                    if shape_kind == 'rect':
-                        return (FC_TYPE.CONNECTOR, FC_CLASS.PORT, cls)
-                    else:  ##  elif shape_kind == 'ellipse':
-                        return (FC_TYPE.CONNECTOR, FC_CLASS.NODE, cls)
-                elif cls in CONNECTOR_SYMBOL_CLASSES:
-                    return (FC_TYPE.CONNECTOR, cls, '')
+    def __classify(self):
+    #====================
+        if self.shape.type == SHAPE_TYPE.LAYER:
+            self.cd_class = CD_CLASS.LAYER
+            self.fc_class = FC_CLASS.LAYER
+
+        elif self.shape.type == SHAPE_TYPE.CONNECTION:
+            self.cd_class = CD_CLASS.CONNECTION
+
+        elif self.shape.type == SHAPE_TYPE.FEATURE:
+            if self.colour is None:
+                if self.label != '':
+                    self.cd_class = CD_CLASS.ANNOTATION
+                    self.fc_class = FC_CLASS.DESCRIPTION
+            elif (self.shape.geometry.area < MAX_CONNECTOR_AREA):
+                if self.shape_kind.startswith('star'):
+                    if (kind := HYPERLINK_KINDS.lookup(self.shape.colour)) is not None:
+                        # set label to ??
+                        self.cd_class = CD_CLASS.ANNOTATION
+                        self.fc_class = FC_CLASS.HYPERLINK
+                        self.fc_kind = kind
+                        self.properties['label'] = HYPERLINK_LABELS[kind]
+                else:
+                    self.cd_class = CD_CLASS.CONNECTOR
             else:
-                return (FC_TYPE.NERVE, FC_CLASS.NERVE, cls)
+                self.cd_class = CD_CLASS.COMPONENT
 
     def __str__(self):
-        shape_kind = self.shape.properties.get('shape-kind', '')
-        return f'FC({self.id}: {shape_kind}/{str(self.fc_type)}/{str(self.fc_class)}/{self.nerve_class} `{self.name}`)'
+        shape_kind = self.properties.get('shape-kind', '')
+        return f'FC({self.id}: {shape_kind}/{str(self.cd_class)}/{str(self.fc_class)}/{str(self.fc_kind)}/{self.description} `{self.name}`)'
 
     @property
-    def colour(self):
+    def colour(self) -> Optional[str]:
         return self.properties.get('colour')
 
     @property
-    def fc_type(self):
-        return self.__fc_type
+    def cd_class(self):
+        return self.__cd_class
 
-    @fc_type.setter
-    def fc_type(self, type):
-        self.__fc_type = type
-        self.shape.properties['fc-type'] = type
+    @cd_class.setter
+    def cd_class(self, cls):
+        self.__cd_class = cls
+        self.properties['cd-class'] = cls
+
+    @property
+    def fc_class(self):
+        return self.__fc_class
+
+    @fc_class.setter
+    def fc_class(self, cls):
+        self.__fc_class = cls
+        self.properties['fc-class'] = cls
+
+    @property
+    def fc_kind(self):
+        return self.__fc_kind
+
+    @fc_kind.setter
+    def fc_kind(self, kind):
+        self.__fc_kind = kind
+        self.properties['fc-kind'] = kind
 
     @property
     def feature_id(self) -> Optional[str]:
@@ -247,6 +287,10 @@ class FCComponent:
     @property
     def properties(self):
         return self.shape.properties
+
+    @property
+    def shape_kind(self):
+        return self.properties.get('shape-kind', '')
 
     def set_geometry(self, geometry):
         self.shape.geometry = geometry
