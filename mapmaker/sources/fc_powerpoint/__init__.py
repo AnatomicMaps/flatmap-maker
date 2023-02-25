@@ -74,9 +74,9 @@ class FCSlide(Slide):
             SLIDE_LAYER_ID: FCShape(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry, {'name': source_id}))
         }
         self.__connections: list[FCShape] = []
-        self.__organs: set[str] = set()
-        self.__nerves: set[str] = set()
-        self.__systems: set[str] = set()
+        self.__organ_ids: set[str] = set()
+        self.__nerve_ids: set[str] = set()
+        self.__system_ids: set[str] = set()
 
     def process(self, annotator: Optional[Annotator]=None):
     #======================================================
@@ -102,9 +102,10 @@ class FCSlide(Slide):
                 elif self.kind == 'layer':
                     self.__shape_filter.filter(shape)
 
-            if shape.id in self.__systems:
+            if shape.id in self.__system_ids:
                 shape.properties.pop('name', None)   # We don't want System tooltips...
                 shape.properties.pop('label', None)  # We don't want System tooltips...
+
     def __add_parent(self, fc_shape: FCShape, parent: FCShape):
     #==========================================================
         fc_shape.parents.append(parent)
@@ -142,7 +143,7 @@ class FCSlide(Slide):
             if (fc_shape.cd_class == CD_CLASS.COMPONENT
             and len(fc_shape.name) > 6 and fc_shape.name == fc_shape.name.upper()):
                 fc_shape.fc_class = FC_CLASS.SYSTEM
-                self.__systems.add(shape_id)
+                self.__system_ids.add(shape_id)
                 self.__add_parent(fc_shape, self.__shapes_by_id[SLIDE_LAYER_ID])
             elif fc_shape.cd_class in [CD_CLASS.COMPONENT, CD_CLASS.CONNECTOR]:
                 # STRtree query returns geometries whose bounding box intersects the shape's bounding box
@@ -165,7 +166,7 @@ class FCSlide(Slide):
             if (fc_shape.cd_class == CD_CLASS.COMPONENT
             and ORGAN_COLOUR.matches(fc_shape.colour)):
                 fc_shape.fc_class = FC_CLASS.ORGAN
-                self.__organs.add(shape_id)
+                self.__organ_ids.add(shape_id)
                 for overlapping_id in overlaps:
                     if (parent := self.__shapes_by_id[overlapping_id]).fc_class == FC_CLASS.SYSTEM:
                         self.__add_parent(fc_shape, parent)
@@ -178,7 +179,7 @@ class FCSlide(Slide):
         for shape_id, overlaps in non_system_overlapping_features.items():
             fc_shape = self.__shapes_by_id[shape_id]
             if (fc_shape.cd_class == CD_CLASS.COMPONENT
-            and len(overlaps) and (parent := self.__shapes_by_id[overlaps[0]]).id in self.__organs):
+            and len(overlaps) and (parent := self.__shapes_by_id[overlaps[0]]).id in self.__organ_ids):
                 if VASCULAR_REGION_COLOUR.matches(fc_shape.colour):
                     fc_shape.fc_class = FC_CLASS.VASCULAR
                     fc_shape.fc_kind = FC_KIND.VASCULAR_REGION
@@ -190,7 +191,7 @@ class FCSlide(Slide):
                 # Vascular  regions and FTUs can only be in the one organ
                 index = 1
                 while index < len(overlaps):
-                    if (parent := self.__shapes_by_id[overlaps[index]]).id in self.__organs:
+                    if (parent := self.__shapes_by_id[overlaps[index]]).id in self.__organ_ids:
                         log.error(f'FTUs and regions can only be in a single organ: {fc_shape}')
                         break
                     index += 1
@@ -203,7 +204,7 @@ class FCSlide(Slide):
             and fc_shape.name != ''):
                 if (kind := NERVE_FEATURE_KINDS.lookup(fc_shape.colour)) is not None:
                     fc_shape.fc_class = FC_CLASS.NEURAL
-                    self.__nerves.add(shape_id)
+                    self.__nerve_ids.add(shape_id)
                     fc_shape.description = kind
                 elif (kind := VASCULAR_KINDS.lookup(fc_shape.colour)) is not None:
                     if fc_shape.name == 'Basilar':
@@ -235,15 +236,15 @@ class FCSlide(Slide):
     def __add_annotation(self, annotator: Annotator):
     #================================================
         # Called after shapes have been extracted
-        for id in self.__systems:
             if (name := self.__shapes_by_id[id].name) != '':
                 annotation = annotator.get_system_annotation(name, self.source_id)
                 self.__shapes_by_id[id].properties.update(annotation.properties)
-        for id in self.__nerves:
+        for id in self.__system_ids:
+        for id in self.__nerve_ids:
             if (name := self.__shapes_by_id[id].name) != '':
                 annotation = annotator.get_nerve_annotation(name, self.source_id)
                 self.__shapes_by_id[id].properties.update(annotation.properties)
-        for id in self.__organs:
+        for id in self.__organ_ids:
             annotation = annotator.get_organ_annotation(self.__shapes_by_id[id].name, self.source_id,
                 tuple(parent.name for parent in self.__shapes_by_id[id].parents
                     if parent.fc_class == FC_CLASS.SYSTEM)
