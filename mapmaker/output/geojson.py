@@ -48,8 +48,7 @@ class GeoJSONOutput(object):
         self.__save_features(features)
         saved_filenames = {}
         for (geojson_id, features) in self.__geojson_layers.items():
-            filename = os.path.join(self.__output_dir, '{}_{}.json'.format(self.__layer.id.replace('/', '_'),
-                                                                           geojson_id))
+            filename = os.path.join(self.__output_dir, geojson_id)
             saved_filenames[geojson_id] = filename
             with open(filename, 'w') as output_file:
                 if pretty_print:
@@ -88,7 +87,7 @@ class GeoJSONOutput(object):
             else:
                 centroid = None
             tile_layer = properties['tile-layer']
-            tippe_layer = f'{self.__layer.id}_{tile_layer}'
+            tippe_layer = f'{self.__layer.id}_{tile_layer}'.replace('/', '_')
             geojson = {
                 'type': 'Feature',
                 'id': feature.geojson_id,
