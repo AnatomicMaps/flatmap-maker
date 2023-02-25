@@ -131,9 +131,13 @@ class Slide:
     #===========================================
         return self.__shapes_by_id.get(id)
 
+    def __shape_id(self, id) -> str:
+    #==============================
+        return f'{self.__source_id}/{self.__id}/{id}'
+
     def __new_shape(self, type, id: str, geometry, properties=None) -> Shape:
     #========================================================================
-        shape_id = f'{self.__source_id}/{self.__id}/{id}'
+        shape_id = self.__shape_id(id)
         shape = (Shape(type, shape_id, geometry, properties) if properties is not None
             else Shape(type, shape_id, geometry))
         self.__shapes_by_id[shape_id] = shape
@@ -297,9 +301,9 @@ class Slide:
                                                         namespaces=PPTX_NAMESPACE)) is not None:
                             for c in connection.getchildren():
                                 if c.tag == DRAWINGML('stCxn'):
-                                    shape_properties['connection-start'] = int(c.attrib['id'])
+                                    shape_properties['connection-start'] = self.__shape_id(c.attrib['id'])
                                 elif c.tag == DRAWINGML('endCxn'):
-                                    shape_properties['connection-end'] = int(c.attrib['id'])
+                                    shape_properties['connection-end'] = self.__shape_id(c.attrib['id'])
                         shape_properties['line-style'] = pptx_shape.line.prstDash                   # type: ignore
                         shape_properties['head-end'] = pptx_shape.line.headEnd.get('type', 'none')  # type: ignore
                         shape_properties['tail-end'] = pptx_shape.line.tailEnd.get('type', 'none')  # type: ignore
