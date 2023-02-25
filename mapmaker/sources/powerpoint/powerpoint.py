@@ -283,7 +283,7 @@ class Slide:
                     'colour': colour
                 })
                 if alpha < 1.0:
-                    shape_properties['opacity'] = round(100*alpha, 1)
+                    shape_properties['opacity'] = alpha
                 geometry = get_shape_geometry(pptx_shape, transform, shape_properties)
                 if geometry is not None and geometry.is_valid:
                     shape_xml = etree.fromstring(pptx_shape.element.xml)
