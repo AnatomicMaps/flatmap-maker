@@ -105,10 +105,10 @@ class FCSlide(Slide):
             if shape.id in self.__systems:
                 shape.properties.pop('name', None)   # We don't want System tooltips...
                 shape.properties.pop('label', None)  # We don't want System tooltips...
-    def __add_parent(self, fc_shape, parent_id):
-    #===========================================
-        fc_shape.parents.append(parent_id)
-        self.__shapes_by_id[parent_id].children.append(fc_shape.id)
+    def __add_parent(self, fc_shape: FCShape, parent: FCShape):
+    #==========================================================
+        fc_shape.parents.append(parent)
+        parent.children.append(fc_shape)
 
     def __classify_shapes(self):
     #==============================
@@ -143,7 +143,7 @@ class FCSlide(Slide):
             and len(fc_shape.name) > 6 and fc_shape.name == fc_shape.name.upper()):
                 fc_shape.fc_class = FC_CLASS.SYSTEM
                 self.__systems.add(shape_id)
-                self.__add_parent(fc_shape, SLIDE_LAYER_ID)
+                self.__add_parent(fc_shape, self.__shapes_by_id[SLIDE_LAYER_ID])
             elif fc_shape.cd_class in [CD_CLASS.COMPONENT, CD_CLASS.CONNECTOR]:
                 # STRtree query returns geometries whose bounding box intersects the shape's bounding box
                 intersecting_geometries: list[int] = [id for id in idx.query(fc_shape.geometry)
@@ -168,7 +168,7 @@ class FCSlide(Slide):
                 self.__organs.add(shape_id)
                 for overlapping_id in overlaps:
                     if (parent := self.__shapes_by_id[overlapping_id]).fc_class == FC_CLASS.SYSTEM:
-                        self.__add_parent(fc_shape, parent.id)
+                        self.__add_parent(fc_shape, parent)
                 if len(fc_shape.parents) == 0:
                     log.error(f'An organ must be in at least one system: {fc_shape}')
                 if fc_shape.name == '':
@@ -184,7 +184,7 @@ class FCSlide(Slide):
                     fc_shape.fc_kind = FC_KIND.VASCULAR_REGION
                     fc_shape.properties['name'] = 'vr...' ## <<<<<<<<<<<<<<<<< TEMP
                     fc_shape.properties['label'] = 'vr...' ## <<<<<<<<<<<<<<<<< TEMP
-                    self.__add_parent(fc_shape, parent.id)
+                    self.__add_parent(fc_shape, parent)
                 else:
                     fc_shape.fc_class = FC_CLASS.FTU
                 # Vascular  regions and FTUs can only be in the one organ
@@ -245,8 +245,8 @@ class FCSlide(Slide):
                 self.__shapes_by_id[id].properties.update(annotation.properties)
         for id in self.__organs:
             annotation = annotator.get_organ_annotation(self.__shapes_by_id[id].name, self.source_id,
-                tuple(self.__shapes_by_id[system_id].name
-                    for system_id in self.__shapes_by_id[id].parents if system_id != '')
+                tuple(parent.name for parent in self.__shapes_by_id[id].parents
+                    if parent.fc_class == FC_CLASS.SYSTEM)
                 )
             ## It is shape properties that need updating...
             self.__shapes_by_id[id].properties.update(annotation.properties)
@@ -257,21 +257,19 @@ class FCSlide(Slide):
     #=============================================================================
         if (fc_shape.name != ''
         and (annotation := annotator.find_annotation(fc_shape.name)) is None):
-            organ_id = None
+            organ = None
             for parent in fc_shape.parents:
-                if parent in self.__organs:
-                    # Can have multiple parents
-                    organ_id = parent
+                if parent.id in self.__organ_ids:
+                    # Could have multiple parents
+                    organ = parent
                     break
-            if organ_id is not None:
+            if organ is not None:
                 if len(fc_shape.parents) > 1:
                     log.warning(f'FTU {fc_shape} in multiple organs')
                 else:
-                    organ_name = self.__shapes_by_id[organ_id].name
-                    annotation = annotator.find_ftu_by_names(organ_name, fc_shape.name)
+                    annotation = annotator.find_ftu_by_names(organ.name, fc_shape.name)
                     if annotation is None:
-                        annotation = annotator.get_ftu_annotation(self.__shapes_by_id[organ_id].name,
-                                                                  fc_shape.name, self.source_id)
+                        annotation = annotator.get_ftu_annotation(organ.name, fc_shape.name, self.source_id)
                     fc_shape.properties.update(annotation.properties)
 
     def __label_connections(self):

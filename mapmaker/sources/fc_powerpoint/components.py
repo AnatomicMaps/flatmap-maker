@@ -187,8 +187,8 @@ class FCShape:
     __fc_class: FC_CLASS = field(default=FC_CLASS.UNKNOWN, init=False)
     __fc_kind: FC_KIND = field(default=FC_KIND.UNKNOWN, init=False)
     description: str = field(default='', init=False)
-    children: list[str] = field(default_factory=list, init=False)
-    parents: list[str] = field(default_factory=list, init=False)
+    children: list = field(default_factory=list, init=False)    # list[FCShape]
+    parents: list = field(default_factory=list, init=False)     # list[FCShape]
     connectors: list[str] = field(default_factory=list, init=False)
 
     def __post_init__(self):
