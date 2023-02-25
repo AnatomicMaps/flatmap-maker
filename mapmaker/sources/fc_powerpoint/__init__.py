@@ -236,10 +236,10 @@ class FCSlide(Slide):
     def __add_annotation(self, annotator: Annotator):
     #================================================
         # Called after shapes have been extracted
-            if (name := self.__shapes_by_id[id].name) != '':
-                annotation = annotator.get_system_annotation(name, self.source_id)
-                self.__shapes_by_id[id].properties.update(annotation.properties)
         for id in self.__system_ids:
+            name = self.__shapes_by_id[id].name
+            annotation = annotator.get_system_annotation(name, self.source_id)
+            self.__shapes_by_id[id].properties.update(annotation.properties)
         for id in self.__nerve_ids:
             if (name := self.__shapes_by_id[id].name) != '':
                 annotation = annotator.get_nerve_annotation(name, self.source_id)
@@ -249,7 +249,6 @@ class FCSlide(Slide):
                 tuple(parent.name for parent in self.__shapes_by_id[id].parents
                     if parent.fc_class == FC_CLASS.SYSTEM)
                 )
-            ## It is shape properties that need updating...
             self.__shapes_by_id[id].properties.update(annotation.properties)
         for fc_shape in self.__shapes_by_id.values():
             self.__annotate_component(fc_shape, annotator)
@@ -266,7 +265,7 @@ class FCSlide(Slide):
                     break
             if organ is not None:
                 if len(fc_shape.parents) > 1:
-                    log.warning(f'FTU {fc_shape} in multiple organs')
+                    log.warning(f'FTU {fc_shape} in multiple organs?')
                 else:
                     annotation = annotator.find_ftu_by_names(organ.name, fc_shape.name)
                     if annotation is None:
