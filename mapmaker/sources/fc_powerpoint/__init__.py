@@ -213,8 +213,8 @@ class FCSlide(Slide):
                 if VASCULAR_REGION_COLOUR.matches(fc_shape.colour):
                     fc_shape.fc_class = FC_CLASS.VASCULAR
                     fc_shape.fc_kind = FC_KIND.VASCULAR_REGION
-                    fc_shape.properties['name'] = 'vr...' ## <<<<<<<<<<<<<<<<< TEMP
-                    fc_shape.properties['label'] = 'vr...' ## <<<<<<<<<<<<<<<<< TEMP
+                    #fc_shape.properties['name'] = 'vr...' ## <<<<<<<<<<<<<<<<< TEMP
+                    #fc_shape.properties['label'] = 'vr...' ## <<<<<<<<<<<<<<<<< TEMP
                 else:
                     fc_shape.fc_class = FC_CLASS.FTU
             # Check vascular  regions and FTUs are only in a single organ

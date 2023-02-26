@@ -56,7 +56,6 @@ class FC_KIND(enum.IntFlag):
 
     ARTERIAL             = enum.auto()
     VENOUS               = enum.auto()
-    PURPLE_BLOOD         = enum.auto()
     VEIN                 = enum.auto()
     ARTERY               = enum.auto()
     VASCULAR_REGION      = enum.auto()
@@ -106,7 +105,7 @@ CONNECTOR_KINDS = ColourMatcherDict({
     # Markers and joiners
     '#FFC000': FC_KIND.CONNECTOR_JOINER,        # inline connector arrow, `leftRightArrow`
     '#ED7D31': FC_KIND.CONNECTOR_THROUGH,       # cross in plexus, `plus`
-    '#DE8444': FC_KIND.CONNECTOR_THROUGH,       # cross in cardiav ganlion, `plus`
+    '#DE8444': FC_KIND.CONNECTOR_THROUGH,       # cross in cardiac ganglion, `plus`
 })
 
 #===============================================================================
