@@ -31,7 +31,7 @@ from .colours import ColourMatcher, ColourMatcherDict
 #===============================================================================
 
 # Shapes smaller than this are assumed to be connectors or hyperlinks
-MAX_CONNECTOR_AREA = 50000000               # metres**2
+MAX_CONNECTOR_AREA = 120000000              # metres**2
 
 # If a connection end is closer than this gap to a connector
 # of the same nerve class then it is connected
