@@ -126,17 +126,12 @@ HYPERLINK_KINDS = ColourMatcherDict({
 
 #===============================================================================
 
-
-VASCULAR_KINDS = ColourMatcherDict({
-    # small ellipse, large rect, line
-    '#2F6EBA': FC_KIND.VENOUS,              # blue
-    '#EA3323': FC_KIND.ARTERIAL,            # red
-    # large rect
-    '#92A8DC': FC_KIND.VEIN,                # pale blue
-    '#F1908B': FC_KIND.ARTERY,              # pale red
+ORGAN_KINDS = ColourMatcherDict({
+    # large rect, line (dashed)
+    '#000000': FC_KIND.DIAPHRAM,
 })
 
-VASCULAR_REGION_COLOUR = ColourMatcher('#FF99CC') # pink
+ORGAN_COLOUR = ColourMatcher('#D0CECE')
 
 #===============================================================================
 
@@ -153,17 +148,6 @@ NEURON_KINDS = ColourMatcherDict({
     '#68349A': "motor",                     # purple
 })
 
-#===============================================================================
-
-ORGAN_KINDS = ColourMatcherDict({
-    # large rect, line (dashed)
-    '#000000': FC_KIND.DIAPHRAM,
-})
-
-ORGAN_COLOUR = ColourMatcher('#D0CECE')
-
-#===============================================================================
-
 # Communicating branches are gradients...
 NERVE_FEATURE_KINDS = ColourMatcherDict({  # colour ==> nerve kind
     # large rect
@@ -177,6 +161,24 @@ NERVE_FEATURE_KINDS = ColourMatcherDict({  # colour ==> nerve kind
     '#FFF3CC': 'biege',         # e.g. carotid plexus
     '#FFD966': 'dark-biege',    # e.g. chorda tympani nerve
 })
+
+#===============================================================================
+
+VASCULAR_KINDS = ColourMatcherDict({
+    # small ellipse, line
+    '#EA3323': 'arterial',                  # red
+    '#2F6EBA': 'venous',                    # blue
+})
+
+VASCULAR_VESSEL_KINDS = ColourMatcherDict({
+    # large rect
+    '#F1908B': FC_KIND.ARTERY,              # pale red
+    '#EA3323': FC_KIND.ARTERY,              # red
+    '#92A8DC': FC_KIND.VEIN,                # pale blue
+    '#2F6EBA': FC_KIND.VEIN,                # blue
+})
+
+VASCULAR_REGION_COLOUR = ColourMatcher('#FF99CC') # pink
 
 #===============================================================================
 

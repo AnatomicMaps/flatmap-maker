@@ -43,8 +43,9 @@ from ..powerpoint.colour import ColourTheme
 #===============================================================================
 
 from .components import FCShape, CD_CLASS, FC_CLASS, FC_KIND
-from .components import ORGAN_COLOUR, NERVE_FEATURE_KINDS
-from .components import VASCULAR_KINDS, VASCULAR_REGION_COLOUR
+from .components import NERVE_FEATURE_KINDS, NEURON_KINDS
+from .components import ORGAN_COLOUR, ORGAN_KINDS
+from .components import VASCULAR_KINDS, VASCULAR_REGION_COLOUR, VASCULAR_VESSEL_KINDS
 
 #===============================================================================
 
@@ -73,7 +74,6 @@ class FCSlide(Slide):
         self.__shapes_by_id: dict[str, FCShape] = {
             SLIDE_LAYER_ID: FCShape(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry, {'name': source_id}))
         }
-        self.__connections: list[FCShape] = []
         self.__organ_ids: set[str] = set()
         self.__nerve_ids: set[str] = set()
         self.__system_ids: set[str] = set()
@@ -115,9 +115,10 @@ class FCSlide(Slide):
     #==============================
         # First extract shape geometries and create a spatial index
         # so we can find their containment hierarchy
-        shape_ids = {}     # id(geometry) --> shape.id
+        geometry_to_shape = {}     # id(geometry) --> shape
         geometries = []
         outer_geometry = shapely.prepared.prep(self.geometry)
+        connections = []
         for shape in self.shapes.flatten(skip=1):
             geometry = shape.geometry
             if shape.type == SHAPE_TYPE.FEATURE and 'Polygon' in geometry.geom_type:
@@ -127,17 +128,18 @@ class FCSlide(Slide):
                     fc_shape = FCShape(shape)
                     if fc_shape.cd_class in [CD_CLASS.COMPONENT, CD_CLASS.CONNECTOR]:
                         self.__shapes_by_id[shape.id] = fc_shape
-                        shape_ids[id(geometry)] = shape.id
+                        geometry_to_shape[id(geometry)] = fc_shape
                         geometries.append(geometry)
             elif shape.type == SHAPE_TYPE.CONNECTION:
-                self.__connections.append(FCShape(shape))
+                connections.append(FCShape(shape))
 
         # Spatial index to find component containment hierarchy
         idx = shapely.strtree.STRtree(geometries)
 
         # We now identify systems and for non-system features (both components and connectors)
         # find features which overlap them
-        non_system_overlapping_features = {}
+        non_system_components = []
+        connectors = []
         for shape_id, fc_shape in self.__shapes_by_id.items():
             # Do we need a better way of detecting systems??
             if (fc_shape.cd_class == CD_CLASS.COMPONENT
@@ -151,67 +153,113 @@ class FCSlide(Slide):
                                                         if not fc_shape.geometry.contains(geometries[id])
                                                         and geometries[id].intersection(fc_shape.geometry).area  # type: ignore
                                                             >= MIN_OVERLAP_FRACTION*fc_shape.geometry.area]
-                # Sort overlapping geometries by area, smallest item first, which is the immediate  parent of the shape
-                overlaps = [shape_ids[i[0]]
-                                for i in sorted([(id(geometries[index]), geometries[index].area)
-                                                    for index in intersecting_geometries],
-                                                key = lambda x: x[1])
-                           ]
-                non_system_overlapping_features[shape_id] = overlaps
+                # Set the shape's parents, ordered by the area of its overlapping geometries,
+                # with the smallest (immediate) parent first
+                for id_area in sorted([(id(geometries[index]), geometries[index].area)
+                                        for index in intersecting_geometries], key = lambda x: x[1]):
+                    self.__add_parent(fc_shape, geometry_to_shape[id_area[0]])
+                if fc_shape.cd_class == CD_CLASS.COMPONENT:
+                    non_system_components.append(fc_shape)
+                else:
+                    connectors.append(fc_shape)
 
-        # Organs are components with ORGAN_COLOUR colour and are contained in at
-        # least one system
-        for shape_id, overlaps in non_system_overlapping_features.items():
-            fc_shape = self.__shapes_by_id[shape_id]
-            if (fc_shape.cd_class == CD_CLASS.COMPONENT
-            and ORGAN_COLOUR.matches(fc_shape.colour)):
-                fc_shape.fc_class = FC_CLASS.ORGAN
-                self.__organ_ids.add(shape_id)
-                for overlapping_id in overlaps:
-                    if (parent := self.__shapes_by_id[overlapping_id]).fc_class == FC_CLASS.SYSTEM:
-                        self.__add_parent(fc_shape, parent)
-                if len(fc_shape.parents) == 0:
-                    log.error(f'An organ must be in at least one system: {fc_shape}')
-                if fc_shape.name == '':
-                    log.error(f'An organ must have a name: {fc_shape}')
+        # Classify connectors that are unambigously neural connectors
+        for connector in connectors:
+            if (connector.shape_kind == 'rect'
+            and (neuron_kind := NEURON_KINDS.lookup(connector.colour)) is not None):
+                connector.fc_class = FC_CLASS.NEURAL
+                connector.fc_kind = FC_KIND.CONNECTOR_PORT
+                connector.description = neuron_kind
+
+        # Classify as FTUs those components that have a neural connector port
+        # which has the component as their immediate parent
+        for fc_shape in non_system_components:
+            for child in fc_shape.children:
+                if child.fc_kind == FC_KIND.CONNECTOR_PORT and child.parents[0] == fc_shape:
+                    fc_shape.fc_class = FC_CLASS.FTU
+
+        # Organs are components that are contained in at least one system and
+        # have ORGAN_COLOUR colour or contain FTUs
+        for fc_shape in non_system_components:
+            if fc_shape.fc_class == FC_CLASS.UNKNOWN:
+                have_organ = False
+                organ_kind = FC_KIND.UNKNOWN
+                if (ORGAN_COLOUR.matches(fc_shape.colour)
+                 or (organ_kind := ORGAN_KINDS.lookup(fc_shape.colour)) is not None):
+                    have_organ = True
+                else:
+                    for child in fc_shape.children:
+                        if child.fc_class == FC_CLASS.FTU:
+                            have_organ = True
+                            break
+                if have_organ:
+                    fc_shape.fc_class = FC_CLASS.ORGAN
+                    fc_shape.fc_kind = organ_kind
+                    self.__organ_ids.add(fc_shape.id)
+                    if fc_shape.name == '':
+                        log.error(f'An organ must have a name: {fc_shape}')
+                    have_system = False
+                    for parent in fc_shape.parents:
+                        if parent.fc_class == FC_CLASS.SYSTEM:
+                            have_system = True
+                            break
+                    if not have_system:
+                        log.error(f'An organ must be in at least one system: {fc_shape}')
 
         # Components within an organ are either vascular regions or FTUs
-        for shape_id, overlaps in non_system_overlapping_features.items():
-            fc_shape = self.__shapes_by_id[shape_id]
-            if (fc_shape.cd_class == CD_CLASS.COMPONENT
-            and len(overlaps) and (parent := self.__shapes_by_id[overlaps[0]]).id in self.__organ_ids):
+        for fc_shape in non_system_components:
+            if (fc_shape.fc_class == FC_CLASS.UNKNOWN
+            and len(fc_shape.parents) and (parent := fc_shape.parents[0]).id in self.__organ_ids):
                 if VASCULAR_REGION_COLOUR.matches(fc_shape.colour):
                     fc_shape.fc_class = FC_CLASS.VASCULAR
                     fc_shape.fc_kind = FC_KIND.VASCULAR_REGION
                     fc_shape.properties['name'] = 'vr...' ## <<<<<<<<<<<<<<<<< TEMP
                     fc_shape.properties['label'] = 'vr...' ## <<<<<<<<<<<<<<<<< TEMP
-                    self.__add_parent(fc_shape, parent)
                 else:
                     fc_shape.fc_class = FC_CLASS.FTU
-                # Vascular  regions and FTUs can only be in the one organ
-                index = 1
-                while index < len(overlaps):
-                    if (parent := self.__shapes_by_id[overlaps[index]]).id in self.__organ_ids:
+            # Check vascular  regions and FTUs are only in a single organ
+            if fc_shape.fc_class in [FC_CLASS.FTU, FC_CLASS.VASCULAR]:
+                for parent in fc_shape.parents[1:]:
+                    if parent.id in self.__organ_ids:
                         log.error(f'FTUs and regions can only be in a single organ: {fc_shape}')
                         break
-                    index += 1
 
         # Remaining named components should be either neural or vascular
-        for shape_id, overlaps in non_system_overlapping_features.items():
-            fc_shape = self.__shapes_by_id[shape_id]
-            if (fc_shape.cd_class == CD_CLASS.COMPONENT
-            and fc_shape.fc_class == FC_CLASS.UNKNOWN
+        for fc_shape in non_system_components:
+            if (fc_shape.fc_class == FC_CLASS.UNKNOWN
             and fc_shape.name != ''):
                 if (kind := NERVE_FEATURE_KINDS.lookup(fc_shape.colour)) is not None:
                     fc_shape.fc_class = FC_CLASS.NEURAL
-                    self.__nerve_ids.add(shape_id)
+                    self.__nerve_ids.add(fc_shape.id)
                     fc_shape.description = kind
-                elif (kind := VASCULAR_KINDS.lookup(fc_shape.colour)) is not None:
-                    if fc_shape.name == 'Basilar':
-                        print(fc_shape.shape)
+                elif (kind := VASCULAR_VESSEL_KINDS.lookup(fc_shape.colour)) is not None:
                     fc_shape.fc_class = FC_CLASS.VASCULAR
                     fc_shape.fc_kind = kind
 
+        # Classify remaining connectors
+        for connector in connectors:
+            if connector.fc_class == FC_CLASS.UNKNOWN:
+                if len(connector.parents) and connector.parents[0].fc_class == FC_CLASS.NEURAL:
+                    if connector.shape_kind == 'ellipse':
+                        if (kind := NEURON_KINDS.lookup(connector.colour)) is not None:
+                            connector.fc_class = FC_CLASS.NEURAL
+                            connector.fc_kind = FC_KIND.CONNECTOR_NODE
+                            connector.description = kind
+                    elif connector.shape_kind == 'plus':
+                        connector.fc_class = FC_CLASS.NEURAL
+                        connector.fc_kind = FC_KIND.CONNECTOR_THROUGH
+                elif connector.shape_kind == 'ellipse':
+                    if (kind := VASCULAR_KINDS.lookup(connector.colour)) is not None:
+                        connector.fc_class = FC_CLASS.VASCULAR
+                        connector.fc_kind = FC_KIND.CONNECTOR_NODE
+                        connector.description = kind
+                    elif (kind := NEURON_KINDS.lookup(connector.colour)) is not None:
+                        connector.fc_class = FC_CLASS.NEURAL
+                        connector.fc_kind = FC_KIND.CONNECTOR_NODE
+                        connector.description = kind
+                elif connector.shape_kind == 'leftRightArrow':
+                    connector.fc_class = FC_CLASS.NEURAL
+                    connector.fc_kind = FC_KIND.CONNECTOR_JOINER
                     else:
                         component.properties['fc-parent'] = parent.id
                 elif component.fc_class in [FC_CLASS.NODE, FC_CLASS.THROUGH]:
@@ -257,16 +305,12 @@ class FCSlide(Slide):
     #=============================================================================
         if (fc_shape.name != ''
         and (annotation := annotator.find_annotation(fc_shape.name)) is None):
-            organ = None
-            for parent in fc_shape.parents:
-                if parent.id in self.__organ_ids:
-                    # Could have multiple parents
-                    organ = parent
-                    break
-            if organ is not None:
-                if len(fc_shape.parents) > 1:
+            organs = [parent for parent in fc_shape.parents if parent.fc_class == FC_CLASS.ORGAN]
+            if len(organs):
+                if len(organs) > 1:
                     log.warning(f'FTU {fc_shape} in multiple organs?')
                 else:
+                    organ = organs[0]
                     annotation = annotator.find_ftu_by_names(organ.name, fc_shape.name)
                     if annotation is None:
                         annotation = annotator.get_ftu_annotation(organ.name, fc_shape.name, self.source_id)
