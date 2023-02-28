@@ -91,25 +91,6 @@ class FC_CLASS(enum.IntFlag):
 
 #===============================================================================
 
-CONNECTOR_PORT_KINDS = [
-    FC_KIND.CONNECTOR_NODE,                     # small ellipse
-    FC_KIND.CONNECTOR_PORT,                     # small rect (neural); small ellipse (vascular)
-]
-
-CONNECTOR_SYMBOL_KINDS = [
-    FC_KIND.CONNECTOR_JOINER,
-    FC_KIND.CONNECTOR_JOINER,
-]
-
-CONNECTOR_KINDS = ColourMatcherDict({
-    # Markers and joiners
-    '#FFC000': FC_KIND.CONNECTOR_JOINER,        # inline connector arrow, `leftRightArrow`
-    '#ED7D31': FC_KIND.CONNECTOR_THROUGH,       # cross in plexus, `plus`
-    '#DE8444': FC_KIND.CONNECTOR_THROUGH,       # cross in cardiac ganglion, `plus`
-})
-
-#===============================================================================
-
 HYPERLINK_LABELS = {
     FC_KIND.HYPERLINK_WIKIPEDIA:  'Wikipedia',
     FC_KIND.HYPERLINK_PUBMED:     'PubMed',
@@ -190,11 +171,10 @@ class FCShape:
     description: str = field(default='', init=False)
     children: list = field(default_factory=list, init=False)    # list[FCShape]
     parents: list = field(default_factory=list, init=False)     # list[FCShape]
-    connectors: list[str] = field(default_factory=list, init=False)
 
     def __post_init__(self):
     #=======================
-        label = self.properties.pop('label', '').replace('\t', '|').strip()
+        label = self.properties.pop('label', self.name).replace('\t', '|').strip()
         self.properties['name'] = label
         self.properties['label'] = label
         self.__classify()
@@ -295,5 +275,14 @@ class FCShape:
 
     def set_geometry(self, geometry):
         self.shape.geometry = geometry
+
+#===============================================================================
+
+class Connection(FCShape):
+    def __init__(self, shape: Shape):
+        super().__init__(shape)
+        self.cd_class = CD_CLASS.CONNECTION
+        self.connector_ids: list[str] = []
+        self.intermediate_connectors: list[str] = []
 
 #===============================================================================

@@ -42,15 +42,24 @@ from ..powerpoint.colour import ColourTheme
 
 #===============================================================================
 
-from .components import FCShape, CD_CLASS, FC_CLASS, FC_KIND
+from .components import Connection, FCShape, CD_CLASS, FC_CLASS, FC_KIND
 from .components import NERVE_FEATURE_KINDS, NEURON_KINDS
 from .components import ORGAN_COLOUR, ORGAN_KINDS
 from .components import VASCULAR_KINDS, VASCULAR_REGION_COLOUR, VASCULAR_VESSEL_KINDS
+from .connections import ConnectionClassifier
 
 #===============================================================================
 
 MIN_OVERLAP_FRACTION = 0.2  # Smaller geometry and >= 20% common area ==> containment
                             # e.g. `cochlear nuclei` and `pons`
+
+MAX_FTU_OUTSIDE = 0.1       # An FTU should mainly be inside its organ
+
+def contained_in(inside_shape, outer_shape, outside_fraction=0.0):
+    if outside_fraction== 0.0:
+        return outer_shape.geometry.contains(inside_shape.geometry)
+    excess = inside_shape.geometry.difference(outer_shape.geometry)
+    return excess.area <= outside_fraction*inside_shape.geometry.area
 
 #===============================================================================
 
@@ -74,6 +83,8 @@ class FCSlide(Slide):
         self.__shapes_by_id: dict[str, FCShape] = {
             SLIDE_LAYER_ID: FCShape(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry, {'name': source_id}))
         }
+        self.__connection_classifier = ConnectionClassifier()
+        self.__connections = []
         self.__organ_ids: set[str] = set()
         self.__nerve_ids: set[str] = set()
         self.__system_ids: set[str] = set()
@@ -82,7 +93,7 @@ class FCSlide(Slide):
     #======================================================
         super().process(annotator)
         self.__extract_shapes(annotator)
-        self.__label_connections()
+        self.__add_connections()
         return self.shapes
 
     def __extract_shapes(self, annotator: Optional[Annotator]):
@@ -118,7 +129,6 @@ class FCSlide(Slide):
         geometry_to_shape = {}     # id(geometry) --> shape
         geometries = []
         outer_geometry = shapely.prepared.prep(self.geometry)
-        connections = []
         for shape in self.shapes.flatten(skip=1):
             geometry = shape.geometry
             if shape.type == SHAPE_TYPE.FEATURE and 'Polygon' in geometry.geom_type:
@@ -131,7 +141,7 @@ class FCSlide(Slide):
                         geometry_to_shape[id(geometry)] = fc_shape
                         geometries.append(geometry)
             elif shape.type == SHAPE_TYPE.CONNECTION:
-                connections.append(FCShape(shape))
+                self.__connections.append(Connection(shape))
 
         # Spatial index to find component containment hierarchy
         idx = shapely.strtree.STRtree(geometries)
@@ -189,7 +199,8 @@ class FCSlide(Slide):
                     have_organ = True
                 else:
                     for child in fc_shape.children:
-                        if child.fc_class == FC_CLASS.FTU:
+                        if (child.fc_class == FC_CLASS.FTU
+                        and contained_in(child, fc_shape, MAX_FTU_OUTSIDE)):
                             have_organ = True
                             break
                 if have_organ:
@@ -236,10 +247,16 @@ class FCSlide(Slide):
                     fc_shape.fc_class = FC_CLASS.VASCULAR
                     fc_shape.fc_kind = kind
 
+            if fc_shape.fc_class == FC_CLASS.UNKNOWN:
+                self.__connection_classifier.add_component(fc_shape)
+
         # Classify remaining connectors
         for connector in connectors:
             if connector.fc_class == FC_CLASS.UNKNOWN:
-                if len(connector.parents) and connector.parents[0].fc_class == FC_CLASS.NEURAL:
+                if connector.shape_kind == 'leftRightArrow':
+                    connector.fc_class = FC_CLASS.NEURAL
+                    connector.fc_kind = FC_KIND.CONNECTOR_JOINER
+                elif len(connector.parents) and connector.parents[0].fc_class == FC_CLASS.NEURAL:
                     if connector.shape_kind == 'ellipse':
                         if (kind := NEURON_KINDS.lookup(connector.colour)) is not None:
                             connector.fc_class = FC_CLASS.NEURAL
@@ -257,29 +274,9 @@ class FCSlide(Slide):
                         connector.fc_class = FC_CLASS.NEURAL
                         connector.fc_kind = FC_KIND.CONNECTOR_NODE
                         connector.description = kind
-                elif connector.shape_kind == 'leftRightArrow':
-                    connector.fc_class = FC_CLASS.NEURAL
-                    connector.fc_kind = FC_KIND.CONNECTOR_JOINER
-                    else:
-                        component.properties['fc-parent'] = parent.id
-                elif component.fc_class in [FC_CLASS.NODE, FC_CLASS.THROUGH]:
-                    if len(component.parents) != 1:
-                        log.error(f'A neuron node must be on a single feature: {component}')
-                    else:
-                        component.properties['fc-parent'] = component.parents[0]
-                elif component.fc_class == FC_CLASS.JOIN:
-                    component.properties['exclude'] = True
-            self.__connections.add_component(component)
 
-        # We now have added all CONNECTORs so let the Connections object know
-        self.__connections.end_components()
-        for component in self.__components.values():
-            if component.fc_type == FC_TYPE.CONNECTION:
-                # Add an actual connection to the set of Connections
-                self.__connections.add_connection(component)
-            elif component.fc_type == FC_TYPE.HYPERLINK:
-                # Set hyperlink labels
-                component.properties['label'] = HYPERLINK_LABELS.get(component.fc_class, component.label)
+            if connector.fc_class != FC_CLASS.UNKNOWN:
+                self.__connection_classifier.add_connector(connector)
 
     def __add_annotation(self, annotator: Annotator):
     #================================================
@@ -298,35 +295,60 @@ class FCSlide(Slide):
                     if parent.fc_class == FC_CLASS.SYSTEM)
                 )
             self.__shapes_by_id[id].properties.update(annotation.properties)
-        for fc_shape in self.__shapes_by_id.values():
-            self.__annotate_component(fc_shape, annotator)
 
-    def __annotate_component(self, fc_shape: FCShape,  annotator: Annotator):
-    #=============================================================================
+        for fc_shape in self.__shapes_by_id.values():
+            if (fc_shape.cd_class == CD_CLASS.COMPONENT
+            and fc_shape.id not in self.__system_ids
+            and fc_shape.id not in self.__nerve_ids
+            and fc_shape.id not in self.__system_ids):
+                self.__annotate_component(fc_shape, annotator)
+
+        # go through all connectors and set FTU/organ for them
+        for fc_shape in self.__shapes_by_id.values():
+            if fc_shape.cd_class == CD_CLASS.CONNECTOR:
+                self.__annotate_connector(fc_shape)
+
+    def __annotate_component(self, fc_shape: FCShape, annotator: Annotator):
+    #=======================================================================
         if (fc_shape.name != ''
         and (annotation := annotator.find_annotation(fc_shape.name)) is None):
             organs = [parent for parent in fc_shape.parents if parent.fc_class == FC_CLASS.ORGAN]
             if len(organs):
-                if len(organs) > 1:
-                    log.warning(f'FTU {fc_shape} in multiple organs?')
-                else:
-                    organ = organs[0]
-                    annotation = annotator.find_ftu_by_names(organ.name, fc_shape.name)
-                    if annotation is None:
-                        annotation = annotator.get_ftu_annotation(organ.name, fc_shape.name, self.source_id)
-                    fc_shape.properties.update(annotation.properties)
+                organ = organs[0]
+                annotation = annotator.find_ftu_by_names(organ.name, fc_shape.name)
+                if annotation is None:
+                    annotation = annotator.get_ftu_annotation(organ.name, fc_shape.name, self.source_id)
+                fc_shape.properties.update(annotation.properties)
 
-    def __label_connections(self):
-    #=============================
-        for connection_dict in self.__connections.as_dict():
-            connection = self.__components[connection_dict['id']]
+    def __annotate_connector(self, connector: FCShape):
+    #==================================================
+        labels = []
+        models = []
+
+        def set_label_models(fc_shape):
+            if len(fc_shape.parents):
+                parent = fc_shape.parents[0]
+                labels.append(f'{parent.label[0:1].capitalize()}{parent.label[1:]}')
+                if parent.models:
+                    models.append(parent.models)
+                return parent
+        if (parent := set_label_models(connector)) is not None:
+            set_label_models(parent)
+
+        connector.properties['label'] = '/'.join(labels)
+        connector.properties['component_models'] = '/'.join(models)
+
+    def __add_connections(self):
+    #===========================
+        for connection in self.__connections:
+            self.__connection_classifier.add_connection(connection)
             end_labels = []
-            for end_id in connection_dict['ends']:
-                if (end_component := self.__components.get(end_id)) is not None:
-                    if (parent_id := end_component.properties.get('fc-parent')) is not None:
-                        parent = self.__components[parent_id]
-                        end_labels.append(f'CN: {parent.label[0:1].capitalize()}{parent.label[1:]}'
-                                       + (f' ({parent.models})' if parent.models else ''))
+            for connector_id in connection.connector_ids:
+                if (connector := self.__shapes_by_id.get(connector_id)) is not None:
+                    if label := connector.properties.get('label', ''):
+                        end_labels.append(f'CN: {label[0:1].capitalize()}{label[1:]}')
+
+            connection.properties['label'] = '\n'.join(end_labels)
             connection.properties['label'] = '\n'.join(end_labels)
 
 #===============================================================================
