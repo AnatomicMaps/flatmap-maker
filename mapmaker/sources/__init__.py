@@ -226,15 +226,15 @@ class MapSource(object):
     #===============================================
         if 'error' in properties:
             self.error('error', '{}: {} in markup: {}'
-                       .format(self.id, properties['error'], properties['markup']))
+                       .format(self.id, properties['error'], properties.get('markup', '')))
         if 'warning' in properties:
             self.error('warning', '{}: {} in markup: {}'
-                       .format(self.id, properties['warning'], properties['markup']))
+                       .format(self.id, properties['warning'], properties.get('markup', '')))
         for key in ['id', 'path']:
             if key in properties:
                 if self.__flatmap.is_duplicate_feature_id(properties[key]):
                    self.error('error', '{}: duplicate id in markup: {}'
-                              .format(self.id, properties['markup']))
+                              .format(self.id, properties.get('markup', '')))
 
     def process(self):
     #=================
