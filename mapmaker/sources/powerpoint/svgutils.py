@@ -53,7 +53,7 @@ from mapmaker.sources import EMU_PER_METRE, MapBounds, WORLD_METRES_PER_PIXEL, W
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log, TreeList
 
-from ..fc_powerpoint.components import FC_TYPE
+from ..fc_powerpoint.components import FC_CLASS
 
 from .colour import ColourPair, ColourMap
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
@@ -282,28 +282,25 @@ class SvgFromSlide:
         shape.properties.pop('bezier-segments', None)
         shape.properties.pop('messages', None)
 
-        exclude_shape = shape.type != SHAPE_TYPE.FEATURE
+        exclude_shape = (shape.type != SHAPE_TYPE.FEATURE
+                      or shape.properties.get('fc-class') != FC_CLASS.DESCRIPTION)
 
-        exclude_text = shape.properties.get('fc-type') != FC_TYPE.SYSTEM
+        exclude_text = shape.properties.get('fc-class') != FC_CLASS.SYSTEM
 
         svg_text = None
         label = None
 
-        if shape.type == SHAPE_TYPE.FEATURE:
-            svg_element.attribs.update(self.__get_fill(pptx_shape, group_colour))
-            label = text_content(pptx_shape)    ### shape.label
-            if not exclude_text and label is not None:
-                svg_text = self.__draw_shape_label(pptx_shape, label, shape.geometry.bounds)    # type: ignore
-
-        elif shape.type == SHAPE_TYPE.CONNECTION:
+        if shape.type == SHAPE_TYPE.CONNECTION:
             if 'type' in pptx_shape.line.headEnd or 'type' in pptx_shape.line.tailEnd:          # type: ignore
                 svg_element.set_markers((marker_id(pptx_shape.line.headEnd, 'head'),            # type: ignore
                                          None, marker_id(pptx_shape.line.tailEnd, 'tail')       # type: ignore
                                        ))
-        if not exclude_shape:
+        elif not exclude_shape:
+            svg_element.attribs.update(self.__get_fill(pptx_shape, group_colour))
             svg_element.attribs.update(self.__get_stroke(pptx_shape))
-
-
+            label = text_content(pptx_shape)    ### shape.label
+            if not exclude_text and label is not None:
+                svg_text = self.__draw_shape_label(pptx_shape, label, shape.geometry.bounds)    # type: ignore
             if (hyperlink := self.__get_link(pptx_shape)) is not None:
                 if label is None:
                     label = hyperlink
