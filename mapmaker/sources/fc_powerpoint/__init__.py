@@ -48,6 +48,8 @@ from .components import ORGAN_COLOUR, ORGAN_KINDS
 from .components import VASCULAR_KINDS, VASCULAR_REGION_COLOUR, VASCULAR_VESSEL_KINDS
 from .connections import ConnectionClassifier
 
+from .sckan import SckanNeuronPopulations
+
 #===============================================================================
 
 MIN_OVERLAP_FRACTION = 0.2  # Smaller geometry and >= 20% common area ==> containment
@@ -67,8 +69,11 @@ class FCPowerpointSource(PowerpointSource):
     def __init__(self, flatmap, id, source_href, source_kind, source_range=None,
                  shape_filter: Optional[ShapeFilter]=None):
         super().__init__(flatmap, id, source_href, source_kind=source_kind,
-                         source_range=source_range, shape_filter=shape_filter,
-                         SlideClass=FCSlide)
+                         source_range=source_range,
+                         SlideClass=FCSlide, slide_options=dict(
+                            shape_filter=shape_filter,
+                            sckan_neurons=SckanNeuronPopulations()
+                        ))
 
 #===============================================================================
 
@@ -77,9 +82,11 @@ SLIDE_LAYER_ID = 'SLIDE-LAYER-ID'
 
 class FCSlide(Slide):
     def __init__(self, source_id: str, kind: str, index: int, pptx_slide: PptxSlide, theme: ColourTheme,
-                 bounds: MapBounds, transform: Transform, shape_filter: Optional[ShapeFilter]=None):
+                 bounds: MapBounds, transform: Transform, shape_filter: Optional[ShapeFilter]=None,
+                 sckan_neurons: Optional[SckanNeuronPopulations]=None):
         super().__init__(source_id, kind, index, pptx_slide, theme, bounds, transform)
         self.__shape_filter = shape_filter
+        self.__sckan_neurons = sckan_neurons
         self.__shapes_by_id: dict[str, FCShape] = {
             SLIDE_LAYER_ID: FCShape(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry, {'name': source_id}))
         }
@@ -343,12 +350,22 @@ class FCSlide(Slide):
         for connection in self.__connections:
             self.__connection_classifier.add_connection(connection)
             end_labels = []
+            end_nodes = []
             for connector_id in connection.connector_ids:
                 if (connector := self.__shapes_by_id.get(connector_id)) is not None:
                     if label := connector.properties.get('label', ''):
                         end_labels.append(f'CN: {label[0:1].capitalize()}{label[1:]}')
-
+                    models = connector.properties['component_models'].split('/')
+                    if len(models):
+                        if len(models) == 1:
+                            models.append(None)
+                        end_nodes.append(models)
             connection.properties['label'] = '\n'.join(end_labels)
+
+            if self.__sckan_neurons is not None and len(end_nodes) > 1:
+                if path_ids := self.__sckan_neurons.find_connection_paths(end_nodes):
+                    connection.properties['sckan'] = tuple(path_ids)
+                    end_labels.extend(path_ids)
             connection.properties['label'] = '\n'.join(end_labels)
 
 #===============================================================================

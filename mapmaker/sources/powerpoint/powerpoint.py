@@ -73,8 +73,7 @@ ColourPair = tuple[Optional[str], float]
 
 class Slide:
     def __init__(self, source_id: str, kind: str, index: int, pptx_slide: PptxSlide,
-                 theme: ColourTheme, bounds: MapBounds, transform: Transform,
-                 shape_filter: Optional[ShapeFilter]=None):
+                 theme: ColourTheme, bounds: MapBounds, transform: Transform):
         self.__source_id = source_id
         self.__kind = kind
         self.__id = 'slide-{:02d}'.format(index+1)
@@ -335,8 +334,7 @@ class Slide:
 #===============================================================================
 
 class Powerpoint():
-    def __init__(self, source_id: str, source_href: str, source_kind: str, shape_filter: Optional[ShapeFilter]=None,
-                 SlideClass=Slide):
+    def __init__(self, source_id: str, source_href: str, source_kind: str, SlideClass=Slide, slide_options: Optional[dict]=None):
         ppt_bytes = FilePath(source_href).get_BytesIO()
         pptx = Presentation(ppt_bytes)
 
@@ -352,6 +350,8 @@ class Powerpoint():
         self.__bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
 
         colour_theme = ColourTheme(ppt_bytes)
+        if slide_options is None:
+            slide_options = {}
         self.__slides: list[Slide] = [SlideClass(source_id,
                                                  source_kind,
                                                  slide_index,
@@ -359,7 +359,7 @@ class Powerpoint():
                                                  colour_theme,
                                                  self.__bounds,
                                                  self.__transform,
-                                                 shape_filter=shape_filter)
+                                                 **slide_options)
                                             for slide_index, slide in enumerate(pptx.slides)]
 
     @property
