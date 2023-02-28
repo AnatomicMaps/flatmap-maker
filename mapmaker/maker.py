@@ -218,6 +218,10 @@ class Manifest:
         return self.__manifest.get('connectivityTerms')
 
     @property
+    def description(self) -> str:
+        return self.__manifest.get('description', '')
+
+    @property
     def git_status(self):
         if not self.__ignore_git and self.__repo.sha is not None:
             return {
