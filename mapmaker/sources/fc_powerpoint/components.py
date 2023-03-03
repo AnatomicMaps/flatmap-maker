@@ -30,9 +30,6 @@ from .colours import ColourMatcher, ColourMatcherDict
 
 #===============================================================================
 
-# Shapes smaller than this are assumed to be connectors or hyperlinks
-MAX_CONNECTOR_AREA = 120000000              # metres**2
-
 # If a connection end is closer than this gap to a connector
 # of the same nerve class then it is connected
 MAX_CONNECTION_GAP =     4000               # metres, approx. sqrt(MAX_AREA)/2
@@ -169,42 +166,12 @@ class FCShape:
     __fc_class: FC_CLASS = field(default=FC_CLASS.UNKNOWN, init=False)
     __fc_kind: FC_KIND = field(default=FC_KIND.UNKNOWN, init=False)
     description: str = field(default='', init=False)
-    children: list = field(default_factory=list, init=False)    # list[FCShape]
-    parents: list = field(default_factory=list, init=False)     # list[FCShape]
 
     def __post_init__(self):
     #=======================
         label = self.properties.pop('label', self.name).replace('\t', '|').strip()
         self.properties['name'] = label
         self.properties['label'] = label
-        self.__classify()
-
-    def __classify(self):
-    #====================
-        if self.shape.type == SHAPE_TYPE.LAYER:
-            self.cd_class = CD_CLASS.LAYER
-            self.fc_class = FC_CLASS.LAYER
-
-        elif self.shape.type == SHAPE_TYPE.CONNECTION:
-            self.cd_class = CD_CLASS.CONNECTION
-
-        elif self.shape.type == SHAPE_TYPE.FEATURE:
-            if self.colour is None:
-                if self.label != '':
-                    self.cd_class = CD_CLASS.ANNOTATION
-                    self.fc_class = FC_CLASS.DESCRIPTION
-            elif (self.shape.geometry.area < MAX_CONNECTOR_AREA):
-                if self.shape_kind.startswith('star'):
-                    if (kind := HYPERLINK_KINDS.lookup(self.shape.colour)) is not None:
-                        # set label to ??
-                        self.cd_class = CD_CLASS.ANNOTATION
-                        self.fc_class = FC_CLASS.HYPERLINK
-                        self.fc_kind = kind
-                        self.properties['label'] = HYPERLINK_LABELS[kind]
-                else:
-                    self.cd_class = CD_CLASS.CONNECTOR
-            else:
-                self.cd_class = CD_CLASS.COMPONENT
 
     def __str__(self):
         shape_kind = self.properties.get('shape-kind', '')
@@ -275,6 +242,36 @@ class FCShape:
 
     def set_geometry(self, geometry):
         self.shape.geometry = geometry
+
+#===============================================================================
+
+class Annotation(FCShape):
+    def __init__(self, shape: Shape, fc_class: FC_CLASS):
+        super().__init__(shape)
+        self.cd_class = CD_CLASS.ANNOTATION
+        self.fc_class = fc_class
+        self.parent: Optional[Component] = None
+
+#===============================================================================
+
+class Component(FCShape):
+    def __init__(self, shape: Shape):
+        super().__init__(shape)
+        if shape.type == SHAPE_TYPE.LAYER:
+            self.cd_class = CD_CLASS.LAYER
+            self.fc_class = FC_CLASS.LAYER
+        else:
+            self.cd_class = CD_CLASS.COMPONENT
+        self.children: list[FCShape] = []
+        self.parents: list[Component] = []
+
+#===============================================================================
+
+class Connector(FCShape):
+    def __init__(self, shape: Shape):
+        super().__init__(shape)
+        self.cd_class = CD_CLASS.CONNECTOR
+        self.parent: Optional[Component] = None
 
 #===============================================================================
 

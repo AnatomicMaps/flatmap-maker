@@ -34,7 +34,8 @@ from mapmaker.sources import PATHWAYS_TILE_LAYER
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
-from .components import Connection, FCShape, CD_CLASS, FC_KIND, FC_CLASS
+from .components import Component, Connection, Connector
+from .components import CD_CLASS, FC_KIND, FC_CLASS
 from .components import NEURON_KINDS, VASCULAR_KINDS
 from .components import MAX_CONNECTION_GAP
 
@@ -68,12 +69,10 @@ class ConnectionGraph:
     #==================================
         self.__connection_graph.add_node(connector.id, connector=connector)
 
-    def add_connection(self, connection, component_ids):
-    #===================================================
+    def add_connection(self, connection):
+    #====================================
         if len(connection.connector_ids) == 2:
-            self.__connection_graph.add_edge(*connection.connector_ids,
-                connection=connection,
-                components=list(component_ids))
+            self.__connection_graph.add_edge(*connection.connector_ids, connection=connection)
 
     def as_dict(self):
     #=================
@@ -82,8 +81,7 @@ class ConnectionGraph:
             connection = data['connection']                             # type: ignore
             connections.append({
                 'id': connection.id,
-                'connectors': (n_0, n_1),
-                'components': data['components']                        # type: ignore
+                'connectors': (n_0, n_1)
                 })
         return connections
 
@@ -147,8 +145,8 @@ class ConnectionClassifier:
             'vascular': self.__vascular_graph.as_dict()
         }
 
-    def add_component(self, component: FCShape):
-    #===========================================
+    def add_component(self, component: Component):
+    #=============================================
         if self.__component_index is not None:
             log.error("Cannot add components once connections are added")
         elif component.cd_class == CD_CLASS.COMPONENT:
@@ -159,8 +157,8 @@ class ConnectionClassifier:
             self.__component_geometries.append(component.geometry)
             self.__components_by_geometry[id(component.geometry)] = component
 
-    def add_connector(self, connector: FCShape):   # Add component -- CONNECTOR, NERVE
-    #===========================================
+    def add_connector(self, connector: Connector):
+    #=============================================
         if self.__connector_index is not None:
             log.error("Cannot add connectors once connections are added")
         elif connector.cd_class == CD_CLASS.CONNECTOR:
@@ -224,7 +222,7 @@ class ConnectionClassifier:
             else:
                 ## Add a JOIN connector if the end point has no connector
                 connector_id = f'{connection.id}/{coord_index+1}'
-                connector = FCShape(Shape(SHAPE_TYPE.FEATURE, connector_id, end_point.buffer(MAX_CONNECTION_GAP)))
+                connector = Connector(Shape(SHAPE_TYPE.FEATURE, connector_id, end_point.buffer(MAX_CONNECTION_GAP)))
                 free_end_connectors.append(connector)
             connection_end_index[connector_id] = coord_index
 
@@ -344,13 +342,12 @@ class ConnectionClassifier:
                         elif len(neighbours) > 1:
                             log.error(f'Connector has too many edges from it: {connector}')
 
-
-        crossed_components = self.__crossed_component(connection)
+        connection.intermediate_components = list(self.__crossed_component(connection))
         if connection.fc_class == FC_CLASS.NEURAL:
-            self.__neural_graph.add_connection(connection, crossed_components)
+            self.__neural_graph.add_connection(connection)
             connection.properties['type'] = 'line-dash' if connection.properties['kind'].endswith('-post') else 'line'
         elif connection.fc_class == FC_CLASS.VASCULAR:
-            self.__vascular_graph.add_connection(connection, crossed_components)
+            self.__vascular_graph.add_connection(connection)
 
         ## Also get from properties['fc-parent'] if this identifies a NERVE
 

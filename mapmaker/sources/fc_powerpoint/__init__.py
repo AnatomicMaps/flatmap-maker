@@ -42,7 +42,9 @@ from ..powerpoint.colour import ColourTheme
 
 #===============================================================================
 
-from .components import Connection, FCShape, CD_CLASS, FC_CLASS, FC_KIND
+from .components import Annotation, Component, Connection, Connector, FCShape
+from .components import CD_CLASS, FC_CLASS, FC_KIND
+from .components import HYPERLINK_KINDS, HYPERLINK_LABELS
 from .components import NERVE_FEATURE_KINDS, NEURON_KINDS
 from .components import ORGAN_COLOUR, ORGAN_KINDS
 from .components import VASCULAR_KINDS, VASCULAR_REGION_COLOUR, VASCULAR_VESSEL_KINDS
@@ -51,6 +53,9 @@ from .connections import ConnectionClassifier
 from .sckan import SckanNeuronPopulations
 
 #===============================================================================
+
+# Shapes smaller than this are assumed to be connectors or hyperlinks
+MAX_CONNECTOR_AREA = 120000000      # metres**2
 
 MIN_OVERLAP_FRACTION = 0.2  # Smaller geometry and >= 20% common area ==> containment
                             # e.g. `cochlear nuclei` and `pons`
@@ -88,7 +93,7 @@ class FCSlide(Slide):
         self.__shape_filter = shape_filter
         self.__sckan_neurons = sckan_neurons
         self.__shapes_by_id: dict[str, FCShape] = {
-            SLIDE_LAYER_ID: FCShape(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry, {'name': source_id}))
+            SLIDE_LAYER_ID: Component(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry, {'name': source_id}))
         }
         self.__connection_classifier = ConnectionClassifier()
         self.__connections = []
@@ -124,17 +129,18 @@ class FCSlide(Slide):
                 shape.properties.pop('name', None)   # We don't want System tooltips...
                 shape.properties.pop('label', None)  # We don't want System tooltips...
 
-    def __add_parent(self, fc_shape: FCShape, parent: FCShape):
-    #==========================================================
-        fc_shape.parents.append(parent)
-        parent.children.append(fc_shape)
 
     def __classify_shapes(self):
-    #==============================
+    #===========================
         # First extract shape geometries and create a spatial index
         # so we can find their containment hierarchy
-        geometry_to_shape = {}     # id(geometry) --> shape
+
+        geometry_to_shape = {}
         geometries = []
+        def add_shape_geometry(fc_shape):
+            geometry_to_shape[id(geometry)] = fc_shape
+            geometries.append(geometry)
+
         outer_geometry = shapely.prepared.prep(self.geometry)
         for shape in self.shapes.flatten(skip=1):
             geometry = shape.geometry
@@ -142,11 +148,23 @@ class FCSlide(Slide):
                 # We are only interested in features actually on the slide that are
                 # either components or connectors
                 if outer_geometry.contains(geometry):
-                    fc_shape = FCShape(shape)
-                    if fc_shape.cd_class in [CD_CLASS.COMPONENT, CD_CLASS.CONNECTOR]:
+                    shape_kind = shape.properties.get('shape-kind', '')
+                    if shape.colour is None:
+                        if shape.label != '':
+                            fc_shape = Annotation(shape, FC_CLASS.DESCRIPTION)
+                    elif (geometry.area < MAX_CONNECTOR_AREA):
+                        if shape_kind.startswith('star'):
+                            if (kind := HYPERLINK_KINDS.lookup(shape.colour)) is not None:
+                                fc_shape = Annotation(shape, FC_CLASS.HYPERLINK)
+                                fc_shape.fc_kind = kind
+                        else:
+                            fc_shape = Connector(shape)
+                            self.__shapes_by_id[shape.id] = fc_shape
+                            add_shape_geometry(fc_shape)
+                    else:
+                        fc_shape = Component(shape)
                         self.__shapes_by_id[shape.id] = fc_shape
-                        geometry_to_shape[id(geometry)] = fc_shape
-                        geometries.append(geometry)
+                        add_shape_geometry(fc_shape)
             elif shape.type == SHAPE_TYPE.CONNECTION:
                 self.__connections.append(Connection(shape))
 
@@ -159,12 +177,13 @@ class FCSlide(Slide):
         connectors = []
         for shape_id, fc_shape in self.__shapes_by_id.items():
             # Do we need a better way of detecting systems??
-            if (fc_shape.cd_class == CD_CLASS.COMPONENT
+            if (isinstance(fc_shape, Component)
             and len(fc_shape.name) > 6 and fc_shape.name == fc_shape.name.upper()):
                 fc_shape.fc_class = FC_CLASS.SYSTEM
+                fc_shape.parents.append(self.__shapes_by_id[SLIDE_LAYER_ID])    # type: ignore
+                self.__shapes_by_id[SLIDE_LAYER_ID].children.append(fc_shape)   # type: ignore
                 self.__system_ids.add(shape_id)
-                self.__add_parent(fc_shape, self.__shapes_by_id[SLIDE_LAYER_ID])
-            elif fc_shape.cd_class in [CD_CLASS.COMPONENT, CD_CLASS.CONNECTOR]:
+            else:       # Component or Connector
                 # STRtree query returns geometries whose bounding box intersects the shape's bounding box
                 intersecting_geometries: list[int] = [id for id in idx.query(fc_shape.geometry)
                                                         if not fc_shape.geometry.contains(geometries[id])
@@ -172,12 +191,19 @@ class FCSlide(Slide):
                                                             >= MIN_OVERLAP_FRACTION*fc_shape.geometry.area]
                 # Set the shape's parents, ordered by the area of its overlapping geometries,
                 # with the smallest (immediate) parent first
-                for id_area in sorted([(id(geometries[index]), geometries[index].area)
-                                        for index in intersecting_geometries], key = lambda x: x[1]):
-                    self.__add_parent(fc_shape, geometry_to_shape[id_area[0]])
-                if fc_shape.cd_class == CD_CLASS.COMPONENT:
+                containing_ids_area_order = [id_area[0]
+                    for id_area in sorted([(id(geometries[index]), geometries[index].area)
+                        for index in intersecting_geometries], key = lambda x: x[1])]
+                if isinstance(fc_shape, Component):
+                    for shape_id in containing_ids_area_order:
+                        parent = geometry_to_shape[shape_id]
+                        fc_shape.parents.append(parent)
+                        parent.children.append(fc_shape)
                     non_system_components.append(fc_shape)
-                else:
+                elif isinstance(fc_shape, Connector):
+                    parent = geometry_to_shape[containing_ids_area_order[0]]
+                    fc_shape.parent = parent
+                    parent.children.append(fc_shape)
                     connectors.append(fc_shape)
 
         # Classify connectors that are unambigously neural connectors
@@ -192,7 +218,7 @@ class FCSlide(Slide):
         # which has the component as their immediate parent
         for fc_shape in non_system_components:
             for child in fc_shape.children:
-                if child.fc_kind == FC_KIND.CONNECTOR_PORT and child.parents[0] == fc_shape:
+                if isinstance(child, Connector) and child.fc_kind == FC_KIND.CONNECTOR_PORT:
                     fc_shape.fc_class = FC_CLASS.FTU
 
         # Organs are components that are contained in at least one system and
@@ -263,7 +289,7 @@ class FCSlide(Slide):
                 if connector.shape_kind == 'leftRightArrow':
                     connector.fc_class = FC_CLASS.NEURAL
                     connector.fc_kind = FC_KIND.CONNECTOR_JOINER
-                elif len(connector.parents) and connector.parents[0].fc_class == FC_CLASS.NEURAL:
+                elif connector.parent is not None and connector.parent.fc_class == FC_CLASS.NEURAL:
                     if connector.shape_kind == 'ellipse':
                         if (kind := NEURON_KINDS.lookup(connector.colour)) is not None:
                             connector.fc_class = FC_CLASS.NEURAL
@@ -281,9 +307,11 @@ class FCSlide(Slide):
                         connector.fc_class = FC_CLASS.NEURAL
                         connector.fc_kind = FC_KIND.CONNECTOR_NODE
                         connector.description = kind
-
             if connector.fc_class != FC_CLASS.UNKNOWN:
                 self.__connection_classifier.add_connector(connector)
+            if connector.parent is None:
+                log.error(f"Connector doesn't have a parent: {connector}")
+                connector.properties['error'] = True
 
     def __add_annotation(self, annotator: Annotator):
     #================================================
@@ -304,7 +332,7 @@ class FCSlide(Slide):
             self.__shapes_by_id[id].properties.update(annotation.properties)
 
         for fc_shape in self.__shapes_by_id.values():
-            if (fc_shape.cd_class == CD_CLASS.COMPONENT
+            if (isinstance(fc_shape, Component)
             and fc_shape.id not in self.__system_ids
             and fc_shape.id not in self.__nerve_ids
             and fc_shape.id not in self.__system_ids):
@@ -327,23 +355,24 @@ class FCSlide(Slide):
                     annotation = annotator.get_ftu_annotation(organ.name, fc_shape.name, self.source_id)
                 fc_shape.properties.update(annotation.properties)
 
-    def __annotate_connector(self, connector: FCShape):
-    #==================================================
+    def __annotate_connector(self, connector: Connector):
+    #====================================================
         labels = []
         models = []
+        def set_label(parent):
+            label = f'{parent.label[0:1].capitalize()}{parent.label[1:]}'
+            if parent.models:
+                label += f' ({parent.models})'
+                models.append(parent.models)
+            labels.append(label)
 
-        def set_label_models(fc_shape):
-            if len(fc_shape.parents):
-                parent = fc_shape.parents[0]
-                labels.append(f'{parent.label[0:1].capitalize()}{parent.label[1:]}')
-                if parent.models:
-                    models.append(parent.models)
-                return parent
-        if (parent := set_label_models(connector)) is not None:
-            set_label_models(parent)
-
-        connector.properties['label'] = '/'.join(labels)
-        connector.properties['component_models'] = '/'.join(models)
+        if connector.parent is not None:
+            set_label(connector.parent)
+            if connector.parent.parents:
+                set_label(connector.parent.parents[0])
+            connector.properties['label'] = '/'.join(labels)
+            if len(models):
+                connector.properties['parent_models'] = tuple(models)
 
     def __add_connections(self):
     #===========================
