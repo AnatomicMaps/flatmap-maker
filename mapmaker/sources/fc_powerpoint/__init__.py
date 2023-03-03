@@ -153,12 +153,14 @@ class FCSlide(Slide):
                         if shape.label != '':
                             fc_shape = Annotation(shape, FC_CLASS.DESCRIPTION)
                     elif (geometry.area < MAX_CONNECTOR_AREA):
+                        fc_shape = None
                         if shape_kind.startswith('star'):
                             if (kind := HYPERLINK_KINDS.lookup(shape.colour)) is not None:
                                 fc_shape = Annotation(shape, FC_CLASS.HYPERLINK)
                                 fc_shape.fc_kind = kind
                         else:
                             fc_shape = Connector(shape)
+                        if fc_shape is not None:
                             self.__shapes_by_id[shape.id] = fc_shape
                             add_shape_geometry(fc_shape)
                     else:
@@ -175,6 +177,7 @@ class FCSlide(Slide):
         # find features which overlap them
         non_system_components = []
         connectors = []
+        hyperlinks = []
         for shape_id, fc_shape in self.__shapes_by_id.items():
             # Do we need a better way of detecting systems??
             if (isinstance(fc_shape, Component)
@@ -183,7 +186,7 @@ class FCSlide(Slide):
                 fc_shape.parents.append(self.__shapes_by_id[SLIDE_LAYER_ID])    # type: ignore
                 self.__shapes_by_id[SLIDE_LAYER_ID].children.append(fc_shape)   # type: ignore
                 self.__system_ids.add(shape_id)
-            else:       # Component or Connector
+            else:       # Component, Connector, or Annotation (Hyperlink)
                 # STRtree query returns geometries whose bounding box intersects the shape's bounding box
                 intersecting_geometries: list[int] = [id for id in idx.query(fc_shape.geometry)
                                                         if not fc_shape.geometry.contains(geometries[id])
@@ -205,6 +208,9 @@ class FCSlide(Slide):
                     fc_shape.parent = parent
                     parent.children.append(fc_shape)
                     connectors.append(fc_shape)
+                elif isinstance(fc_shape, Annotation):
+                    fc_shape.parent = geometry_to_shape[containing_ids_area_order[0]]
+                    hyperlinks.append(fc_shape)
 
         # Classify connectors that are unambigously neural connectors
         for connector in connectors:
@@ -282,6 +288,13 @@ class FCSlide(Slide):
 
             if fc_shape.fc_class == FC_CLASS.UNKNOWN:
                 self.__connection_classifier.add_component(fc_shape)
+
+        # Hyperlinks become properties of the feature they are on
+        for hyperlink in hyperlinks:
+            if (parent := hyperlink.parent) is not None:
+                kind = HYPERLINK_LABELS[hyperlink.fc_kind]
+                parent.properties[kind] = hyperlink.properties['hyperlink']
+                hyperlink.properties['exclude'] = True
 
         # Classify remaining connectors
         for connector in connectors:
