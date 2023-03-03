@@ -51,7 +51,7 @@ class JsonAnnotator(Annotator):
                                                                       properties=organ.get('properties', {})),
                                                            set(organ.get('systems', [])))
                 for nerve in annotations.get('nerves'):
-                    self.add_system_annotation(Annotation(identifier=nerve.get('id', ''),
+                    self.add_nerve_annotation(Annotation(identifier=nerve.get('id', ''),
                                                           name=nerve['name'],
                                                           term=nerve.get('term', ''),
                                                           sources=set(nerve.get('sources', [])),
