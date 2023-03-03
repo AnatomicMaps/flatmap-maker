@@ -285,8 +285,7 @@ class FCSlide(Slide):
                 elif (kind := VASCULAR_VESSEL_KINDS.lookup(fc_shape.colour)) is not None:
                     fc_shape.fc_class = FC_CLASS.VASCULAR
                     fc_shape.fc_kind = kind
-
-            if fc_shape.fc_class == FC_CLASS.UNKNOWN:
+            if fc_shape.fc_class != FC_CLASS.UNKNOWN:
                 self.__connection_classifier.add_component(fc_shape)
 
         # Hyperlinks become properties of the feature they are on
