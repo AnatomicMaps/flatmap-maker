@@ -131,6 +131,10 @@ class Annotator:
     #==================================================================
         return self.__annotations_by_id.get(identifier)
 
+    def find_term_by_names(self, *names) -> Optional[str]:
+    #=====================================================
+        pass
+
     def find_ftu_by_names(self, organ_name: str, ftu_name: str) -> Optional[Annotation]:
     #======================================================================================
         return self.__ftus_by_name_organ.get((organ_name, ftu_name))
@@ -229,6 +233,7 @@ class Annotator:
 
 from .json_annotator import JsonAnnotator
 from .xlsx_annotator import XlsxAnnotator
+from .xlsx_annotator_v2 import XlsxAnnotatorV2
 
 #===============================================================================
 
@@ -237,7 +242,10 @@ def create_annotator(annotation_file: str) -> Annotator:
     if annotation_file.endswith('.json'):
         return JsonAnnotator(annotation_file)
     elif annotation_file.endswith('.xlsx'):
-        return XlsxAnnotator(annotation_file)
+        if '-v2' in annotation_file:
+            return XlsxAnnotatorV2(annotation_file)
+        else:
+            return XlsxAnnotator(annotation_file)
     else:
         raise TypeError('Unsupported annotation file format: {annotation_file}')
 

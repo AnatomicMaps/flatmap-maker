@@ -330,42 +330,37 @@ class FCSlide(Slide):
         # Called after shapes have been extracted
         for id in self.__system_ids:
             name = self.__shapes_by_id[id].name
-            annotation = annotator.get_system_annotation(name, self.source_id)
-            self.__shapes_by_id[id].properties.update(annotation.properties)
+            if (term := annotator.find_term_by_names(name)) is not None:
+                self.__shapes_by_id[id].properties['models'] = term
         for id in self.__nerve_ids:
             if (name := self.__shapes_by_id[id].name) != '':
-                annotation = annotator.get_nerve_annotation(name, self.source_id)
-                self.__shapes_by_id[id].properties.update(annotation.properties)
+                term = annotator.find_term_by_names(name) # get_nerve_annotation(name, self.source_id)
+                if name.startswith('Inf'):
+                    print(name, term)
+                if term is not None:
+                    self.__shapes_by_id[id].properties['models'] = term
         for id in self.__organ_ids:
-            annotation = annotator.get_organ_annotation(self.__shapes_by_id[id].name, self.source_id,
-                tuple(parent.name for parent in self.__shapes_by_id[id].parents
+            if (term := annotator.find_term_by_names(self.__shapes_by_id[id].name,
+                tuple(parent.name for parent in self.__shapes_by_id[id].parents # type: ignore
                     if parent.fc_class == FC_CLASS.SYSTEM)
-                )
-            self.__shapes_by_id[id].properties.update(annotation.properties)
+                )) is not None:
+                self.__shapes_by_id[id].properties['models'] = term
 
         for fc_shape in self.__shapes_by_id.values():
             if (isinstance(fc_shape, Component)
             and fc_shape.id not in self.__system_ids
             and fc_shape.id not in self.__nerve_ids
             and fc_shape.id not in self.__system_ids):
-                self.__annotate_component(fc_shape, annotator)
+                if (term := annotator.find_term_by_names(fc_shape.name,
+                    tuple(parent.name for parent in fc_shape.parents
+                        if parent.fc_class == FC_CLASS.ORGAN)
+                    )) is not None:
+                    fc_shape.properties['models'] = term
 
         # go through all connectors and set FTU/organ for them
         for fc_shape in self.__shapes_by_id.values():
-            if fc_shape.cd_class == CD_CLASS.CONNECTOR:
+            if isinstance(fc_shape, Connector):
                 self.__annotate_connector(fc_shape)
-
-    def __annotate_component(self, fc_shape: FCShape, annotator: Annotator):
-    #=======================================================================
-        if (fc_shape.name != ''
-        and (annotation := annotator.find_annotation(fc_shape.name)) is None):
-            organs = [parent for parent in fc_shape.parents if parent.fc_class == FC_CLASS.ORGAN]
-            if len(organs):
-                organ = organs[0]
-                annotation = annotator.find_ftu_by_names(organ.name, fc_shape.name)
-                if annotation is None:
-                    annotation = annotator.get_ftu_annotation(organ.name, fc_shape.name, self.source_id)
-                fc_shape.properties.update(annotation.properties)
 
     def __annotate_connector(self, connector: Connector):
     #====================================================
@@ -396,11 +391,17 @@ class FCSlide(Slide):
                 if (connector := self.__shapes_by_id.get(connector_id)) is not None:
                     if label := connector.properties.get('label', ''):
                         end_labels.append(f'CN: {label[0:1].capitalize()}{label[1:]}')
-                    models = connector.properties['component_models'].split('/')
-                    if len(models):
-                        if len(models) == 1:
-                            models.append(None)
+                    if (models := connector.properties.get('parent_models')) is not None:
                         end_nodes.append(models)
+            for component_id in connection.intermediate_components:
+                if (component := self.__shapes_by_id.get(component_id)) is not None:
+                    if label := component.properties.get('label', ''):
+                        end_labels.append(f'NV: {label[0:1].capitalize()}{label[1:]}')
+            for connector_id in connection.intermediate_connectors:
+                if (connector := self.__shapes_by_id.get(connector_id)) is not None:
+                    if label := connector.properties.get('label', ''):
+                        end_labels.append(f'PX: {label[0:1].capitalize()}{label[1:]}')
+
             connection.properties['label'] = '\n'.join(end_labels)
 
             if self.__sckan_neurons is not None and len(end_nodes) > 1:
