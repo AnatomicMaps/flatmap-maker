@@ -33,6 +33,17 @@ from .pathways import ConnectorSet, Pathways
 #===============================================================================
 
 class ExternalProperties(object):
+def properties_exclude_feature(properties: dict) -> bool:
+    return (properties.get('exclude', False)                            # already excluded
+            or (not (settings.get('authoring', False)                   # not authoring
+                  or settings.get('functionalConnectivity', False))     # nor FC map
+                     and (properties.get('node', False)                 # exclude nodes
+                       or (not settings.get('showCentrelines', False)   # and centrelines
+                           and properties.get('centreline', False))))   # unless --show-centrelines
+           )
+
+#===============================================================================
+
     def __init__(self, flatmap, manifest):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
         self.__properties_by_class = defaultdict(dict)
@@ -211,13 +222,12 @@ class ExternalProperties(object):
             del feature_properties['label']   # So empty values doesn't get passed to the viewer
 
         # Hide network node features when not authoring or not a FC flatmap
-        if not (authoring or settings.get('functionalConnectivity', False)):
-            if (feature_properties.get('node', False)
-            or not settings.get('showCentrelines', False)
-               and feature_properties.get('centreline', False)):
-                feature_properties['invisible'] = True
-                feature_properties['exclude'] = True
-        return feature_properties
+        if properties_exclude_feature(feature_properties):
+            feature_properties['invisible'] = True
+            feature_properties['exclude'] = True
+        ## Put network features on their own MapLayer if AC map (and showCentrelines??)...
+        ## called say "Nerves" (then can remove `--show-centrelines` option??)
+        ##
 
         return feature_properties
 
