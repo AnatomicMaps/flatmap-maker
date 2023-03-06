@@ -32,7 +32,6 @@ from .pathways import ConnectorSet, Pathways
 
 #===============================================================================
 
-class ExternalProperties(object):
 def properties_exclude_feature(properties: dict) -> bool:
     return (properties.get('exclude', False)                            # already excluded
             or (not (settings.get('authoring', False)                   # not authoring
@@ -44,6 +43,7 @@ def properties_exclude_feature(properties: dict) -> bool:
 
 #===============================================================================
 
+class ExternalProperties(object):
     def __init__(self, flatmap, manifest):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
         self.__properties_by_class = defaultdict(dict)
