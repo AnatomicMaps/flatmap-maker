@@ -350,15 +350,15 @@ class RoutedPath(object):
                     if self.__trace:
                         geometry.extend(bezier_control_points(path_components[component_num], label=f'{path_id}-{component_num}'))
                     next_line_coords = bezier_to_line_coords(path_components[component_num], offset=path_offset)
-                    intermediate_geometry = component.geometry(path_source, path_id, intermediate_start,
-                                                               BezierPoint(*(next_line_coords[0] if path_offset >= 0 else next_line_coords[-1])),
+                    intermediate_geometry = component.geometry(path_source, path_id,
+                                                               intermediate_start, BezierPoint(*next_line_coords[0]),
                                                                offset=2*offset/edge_dict['max-paths'],
                                                                show_controls=self.__trace)
                     line_coords = intermediate_geometry[0]
                     geometry.extend(intermediate_geometry[1])
-                    coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
+                    coords.extend(line_coords)
                     line_coords = next_line_coords
-                    intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
+                    intermediate_start = BezierPoint(*line_coords[-1])
                 else:
                     if self.__trace:
                         geometry.extend(bezier_control_points(component, label=f'{path_id}-{component_num}'))
@@ -366,8 +366,8 @@ class RoutedPath(object):
                     if len(line_coords) == 0:
                         log.warning(f'{path_id}: offset too big for parallel path...')
                         line_coords = bezier_to_line_coords(component, offset=0)
-                    intermediate_start = BezierPoint(*(line_coords[-1] if path_offset >= 0 else line_coords[0]))
-                coords.extend(line_coords if path_offset >= 0 else reversed(line_coords))
+                    intermediate_start = BezierPoint(*line_coords[-1])
+                coords.extend(line_coords)
                 component_num += 1
             path_line = shapely.geometry.LineString(coords)
             if path_line is not None:
@@ -375,12 +375,8 @@ class RoutedPath(object):
                 path_line = path_line.simplify(SMOOTHING_TOLERANCE, preserve_topology=False)
                 geometry.append(GeometricShape(path_line, properties))
                 if edge_dict.get('type') not in ['terminal', 'upstream']:
-                    if offset >= 0:
-                        start_point = BezierPoint(*path_line.coords[0])
-                        end_point = BezierPoint(*path_line.coords[-1])
-                    else:
-                        start_point = BezierPoint(*path_line.coords[-1])
-                        end_point = BezierPoint(*path_line.coords[0])
+                    start_point = BezierPoint(*path_line.coords[0])
+                    end_point = BezierPoint(*path_line.coords[-1])
                     # Save where branch node edges will connect to offsetted path line
                     edge_dict['path-end'] = {
                         edge_dict['start-node']: start_point,
