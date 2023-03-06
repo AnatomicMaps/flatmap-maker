@@ -219,8 +219,6 @@ class ExternalProperties(object):
                 feature_properties['exclude'] = True
         return feature_properties
 
-    def update_feature_properties(self, feature):
-    #============================================
-        self.update_properties(feature.properties)
+        return feature_properties
 
 #===============================================================================

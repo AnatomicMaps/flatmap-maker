@@ -97,11 +97,10 @@ class FeatureLayer(object):
     #======================================================
         self.__annotations[feature.geojson_id] = properties
 
-    def set_feature_properties(self, map_properties):
-    #===============================================
-        # Update feature properties from JSON properties file
+    def set_feature_properties(self):
+    #================================
+        # Update feature properties
         for feature in self.__features:
-            map_properties.update_feature_properties(feature)
             if not settings.get('authoring', False):
                 if ('auto-hide' in feature.property('class', '')
                 or feature.property('type') == 'nerve' and feature.property('kind') != 'centreline'):

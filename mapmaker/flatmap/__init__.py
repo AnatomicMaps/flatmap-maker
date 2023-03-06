@@ -207,6 +207,7 @@ class FlatMap(object):
     def new_feature(self, geometry, properties, has_children=False):
     #===============================================================
         self.__last_geojson_id += 1
+        self.map_properties.update_properties(properties)   # Update from JSON properties file
         feature = Feature(self.__last_geojson_id, geometry, properties, has_children)
         self.__features[self.__last_geojson_id] = feature
         return feature
@@ -274,7 +275,7 @@ class FlatMap(object):
     #==================================
         log.info('Setting feature properties. Can take a while due to SciCrunch lookups...')
         for layer in self.__layer_dict.values():
-            layer.set_feature_properties(self.__map_properties)
+            layer.set_feature_properties()
 
     def __add_details(self):
     #=======================
@@ -318,7 +319,6 @@ class FlatMap(object):
     #=====================================================================
         extra_details = []
         for feature in lowres_features:
-            self.__map_properties.update_feature_properties(feature)
             hires_layer_id = feature.property('details')
             hires_layer = self.__layer_dict.get(hires_layer_id)
             if hires_layer is None:
