@@ -30,6 +30,7 @@ import networkx as nx
 #===============================================================================
 
 def smooth_edges(G: nx.Graph, end_nodes: Optional[list | set]=None, edge_nodes_attribute: str='edge-nodes') -> nx.MultiDiGraph:
+#==============================================================================================================================
     """
     Return a networkx.MultiGraph copy of G with all degree 2 nodes removed.
 

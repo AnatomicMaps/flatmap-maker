@@ -28,6 +28,8 @@ from mapmaker.settings import settings
 from mapmaker.utils import FilePath, log
 
 from .anatomicalmap import AnatomicalMap
+
+# Exports
 from .pathways import ConnectorSet, Pathways
 
 #===============================================================================

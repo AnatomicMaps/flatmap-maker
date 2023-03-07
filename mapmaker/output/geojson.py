@@ -77,7 +77,7 @@ class GeoJSONOutput(object):
             properties = feature.properties.copy()
             properties.pop('bezier-segments', None)   # Don't export Bezier segments
             properties.pop('pptx-shape', None)        # Don't export Powerpoint shape
-            properties.pop('svg-element', None)          # Don't export SVG path
+            properties.pop('svg-element', None)       # Don't export SVG path
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)

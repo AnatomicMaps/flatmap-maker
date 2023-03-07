@@ -327,7 +327,7 @@ class RoutedPath(object):
             of the paths.
         """
         geometry = []
-        for node_0, node_1, edge_dict in self.__graph.edges.data():
+        for node_0, node_1, edge_dict in self.__graph.edges(data=True):
             path_id = edge_dict.get('path-id')
             path_source = edge_dict.get('source')
             properties = {

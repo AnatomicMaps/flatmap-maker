@@ -500,7 +500,6 @@ class SVGTiler(object):
                     pattern = [float(d) for d in dasharray.replace(',', ' ').split()]
                     if (len(pattern) % 2) == 1:
                         pattern = 2*pattern
-                    print('dash', pattern)
                     path_effect = skia.DashPathEffect.Make(pattern, 0.0)
                 else:
                     path_effect = None
