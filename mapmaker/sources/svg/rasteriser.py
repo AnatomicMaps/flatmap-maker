@@ -708,8 +708,8 @@ class SVGTiler(object):
                     if n == (n_params - 4):
                         second_cubic_control = pt
                     coords.extend(pt)
-                    current_point = pt
                 path.cubicTo(*coords)
+                current_point = pt              # type: ignore
 
             elif cmd in ['l', 'L', 'h', 'H', 'v', 'V']:
                 if cmd in ['l', 'L']:
@@ -773,8 +773,8 @@ class SVGTiler(object):
                     if n == (n_params - 4):
                         second_quad_control = pt
                     coords.extend(pt)
-                    current_point = pt
                 path.quadTo(*coords)
+                current_point = pt              # type: ignore
 
             elif cmd in ['z', 'Z']:
                 if first_point is not None:
