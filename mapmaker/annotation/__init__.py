@@ -25,15 +25,7 @@ from typing import Any, Iterable, Optional
 
 #===============================================================================
 
-from anatomy_lookup import AnatomyLookup
-
-#===============================================================================
-
 from mapmaker.utils import log, relative_path
-
-#===============================================================================
-
-ACCEPTABLE_SCORE = 0.8   # To accept an AnatomyLookup search result
 
 #===============================================================================
 
@@ -180,16 +172,6 @@ class Annotator:
 
     def __add_annotation(self, annotation: Annotation):
     #==================================================
-        if annotation.term == '':
-            lookup = self.__anatomy_lookup.search(annotation.name)
-            if lookup[2] >= ACCEPTABLE_SCORE:
-                term = term_normalise(lookup[0])
-                annotation.term = term
-                annotation.properties.update({
-                    'models': term,
-                    'label': lookup[1],
-                    'confidence': lookup[2]
-                    })
         if annotation.identifier != '':
             if annotation.identifier in self.__annotations_by_id:
                 log.error(f'Duplicate identifier in FC annotation: {annotation.identifier}')
