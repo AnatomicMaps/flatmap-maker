@@ -25,7 +25,6 @@ from io import BytesIO, StringIO
 
 from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
-from mapmaker.properties import ConnectorSet
 from mapmaker.settings import settings
 from mapmaker.utils import log, pathlib_path, TreeList
 

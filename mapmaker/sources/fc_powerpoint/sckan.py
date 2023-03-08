@@ -21,8 +21,6 @@
 from collections import defaultdict
 from typing import Optional
 
-from pprint import pprint
-
 #===============================================================================
 
 import mapmaker.knowledgebase as knowledgebase
@@ -95,53 +93,3 @@ class SckanNeuronPopulations:
         return self.__paths_by_id.get(path_id, {}).get('label')
 
 #===============================================================================
-
-"""
-{
- 'id': 'https://apinatomy.org/uris/models/spleen',
- 'paths': [
-    {'id': 'ilxtr:neuron-type-splen-5', 'models': 'ilxtr:neuron-type-splen-5'},
-    {'id': 'ilxtr:neuron-type-splen-4', 'models': 'ilxtr:neuron-type-splen-4'},
-    {'id': 'ilxtr:neuron-type-splen-3', 'models': 'ilxtr:neuron-type-splen-3'},
-    {'id': 'ilxtr:neuron-type-splen-1', 'models': 'ilxtr:neuron-type-splen-1'},
-    {'id': 'ilxtr:neuron-type-splen-2', 'models': 'ilxtr:neuron-type-splen-2'}
-  ],
- 'references': [
-    'PMID:32061636',
-    'PMID:14565534',
-    'PMID:33491187',
-    'PMID:24411268',
-    'splen:0'
-  ],
- 'label': 'https://apinatomy.org/uris/models/spleen'}
-
-
-
-{
- 'id': 'ilxtr:neuron-type-splen-1',
- 'label': 'neuron type splen 1',
- 'long-label': 'neuron type splen 1',
- 'references': [],
- 'axons': [
-    ['ILX:0793082', []]
- ],
- 'dendrites': [
-    ['UBERON:0006456', []],
-    ['UBERON:0006453', []],
-    ['UBERON:0006455', []],
-    ['UBERON:0006454', []]
- ],
- 'connectivity': [
-    [ ['UBERON:0018680', []], ['ILX:0793082', []] ],
-    [ ['UBERON:0006456', []], ['UBERON:0018680', []] ],
-    [ ['UBERON:0006453', []], ['UBERON:0018680', []] ],
-    [ ['UBERON:0006455', []], ['UBERON:0018680', []] ],
-    [ ['UBERON:0006454', []], ['UBERON:0018680', []] ]
- ],
- 'errors': [],
- 'phenotypes': [
-    'ilxtr:PreGanglionicPhenotype',
-    'ilxtr:SympatheticPhenotype'
-  ]
-}
-"""
