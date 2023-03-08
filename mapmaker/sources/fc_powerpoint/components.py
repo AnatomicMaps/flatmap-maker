@@ -89,10 +89,10 @@ class FC_CLASS(enum.IntFlag):
 
 #===============================================================================
 
-HYPERLINK_LABELS = {
-    FC_KIND.HYPERLINK_WIKIPEDIA:  'Wikipedia',
-    FC_KIND.HYPERLINK_PUBMED:     'PubMed',
-    FC_KIND.HYPERLINK_PROVENANCE: 'Provenance',
+HYPERLINK_IDENTIFIERS = {
+    FC_KIND.HYPERLINK_WIKIPEDIA:  'wikipedia',
+    FC_KIND.HYPERLINK_PUBMED:     'pubmed',
+    FC_KIND.HYPERLINK_PROVENANCE: 'provenance',
 }
 
 HYPERLINK_KINDS = ColourMatcherDict({
@@ -171,6 +171,7 @@ class FCShape:
     def __post_init__(self):
     #=======================
         self.properties['name'] = self.properties.pop('name', '').replace('\t', '|').strip()
+        self.properties['hyperlinks'] = []
 
     def __str__(self):
         shape_kind = self.properties.get('shape-kind', '')

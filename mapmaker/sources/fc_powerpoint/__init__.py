@@ -44,7 +44,7 @@ from ..powerpoint.colour import ColourTheme
 
 from .components import Annotation, Component, Connection, Connector, FCShape
 from .components import CD_CLASS, FC_CLASS, FC_KIND
-from .components import HYPERLINK_KINDS, HYPERLINK_LABELS
+from .components import HYPERLINK_KINDS, HYPERLINK_IDENTIFIERS
 from .components import NERVE_FEATURE_KINDS, NEURON_PATH_TYPES
 from .components import ORGAN_COLOUR, ORGAN_KINDS
 from .components import VASCULAR_KINDS, VASCULAR_REGION_COLOUR, VASCULAR_VESSEL_KINDS
@@ -291,8 +291,10 @@ class FCSlide(Slide):
         # Hyperlinks become properties of the feature they are on
         for hyperlink in hyperlinks:
             if (parent := hyperlink.parent) is not None:
-                kind = HYPERLINK_LABELS[hyperlink.fc_kind]
-                parent.properties[kind] = hyperlink.properties['hyperlink']
+                parent.properties['hyperlinks'].append({
+                    'id': HYPERLINK_IDENTIFIERS[hyperlink.fc_kind],
+                    'url': hyperlink.properties['hyperlink']
+                })
                 hyperlink.properties['exclude'] = True
 
         # Classify remaining connectors
