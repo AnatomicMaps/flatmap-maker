@@ -30,13 +30,14 @@ import shapely.strtree
 
 #===============================================================================
 
+from mapmaker.properties.pathways import PATH_TYPE
 from mapmaker.sources import PATHWAYS_TILE_LAYER
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
 from .components import Component, Connection, Connector
 from .components import CD_CLASS, FC_KIND, FC_CLASS
-from .components import NEURON_KINDS, VASCULAR_KINDS
+from .components import NEURON_PATH_TYPES, VASCULAR_KINDS
 from .components import MAX_CONNECTION_GAP
 
 #===============================================================================
@@ -261,28 +262,26 @@ class ConnectionClassifier:
 
         connection.fc_class = connector.fc_class
 
-        def check_and_set_description(lookup_table):
-            connection.description = lookup_table.lookup(connection.colour)
+        if connection.fc_class == FC_CLASS.NEURAL:
+            connection.fc_kind = FC_KIND.NEURON
+            if (path_type := NEURON_PATH_TYPES.lookup(connection.colour)) is not None:
+                if connector.fc_kind in NODE_CONNECTORS and path_type != connector.path_type:
+                    log.error(f"Connection type doesn't match connector {connection.colour}/{path_type} != {connector.colour}/{connector.path_type}")
+                if path_type in [PATH_TYPE.PARASYMPATHETIC, PATH_TYPE.SYMPATHETIC]:
+                    line_style = connection.properties.get('line-style', '').lower()
+                    path_type |= (PATH_TYPE.PRE_GANGLIONIC if 'dot' in line_style or 'dash' in line_style
+                             else PATH_TYPE.POST_GANGLIONIC)
+                connection.path_type = path_type
+                connection.properties['kind'] = str(path_type)
+                connection.properties['type'] = 'line-dash' if connection.properties['kind'].endswith('-post') else 'line'
+            else:
+                log.error(f"Connection colour ({connection.colour}) doesn't neuron types: {connection}")
+            connection.properties['stroke-width'] = 1.0
+        elif connection.fc_class == FC_CLASS.VASCULAR:
+            connection.description = VASCULAR_KINDS.lookup(connection.colour)       # type: ignore
             if (connector.fc_kind in NODE_CONNECTORS
             and connection.description != connector.description):
                 log.error(f"Connection colour doesn't match connector {connection.colour}/{connection.description} != {connector.colour}/{connector.description}")
-
-        if connection.fc_class == FC_CLASS.NEURAL:
-            connection.fc_kind = FC_KIND.NEURON
-            check_and_set_description(NEURON_KINDS)
-            line_style = connection.properties.get('line-style', '').lower()
-            ganglionic = 'pre' if 'dot' in line_style or 'dash' in line_style else 'post'
-            if connection.description in ['sympathetic', 'parasympathetic']:
-                connection.description += f'-{ganglionic}'
-            if '-' in connection.description:
-                parts = connection.description.split('-', 1)
-                connection.properties['kind'] = f'{parts[0][:4]}-{parts[1]}'
-            else:
-                connection.properties['kind'] = connection.description
-            connection.properties['type'] = 'line-dash' if connection.properties['kind'].endswith('-post') else 'line'
-            connection.properties['stroke-width'] = 1.0
-        elif connection.fc_class == FC_CLASS.VASCULAR:
-            check_and_set_description(VASCULAR_KINDS)
             connection.properties['kind'] = connection.description
             connection.properties['type'] = 'line'
             connection.properties['stroke-width'] = connection.properties.get('stroke-width',
@@ -298,9 +297,7 @@ class ConnectionClassifier:
                         if len(neighbours := list(self.__neural_graph.neighbors(connector_id))):
                             # This is assuming we have two ends to the connection we are joining to.....
                             join_connection = self.__neural_graph.edge(connector_id, neighbours[0])['connection']
-                            if join_connection.description.split('-')[0] != connection.description.split('-')[0]:
-                                log.error(f'Neuron connections cannot be joined: {connection} and {join_connection}')
-                            elif join_connection.description == connection.description:   # Both will be pre- or post-
+                            if join_connection.path_type == connection.path_type:   # Both will be pre- or post-
                                 # Make sure the the connection ends being joined have the same direction
                                 join0_coords = connection.geometry.coords
                                 coord_index = connection_end_index[connector_id]
@@ -345,7 +342,6 @@ class ConnectionClassifier:
         connection.intermediate_components = list(self.__crossed_component(connection))
         if connection.fc_class == FC_CLASS.NEURAL:
             self.__neural_graph.add_connection(connection)
-            connection.properties['type'] = 'line-dash' if connection.properties['kind'].endswith('-post') else 'line'
         elif connection.fc_class == FC_CLASS.VASCULAR:
             self.__vascular_graph.add_connection(connection)
 

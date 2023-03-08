@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 from collections import defaultdict
+import enum
 from typing import Any, Optional
 
 #===============================================================================
@@ -95,37 +96,88 @@ def parse_nerves(node_id_string):
 
 #===============================================================================
 
-PATH_TYPES = {
-    'ilxtr:MotorPhenotype': 'somatic',    ## Rename to 'motor' but will need viewer update...
-    'ilxtr:ParasympatheticPhenotype': 'para',
-    'ilxtr:SensoryPhenotype': 'sensory',
-    'ilxtr:SympatheticPhenotype': 'symp',
-    'ilxtr:IntrinsicPhenotype': 'lcn',
-    'ilxtr:SpinalCordAscendingProjectionPhenotype': 'cns',
-    'ilxtr:SpinalCordDescendingProjectionPhenotype': 'cns',
-    'ilxtr:EntericPhenotype': 'enteric',
-    'ilxtr:IntestinoFugalProjectionPhenotype': 'intestine',
-    'ILX:0104003': 'excitatory',
-    'ILX:0105486': 'inhibitory'
+class PATH_TYPE(enum.IntFlag):
+    UNKNOWN             = 0
+    #
+    CNS                 = 1
+    ENTERIC             = 2
+    EXCITORY            = 3
+    INHIBITORY          = 4
+    INTESTIONO_FUGAL    = 5
+    INTRINSIC           = 6
+    MOTOR               = 7
+    PARASYMPATHETIC     = 8
+    SENSORY             = 9
+    SPINAL_ASCENDING    = 10
+    SPINAL_DESCENDING   = 11
+    SYMPATHETIC         = 12
+    # These can be or'd with the above
+    POST_GANGLIONIC     = 32
+    PRE_GANGLIONIC      = 64
+    # Mask out PRE/POST status
+    MASK_PRE_POST       = 31
+    MASK_PATH_TYPE      = 96
+
+    @staticmethod
+    def __path_name(path_type):
+        return {
+            PATH_TYPE.UNKNOWN: 'unknown',
+            PATH_TYPE.CNS: 'cns',
+            PATH_TYPE.ENTERIC: 'enteric',
+            PATH_TYPE.EXCITORY: 'excitatory',
+            PATH_TYPE.INHIBITORY: 'inhibitory',
+            PATH_TYPE.INTESTIONO_FUGAL: 'intestine',
+            PATH_TYPE.INTRINSIC: 'lcn',
+            PATH_TYPE.MOTOR: 'somatic',     ## Rename to 'motor' but will need viewer update...
+            PATH_TYPE.PARASYMPATHETIC: 'para',
+            PATH_TYPE.SENSORY: 'sensory',
+            PATH_TYPE.SPINAL_ASCENDING: 'cns',
+            PATH_TYPE.SPINAL_DESCENDING: 'cns',
+            PATH_TYPE.SYMPATHETIC: 'symp',
+            PATH_TYPE.POST_GANGLIONIC: 'post',
+            PATH_TYPE.PRE_GANGLIONIC: 'pre'
+        }[path_type]
+
+    def __str__(self):
+        if (pre_post := (self & PATH_TYPE.MASK_PATH_TYPE).value):
+            return f'{self.__path_name(self & PATH_TYPE.MASK_PRE_POST)}-{self.__path_name(pre_post)}'
+        else:
+            return self.__path_name(self)
+
+#===============================================================================
+
+PATH_TYPE_BY_PHENOTYPE = {
+    'ilxtr:MotorPhenotype':                             PATH_TYPE.MOTOR,
+    'ilxtr:ParasympatheticPhenotype':                   PATH_TYPE.PARASYMPATHETIC,
+    'ilxtr:SensoryPhenotype':                           PATH_TYPE.SENSORY,
+    'ilxtr:SympatheticPhenotype':                       PATH_TYPE.SYMPATHETIC,
+    'ilxtr:IntrinsicPhenotype':                         PATH_TYPE.INTRINSIC,
+    'ilxtr:SpinalCordAscendingProjectionPhenotype':     PATH_TYPE.SPINAL_ASCENDING,
+    'ilxtr:SpinalCordDescendingProjectionPhenotype':    PATH_TYPE.SPINAL_DESCENDING,
+    'ilxtr:EntericPhenotype':                           PATH_TYPE.ENTERIC,
+    'ilxtr:IntestinoFugalProjectionPhenotype':          PATH_TYPE.INTESTIONO_FUGAL,
+    'ILX:0104003':                                      PATH_TYPE.EXCITORY,
+    'ILX:0105486':                                      PATH_TYPE.INHIBITORY
 }
 
-PATH_ORDER = {
-    'ilxtr:PostGanglionicPhenotype': 'post',
-    'ilxtr:PreGanglionicPhenotype': 'pre',
+PATH_ORDER_BY_PHENOTYPE = {
+    'ilxtr:PostGanglionicPhenotype':    PATH_TYPE.POST_GANGLIONIC,
+    'ilxtr:PreGanglionicPhenotype':     PATH_TYPE.PRE_GANGLIONIC,
 }
 
-def path_type_from_phenotypes(phenotypes):
-#=========================================
-    path_type = []
+def path_type_from_phenotypes(phenotypes) -> PATH_TYPE:
+#======================================================
+    path_type = PATH_TYPE.UNKNOWN
     for phenotype in phenotypes:
-        if phenotype in PATH_TYPES:
-            path_type.append(PATH_TYPES[phenotype])
+        if (path_type := PATH_TYPE_BY_PHENOTYPE.get(phenotype, PATH_TYPE.UNKNOWN)) != PATH_TYPE.UNKNOWN:
             break
+    if path_type == PATH_TYPE.UNKNOWN:
+        return path_type
     for phenotype in phenotypes:
-        if phenotype in PATH_ORDER:
-            path_type.append(PATH_ORDER[phenotype])
-            break
-    return '-'.join(path_type)
+        if (path_order := PATH_ORDER_BY_PHENOTYPE.get(phenotype)) is not None:
+            return path_type | path_order
+    return path_type
+
 
 #===============================================================================
 
@@ -244,7 +296,7 @@ class ResolvedPathways:
         self.__feature_map = feature_map
         self.__paths: dict[str, ResolvedPath] = defaultdict(ResolvedPath)  #! Paths by :class:`ResolvedPath`\ s
         self.__node_paths: dict[int, set[str]] = defaultdict(set)     #! Paths by node
-        self.__type_paths: dict[str, set[str]] = defaultdict(set)     #! Paths by path type
+        self.__type_paths: dict[PATH_TYPE, set[str]] = defaultdict(set)     #! Paths by path type
 
     @property
     def node_paths(self):
@@ -258,7 +310,7 @@ class ResolvedPathways:
 
     @property
     def type_paths(self):
-        return { typ: list(paths) for typ, paths in self.__type_paths.items() }
+        return { str(typ): list(paths) for typ, paths in self.__type_paths.items() }
 
     def __resolve_nodes_for_path(self, path_id, nodes):
         node_ids = []
@@ -274,24 +326,22 @@ class ResolvedPathways:
         return node_ids
 
     def add_connectivity(self, path_id: str, geojson_id: int,
-                         model: str, path_type: str,
+                         model: str, path_type: PATH_TYPE,
                          node_feature_ids: list[Feature], nerve_features: list[Feature]):
         resolved_path = self.__paths[path_id]
         if model is not None:
             resolved_path.set_model_id(model)
-        if path_type is not None:
-            self.__type_paths[path_type].add(path_id)
+        self.__type_paths[path_type].add(path_id)
         resolved_path.extend_nodes(self.__resolve_nodes_for_path(path_id, node_feature_ids))
         resolved_path.extend_lines([geojson_id])
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
 
-    def add_pathway(self, path_id: str, model: Optional[str], path_type: Optional[str],
+    def add_pathway(self, path_id: str, model: Optional[str], path_type: PATH_TYPE,
                     route: Route, lines: list[str], nerves: list[str]):
         resolved_path = self.__paths[path_id]
         if model is not None:
             resolved_path.set_model_id(model)
-        if path_type is not None:
-            self.__type_paths[path_type].add(path_id)
+        self.__type_paths[path_type].add(path_id)
         resolved_path.extend_nodes(
             self.__resolve_nodes_for_path(path_id, route.start_nodes)
           + self.__resolve_nodes_for_path(path_id, route.through_nodes)
@@ -362,7 +412,7 @@ class Path:
         self.__label = None
         self.__models = path.get('models')
         self.__nerves = list(parse_nerves(path.get('nerves')))
-        self.__path_type = path.get('type')
+        self.__path_type = PATH_TYPE.UNKNOWN
         self.__route = None
         self.__trace = trace
 
@@ -373,9 +423,9 @@ class Path:
                 # Construct a graph of SciCrunch's connected pairs
                 phenotypes = knowledge.get('phenotypes', [])
                 self.__path_type = path_type_from_phenotypes(phenotypes)
-                if self.__path_type == '':
+                if self.__path_type == PATH_TYPE.UNKNOWN:
                     log.warning(f'SCKAN knowledge error: {self.__id} phenotype {phenotypes} is unknown, defaulting to CNS')
-                    self.__path_type = 'cns'
+                    self.__path_type = PATH_TYPE.CNS
                 G = nx.Graph()
                 ##node_type_finder = NodeTypeFinder(knowledge.get('axons', []),
                 ##                                  knowledge.get('dendrites', []),
@@ -519,7 +569,7 @@ class Pathways:
         self.__paths_by_nerve_id = defaultdict(list)
         self.__resolved_pathways = None
         self.__routes_by_path_id = {}
-        self.__type_by_path_id = {}
+        self.__type_by_path_id: dict[str, PATH_TYPE] = {}
         self.__path_models_by_id: dict[str, str] = {}
         self.__connectivity_by_path_id = {}
         self.__connectivity_models = []
@@ -573,7 +623,7 @@ class Pathways:
     #====================================
         properties = {}
         if path_id in self.__type_by_path_id:
-            kind = self.__type_by_path_id[path_id]
+            kind = str(self.__type_by_path_id[path_id])
             properties.update({
                 'kind': kind,
                  ## Can we just put this into `kind` and have viewer work out if dashed??
@@ -643,8 +693,7 @@ class Pathways:
             nerves_by_path_id[path.id] = path.nerves
             if path.models is not None:
                 self.__path_models_by_id[path.id] = path.models
-            if path.path_type is not None:
-                self.__type_by_path_id[path.id] = path.path_type
+            self.__type_by_path_id[path.id] = path.path_type
             if path.route is not None:
                 self.__routes_by_path_id[path.id] = path.route
 
@@ -695,7 +744,7 @@ class Pathways:
                 path_id = properties.pop('path-id', None)
                 if properties.get('type') == 'junction':
                     if path_id in self.__type_by_path_id:
-                        properties['kind'] = self.__type_by_path_id[path_id]
+                        properties['kind'] = str(self.__type_by_path_id[path_id])
                     path_id = None      # Junctions aren't a paths
                 elif path_id is not None:
                     path = paths_by_id[path_id]

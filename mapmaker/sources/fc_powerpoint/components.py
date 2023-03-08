@@ -24,6 +24,7 @@ from typing import Optional
 
 #===============================================================================
 
+from mapmaker.properties.pathways import PATH_TYPE
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 
 from .colours import ColourMatcher, ColourMatcherDict
@@ -112,17 +113,17 @@ ORGAN_COLOUR = ColourMatcher('#D0CECE')
 
 #===============================================================================
 
-NEURON_KINDS = ColourMatcherDict({
+NEURON_PATH_TYPES = ColourMatcherDict({
     # small rect, small ellipse, line
-    '#FF0000': "sympathetic",               # red
-    '#EA3323': "sympathetic",               # red
-    '#548235': "parasympathetic",           # green
-    '#5E813F': "parasympathetic",           # green
-    '#0070C0': "sensory",                   # blue
-    '#2F6EBA': "sensory",                   # blue
-    '#4472C4': "sensory",                   # blue
-    '#DE8344': "intracardiac",              # orange
-    '#68349A': "motor",                     # purple
+    '#FF0000': PATH_TYPE.SYMPATHETIC,       # red
+    '#EA3323': PATH_TYPE.SYMPATHETIC,       # red
+    '#548235': PATH_TYPE.PARASYMPATHETIC,   # green
+    '#5E813F': PATH_TYPE.PARASYMPATHETIC,   # green
+    '#0070C0': PATH_TYPE.SENSORY,           # blue
+    '#2F6EBA': PATH_TYPE.SENSORY,           # blue
+    '#4472C4': PATH_TYPE.SENSORY,           # blue
+    '#DE8344': PATH_TYPE.INTRINSIC,         # orange
+    '#68349A': PATH_TYPE.MOTOR,             # purple
 })
 
 # Communicating branches are gradients...
@@ -266,6 +267,7 @@ class Connector(FCShape):
         super().__init__(shape)
         self.cd_class = CD_CLASS.CONNECTOR
         self.parent: Optional[Component] = None
+        self.path_type: PATH_TYPE = PATH_TYPE.UNKNOWN
 
 #===============================================================================
 
@@ -275,5 +277,6 @@ class Connection(FCShape):
         self.cd_class = CD_CLASS.CONNECTION
         self.connector_ids: list[str] = []
         self.intermediate_connectors: list[str] = []
+        self.path_type: PATH_TYPE = PATH_TYPE.UNKNOWN
 
 #===============================================================================

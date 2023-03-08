@@ -45,7 +45,7 @@ from ..powerpoint.colour import ColourTheme
 from .components import Annotation, Component, Connection, Connector, FCShape
 from .components import CD_CLASS, FC_CLASS, FC_KIND
 from .components import HYPERLINK_KINDS, HYPERLINK_LABELS
-from .components import NERVE_FEATURE_KINDS, NEURON_KINDS
+from .components import NERVE_FEATURE_KINDS, NEURON_PATH_TYPES
 from .components import ORGAN_COLOUR, ORGAN_KINDS
 from .components import VASCULAR_KINDS, VASCULAR_REGION_COLOUR, VASCULAR_VESSEL_KINDS
 from .connections import ConnectionClassifier
@@ -215,10 +215,10 @@ class FCSlide(Slide):
         # Classify connectors that are unambigously neural connectors
         for connector in connectors:
             if (connector.shape_kind == 'rect'
-            and (neuron_kind := NEURON_KINDS.lookup(connector.colour)) is not None):
+            and (neuron_type := NEURON_PATH_TYPES.lookup(connector.colour)) is not None):
                 connector.fc_class = FC_CLASS.NEURAL
                 connector.fc_kind = FC_KIND.CONNECTOR_PORT
-                connector.description = neuron_kind
+                connector.path_type = neuron_type
 
         # Classify as FTUs those components that have a neural connector port
         # which has the component as their immediate parent
@@ -303,10 +303,10 @@ class FCSlide(Slide):
                     connector.fc_kind = FC_KIND.CONNECTOR_JOINER
                 elif connector.parent is not None and connector.parent.fc_class == FC_CLASS.NEURAL:
                     if connector.shape_kind == 'ellipse':
-                        if (kind := NEURON_KINDS.lookup(connector.colour)) is not None:
+                        if (path_type := NEURON_PATH_TYPES.lookup(connector.colour)) is not None:
                             connector.fc_class = FC_CLASS.NEURAL
                             connector.fc_kind = FC_KIND.CONNECTOR_NODE
-                            connector.description = kind
+                            connector.path_type = path_type
                     elif connector.shape_kind == 'plus':
                         connector.fc_class = FC_CLASS.NEURAL
                         connector.fc_kind = FC_KIND.CONNECTOR_THROUGH
@@ -315,10 +315,10 @@ class FCSlide(Slide):
                         connector.fc_class = FC_CLASS.VASCULAR
                         connector.fc_kind = FC_KIND.CONNECTOR_NODE
                         connector.description = kind
-                    elif (kind := NEURON_KINDS.lookup(connector.colour)) is not None:
+                    elif (path_type := NEURON_PATH_TYPES.lookup(connector.colour)) is not None:
                         connector.fc_class = FC_CLASS.NEURAL
                         connector.fc_kind = FC_KIND.CONNECTOR_NODE
-                        connector.description = kind
+                        connector.path_type = path_type
             if connector.fc_class != FC_CLASS.UNKNOWN:
                 self.__connection_classifier.add_connector(connector)
             if connector.parent is None:
