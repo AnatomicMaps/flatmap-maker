@@ -80,7 +80,6 @@ class Annotator:
         self.__ftus_by_name_organ: dict[tuple[str, str], Annotation] = {}                 #! (Organ, FTU name) -> Annotation
         self.__annotations_by_id: dict[str, Annotation] = {}
         self.__connectivity: list = []  ## networkx.Graph()   ???
-        self.__anatomy_lookup = AnatomyLookup()
         self.load()
 
     @property
