@@ -37,12 +37,12 @@ from .utils import svg_markup
 
 if TYPE_CHECKING:
     from mapmaker.flatmap import FeatureMap
-    from mapmaker.properties import ExternalProperties
+    from mapmaker.properties import PropertiesStore
 
 #===============================================================================
 
 class SVGCleaner(object):
-    def __init__(self, svg_file: FilePath, properties_store: Optional[ExternalProperties]=None, feature_map: Optional[FeatureMap]=None, all_layers: bool=True):
+    def __init__(self, svg_file: FilePath, properties_store: Optional[PropertiesStore]=None, feature_map: Optional[FeatureMap]=None, all_layers: bool=True):
         self.__svg = etree.parse(svg_file.get_fp())
         self.__properties_store = properties_store
         self.__feature_map = feature_map

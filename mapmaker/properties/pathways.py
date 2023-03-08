@@ -521,7 +521,7 @@ class ConnectivityModel:
 
 #===============================================================================
 
-class ConnectorSet:
+class ConnectionSet:
     def __init__(self, model_id):
         self.__id = model_id
         self.__connectors: dict[str, str] = {}
@@ -575,7 +575,7 @@ class Pathways:
         self.__connectivity_models = []
         self.__feature_map = None
         self.__active_nerve_ids: set[str] = set()   ### Manual layout only???
-        self.__connector_sets: list[ConnectorSet] = []
+        self.__connection_sets: list[ConnectionSet] = []
         self.add_connectivity({'paths': paths_list})
 
     @staticmethod
@@ -602,18 +602,18 @@ class Pathways:
             connectivity['paths'] = self.__resolved_pathways.paths_dict
             connectivity['node-paths'] = self.__resolved_pathways.node_paths
             connectivity['type-paths'] = self.__resolved_pathways.type_paths
-        for connector_set in self.__connector_sets:
-            connector_set_dict = connector_set.as_dict()
-            connectivity['models'].extend(connector_set_dict['models'])
-            connectivity['paths'].update(connector_set_dict['paths'])
-            connectivity['node-paths'].update(connector_set_dict['node-paths'])
-            connectivity['type-paths'].update(connector_set_dict['type-paths'])
+        for connection_set in self.__connection_sets:
+            connection_set_dict = connection_set.as_dict()
+            connectivity['models'].extend(connection_set_dict['models'])
+            connectivity['paths'].update(connection_set_dict['paths'])
+            connectivity['node-paths'].update(connection_set_dict['node-paths'])
+            connectivity['type-paths'].update(connection_set_dict['type-paths'])
         return connectivity
 
-    def add_connector_set(self, connector_set):
-    #==========================================
-        if len(connector_set):
-            self.__connector_sets.append(connector_set)
+    def add_connection_set(self, connection_set):
+    #============================================
+        if len(connection_set):
+            self.__connection_sets.append(connection_set)
 
     def set_feature_map(self, feature_map):
     #======================================

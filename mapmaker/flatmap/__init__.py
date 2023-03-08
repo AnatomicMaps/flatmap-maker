@@ -36,7 +36,7 @@ from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import normalised_coords
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.knowledgebase import get_knowledge
-from mapmaker.properties import ConnectorSet, ExternalProperties
+from mapmaker.properties import ConnectionSet, PropertiesStore
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
@@ -59,7 +59,7 @@ class FlatMap(object):
         self.__feature_map = None
         self.__annotations = {}
         self.__annotator = annotator
-        self.__connection_set = ConnectorSet('connections')
+        self.__connection_set = ConnectionSet('connections')
 
     def __len__(self):
         return self.__visible_layer_count
@@ -157,7 +157,7 @@ class FlatMap(object):
         self.__entities = set()
 
         # Properties about map features
-        self.__map_properties = ExternalProperties(self, self.__manifest)
+        self.__map_properties = PropertiesStore(self, self.__manifest)
 
         self.__layer_dict = OrderedDict()
         self.__visible_layer_count = 0
@@ -179,8 +179,8 @@ class FlatMap(object):
         self.__set_feature_properties()
         # Initialise geographical search for annotated features
         self.__setup_feature_search()
-        # Add manual connections into the maps paths
-        self.map_properties.pathways.add_connector_set(self.__connection_set)
+        # Add manual connections into the map's paths
+        self.map_properties.pathways.add_connection_set(self.__connection_set)
         # Generate metadata with connection information
         self.__resolve_connectivity()
         # Set creation time

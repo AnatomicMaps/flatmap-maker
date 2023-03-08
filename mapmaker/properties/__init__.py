@@ -30,7 +30,7 @@ from mapmaker.utils import FilePath, log
 from .anatomicalmap import AnatomicalMap
 
 # Exports
-from .pathways import ConnectorSet, Pathways
+from .pathways import ConnectionSet, Pathways
 
 #===============================================================================
 
@@ -45,7 +45,7 @@ def properties_exclude_feature(properties: dict) -> bool:
 
 #===============================================================================
 
-class ExternalProperties(object):
+class PropertiesStore(object):
     def __init__(self, flatmap, manifest):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
         self.__properties_by_class = defaultdict(dict)

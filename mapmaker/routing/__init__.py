@@ -78,7 +78,7 @@ from .routedpath import IntermediateNode, PathRouter, RoutedPath
 #===============================================================================
 
 if TYPE_CHECKING:
-    from mapmaker.properties import ExternalProperties
+    from mapmaker.properties import PropertiesStore
     from mapmaker.properties.pathways import Path
 
 #===============================================================================
@@ -172,7 +172,7 @@ class NetworkNode:
 #===============================================================================
 
 class Network(object):
-    def __init__(self, network: dict, external_properties: Optional[ExternalProperties]=None):
+    def __init__(self, network: dict, external_properties: Optional[PropertiesStore]=None):
         self.__id = network.get('id')
         self.__type = network.get('type')
 
