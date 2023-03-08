@@ -53,8 +53,6 @@ from mapmaker.sources import EMU_PER_METRE, MapBounds, WORLD_METRES_PER_PIXEL, W
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log, TreeList
 
-from ..fc_powerpoint.components import FC_CLASS
-
 from .colour import ColourPair, ColourMap
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
 from .powerpoint import Powerpoint, Slide
@@ -283,9 +281,9 @@ class SvgFromSlide:
         shape.properties.pop('messages', None)
 
         exclude_shape = (shape.type != SHAPE_TYPE.FEATURE
-                      or shape.properties.get('fc-class') != FC_CLASS.DESCRIPTION)
+                      or shape.properties.get('fc-class') != 'FC_CLASS.DESCRIPTION')
 
-        exclude_text = shape.properties.get('fc-class') != FC_CLASS.SYSTEM
+        exclude_text = shape.properties.get('fc-class') != 'FC_CLASS.SYSTEM'
 
         svg_text = None
         label = None

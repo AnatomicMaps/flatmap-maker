@@ -186,7 +186,7 @@ class FCShape:
     @cd_class.setter
     def cd_class(self, cls):
         self.__cd_class = cls
-        self.properties['cd-class'] = cls
+        self.properties['cd-class'] = str(cls)
 
     @property
     def fc_class(self):
@@ -195,7 +195,7 @@ class FCShape:
     @fc_class.setter
     def fc_class(self, cls):
         self.__fc_class = cls
-        self.properties['fc-class'] = cls
+        self.properties['fc-class'] = str(cls)
 
     @property
     def fc_kind(self):
@@ -204,7 +204,7 @@ class FCShape:
     @fc_kind.setter
     def fc_kind(self, kind):
         self.__fc_kind = kind
-        self.properties['fc-kind'] = kind
+        self.properties['fc-kind'] = str(kind)
 
     @property
     def feature_id(self) -> Optional[str]:

@@ -80,7 +80,7 @@ class PowerpointLayer(MapLayer):
         if settings.get('functionalConnectivity', False):
             for feature in self.features:
                 if (feature.property('shape-type') == 'connection'
-                and feature.property('fc-class') in [FC_CLASS.NEURAL, FC_CLASS.VASCULAR]):
+                and feature.property('fc-class') in ['FC_CLASS.NEURAL', 'FC_CLASS.VASCULAR']):
                     self.source.flatmap.connection_set.add(
                         feature.properties['shape-id'],
                         feature.properties['kind'],
