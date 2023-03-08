@@ -150,7 +150,7 @@ class FCSlide(Slide):
                 if outer_geometry.contains(geometry):
                     shape_kind = shape.properties.get('shape-kind', '')
                     if shape.colour is None:
-                        if shape.label != '':
+                        if shape.name != '':
                             fc_shape = Annotation(shape, FC_CLASS.DESCRIPTION)
                     elif (geometry.area < MAX_CONNECTOR_AREA):
                         fc_shape = None
@@ -364,14 +364,14 @@ class FCSlide(Slide):
 
     def __annotate_connector(self, connector: Connector):
     #====================================================
-        labels = []
+        names = []
         models = []
         def set_label(parent):
-            label = f'{parent.label[0:1].capitalize()}{parent.label[1:]}'
+            name = f'{parent.name[0:1].capitalize()}{parent.name[1:]}'
             if parent.models:
-                label += f' ({parent.models})'
+                name += f' ({parent.models})'
                 models.append(parent.models)
-            labels.append(label)
+            names.append(name)
 
         if connector.parent is not None:
             set_label(connector.parent)
@@ -385,22 +385,22 @@ class FCSlide(Slide):
     #===========================
         for connection in self.__connections:
             self.__connection_classifier.add_connection(connection)
-            end_labels = []
+            end_names = []
             end_nodes = []
             for connector_id in connection.connector_ids:
                 if (connector := self.__shapes_by_id.get(connector_id)) is not None:
-                    if label := connector.properties.get('label', ''):
-                        end_labels.append(f'CN: {label[0:1].capitalize()}{label[1:]}')
+                    if name := connector.properties.get('name', ''):
+                        end_names.append(f'CN: {name[0:1].capitalize()}{name[1:]}')
                     if (models := connector.properties.get('parent_models')) is not None:
                         end_nodes.append(models)
             for component_id in connection.intermediate_components:
                 if (component := self.__shapes_by_id.get(component_id)) is not None:
-                    if label := component.properties.get('label', ''):
-                        end_labels.append(f'NV: {label[0:1].capitalize()}{label[1:]}')
+                    if name := component.properties.get('name', ''):
+                        end_names.append(f'NV: {name[0:1].capitalize()}{name[1:]}')
             for connector_id in connection.intermediate_connectors:
                 if (connector := self.__shapes_by_id.get(connector_id)) is not None:
-                    if label := connector.properties.get('label', ''):
-                        end_labels.append(f'PX: {label[0:1].capitalize()}{label[1:]}')
+                    if name := connector.properties.get('name', ''):
+                        end_names.append(f'PX: {name[0:1].capitalize()}{name[1:]}')
 
             connection.properties['label'] = '\n'.join(end_labels)
 

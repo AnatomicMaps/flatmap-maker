@@ -191,13 +191,13 @@ class Slide:
     def __shapes_as_group(self, group: PptxGroupShape, shapes: TreeList) -> Shape | TreeList:
     #========================================================================================
         # Merge a group of overlapping shapes that are all the same colour
-        # and have a common label into a single shape
+        # and have a common name into a single shape
         if (len(shapes) < 2
          or isinstance(shapes[0], TreeList)
          or shapes[0].type != SHAPE_TYPE.FEATURE):
             return shapes
         colour = shapes[0].colour
-        label = shapes[0].label
+        name = shapes[0].name
         alignment = shapes[0].properties.get('align')
         geometries = [shapes[0].geometry]
         pptx_shape = shapes[0].properties['pptx-shape']
@@ -206,12 +206,12 @@ class Slide:
              or shape.type != SHAPE_TYPE.FEATURE
              or colour != shape.colour):
                 return shapes
-            if shape.label != '':
-                if label == '':
-                    label = shape.label
+            if shape.name != '':
+                if name == '':
+                    name = shape.name
                     alignment = shape.properties.get('align')
                     pptx_shape = shape.properties['pptx-shape']
-                elif label != shape.label:
+                elif name != shape.name:
                     return shapes
             geometries.append(shape.geometry)
         geometry = shapely.ops.unary_union(geometries)
@@ -222,7 +222,7 @@ class Slide:
             return shapes
         return self.__new_shape(SHAPE_TYPE.FEATURE, group.shape_id, geometry, {
                                 'colour': colour,
-                                'label': label,
+                                'name': name,
                                 'shape-name': group.name,
                                 'shape-kind': shapes[0].kind,
                                 'text-align': alignment,
@@ -309,9 +309,9 @@ class Slide:
                         shape_properties['stroke-width'] = abs(transform.scale_length((int(pptx_shape.line.width.emu), 0))[0])  # type: ignore
                     else:
                         shape_type = SHAPE_TYPE.FEATURE
-                        label = text_content(pptx_shape)
-                        if label != '':
-                            shape_properties['label'] = label
+                        name = text_content(pptx_shape)
+                        if name != '':
+                            shape_properties['name'] = name
                             shape_properties['align'] = text_alignment(pptx_shape)
                     shape_properties['pptx-shape'] = pptx_shape
                     shape = self.__new_shape(shape_type, pptx_shape.shape_id, geometry, shape_properties)

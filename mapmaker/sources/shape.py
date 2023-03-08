@@ -58,11 +58,11 @@ class Shape:
         return self.properties.get('shape-kind')
 
     @property
-    def label(self) -> str:
-        return self.properties.get('label', '')
+    def name(self) -> str:
+        return self.properties.get('name', '')
 
     @property
-    def name(self) -> Optional[str]:
+    def shape_name(self) -> Optional[str]:
         return self.properties.get('shape-name')
 
     def set_metadata(self, name: str, value: str):

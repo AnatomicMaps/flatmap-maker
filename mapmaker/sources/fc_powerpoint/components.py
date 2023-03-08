@@ -169,9 +169,7 @@ class FCShape:
 
     def __post_init__(self):
     #=======================
-        label = self.properties.pop('label', self.name).replace('\t', '|').strip()
-        self.properties['name'] = label
-        self.properties['label'] = label
+        self.properties['name'] = self.properties.pop('name', '').replace('\t', '|').strip()
 
     def __str__(self):
         shape_kind = self.properties.get('shape-kind', '')
@@ -219,10 +217,6 @@ class FCShape:
     @property
     def id(self):
         return self.shape.id
-
-    @property
-    def label(self):
-        return self.properties.get('label', self.name)
 
     @property
     def models(self):

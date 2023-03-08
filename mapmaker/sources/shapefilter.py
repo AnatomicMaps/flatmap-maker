@@ -44,7 +44,7 @@ class ShapeFilter:
     @staticmethod
     def __attributes(shape: Shape):
         return {
-            'label': shape.label,
+            'name': shape.name,
             'colour': shape.colour,
             'opacity': shape.opacity
         }
