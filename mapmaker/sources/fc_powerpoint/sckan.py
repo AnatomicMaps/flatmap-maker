@@ -26,31 +26,35 @@ from pprint import pprint
 #===============================================================================
 
 import mapmaker.knowledgebase as knowledgebase
+from mapmaker.properties.pathways import PATH_TYPE, path_type_from_phenotypes
 
 #===============================================================================
 
 class SckanNodeSet:
-    def __init__(self):
+    def __init__(self, path_id, connectivity):
+        self.__id = path_id
         self.__node_dict: dict[str, set[tuple[str, ...]]] = defaultdict(set)
-        ## WIP self.__paths_by_node = {}   ## WIP to have all nodes of all paths in one node set
-
-    def add_path(self, path_id: str, sckan_nodes: set[tuple[str, tuple[str, ...]]]):
-    #===============================================================================
-        for sckan_node in sckan_nodes:
-            self.__add_node(path_id, sckan_node)
-
-    def __add_node(self, path_id: str, sckan_node: tuple[str, tuple[str, ...]]):
-    #===========================================================================
-        node_list = [sckan_node[0]]
-        node_list.extend(sckan_node[1])
-        while len(node_list):
-            self.__node_dict[node_list[0]].add(tuple(node_list[1:]))
-            node_list.pop(0)
+        # Normalise node from tuple[str, tuple[str, ..]] to tuple[str, ..]
+        # removing any duplicates
+        nodes = set()
+        for connection in connectivity:
+            for node in connection:
+                nodes.add((node[0], *node[1]))
+        # Build an index with successive terms of a node's tuple
+        # identifying any following terms
+        for node in nodes:
+            node_list = list(node)
+            while len(node_list):
+                if len(node_list) > 1:
+                    self.__node_dict[node_list[0]].add(tuple(node_list[1:]))
+                else:
+                    self.__node_dict[node_list[0]] = set()
+                node_list.pop(0)
 
     def has_connector(self, ftu: str, organ: Optional[str]=None) -> bool:
-    #===========================================================
+    #====================================================================
         if (node_layers := self.__node_dict.get(ftu)) is not None:
-            if organ is None:
+            if organ is None or len(node_layers) == 0:
                 return True
             else:
                 for layers in node_layers:
@@ -62,8 +66,7 @@ class SckanNodeSet:
 
 class SckanNeuronPopulations:
     def __init__(self):
-        ## WIP self.__sckan_nodes = SckanNodeSet()  ## WIP to have all nodes of all paths in one node set
-        self.__sckan_nodes_by_path: dict[str, SckanNodeSet] = {}  ## WIP to have all nodes of all paths in one node set
+        self.__sckan_path_nodes_by_type: dict[PATH_TYPE, dict[str, SckanNodeSet]] = defaultdict(dict[str, SckanNodeSet])
         self.__paths_by_id = {}
         connectivity_models = knowledgebase.connectivity_models()
         for model in connectivity_models:
@@ -71,18 +74,13 @@ class SckanNeuronPopulations:
             for path in model_knowledege['paths']:
                 path_knowledge = knowledgebase.get_knowledge(path['id'])
                 self.__paths_by_id[path['id']] = path_knowledge
-                nodes: set[tuple[str, tuple[str, ...]]] = set()
-                for connection in path_knowledge['connectivity']:   ## Should really return this as neseted tuples...
-                    for node in connection:
-                        nodes.add((node[0], tuple(node[1])))
-                ## WIP self.__sckan_nodes.add_path(path['id'], nodes)
-                self.__sckan_nodes_by_path[path['id']] = SckanNodeSet()   ## WIP
-                self.__sckan_nodes_by_path[path['id']].add_path(path['id'], nodes)  ## WIP
+                path_type = path_type_from_phenotypes(path_knowledge.get('phenotypes', []))
+                self.__sckan_path_nodes_by_type[path_type][path['id']] = SckanNodeSet(path['id'], path_knowledge['connectivity'])
 
-    def find_connection_paths(self, end_nodes: list[tuple[str, Optional[str]]]) -> list[str]:
-    #========================================================================================
+    def find_connection_paths(self, end_nodes: list[tuple[str, Optional[str]]], path_type: PATH_TYPE) -> list[str]:
+    #==============================================================================================================
         path_ids = []
-        for path_id, node_set in self.__sckan_nodes_by_path.items():
+        for path_id, node_set in self.__sckan_path_nodes_by_type[path_type].items():
             if (node_set.has_connector(*end_nodes[0])
             and node_set.has_connector(*end_nodes[1])):
                 path_ids.append(path_id)
@@ -91,6 +89,10 @@ class SckanNeuronPopulations:
     def knowledge(self, path_id: str) -> Optional[dict]:
     #===================================================
         return self.__paths_by_id.get(path_id)
+
+    def path_label(self, path_id: str) -> Optional[str]:
+    #===================================================
+        return self.__paths_by_id.get(path_id, {}).get('label')
 
 #===============================================================================
 

@@ -407,9 +407,11 @@ class FCSlide(Slide):
             connection.properties['label'] = '\n'.join(end_labels)
 
             if self.__sckan_neurons is not None and len(end_nodes) > 1:
-                if path_ids := self.__sckan_neurons.find_connection_paths(end_nodes):
+                if path_ids := self.__sckan_neurons.find_connection_paths(end_nodes, connection.path_type):
                     connection.properties['sckan'] = tuple(path_ids)
-                    end_labels.extend(path_ids)
-            connection.properties['label'] = '\n'.join(end_labels)
+                    connection.properties['models'] = ', '.join(path_ids)
+                    connection.properties['label'] = '\n'.join([
+                        str(self.__sckan_neurons.path_label(path_id)) for path_id in path_ids
+                    ])
 
 #===============================================================================
