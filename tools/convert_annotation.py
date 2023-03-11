@@ -59,6 +59,7 @@ def write_json(filename: str, workbook: Workbook):
 #=================================================
     with open(filename, 'w') as fp:
         fp.write(json.dumps(workbook, indent=4))
+        fp.write('\n')
 
 #===============================================================================
 
