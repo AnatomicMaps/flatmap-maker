@@ -490,9 +490,8 @@ class SVGTiler(object):
                 markup = svg_markup(element)
                 if markup.startswith('.'):
                     properties = parse_markup(markup)
-                    if 'centreline' in properties or 'node' in properties:
-                        stroke_opacity = 0.5
-                    elif 'id' in properties or 'class' in properties:
+                    if ('centreline' in properties or 'node' in properties
+                     or 'id' in properties or 'class' in properties):
                         stroked = False
                 opacity = stroke_opacity*float(element_style.get('stroke-opacity', 1.0))
                 dasharray = element_style.get('stroke-dasharray')

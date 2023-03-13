@@ -89,7 +89,7 @@ Command line help
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
-                    [--clean] [--background-tiles] [--show-centrelines]
+                    [--clean] [--background-tiles]
                     [--authoring] [--debug] [--only-networks]
                     [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N] [--min-zoom N]
@@ -113,7 +113,6 @@ Command line help
                             generating new map
       --background-tiles    Generate image tiles of map's layers (may take a
                             while...)
-      --show-centrelines    Show centrelines in generated map
 
     Diagnostics:
       --authoring           For use when checking a new map: highlight incomplete

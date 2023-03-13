@@ -224,16 +224,16 @@ class FlatMap(object):
         self.__layer_dict[layer.id] = layer
         if layer.exported:
             self.__visible_layer_count += 1
-            if settings.get('showCentrelines', False):
-                for feature in layer.features:
-                    if (feature.properties.get('centreline', False)
-                      and not feature.properties.get('excluded', False)):
-                        feature.set_property('kind', 'centreline')
-                        feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
-                        self.__connection_set.add(feature.properties['id'],
-                                                  feature.properties['kind'],
-                                                  feature.geojson_id,
-                                                  [])
+            for feature in layer.features:
+                if (feature.properties.get('centreline', False)
+                  and not feature.properties.get('excluded', False)):
+                    feature.set_property('kind', 'centreline')
+                    feature.set_property('type', 'line')
+                    feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
+                    self.__connection_set.add(feature.id,
+                                              'centreline',
+                                              feature.geojson_id,
+                                              [])
 
     def add_source_layers(self, layer_number, source):
     #=================================================

@@ -30,7 +30,7 @@ import shapely.ops
 
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
-from mapmaker.properties import properties_exclude_feature
+from mapmaker.properties import not_in_group_properties
 from mapmaker.settings import settings
 from mapmaker.utils import FilePath, ProgressBar, log
 
@@ -137,8 +137,8 @@ class SVGLayer(MapLayer):
         self.add_features('SVG', features, outermost=True)
 
     @staticmethod
-    def __excluded_feature(properties):
-        return (properties_exclude_feature(properties)
+    def __excluded_group_feature(properties):
+        return (not_in_group_properties(properties)
              or 'auto-hide' in properties.get('class', '')
              or (properties.get('type') == 'nerve'
                  and properties.get('kind') != 'centreline'))
@@ -170,7 +170,7 @@ class SVGLayer(MapLayer):
                 properties,
                 group_style)
             properties.pop('tile-layer', None)  # Don't set ``tile-layer``
-            if len(group_features := [f for f in features if f.geometry.is_valid and not self.__excluded_feature(f.properties)]):
+            if len(group_features := [f for f in features if f.geometry.is_valid and not self.__excluded_group_feature(f.properties)]):
                 # If the group element has markup and contains geometry then add it as a feature
                 group_feature = self.flatmap.new_feature(shapely.ops.unary_union([f.geometry for f in group_features]), properties)
                 # And don't output interior features with no markup

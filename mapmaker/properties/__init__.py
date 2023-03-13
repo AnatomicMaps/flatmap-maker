@@ -34,14 +34,10 @@ from .pathways import ConnectionSet, Pathways
 
 #===============================================================================
 
-def properties_exclude_feature(properties: dict) -> bool:
-    return (properties.get('exclude', False)                            # already excluded
-            or (not (settings.get('authoring', False)                   # not authoring
-                  or settings.get('functionalConnectivity', False))     # nor FC map
-                     and (properties.get('node', False)                 # exclude nodes
-                       or (not settings.get('showCentrelines', False)   # and centrelines
-                           and properties.get('centreline', False))))   # unless --show-centrelines
-           )
+def not_in_group_properties(properties: dict) -> bool:
+    return (properties.get('exclude', False)                # already excluded
+         or properties.get('node', False)                   # or a node
+         or properties.get('centreline', False))            # or a centreline
 
 #===============================================================================
 
@@ -223,13 +219,8 @@ class PropertiesStore(object):
         elif 'label' in feature_properties and feature_properties['label'] in [None, '']:
             del feature_properties['label']   # So empty values doesn't get passed to the viewer
 
-        # Hide network node features when not authoring or not a FC flatmap
-        if properties_exclude_feature(feature_properties):
-            feature_properties['invisible'] = True
-            feature_properties['exclude'] = True
-        ## Put network features on their own MapLayer if AC map (and showCentrelines??)...
-        ## called say "Nerves" (then can remove `--show-centrelines` option??)
-        ##
+        ## Put network features and centrelines on their own MapLayer called say "Nerves"
+        ## if AC map??
 
         return feature_properties
 
