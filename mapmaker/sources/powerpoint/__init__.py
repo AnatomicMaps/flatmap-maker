@@ -107,9 +107,7 @@ class PowerpointLayer(MapLayer):
                     pass
                 elif 'path' in properties:
                     pass
-                elif properties.get('exclude', False):
-                    pass
-                else:
+                elif not properties.get('exclude', False):
                     feature = self.flatmap.new_feature(shape.geometry, properties)
                     features.append(feature)
         return features

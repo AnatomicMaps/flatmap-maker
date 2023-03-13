@@ -294,8 +294,8 @@ class ResolvedPathways:
     """
     def __init__(self, feature_map: FeatureMap):
         self.__feature_map = feature_map
-        self.__paths: dict[str, ResolvedPath] = defaultdict(ResolvedPath)  #! Paths by :class:`ResolvedPath`\ s
-        self.__node_paths: dict[int, set[str]] = defaultdict(set)     #! Paths by node
+        self.__paths: dict[str, ResolvedPath] = defaultdict(ResolvedPath)   #! Paths by :class:`ResolvedPath`\ s
+        self.__node_paths: dict[int, set[str]] = defaultdict(set)           #! Paths by node
         self.__type_paths: dict[PATH_TYPE, set[str]] = defaultdict(set)     #! Paths by path type
 
     @property
