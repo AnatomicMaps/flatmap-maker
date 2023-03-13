@@ -193,23 +193,24 @@ class PropertiesStore(object):
         if (entity := feature_properties.get('models')) is not None and entity.strip() != '':
             # Make sure our knowledgebase knows about the anatomical object
             knowledge = knowledgebase.get_knowledge(entity)
-            if 'label' not in feature_properties:
-                feature_properties['label'] = knowledge.get('label')
+            label = knowledge.get('label')
+            if label == entity and (source_label := feature_properties.get('label', '')):
+                feature_properties['label'] = source_label
+            else:
+                feature_properties['label'] = f'{label} ({entity})'
+            # FC neuron path with connection information in name
+            if 'sckan' in feature_properties and 'name' in feature_properties:
+                feature_properties['label'] += '\n' + feature_properties.get('name', '')
         elif 'label' not in feature_properties and 'name' in feature_properties:
-            feature_properties['label'] = feature_properties.pop('name')
+            feature_properties['label'] = feature_properties['name']
 
-        authoring = settings.get('authoring', False)
-        if authoring:
+        if settings.get('authoring', False):
             # Show id and classes in label if authoring
             labels = []
             if (label := feature_properties.get('label', '')):
                 labels.append(label)
-            if (shape_id := feature_properties.get('shape-id')) is not None:
-                labels.append(f'Shape: {shape_id}')
-            if (model := feature_properties.get('models')) is not None:
-                labels.append(f'Models: {model}')
-            if (type := feature_properties.get('type')) is not None:
-                labels.append(f'Type: {type}')
+            if (name := feature_properties.get('name')):
+                labels.append(f'Name: {name}')
             if len(classes):
                 labels.append(f'Class: {", ".join(classes)}')
             if id is not None:

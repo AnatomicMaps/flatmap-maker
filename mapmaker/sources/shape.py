@@ -43,7 +43,6 @@ class Shape:
 
     def __post_init__(self):
         self.metadata: dict[str, str] = {}  # kw_only=True field for Python 3.10
-        self.properties['shape-id'] = self.id
 
     @property
     def opacity(self) -> float:
