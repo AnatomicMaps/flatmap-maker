@@ -172,7 +172,7 @@ class NetworkNode:
 #===============================================================================
 
 class Network(object):
-    def __init__(self, network: dict, external_properties: Optional[PropertiesStore]=None):
+    def __init__(self, network: dict, properties_store: Optional[PropertiesStore]=None):
         self.__id = network.get('id')
         self.__type = network.get('type')
 
@@ -200,17 +200,17 @@ class Network(object):
         intermediate_nodes_to_centrelines = defaultdict(list)
 
         # Check for nerve cuffs in ``contained-in`` lists
-        if external_properties is not None:
+        if properties_store is not None:
             for centreline in network.get('centrelines', []):
                 if (centreline_id := centreline.get('id')) is not None:
                     centreline_models = centreline.get('models')
                     if len(containers := set(centreline.get('contained-in', []))) > 0:
                         contained_in = []
                         for feature_id in containers:
-                            if external_properties.properties(feature_id).get('models') is None:
+                            if properties_store.properties(feature_id).get('models') is None:
                                 # Container features are of no use if they don't model anything...
                                 log.error(f'Contained-in feature `{feature_id}` of `{centreline_id}` does not have an anatomical term')
-                            elif (models := external_properties.nerve_models_by_id.get(feature_id)) is None:
+                            elif (models := properties_store.nerve_models_by_id.get(feature_id)) is None:
                                 contained_in.append(feature_id)
                             elif centreline_models is None:
                                 log.warning(f'Contained-in feature `{feature_id}` used as nerve model of its centreline (`{centreline_id}`)')
@@ -233,17 +233,17 @@ class Network(object):
                 self.__add_feature(centreline_id)
                 if (centreline_models := centreline.get('models')) is not None:
                     self.__models_to_id[centreline_models].add(centreline_id)
-                    # If we have ``external_properties`` without ``centreline_models`` annotation for the centreline then set it
-                    if external_properties is not None:
-                        if (models := external_properties.get_property(centreline_id, 'models')) is None:
-                            external_properties.set_property(centreline_id, 'models', centreline_models)
+                    # If we have ``properties_store`` without ``centreline_models`` annotation for the centreline then set it
+                    if properties_store is not None:
+                        if (models := properties_store.get_property(centreline_id, 'models')) is None:
+                            properties_store.set_property(centreline_id, 'models', centreline_models)
                         elif centreline_models != models:
                             log.error(f'Centreline {centreline_id} models both {centreline_models} and {models}')
-                        if (nerve_id := external_properties.nerve_ids_by_model.get(centreline_models)) is not None:
+                        if (nerve_id := properties_store.nerve_ids_by_model.get(centreline_models)) is not None:
                             # Assign nerve cuff id to centreline
-                            external_properties.set_property(centreline_id, 'nerve', nerve_id)
-                elif (external_properties is not None
-                  and (models := external_properties.get_property(centreline_id, 'models')) is not None):
+                            properties_store.set_property(centreline_id, 'nerve', nerve_id)
+                elif (properties_store is not None
+                  and (models := properties_store.get_property(centreline_id, 'models')) is not None):
                     # No ``models`` are directly specified for the centreline so assign what we've found
                     centreline['models'] = models
                     self.__models_to_id[models].add(centreline_id)
