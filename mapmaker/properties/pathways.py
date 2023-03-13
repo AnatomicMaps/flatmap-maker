@@ -524,36 +524,42 @@ class ConnectivityModel:
 class ConnectionSet:
     def __init__(self, model_id):
         self.__id = model_id
-        self.__connectors: dict[str, str] = {}
-        self.__connectors_by_type: dict[str, list[str]] = defaultdict(list)
+        self.__connections: dict[str, int] = {}
+        self.__connections_by_type: dict[str, list[str]] = defaultdict(list)
+        self.__connectors_by_connection: dict[str, list[int]] = defaultdict(list)
+        self.__connections_by_connector: dict[int, set[str]] = defaultdict(set)
 
     def __len__(self):
-        return len(self.__connectors)
+        return len(self.__connections)
 
-    def add(self, connector_id, path_type, geojson_id):
-    #==================================================
+    def add(self, connection_id: str, path_type: str, geojson_id: int, connector_ids: list[int]):
+    #============================================================================================
         # Need geojson id of shape's feature
-        path_id = f'{self.__id}/{connector_id}'
-        self.__connectors[path_id] = geojson_id
-        self.__connectors_by_type[path_type].append(path_id)
+        path_id = f'{self.__id}/{connection_id}'
+        self.__connections[path_id] = geojson_id
+        self.__connections_by_type[path_type].append(path_id)
+        self.__connectors_by_connection[path_id] = connector_ids
+        for connector_id in connector_ids:
+            self.__connections_by_connector[connector_id].add(path_id)
 
     def as_dict(self):
     #=================
         return {
             'models': [{
                 'id': self.__id,
-                'paths': list(self.__connectors.keys())
+                'paths': list(self.__connections.keys())
             }],
             'paths': {
                 path_id: {
                     'lines': [geojson_id],
-                    'nodes': [],
+                    'nodes': self.__connectors_by_connection[path_id],
                     'nerves': []
-                } for path_id, geojson_id in self.__connectors.items()
+                } for path_id, geojson_id in self.__connections.items()
             },
-            'node-paths': {},
+            'node-paths': { node: list(path_ids)
+                for node, path_ids in self.__connections_by_connector.items()},
             'type-paths': {
-                path_type: path_ids for path_type, path_ids in self.__connectors_by_type.items()
+                path_type: path_ids for path_type, path_ids in self.__connections_by_type.items()
             }
         }
 

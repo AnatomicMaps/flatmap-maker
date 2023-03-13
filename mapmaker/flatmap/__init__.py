@@ -232,7 +232,8 @@ class FlatMap(object):
                         feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
                         self.__connection_set.add(feature.properties['id'],
                                                   feature.properties['kind'],
-                                                  feature.geojson_id)
+                                                  feature.geojson_id,
+                                                  [])
 
     def add_source_layers(self, layer_number, source):
     #=================================================
