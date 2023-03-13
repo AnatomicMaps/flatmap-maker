@@ -59,7 +59,6 @@ LAYER_DIRECTIVE = '.' + ZeroOrMore(LAYER_DIRECTIVES)
 
 #===============================================================================
 
-#    LABEL = Group(Keyword('label') + Suppress('(') + FREE_TEXT + Suppress(')'))
 #    LAYER = Group(Keyword('layer') + Suppress('(') + ONTOLOGY_ID + Suppress(')'))
 ## WIP: DETAILS = Group(Keyword('details') + Suppress('(') + Suppress(')'))  ## Zoom start, slide/layer ID
 ## Details are positioned within polygon's boundary on a layer "above" the polygon's
@@ -70,10 +69,9 @@ CHILDCLASSES = Group(Keyword('children') + Suppress('(') + ID_TEXT + Suppress(')
 DETAILS = Group(Keyword('details') + Suppress('(') + ID_TEXT + Suppress(',') + ZOOM_LEVEL + Suppress(')'))
 PATH = Group(Keyword('path') + Suppress('(') + ID_TEXT + Suppress(')'))
 
-# Deprecated...
-STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
+NAME = Group(Keyword('name') + Suppress('(') + FREE_TEXT + Suppress(')'))
 
-FEATURE_PROPERTIES = CLASS | CHILDCLASSES | IDENTIFIER | STYLE
+FEATURE_PROPERTIES = CLASS | CHILDCLASSES | IDENTIFIER | NAME
 
 SHAPE_FLAGS = Group(Keyword('boundary')
                   | Keyword('closed')
