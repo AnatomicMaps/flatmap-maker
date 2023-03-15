@@ -146,11 +146,11 @@ class PropertiesStore(object):
                     properties = feature.get('properties', {})
                     self.__properties_by_id[id].update(properties)
 
-    def generate_connectivity(self, feature_map):
-    #============================================
-        self.__pathways.set_feature_map(feature_map)
+    def generate_connectivity(self, feature_path_map):
+    #=================================================
+        self.__pathways.set_feature_map(feature_path_map)
         for network in self.__networks.values():
-            network.set_feature_map(feature_map)
+            network.check_features_on_map(feature_path_map)
         self.__pathways.generate_connectivity(self.__networks.values())
 
     def get_property(self, id, key):

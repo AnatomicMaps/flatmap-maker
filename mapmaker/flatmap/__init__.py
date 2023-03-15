@@ -40,7 +40,7 @@ from mapmaker.properties import ConnectionSet, PropertiesStore
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
-from .feature import Feature, FeatureMap
+from .feature import Feature, FeaturePathMap
 from .layers import MapLayer
 
 #===============================================================================
@@ -118,7 +118,7 @@ class FlatMap(object):
 
     @property
     def map_properties(self):
-        return self.__map_properties
+        return self.__properties_store
 
     @property
     def metadata(self):
@@ -157,15 +157,15 @@ class FlatMap(object):
         self.__entities = set()
 
         # Properties about map features
-        self.__map_properties = PropertiesStore(self, self.__manifest)
+        self.__properties_store = PropertiesStore(self, self.__manifest)
 
         self.__layer_dict = OrderedDict()
         self.__visible_layer_count = 0
 
         self.__annotations = {}
 
-        self.__feature_map = FeatureMap(self.__manifest.connectivity_terms)
         self.__features = OrderedDict()
+        self.__feature_path_map = FeaturePathMap(self.__manifest.connectivity_terms)
         self.__last_geojson_id = 0
 
         # Used to find annotated features containing a region
@@ -194,11 +194,11 @@ class FlatMap(object):
     def is_duplicate_feature_id(self, feature_id: str) -> bool:
     #==========================================================
         return self.__feature_map is not None and self.__feature_map.duplicate_id(feature_id)
+    def save_feature_for_path_lookup(self, feature: Feature):
+    #========================================================
+        if self.__feature_path_map is not None:
+            self.__feature_path_map.add_feature(feature)
 
-    def save_feature_for_lookup(self, feature: Feature):
-    #===================================================
-        if self.__feature_map is not None:
-            self.__feature_map.add_feature(feature)
 
     def get_feature(self, feature_id: str) -> Optional[Feature]:
     #===========================================================
@@ -215,7 +215,7 @@ class FlatMap(object):
     def feature_exported(self, feature):
     #===================================
         return (not settings.get('onlyNetworks', False)
-             or self.__map_properties.network_feature(feature))
+             or self.__properties_store.network_feature(feature))
 
     def add_layer(self, layer):
     #==========================
@@ -367,13 +367,13 @@ class FlatMap(object):
 
     def connectivity(self):
     #======================
-        return self.__map_properties.connectivity
+        return self.__properties_store.connectivity
 
     def __resolve_connectivity(self):
     #================================
         log.info('Resolving connectivity...')
         # Route paths and set feature ids of path components
-        self.__map_properties.generate_connectivity(self.__feature_map)
+        self.__properties_store.generate_connectivity(self.__feature_path_map)
 
     def __setup_feature_search(self):
     #================================

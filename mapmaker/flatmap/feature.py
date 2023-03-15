@@ -127,7 +127,7 @@ class Feature:
 
 #===============================================================================
 
-class FeatureMap:
+class FeaturePathMap:
     def __init__(self, connectivity_terms: Optional[str]=None):
         self.__connectivity_terms: dict[str, str] = {}
         if connectivity_terms is not None:

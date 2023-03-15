@@ -31,7 +31,7 @@ import shapely.geometry
 
 #===============================================================================
 
-from mapmaker.flatmap.feature import Feature, FeatureMap
+from mapmaker.flatmap.feature import Feature, FeaturePathMap
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER, FeatureLayer
 from mapmaker.knowledgebase import get_knowledge
 from mapmaker.settings import settings
@@ -292,8 +292,8 @@ class ResolvedPathways:
         feature_map
             A mapping from a feature's id and class attributes to its numeric identifier.
     """
-    def __init__(self, feature_map: FeatureMap):
-        self.__feature_map = feature_map
+    def __init__(self, feature_path_map: FeaturePathMap):
+        self.__feature_path_map = feature_path_map
         self.__paths: dict[str, ResolvedPath] = defaultdict(ResolvedPath)   #! Paths by :class:`ResolvedPath`\ s
         self.__node_paths: dict[int, set[str]] = defaultdict(set)           #! Paths by node
         self.__type_paths: dict[PATH_TYPE, set[str]] = defaultdict(set)     #! Paths by path type
@@ -315,7 +315,7 @@ class ResolvedPathways:
     def __resolve_nodes_for_path(self, path_id, nodes):
         node_ids = []
         for id in nodes:
-            if (feature := self.__feature_map.get_feature(id)) is not None:
+            if (feature := self.__feature_path_map.get_feature(id)) is not None:
                 if not feature.property('exclude'):
                     node_id = feature.geojson_id
                     feature.set_property('nodeId', node_id)
@@ -346,8 +346,8 @@ class ResolvedPathways:
             self.__resolve_nodes_for_path(path_id, route.start_nodes)
           + self.__resolve_nodes_for_path(path_id, route.through_nodes)
           + self.__resolve_nodes_for_path(path_id, route.end_nodes))
-        resolved_path.extend_lines(self.__feature_map.geojson_ids(lines))
-        resolved_path.extend_nerves(self.__feature_map.geojson_ids(nerves))
+        resolved_path.extend_lines(self.__feature_path_map.geojson_ids(lines))
+        resolved_path.extend_nerves(self.__feature_path_map.geojson_ids(nerves))
 
 #===============================================================================
 
@@ -579,7 +579,7 @@ class Pathways:
         self.__path_models_by_id: dict[str, str] = {}
         self.__connectivity_by_path_id = {}
         self.__connectivity_models = []
-        self.__feature_map = None
+        self.__feature_path_map = None
         self.__active_nerve_ids: set[str] = set()   ### Manual layout only???
         self.__connection_sets: list[ConnectionSet] = []
         self.add_connectivity({'paths': paths_list})
@@ -621,9 +621,9 @@ class Pathways:
         if len(connection_set):
             self.__connection_sets.append(connection_set)
 
-    def set_feature_map(self, feature_map):
-    #======================================
-        self.__feature_map = feature_map
+    def set_feature_map(self, feature_path_map):
+    #===========================================
+        self.__feature_path_map = feature_path_map
 
     def __line_properties(self, path_id):
     #====================================
@@ -717,7 +717,7 @@ class Pathways:
 
     def __route_network_connectivity(self, network):
     #===============================================
-        if self.__resolved_pathways is None or self.__feature_map is None:
+        if self.__resolved_pathways is None or self.__feature_path_map is None:
             log.error('Cannot route network when no pathways nor feature mapping')
             return
         log.info(f'Routing {network.id} paths...')
@@ -771,7 +771,7 @@ class Pathways:
                 if path_id is not None:
                     path = paths_by_id[path_id]
                     nerve_feature_ids = routed_path.nerve_feature_ids
-                    nerve_features = [self.__feature_map.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
+                    nerve_features = [self.__feature_path_map.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
                     active_nerve_features.update(nerve_features)
                     self.__resolved_pathways.add_connectivity(path_id,
                                                               feature.geojson_id,
@@ -794,9 +794,9 @@ class Pathways:
 
     def generate_connectivity(self, networks):
     #=========================================
-        if self.__feature_map is None or self.__resolved_pathways is not None:
+        if self.__feature_path_map is None or self.__resolved_pathways is not None:
             return
-        self.__resolved_pathways = ResolvedPathways(self.__feature_map)
+        self.__resolved_pathways = ResolvedPathways(self.__feature_path_map)
         errors = False
         for path_id in self.__layer_paths:
             try:
