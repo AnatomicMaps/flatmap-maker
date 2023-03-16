@@ -27,7 +27,7 @@ from mapmaker.sources.fc_powerpoint.components import Component, Connector
 from mapmaker.sources.fc_powerpoint.components import FC_CLASS, PATH_TYPE
 from mapmaker.utils import log
 
-from .json_annotations import Annotation, JsonAnnotations
+from .json_annotations import JsonAnnotations
 
 #===============================================================================
 

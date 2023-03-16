@@ -53,7 +53,6 @@ else:
 
 #===============================================================================
 
-from beziers.line import Line as BezierLine
 from beziers.path import BezierPath
 from beziers.point import Point as BezierPoint
 

@@ -30,7 +30,6 @@ import shapely.strtree
 
 #===============================================================================
 
-from mapmaker.annotation import Annotator
 from mapmaker.geometry import Transform
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.sources import MapBounds
@@ -101,14 +100,14 @@ class FCSlide(Slide):
         self.__nerve_ids: set[str] = set()
         self.__system_ids: set[str] = set()
 
-    def process(self, annotator: Optional[Annotator]=None):
+    def process(self, annotator: Optional['Annotator']=None):
     #======================================================
         super().process(annotator)
         self.__extract_shapes(annotator)
         self.__add_connections()
         return self.shapes
 
-    def __extract_shapes(self, annotator: Optional[Annotator]):
+    def __extract_shapes(self, annotator: Optional['Annotator']):
     #==========================================================
         self.__classify_shapes()
 

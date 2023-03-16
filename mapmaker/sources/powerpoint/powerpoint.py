@@ -43,12 +43,10 @@ from pptx.slide import Slide as PptxSlide
 
 #===============================================================================
 
-from mapmaker.annotation import Annotator
 from mapmaker.geometry import Transform
 from mapmaker.properties.markup import parse_layer_directive, parse_markup
 from mapmaker.sources import MapBounds, WORLD_METRES_PER_EMU
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
-from mapmaker.sources.shapefilter import ShapeFilter
 from mapmaker.utils import FilePath, log, ProgressBar, TreeList
 
 from .colour import ColourMap, ColourTheme
@@ -142,7 +140,7 @@ class Slide:
         self.__shapes_by_id[shape_id] = shape
         return shape
 
-    def process(self, annotator: Optional[Annotator]=None) -> TreeList:
+    def process(self, annotator: Optional['Annotator']=None) -> TreeList:
     #==================================================================
         # Return the slide's group structure as a nested list of Shapes
         self.__shapes = TreeList([self.__new_shape(SHAPE_TYPE.GROUP, 'root', self.__geometry)])
