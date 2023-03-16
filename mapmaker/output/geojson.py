@@ -81,11 +81,6 @@ class GeoJSONOutput(object):
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
-            ## TODO: Conditionally add centroid and have viewer check if there's one...
-            if len(mercator_geometry.centroid.coords) > 0:
-                centroid = list(list(mercator_geometry.centroid.coords)[0])
-            else:
-                centroid = None
             tile_layer = properties['tile-layer']
             tippe_layer = f'{self.__layer.id}_{tile_layer}'.replace('/', '_')
             geojson = {
@@ -97,8 +92,6 @@ class GeoJSONOutput(object):
                 'geometry': shapely.geometry.mapping(mercator_geometry),
                 'properties': {
                     'bounds': list(mercator_geometry.bounds),
-                    # The viewer requires `centroid`
-                    'centroid': list(list(mercator_geometry.centroid.coords)[0]),
                     'area': area,
                     'length': geometry.length,
                     'layer': self.__layer.id,
@@ -120,7 +113,10 @@ class GeoJSONOutput(object):
                 if not ignore_property(key):
                     geojson['properties'][key] = value
             properties['bounds'] = geojson['properties']['bounds']
-            properties['centroid'] = geojson['properties']['centroid']
+            if 'Polygon' in geometry.geom_type:
+                properties['markerPosition'] = list(list(mercator_geometry.representative_point().coords)[0])
+            else:
+                properties['markerPosition'] = list(list(mercator_geometry.centroid.coords)[0])
             properties['geometry'] = geojson['geometry']['type']
             properties['layer'] = self.__layer.id
 
