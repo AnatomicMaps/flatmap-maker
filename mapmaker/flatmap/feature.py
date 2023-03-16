@@ -139,25 +139,15 @@ class FeaturePathMap:
                         log.error(f'Connectivity term {alias} cannot map to both {self.__connectivity_terms[alias]} and {term}')
                     else:
                         self.__connectivity_terms[alias] = term
-        self.__id_to_feature: dict[str, Feature]= {}
         self.__model_to_features: dict[str, set[Feature]] = defaultdict(set)
 
     def add_feature(self, feature: Feature):
     #=======================================
-        if feature.id is not None:
-            if feature.id in self.__id_to_feature:
-                log.error(f'Duplicate feature id: {feature.id}')
-            else:
-                self.__id_to_feature[feature.id] = feature
         if feature.models is not None:
             self.__model_to_features[feature.models].add(feature)
 
-    def duplicate_id(self, id: str) -> bool:
-    #=======================================
-        return self.__id_to_feature.get(id, None) is not None
-
-    def find_path_features_by_anatomical_node(self, anatomical_node: AnatomicalNode) -> tuple[AnatomicalNode, set[Feature]]:
-    #=======================================================================================================================
+    def path_features_for_node(self, anatomical_node: AnatomicalNode) -> tuple[AnatomicalNode, set[Feature]]:
+    #========================================================================================================
         def features_from_anatomical_id(term: str) -> set[Feature]:
             return set(self.__model_to_features.get(self.__connectivity_terms.get(term, term), []))
 
@@ -210,17 +200,5 @@ class FeaturePathMap:
             matched_features = features
             log.warning(f'Feature `{full_node_name(matched_node)}` is not in expected layers')
         return (matched_node, matched_features)
-
-    def geojson_ids(self, ids: list[str]) -> list[int]:
-    #==================================================
-        return [f.geojson_id for id in ids if (f := self.__id_to_feature.get(id)) is not None]
-
-    def get_feature(self, id: str) -> Optional[Feature]:
-    #===================================================
-        return self.__id_to_feature.get(id)
-
-    def has_feature(self, id: str) -> bool:
-    #======================================
-        return id in self.__id_to_feature
 
 #===============================================================================

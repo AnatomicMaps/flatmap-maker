@@ -232,7 +232,7 @@ class MapSource(object):
                        .format(self.id, properties['warning'], properties.get('markup', '')))
         for key in ['id', 'path']:
             if key in properties:
-                if self.__flatmap.is_duplicate_feature_id(properties[key]):
+                if self.__flatmap.duplicate_feature_id(properties[key]):
                    self.error('error', '{}: duplicate id in markup: {}'
                               .format(self.id, properties.get('markup', '')))
 

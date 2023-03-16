@@ -26,7 +26,6 @@ wires are routed.
 
 #===============================================================================
 
-from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -63,7 +62,7 @@ import shapely.geometry
 
 #===============================================================================
 
-from mapmaker.flatmap.feature import AnatomicalNode, Feature, FeaturePathMap
+from mapmaker.flatmap.feature import AnatomicalNode, Feature
 from mapmaker.flatmap.feature import anatomical_node_name, full_node_name
 from mapmaker.geometry.beziers import bezier_to_linestring, closest_time_distance
 from mapmaker.geometry.beziers import coords_to_point
@@ -78,7 +77,8 @@ from .routedpath import IntermediateNode, PathRouter, RoutedPath
 #===============================================================================
 
 if TYPE_CHECKING:
-    from mapmaker.properties import PropertiesStore
+#   from mapmaker.flatmap import FlatMap
+#   from mapmaker.properties import PropertiesStore
     from mapmaker.properties.pathways import Path
 
 #===============================================================================
@@ -172,7 +172,8 @@ class NetworkNode:
 #===============================================================================
 
 class Network(object):
-    def __init__(self, network: dict, properties_store: Optional[PropertiesStore]=None):
+    def __init__(self, flatmap: 'FlatMap', network: dict, properties_store: Optional['PropertiesStore']=None):
+        self.__flatmap = flatmap
         self.__id = network.get('id')
         self.__type = network.get('type')
 
@@ -182,7 +183,6 @@ class Network(object):
         self.__models_to_id: dict[str, set[str]] = defaultdict(set)                #! Ontological term --> centrelines
         self.__feature_ids: set[str] = set()
         self.__full_ids: set[str] = set()                                          #! A ``full id`` is a slash-separated list of feature ids
-        self.__feature_path_map: Optional[FeaturePathMap] = None                   #! Assigned after ``maker`` has processed sources
         self.__missing_identifiers: set[AnatomicalNode] = set()
         self.__end_feature_ids = set()
         self.__container_feature_ids = set()
@@ -302,12 +302,11 @@ class Network(object):
         for id in full_id.split('/'):
             self.__feature_ids.add(id)
 
-    def check_features_on_map(self, feature_path_map):
-    #=================================================
-        self.__feature_path_map = feature_path_map
+    def check_features_on_map(self):
+    #===============================
         # Check that the network's features are on the map
         for id in sorted(self.__feature_ids):
-            if not feature_path_map.has_feature(id):
+            if not self.__flatmap.has_feature(id):
                 log.warning(f'Network feature {id} cannot be found on the flatmap')
 
     def has_feature(self, feature):
@@ -318,8 +317,8 @@ class Network(object):
 
     def __map_feature(self, feature_id):
     #===================================
-        if self.__feature_path_map is not None and feature_id not in self.__missing_identifiers:
-            if (feature := self.__feature_path_map.get_feature(feature_id)) is not None:
+        if feature_id not in self.__missing_identifiers:
+            if (feature := self.__flatmap.get_feature(feature_id)) is not None:
                 return feature
             log.error('Cannot find network feature: {}'.format(feature_id))
             self.__missing_identifiers.add(feature_id)
@@ -664,8 +663,8 @@ class Network(object):
 
         self.__expanded_centreline_graph = expand_centreline_graph(self.__centreline_graph)
 
-    def route_graph_from_path(self, path: Path) -> tuple[nx.Graph, nx.Graph]:
-    #========================================================================
+    def route_graph_from_path(self, path: 'Path') -> tuple[nx.Graph, nx.Graph]:
+    #==========================================================================
         return self.__route_graph_from_connectivity(path)
 
     def layout(self, route_graphs: nx.Graph) -> dict[int, RoutedPath]:
@@ -710,8 +709,7 @@ class Network(object):
                 log.error(f'Node {full_node_name(connectivity_node)} has centreline inside layers')
             properties.update(self.__segment_properties_from_ids(centreline_ids))
 
-        elif self.__feature_map is not None:
-            matched = self.__feature_map.find_path_features_by_anatomical_node(connectivity_node)
+        elif (matched := self.__flatmap.path_features_for_node(connectivity_node)) is not None:
             properties['name'] = anatomical_node_name(matched[0])
             features = set(f for f in matched[1] if f.id is not None)
             if len(features):
@@ -748,8 +746,8 @@ class Network(object):
                 closest_node = node_id
         return (closest_node, closest_distance)
 
-    def __route_graph_from_connectivity(self, path: Path, debug=False) -> tuple[nx.Graph, nx.Graph]:
-    #===============================================================================================
+    def __route_graph_from_connectivity(self, path: 'Path', debug=False) -> tuple[nx.Graph, nx.Graph]:
+    #=================================================================================================
         connectivity_graph = path.connectivity
 
         # Map connectivity nodes to map features and centrelines, storing the result

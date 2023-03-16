@@ -34,6 +34,7 @@ import numpy as np
 from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import normalised_coords
+from mapmaker.flatmap.feature import AnatomicalNode
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.knowledgebase import get_knowledge
 from mapmaker.properties import ConnectionSet, PropertiesStore
@@ -164,8 +165,8 @@ class FlatMap(object):
 
         self.__annotations = {}
 
-        self.__features = OrderedDict()
         self.__feature_path_map = FeaturePathMap(self.__manifest.connectivity_terms)
+        self.__features_with_id: dict[str, Feature] = {}
         self.__last_geojson_id = 0
 
         # Used to find annotated features containing a region
@@ -191,25 +192,43 @@ class FlatMap(object):
     #==================================
         return os.path.join(self.__map_dir, localname)
 
-    def is_duplicate_feature_id(self, feature_id: str) -> bool:
-    #==========================================================
-        return self.__feature_map is not None and self.__feature_map.duplicate_id(feature_id)
     def save_feature_for_path_lookup(self, feature: Feature):
     #========================================================
         if self.__feature_path_map is not None:
             self.__feature_path_map.add_feature(feature)
 
+    def path_features_for_node(self, anatomical_node: AnatomicalNode) -> Optional[tuple[AnatomicalNode, set[Feature]]]:
+    #==================================================================================================================
+        if self.__feature_path_map is not None:
+            return self.__feature_path_map.path_features_for_node(anatomical_node)
+
+    def duplicate_feature_id(self, feature_ids: str) -> bool:
+    #========================================================
+        return self.__features_with_id.get(feature_ids, None) is not None
+
+    def feature_to_geojson_ids(self, feature_ids: list[str]) -> list[int]:
+    #=====================================================================
+        return [f.geojson_id for id in feature_ids
+            if (f := self.__features_with_id.get(id)) is not None]
+
+    def has_feature(self, feature_id: str) -> bool:
+    #==============================================
+        return feature_id in self.__features_with_id
 
     def get_feature(self, feature_id: str) -> Optional[Feature]:
     #===========================================================
-        return self.__features.get(feature_id)
+        return self.__features_with_id.get(feature_id)
 
     def new_feature(self, geometry, properties, has_children=False):
     #===============================================================
         self.__last_geojson_id += 1
         self.map_properties.update_properties(properties)   # Update from JSON properties file
         feature = Feature(self.__last_geojson_id, geometry, properties, has_children)
-        self.__features[self.__last_geojson_id] = feature
+        if feature.id:
+            if feature.id in self.__features_with_id:
+                pass
+            else:
+                self.__features_with_id[feature.id] = feature
         return feature
 
     def feature_exported(self, feature):
@@ -373,7 +392,7 @@ class FlatMap(object):
     #================================
         log.info('Resolving connectivity...')
         # Route paths and set feature ids of path components
-        self.__properties_store.generate_connectivity(self.__feature_path_map)
+        self.__properties_store.generate_connectivity()
 
     def __setup_feature_search(self):
     #================================
