@@ -634,9 +634,9 @@ class MapMaker(object):
             map_index['biologicalSex'] = self.__manifest.biological_sex
         map_index['authoring'] = settings.get('authoring', False)
         if settings.get('functionalConnectivity', False):
-            map_index['style'] = 'fcdiagram'
+            map_index['style'] = 'functional'
         else:
-            map_index['style'] = 'flatmap'
+            map_index['style'] = 'anatomical'
         if git_status is not None:
             map_index['git-status'] = git_status
 
