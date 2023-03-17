@@ -178,6 +178,10 @@ class FCShape:
         return f'FC({self.id}: {shape_kind}/{str(self.cd_class)}/{str(self.fc_class)}/{str(self.fc_kind)}/{self.description} `{self.name}`)'
 
     @property
+    def global_id(self) -> str:
+        return self.properties.get('global-id', self.id)
+
+    @property
     def colour(self) -> Optional[str]:
         return self.properties.get('colour')
 

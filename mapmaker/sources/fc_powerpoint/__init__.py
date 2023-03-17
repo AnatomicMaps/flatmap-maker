@@ -381,36 +381,51 @@ class FCSlide(Slide):
             connector.properties['label'] = '/'.join(labels)
             if len(models):
                 connector.properties['parent_models'] = tuple(models)
+    def __feature_properties(self, feature_id):
+    #==========================================
+        if (feature := self.flatmap.get_feature(feature_id)) is not None:
+            return feature.properties
+        elif (shape := self.__shapes_by_id.get(feature_id)) is not None:
+            return shape.properties
+        return {}
 
     def __add_connections(self):
     #===========================
         for connection in self.__connections:
             self.__connection_classifier.add_connection(connection)
             end_names = []
-            end_nodes = []
+            end_node_terms = []
             for connector_id in connection.connector_ids:
-                if (connector := self.__shapes_by_id.get(connector_id)) is not None:
-                    if name := connector.properties.get('name', ''):
-                        end_names.append(f'CN: {name[0:1].capitalize()}{name[1:]}')
-                    if (models := connector.properties.get('parent_models')) is not None:
-                        end_nodes.append(models)
+                properties= self.__feature_properties(connector_id)
+                if (name := properties.get('name', '')):
+                    end_names.append(f'CN: {name[0:1].capitalize()}{name[1:]}')
+                if (models := properties.get('parent_models')) is not None:
+                    end_node_terms.append(models)
             for component_id in connection.intermediate_components:
-                if (component := self.__shapes_by_id.get(component_id)) is not None:
-                    if name := component.properties.get('name', ''):
-                        end_names.append(f'NV: {name[0:1].capitalize()}{name[1:]}')
-            for connector_id in connection.intermediate_connectors:
-                if (connector := self.__shapes_by_id.get(connector_id)) is not None:
-                    if name := connector.properties.get('name', ''):
-                        end_names.append(f'PX: {name[0:1].capitalize()}{name[1:]}')
-
-            connection.properties['label'] = '\n'.join(end_labels)
-
-            if self.__sckan_neurons is not None and len(end_nodes) > 1:
-                if path_ids := self.__sckan_neurons.find_connection_paths(end_nodes, connection.path_type):
-                    connection.properties['sckan'] = tuple(path_ids)
-                    connection.properties['models'] = ', '.join(path_ids)
-                    connection.properties['label'] = '\n'.join([
-                        str(self.__sckan_neurons.path_label(path_id)) for path_id in path_ids
-                    ])
+                properties = self.__feature_properties(component_id)
+                if (name := properties.get('name', '')):
+                    cls = ('NV' if properties.get('fc-class') == FC_CLASS.NEURAL else
+                           'VS' if properties.get('fc-class') == FC_CLASS.VASCULAR else
+                           '')
+                    end_names.append(f'{cls}: {name[0:1].capitalize()}{name[1:]}')
+            for connector_id in connection.intermediate_connectors:  ## ditto
+                properties = self.__feature_properties(connector_id)
+                if (name := properties.get('name', '')):
+                    end_names.append(f'GN: {name[0:1].capitalize()}{name[1:]}')
+            connection.properties['name'] = '\n'.join(end_names)
+            connection.properties['node-ids'] = list(set(connection.connector_ids)
+                                                   | set(connection.intermediate_components)
+                                                   | set(connection.intermediate_connectors))
+            if connection.fc_kind == FC_KIND.NEURON:
+                connection.properties['sckan'] = False                      # Assume no paths are valid
+                if self.__sckan_neurons is not None and len(end_node_terms) > 1:
+                    if neuron_path_ids := self.__sckan_neurons.find_connection_paths(end_node_terms, connection.path_type):
+                        connection.properties['sckan'] = True
+                        connection.properties['models'] = neuron_path_ids[0]
+                        for n, neuron_path_id in enumerate(neuron_path_ids[1:]):
+                            properties = connection.properties.copy()
+                            properties['id'] = f'connection.id/{n}'
+                            properties['models'] = neuron_path_id
+                            self.flatmap.new_feature(connection.geometry, properties)
 
 #===============================================================================
