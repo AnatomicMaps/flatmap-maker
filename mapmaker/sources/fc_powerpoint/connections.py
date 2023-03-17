@@ -31,7 +31,6 @@ import shapely.strtree
 #===============================================================================
 
 from mapmaker.properties.pathways import PATH_TYPE
-from mapmaker.sources import PATHWAYS_TILE_LAYER
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
@@ -355,7 +354,5 @@ class ConnectionClassifier:
 
         # Map neuron path class to viewer path kind/type
         connection.properties['shape-type'] = 'connection'
-        connection.properties['shape-id'] = connection.shape.id
-        connection.properties['tile-layer'] = PATHWAYS_TILE_LAYER
 
 #===============================================================================

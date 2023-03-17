@@ -170,6 +170,7 @@ class FCShape:
 
     def __post_init__(self):
     #=======================
+        self.properties['id'] = self.shape.id
         self.properties['name'] = self.properties.pop('name', '').replace('\t', '|').strip()
         self.properties['hyperlinks'] = []
 

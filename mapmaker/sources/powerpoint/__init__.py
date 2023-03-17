@@ -25,6 +25,7 @@ from io import BytesIO, StringIO
 
 from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
+from mapmaker.sources import PATHWAYS_TILE_LAYER
 from mapmaker.settings import settings
 from mapmaker.utils import log, pathlib_path, TreeList
 
@@ -35,19 +36,6 @@ from .svgutils import SvgFromShapes
 
 # Exports
 from .powerpoint import Slide
-
-#===============================================================================
-
-def update_label(feature):
-    if feature.properties.get('label') is None:
-        feature.properties['label'] = ''
-    if ((name := feature.properties.get('name', '')) != ''
-     and name.lower() == feature.properties['label'].lower()):
-        name = ''
-    if feature.models and feature.properties['label'] != '':
-        feature.properties['label'] += f' ({feature.models})'
-    if name not in ['', None]:
-        feature.properties['label'] += f'\n{name}'
 
 #===============================================================================
 
@@ -80,12 +68,17 @@ class PowerpointLayer(MapLayer):
             for feature in self.features:
                 if (feature.property('shape-type') == 'connection'
                 and feature.property('fc-class') in ['FC_CLASS.NEURAL', 'FC_CLASS.VASCULAR']):
+                    # Map neuron path class to viewer path kind/type
+                    feature.properties['tile-layer'] = PATHWAYS_TILE_LAYER
+                    node_ids = [node.geojson_id for node in
+                                    [self.flatmap.get_feature(node_id)
+                                        for node_id in feature.property('node-ids', [])]
+                                    if node is not None]
                     self.source.flatmap.connection_set.add(
-                        feature.properties['shape-id'],
+                        feature.id,                             # type:ignore (all FC features have an id)
                         feature.properties['kind'],
-                        feature.geojson_id)
-                else:
-                    update_label(feature)
+                        feature.geojson_id,
+                        node_ids)
 
     def __process_shape_list(self, shapes: TreeList) -> list[Feature]:
     #=================================================================
