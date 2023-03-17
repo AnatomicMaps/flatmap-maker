@@ -340,7 +340,7 @@ class FCSlide(Slide):
             if connector.parent is None:
                 connector.log_error(f"Connector doesn't have a parent: {connector}")
 
-    def __add_annotation(self, annotator: Annotator):
+    def __add_annotation(self, annotator: 'Annotator'):
     #================================================
         # Called after shapes have been extracted
         for fc_shape in self.__shapes_by_id.values():

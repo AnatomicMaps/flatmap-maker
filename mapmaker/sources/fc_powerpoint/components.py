@@ -26,6 +26,7 @@ from typing import Optional
 
 from mapmaker.properties.pathways import PATH_TYPE
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
+from mapmaker.utils import log
 
 from .colours import ColourMatcher, ColourMatcherDict
 
