@@ -79,6 +79,10 @@ class FCPowerpointSource(PowerpointSource):
                             sckan_neurons=SckanNeuronPopulations()
                         ))
 
+    def get_raster_source(self):
+    #===========================
+        return None                 # We don't rasterise FC maps
+
 #===============================================================================
 
 # The outer geometry of the slide
