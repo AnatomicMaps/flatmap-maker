@@ -33,6 +33,31 @@ from .shape import Shape
 
 #===============================================================================
 
+class CommonAttributes:
+    def __init__(self, shape: Shape):
+        self.__name = shape.name
+        self.__colour = shape.colour
+        self.__opacity = shape.opacity
+        self.__global_id = shape.id
+
+    def __eq__(self, other):
+        return (self.__name == other.__name
+            and self.__colour == other.__colour
+            and self.__opacity == other.__opacity)
+
+    def __str__(self):
+        return str(self.as_dict())
+
+    def as_dict(self):
+        return {
+            'name': self.__name,
+            'colour': self.__colour,
+            'opacity': self.__opacity,
+            'global-id': self.__global_id
+        }
+
+#===============================================================================
+
 class ShapeFilter:
     def __init__(self):
         self.__excluded_shape_attributes = {}
@@ -41,21 +66,13 @@ class ShapeFilter:
         self.__warn_create = False
         self.__warn_filter = False
 
-    @staticmethod
-    def __attributes(shape: Shape):
-        return {
-            'name': shape.name,
-            'colour': shape.colour,
-            'opacity': shape.opacity
-        }
-
     def add_shape(self, shape: Shape):
     #=================================
         geometry = shape.geometry
         if geometry is not None and self.__excluded_shape_rtree is None:
             if 'Polygon' in geometry.geom_type:
                 self.__excluded_shape_geometries.append(geometry)
-                self.__excluded_shape_attributes[id(geometry)] = self.__attributes(shape)
+                self.__excluded_shape_attributes[id(geometry)] = CommonAttributes(shape)
         elif not self.__warn_create:
             log.warning('Cannot add shapes to filter after it has been created...')
             self.__warn_create = True
@@ -78,17 +95,17 @@ class ShapeFilter:
             if geometry is not None and 'Polygon' in geometry.geom_type:
                 if ((attribs := self.__shape_excluded(geometry)) is not None
                  or (attribs := self.__shape_excluded(geometry, overlap=0.80)) is not None
-                 or (attribs := self.__shape_excluded(geometry, attributes=self.__attributes(shape))) is not None):
+                 or (attribs := self.__shape_excluded(geometry, attributes=CommonAttributes(shape))) is not None):
                     shape.properties['exclude'] = True
-                    shape.properties.update(attribs)
+                    shape.properties.update(attribs.as_dict())
                     return True
         elif not self.__warn_filter:
             log.warning('Shape filter has not been created...')
             self.__warn_filter = True
         return False
 
-    def __shape_excluded(self, geometry: BaseGeometry, overlap=0.98, attributes=None, show=False) -> Optional[dict]:
-    #===============================================================================================================
+    def __shape_excluded(self, geometry: BaseGeometry, overlap=0.98, attributes=None, show=False) -> Optional[CommonAttributes]:
+    #===========================================================================================================================
         if self.__excluded_shape_rtree is not None:
             intersecting_shapes_indices = self.__excluded_shape_rtree.query(geometry)
             for index in intersecting_shapes_indices:
@@ -104,7 +121,7 @@ class ShapeFilter:
                     elif attributes == self.__excluded_shape_attributes[id(g)]:
                         if show:
                             log.info(f'Excluded by {attributes} match')
-                        return attributes
+                        return self.__excluded_shape_attributes[id(g)]
         return None
 
 #===============================================================================
