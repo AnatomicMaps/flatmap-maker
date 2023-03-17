@@ -204,7 +204,6 @@ class FCSlide(Slide):
                         parent.children.append(fc_shape)
                     non_system_components.append(fc_shape)
                 elif isinstance(fc_shape, Connector):
-                elif isinstance(fc_shape, Annotation):
                     parent = None
                     for shape_id in containing_ids_area_order:
                         parent = geometry_to_shape[shape_id]
@@ -216,6 +215,7 @@ class FCSlide(Slide):
                         connectors.append(fc_shape)
                     else:
                         fc_shape.log_error(f'Connector has no parent: {fc_shape}')
+                elif isinstance(fc_shape, Annotation) and 'hyperlink' in fc_shape.properties:
                     fc_shape.parent = geometry_to_shape[containing_ids_area_order[0]]
                     hyperlinks.append(fc_shape)
 
