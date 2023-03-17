@@ -41,8 +41,8 @@ from ..powerpoint.colour import ColourTheme
 
 #===============================================================================
 
-from .components import Annotation, Component, Connection, Connector, FCShape
-from .components import CD_CLASS, FC_CLASS, FC_KIND
+from .components import Annotation, Component, Connection, Connector
+from .components import FC_CLASS, FC_KIND
 from .components import HYPERLINK_KINDS, HYPERLINK_IDENTIFIERS
 from .components import NERVE_FEATURE_KINDS, NEURON_PATH_TYPES
 from .components import ORGAN_COLOUR, ORGAN_KINDS
@@ -88,6 +88,10 @@ class FCPowerpointSource(PowerpointSource):
 # The outer geometry of the slide
 SLIDE_LAYER_ID = 'SLIDE-LAYER-ID'
 
+ShapeWithParent = Annotation | Component | Connector
+
+#===============================================================================
+
 class FCSlide(Slide):
     def __init__(self,  flatmap: 'FlatMap', source_id: str, kind: str, index: int, pptx_slide: PptxSlide, theme: ColourTheme,
                  bounds: MapBounds, transform: Transform, shape_filter: Optional[ShapeFilter]=None,
@@ -95,8 +99,8 @@ class FCSlide(Slide):
         super().__init__(flatmap, source_id, kind, index, pptx_slide, theme, bounds, transform)
         self.__shape_filter = shape_filter
         self.__sckan_neurons = sckan_neurons
-        self.__shapes_by_id: dict[str, FCShape] = {
-            SLIDE_LAYER_ID: Component(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry, {'name': source_id}))
+        self.__shapes_by_id: dict[str, ShapeWithParent] = {
+            SLIDE_LAYER_ID: Component(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry, {'name': f'{source_id.capitalize()} Layer'}))
         }
         self.__connection_classifier = ConnectionClassifier()
         self.__connections = []
