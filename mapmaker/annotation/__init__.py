@@ -108,8 +108,8 @@ class Annotator:
             term = self.__terms_by_keys.get(names[0])
         return term
 
-    def __check_component_known(self, component):
-    #============================================
+    def __check_component_known(self, component: 'FCShape'):
+    #=======================================================
         if component.fc_class == FC_CLASS.SYSTEM:
             self.__annotations.add_system(component.name)
         elif component.fc_class == FC_CLASS.ORGAN:
@@ -129,6 +129,6 @@ class Annotator:
             organ = component.parent.name if component.parent is not None else ''
             self.__annotations.add_ftu(component.name, organ, connected)
         elif component.fc_class != FC_CLASS.LAYER:
-            log.warning(f'FC type unknown: {component}')
+            component.log_error(f'FC type unknown: {component}')
 
 #===============================================================================

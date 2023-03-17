@@ -247,14 +247,14 @@ class FCSlide(Slide):
                     fc_shape.fc_kind = organ_kind
                     self.__organ_ids.add(fc_shape.id)
                     if fc_shape.name == '':
-                        log.error(f'An organ must have a name: {fc_shape}')
+                        fc_shape.log_error(f'An organ must have a name: {fc_shape}')
                     have_system = False
                     for parent in fc_shape.parents:
                         if parent.fc_class == FC_CLASS.SYSTEM:
                             have_system = True
                             break
                     if not have_system:
-                        log.error(f'An organ must be in at least one system: {fc_shape}')
+                        fc_shape.log_error(f'An organ must be in at least one system: {fc_shape}')
 
         # Components within an organ are either vascular regions or FTUs
         for fc_shape in non_system_components:
@@ -271,7 +271,7 @@ class FCSlide(Slide):
             if fc_shape.fc_class in [FC_CLASS.FTU, FC_CLASS.VASCULAR]:
                 for parent in fc_shape.parents[1:]:
                     if parent.id in self.__organ_ids:
-                        log.error(f'FTUs and regions can only be in a single organ: {fc_shape}')
+                        fc_shape.log_error(f'FTUs and regions can only be in a single organ: {fc_shape}')
                         break
 
         # Remaining named components should be either neural or vascular
@@ -324,8 +324,7 @@ class FCSlide(Slide):
             if connector.fc_class != FC_CLASS.UNKNOWN:
                 self.__connection_classifier.add_connector(connector)
             if connector.parent is None:
-                log.error(f"Connector doesn't have a parent: {connector}")
-                connector.properties['error'] = True
+                connector.log_error(f"Connector doesn't have a parent: {connector}")
 
     def __add_annotation(self, annotator: Annotator):
     #================================================

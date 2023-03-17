@@ -236,6 +236,14 @@ class FCShape:
     def shape_kind(self):
         return self.properties.get('shape-kind', '')
 
+    def log_error(self, msg: str):
+        self.properties['error'] = msg
+        log.error(msg)
+
+    def log_warning(self, msg: str):
+        self.properties['warning'] = msg
+        log.warning(msg)
+
     def set_geometry(self, geometry):
         self.shape.geometry = geometry
 
