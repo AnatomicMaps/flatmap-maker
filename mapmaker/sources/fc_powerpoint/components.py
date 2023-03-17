@@ -170,13 +170,14 @@ class FCShape:
 
     def __post_init__(self):
     #=======================
+        if self.description is None:
+            self.description = ''
         self.properties['id'] = self.shape.id
         self.properties['name'] = self.properties.pop('name', '').replace('\t', '|').strip()
         self.properties['hyperlinks'] = []
 
     def __str__(self):
-        shape_kind = self.properties.get('shape-kind', '')
-        return f'FC({self.id}: {shape_kind}/{str(self.cd_class)}/{str(self.fc_class)}/{str(self.fc_kind)}/{self.description} `{self.name}`)'
+        return f'FC({self.id}: {self.shape_kind}/{str(self.cd_class)}/{str(self.fc_class)}/{str(self.fc_kind)}/{self.description} `{self.name}`)'
 
     @property
     def global_id(self) -> str:
@@ -227,11 +228,15 @@ class FCShape:
 
     @property
     def models(self):
-        return self.properties.get('models')
+        return self.properties.get('models', '')
 
     @property
     def name(self):
         return self.properties.get('name', '')
+
+    @name.setter
+    def name(self, name):
+        self.properties['name'] = name
 
     @property
     def properties(self):
@@ -273,6 +278,9 @@ class Component(FCShape):
             self.cd_class = CD_CLASS.COMPONENT
         self.children: list[FCShape] = []
         self.parents: list[Component] = []
+
+    def __str__(self):
+        return f'{str(self.fc_class)}({self.name} in {self.parent})'
 
 #===============================================================================
 
