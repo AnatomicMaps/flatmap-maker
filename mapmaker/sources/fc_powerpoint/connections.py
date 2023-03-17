@@ -235,8 +235,6 @@ class ConnectionClassifier:
                     connection.log_error(f"Connection end `{connector_id}` isn't at end: {connection}")
                 else:
                     return
-                print(self.__connectors[connected_end_ids[0]])
-                print(connection.properties)
                 connection.log_error("Can't find connected end of Powerpoint connection")
         check_powerpoint_connection_end('connection-start')
         check_powerpoint_connection_end('connection-end')
