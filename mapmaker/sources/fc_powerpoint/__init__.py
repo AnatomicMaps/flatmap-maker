@@ -338,34 +338,10 @@ class FCSlide(Slide):
     def __add_annotation(self, annotator: Annotator):
     #================================================
         # Called after shapes have been extracted
-        for id in self.__system_ids:
-            name = self.__shapes_by_id[id].name
-            if (term := annotator.find_term_by_names(name)) is not None:
-                self.__shapes_by_id[id].properties['models'] = term
-        for id in self.__nerve_ids:
-            if (name := self.__shapes_by_id[id].name) != '':
-                term = annotator.find_term_by_names(name) # get_nerve_annotation(name, self.source_id)
-                if name.startswith('Inf'):
-                    print(name, term)
-                if term is not None:
-                    self.__shapes_by_id[id].properties['models'] = term
-        for id in self.__organ_ids:
-            if (term := annotator.find_term_by_names(self.__shapes_by_id[id].name,
-                tuple(parent.name for parent in self.__shapes_by_id[id].parents # type: ignore
-                    if parent.fc_class == FC_CLASS.SYSTEM)
-                )) is not None:
-                self.__shapes_by_id[id].properties['models'] = term
-
         for fc_shape in self.__shapes_by_id.values():
             if (isinstance(fc_shape, Component)
-            and fc_shape.id not in self.__system_ids
-            and fc_shape.id not in self.__nerve_ids
-            and fc_shape.id not in self.__system_ids):
-                if (term := annotator.find_term_by_names(fc_shape.name,
-                    tuple(parent.name for parent in fc_shape.parents
-                        if parent.fc_class == FC_CLASS.ORGAN)
-                    )) is not None:
-                    fc_shape.properties['models'] = term
+            and (term := annotator.lookup_component(fc_shape)) is not None):
+                fc_shape.properties['models'] = term
 
         # go through all connectors and set FTU/organ for them
         for fc_shape in self.__shapes_by_id.values():
