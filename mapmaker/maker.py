@@ -42,7 +42,7 @@ from mapmaker.utils import configure_logging, log, FilePath
 
 #===============================================================================
 
-from .annotation import create_annotator
+from .annotation import Annotator
 from .flatmap import FlatMap
 from .knowledgebase import KnowledgeStore
 
@@ -382,7 +382,7 @@ class MapMaker(object):
 
         # An annotator (for functional connectivity)
         if self.__manifest.annotation is not None:
-            self.__annotator = create_annotator(self.__manifest.annotation)
+            self.__annotator = Annotator(self.__manifest.annotation)
         else:
             self.__annotator = None
 
