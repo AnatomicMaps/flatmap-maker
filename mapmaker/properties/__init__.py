@@ -189,6 +189,7 @@ class PropertiesStore(object):
                 feature_properties['kind'] = 'scaffold'
             elif 'simulations' in feature_properties:
                 feature_properties['kind'] = 'simulation'
+        name_used = False
         if (entity := feature_properties.get('models')) is not None and entity.strip() != '':
             # Make sure our knowledgebase knows about the anatomical object
             knowledge = knowledgebase.get_knowledge(entity)
@@ -205,13 +206,14 @@ class PropertiesStore(object):
                 feature_properties['label'] = label
         elif 'label' not in feature_properties and 'name' in feature_properties:
             feature_properties['label'] = feature_properties['name']
+            name_used = True
 
         if settings.get('authoring', False):
             # Show id and classes in label if authoring
             labels = []
             if (label := feature_properties.get('label', '')):
                 labels.append(label)
-            if (name := feature_properties.get('name')):
+            if not name_used and (name := feature_properties.get('name')):
                 labels.append(f'Name: {name}')
             if len(classes):
                 labels.append(f'Class: {", ".join(classes)}')
