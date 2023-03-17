@@ -368,7 +368,7 @@ class FCSlide(Slide):
             set_label(connector.parent)
             if connector.parent.parents:
                 set_label(connector.parent.parents[0])
-            connector.properties['label'] = '/'.join(labels)
+            connector.properties['name'] = '/'.join(names)
             if len(models):
                 connector.properties['parent_models'] = tuple(models)
     def __feature_properties(self, feature_id):
