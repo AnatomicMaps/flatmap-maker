@@ -287,7 +287,12 @@ class FCSlide(Slide):
         for fc_shape in non_system_components:
             if (fc_shape.fc_class == FC_CLASS.UNKNOWN
             and fc_shape.name != ''):
-                if (kind := NERVE_FEATURE_KINDS.lookup(fc_shape.colour)) is not None:
+                if ((kind := NERVE_FEATURE_KINDS.lookup(fc_shape.colour)) is not None
+                  or (fc_shape.parent is not None
+                  and fc_shape.parent.fc_class == FC_CLASS.SYSTEM
+                  and 'BRAIN' in fc_shape.parent.name)):
+                    if fc_shape.name == 'G':
+                        fc_shape.name = 'Ganglion'
                     fc_shape.fc_class = FC_CLASS.NEURAL
                     self.__nerve_ids.add(fc_shape.id)
                     fc_shape.description = kind
