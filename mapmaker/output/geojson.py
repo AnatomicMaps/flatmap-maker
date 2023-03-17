@@ -31,6 +31,7 @@ import shapely.geometry
 
 from mapmaker.geometry import mercator_transform
 from mapmaker.properties.markup import ignore_property
+from mapmaker.settings import settings
 from mapmaker.utils import ProgressBar
 
 #===============================================================================
@@ -71,6 +72,11 @@ class GeoJSONOutput(object):
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
 
         for feature in features:
+            if not settings.get('authoring', False):
+                feature.properties.pop('warning', None)
+                if 'error' in feature.properties:
+                    progress_bar.update(1)
+                    continue
             if feature.property('exclude', False):
                 progress_bar.update(1)
                 continue

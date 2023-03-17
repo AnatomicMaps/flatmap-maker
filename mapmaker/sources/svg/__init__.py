@@ -245,9 +245,7 @@ class SVGLayer(MapLayer):
         properties.pop('id', None)       # We don't inherit `id`
         properties.pop('markup', None)   # nor `markup`
         properties.update(properties_from_markup)
-        if 'error' in properties:
-            pass
-        elif 'path' in properties:
+        if 'path' in properties:
             pass
         elif 'styling' in properties:
             pass

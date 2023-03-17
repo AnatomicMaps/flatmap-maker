@@ -101,9 +101,7 @@ class PowerpointLayer(MapLayer):
                 self.source.check_markup_errors(properties)
                 if 'tile-layer' not in properties:
                     properties['tile-layer'] = FEATURES_TILE_LAYER   # Passed through to map viewer
-                if 'error' in properties:
-                    pass
-                elif 'invisible' in properties:
+                if 'invisible' in properties:
                     pass
                 elif 'path' in properties:
                     pass
