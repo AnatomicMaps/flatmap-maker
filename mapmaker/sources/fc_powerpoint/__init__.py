@@ -371,6 +371,8 @@ class FCSlide(Slide):
             connector.properties['name'] = '/'.join(names)
             if len(models):
                 connector.properties['parent_models'] = tuple(models)
+        connector.properties['shape-type'] = 'connector'
+
     def __feature_properties(self, feature_id):
     #==========================================
         if (feature := self.flatmap.get_feature(feature_id)) is not None:
