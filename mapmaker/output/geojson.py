@@ -120,7 +120,9 @@ class GeoJSONOutput(object):
             properties['geometry'] = geojson['geometry']['type']
             properties['layer'] = self.__layer.id
 
-            # The layer's annotation had property details for each feature
+            # The layer's annotation has property details for each feature.
+            # NB. These, and only these, properties are passed to the viewer
+            #     as the feature's ``annotations`` (indexed by geojson_id)
             self.__layer.annotate(feature, properties)
 
             self.__geojson_layers[tippe_layer].append(geojson)
