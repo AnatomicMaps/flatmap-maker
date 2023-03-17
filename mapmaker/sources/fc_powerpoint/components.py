@@ -282,6 +282,10 @@ class Component(FCShape):
     def __str__(self):
         return f'{str(self.fc_class)}({self.name} in {self.parent})'
 
+    @property
+    def parent(self):
+        return self.parents[0] if self.parents else None
+
 #===============================================================================
 
 class Connector(FCShape):
