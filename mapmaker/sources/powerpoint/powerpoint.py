@@ -70,8 +70,9 @@ ColourPair = tuple[Optional[str], float]
 #===============================================================================
 
 class Slide:
-    def __init__(self, source_id: str, kind: str, index: int, pptx_slide: PptxSlide,
+    def __init__(self, flatmap: 'FlatMap', source_id: str, kind: str, index: int, pptx_slide: PptxSlide,
                  theme: ColourTheme, bounds: MapBounds, transform: Transform):
+        self.__flatmap = flatmap
         self.__source_id = source_id
         self.__kind = kind
         self.__id = 'slide-{:02d}'.format(index+1)
@@ -95,6 +96,10 @@ class Slide:
     @property
     def colour_map(self) -> ColourMap:
         return self.__colour_map
+
+    @property
+    def flatmap(self):
+        return self.__flatmap
 
     @property
     def geometry(self) -> shapely.geometry.base.BaseGeometry:
@@ -332,7 +337,8 @@ class Slide:
 #===============================================================================
 
 class Powerpoint():
-    def __init__(self, source_id: str, source_href: str, source_kind: str, SlideClass=Slide, slide_options: Optional[dict]=None):
+    def __init__(self, flatmap: 'FlatMap', source_id: str, source_href: str, source_kind: str,
+                       SlideClass=Slide, slide_options: Optional[dict]=None):
         ppt_bytes = FilePath(source_href).get_BytesIO()
         pptx = Presentation(ppt_bytes)
 
@@ -350,7 +356,8 @@ class Powerpoint():
         colour_theme = ColourTheme(ppt_bytes)
         if slide_options is None:
             slide_options = {}
-        self.__slides: list[Slide] = [SlideClass(source_id,
+        self.__slides: list[Slide] = [SlideClass(flatmap,
+                                                 source_id,
                                                  source_kind,
                                                  slide_index,
                                                  slide,

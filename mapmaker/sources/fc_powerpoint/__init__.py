@@ -89,10 +89,10 @@ class FCPowerpointSource(PowerpointSource):
 SLIDE_LAYER_ID = 'SLIDE-LAYER-ID'
 
 class FCSlide(Slide):
-    def __init__(self, source_id: str, kind: str, index: int, pptx_slide: PptxSlide, theme: ColourTheme,
+    def __init__(self,  flatmap: 'FlatMap', source_id: str, kind: str, index: int, pptx_slide: PptxSlide, theme: ColourTheme,
                  bounds: MapBounds, transform: Transform, shape_filter: Optional[ShapeFilter]=None,
                  sckan_neurons: Optional[SckanNeuronPopulations]=None):
-        super().__init__(source_id, kind, index, pptx_slide, theme, bounds, transform)
+        super().__init__(flatmap, source_id, kind, index, pptx_slide, theme, bounds, transform)
         self.__shape_filter = shape_filter
         self.__sckan_neurons = sckan_neurons
         self.__shapes_by_id: dict[str, FCShape] = {
