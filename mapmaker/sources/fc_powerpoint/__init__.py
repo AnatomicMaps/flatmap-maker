@@ -188,15 +188,15 @@ class FCSlide(Slide):
                 self.__system_ids.add(shape_id)
             else:       # Component, Connector, or Annotation (Hyperlink)
                 # STRtree query returns geometries whose bounding box intersects the shape's bounding box
-                intersecting_geometries: list[int] = [id for id in idx.query(fc_shape.geometry)
-                                                        if not fc_shape.geometry.contains(geometries[id])
+                bigger_intersecting_geometries: list[int] = [id for id in idx.query(fc_shape.geometry)
+                                                        if geometries[id].area > fc_shape.geometry.area
                                                         and geometries[id].intersection(fc_shape.geometry).area  # type: ignore
                                                             >= MIN_OVERLAP_FRACTION*fc_shape.geometry.area]
                 # Set the shape's parents, ordered by the area of its overlapping geometries,
                 # with the smallest (immediate) parent first
                 containing_ids_area_order = [id_area[0]
                     for id_area in sorted([(id(geometries[index]), geometries[index].area)
-                        for index in intersecting_geometries], key = lambda x: x[1])]
+                        for index in bigger_intersecting_geometries], key = lambda x: x[1])]
                 if isinstance(fc_shape, Component):
                     for shape_id in containing_ids_area_order:
                         parent = geometry_to_shape[shape_id]
@@ -204,11 +204,18 @@ class FCSlide(Slide):
                         parent.children.append(fc_shape)
                     non_system_components.append(fc_shape)
                 elif isinstance(fc_shape, Connector):
-                    parent = geometry_to_shape[containing_ids_area_order[0]]
-                    fc_shape.parent = parent
-                    parent.children.append(fc_shape)
-                    connectors.append(fc_shape)
                 elif isinstance(fc_shape, Annotation):
+                    parent = None
+                    for shape_id in containing_ids_area_order:
+                        parent = geometry_to_shape[shape_id]
+                        if isinstance(parent, Component):
+                            break
+                    if parent is not None:
+                        fc_shape.parent = parent
+                        parent.children.append(fc_shape)
+                        connectors.append(fc_shape)
+                    else:
+                        fc_shape.log_error(f'Connector has no parent: {fc_shape}')
                     fc_shape.parent = geometry_to_shape[containing_ids_area_order[0]]
                     hyperlinks.append(fc_shape)
 
