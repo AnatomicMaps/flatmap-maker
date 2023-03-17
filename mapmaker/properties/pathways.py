@@ -797,7 +797,7 @@ class Pathways:
                 if path_id in self.__routes_by_path_id:
                     self.__resolved_pathways.add_pathway(path_id,
                                                          self.__path_models_by_id.get(path_id),
-                                                         self.__type_by_path_id.get(path_id),
+                                                         self.__type_by_path_id.get(path_id, PATH_TYPE.UNKNOWN),
                                                          self.__routes_by_path_id[path_id],
                                                          self.__lines_by_path_id.get(path_id, []),
                                                          self.__nerves_by_path_id.get(path_id, []))
