@@ -124,9 +124,6 @@ class FCSlide(Slide):
                 elif self.kind == 'layer':
                     self.__shape_filter.filter(shape)
 
-            if shape.id in self.__system_ids:
-                shape.properties.pop('name', None)   # We don't want System tooltips...
-                shape.properties.pop('label', None)  # We don't want System tooltips...
 
 
     def __classify_shapes(self):
