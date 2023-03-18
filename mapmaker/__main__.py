@@ -55,7 +55,7 @@ def arg_parser():
     debug_options.add_argument('--authoring', action='store_true',
                         help="For use when checking a new map: highlight incomplete features; show centreline network; no image tiles; no neuron paths; etc")
     debug_options.add_argument('--debug', action='store_true',
-                        help='Show a traceback for error exceptions')
+                        help='See `log.debug()` messages in log')
     debug_options.add_argument('--ignore-git', dest='ignoreGit', action='store_true',
                         help="Don't check that sources are committed into git")
     debug_options.add_argument('--only-networks', dest='onlyNetworks', action='store_true',
@@ -102,10 +102,7 @@ def main():
         mapmaker.make()
     except Exception as error:
         msg = str(error)
-        if args.debug:
-            log.exception(msg)
-        else:
-            log.error(msg)
+        log.exception(msg)
 
 #===============================================================================
 
