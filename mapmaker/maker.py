@@ -167,9 +167,12 @@ class Manifest:
 
             self.__manifest = self.__path.get_json()
             if id is not None:
-                self.__manifest['id'] = id
+                if ignore_git:
+                    self.__manifest['id'] = id
+                else:
+                    raise ValueError('`--id` can only be used with `--authoring` and/or `--ignore-git`')
             elif 'id' not in self.__manifest:
-                raise ValueError('No id given for manifest')
+                raise ValueError('No `id` specified in manifest')
 
             if self.__manifest.get('sckan-version', 'production') not in ['production', 'staging']:
                 raise ValueError("'sckan-version' in manifest must be `production' or 'staging'")

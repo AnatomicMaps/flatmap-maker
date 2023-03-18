@@ -97,8 +97,6 @@ def arg_parser():
 def main():
     parser = arg_parser()
     args = parser.parse_args()
-    if args.id is None:
-        del args.id
     try:
         mapmaker = MapMaker(vars(args))
         mapmaker.make()
