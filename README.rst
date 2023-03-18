@@ -13,7 +13,7 @@ a range of sources, currently Powerpoint slides, SVG diagrams, and segmented ima
 Documentation
 -------------
 
-* https://flatmap-maker.readthedocs.io/en/v1.5-release/
+* https://flatmap-maker.readthedocs.io/en/latest/
 
 Installation
 ------------
@@ -41,15 +41,20 @@ and if they are not, install them by running::
 Installation
 ~~~~~~~~~~~~
 
-*   Use ``git`` to clone the latest release branch::
+*   At a CLI prompt, and in a suitable directory,
+    `download the latest release <https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.6.1.tar.gz>`_
+    in ``tar.gz`` format and extract it, renaming the top-level directory in the archive to ``mapmaker``::
 
-    $ git clone https://github.com/AnatomicMaps/flatmap-maker/tree/v1.5-release mapmaker
+        $ curl -L https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.6.1.tar.gz \
+        | tar xz -s /flatmap-maker-1.6.1/mapmaker/
 
 
-*   Install mapmaker's dependenies using Conda::
+Setup the environment
+^^^^^^^^^^^^^^^^^^^^^
 
-    $ cd mapmaker
-    $ conda env create -f envs/mapmaker.yaml
+*   Change into the ``mapmaker`` directory and install dependencies using Conda::
+
+        $ conda env create -f envs/mapmaker.yaml
 
 
 Running
@@ -57,11 +62,12 @@ Running
 
 *   Activate ``mapmaker``'s Conda environment::
 
-    $ conda activate mapmaker
+        $ conda activate mapmaker
 
-*   Run::
 
-    $ python runmaker.py ARGUMENTS
+*   From the ``mapmaker`` directory use ``python`` to execute ``runmaker.py``::
+
+        $ python runmaker.py ARGUMENTS
 
 
 *   `SciCrunch <https://scicrunch.org/>`_ is used to lookup attributes (e.g. labels) of anatomical entities. In order
@@ -72,10 +78,11 @@ Running
 Updating
 --------
 
-From the checked-out directory and with the Conda environment active::
+*   Download and extract the archive of the latest release as above, overwriting the existing
+    ``mapmaker`` installation directory.
+*   With the Conda environment active, and within the ``mapmaker`` directory::
 
-    $  git pull
-    $  conda env update -f envs/mapmaker.yaml
+        $  conda env update -f envs/mapmaker.yaml
 
 
 Command line help
@@ -90,8 +97,8 @@ Command line help
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
                     [--clean] [--background-tiles]
-                    [--authoring] [--debug] [--only-networks]
-                    [--save-drawml] [--save-geojson] [--tippecanoe]
+                    [--authoring] [--ignore-git] [--debug] [--only-networks]
+                    [--save-drawml] [--save-geojson] [--save-svg] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N] [--min-zoom N]
                     [--clean-connectivity] [--id ID] [--single-file {celldl,svg}]
                     --output OUTPUT --source SOURCE
@@ -118,11 +125,13 @@ Command line help
       --authoring           For use when checking a new map: highlight incomplete
                             features; show centreline network; no image tiles; no
                             neuron paths; etc
-      --debug               Show a traceback for error exceptions
+      --debug               See `log.debug()` messages in log
+      --ignore-git          Don't check that sources are committed into git
       --only-networks       Only output features that are part of a centreline
                             network
       --save-drawml         Save a slide's DrawML for debugging
       --save-geojson        Save GeoJSON files for each layer
+      --save-svg            Save intermediate SVG files used to generate image tiles
       --tippecanoe          Show command used to run Tippecanoe
 
     Zoom level:
@@ -211,6 +220,8 @@ For example:
         ]
     }
 
+.. note::
+    Extend to include latest updates to manifest.
 
 Anatomical map file
 -------------------
@@ -240,7 +251,8 @@ TODO...
 Development
 -----------
 
-``mapmaker`` uses `poetry <https://python-poetry.org/docs/#installation>`_ for dependency management and packaging. To create a development environment::
+``mapmaker`` uses `poetry <https://python-poetry.org/docs/#installation>`_ for dependency management and packaging.
+To create a development environment::
 
     $ git clone https://github.com/AnatomicMaps/flatmap-maker.git mapmaker
     $ cd mapmaker
