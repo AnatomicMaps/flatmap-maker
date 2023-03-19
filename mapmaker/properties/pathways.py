@@ -127,7 +127,7 @@ class PATH_TYPE(enum.IntFlag):
             PATH_TYPE.EXCITORY: 'excitatory',
             PATH_TYPE.INHIBITORY: 'inhibitory',
             PATH_TYPE.INTESTIONO_FUGAL: 'intestine',
-            PATH_TYPE.INTRINSIC: 'lcn',
+            PATH_TYPE.INTRINSIC: 'intracardiac',
             PATH_TYPE.MOTOR: 'somatic',     ## Rename to 'motor' but will need viewer update...
             PATH_TYPE.PARASYMPATHETIC: 'para',
             PATH_TYPE.SENSORY: 'sensory',
