@@ -296,7 +296,7 @@ class ResolvedPathways:
         self.__flatmap = flatmap
         self.__paths: dict[str, ResolvedPath] = defaultdict(ResolvedPath)   #! Paths by :class:`ResolvedPath`\ s
         self.__node_paths: dict[int, set[str]] = defaultdict(set)           #! Paths by node
-        self.__type_paths: dict[PATH_TYPE, set[str]] = defaultdict(set)     #! Paths by path type
+        self.__type_paths: dict[str, set[str]] = defaultdict(set)           #! Paths by path type
 
     @property
     def node_paths(self):
@@ -310,7 +310,7 @@ class ResolvedPathways:
 
     @property
     def type_paths(self):
-        return { str(typ): list(paths) for typ, paths in self.__type_paths.items() }
+        return { typ: list(paths) for typ, paths in self.__type_paths.items() }
 
     def __resolve_nodes_for_path(self, path_id, nodes):
         node_ids = []
@@ -326,7 +326,7 @@ class ResolvedPathways:
         return node_ids
 
     def add_connectivity(self, path_id: str, geojson_id: int,
-                         model: str, path_type: PATH_TYPE,
+                         model: str, path_type: str,
                          node_feature_ids: list[Feature], nerve_features: list[Feature]):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -336,7 +336,7 @@ class ResolvedPathways:
         resolved_path.extend_lines([geojson_id])
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
 
-    def add_pathway(self, path_id: str, model: Optional[str], path_type: PATH_TYPE,
+    def add_pathway(self, path_id: str, model: Optional[str], path_type: str,
                     route: Route, lines: list[str], nerves: list[str]):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -771,7 +771,7 @@ class Pathways:
                     self.__resolved_pathways.add_connectivity(path_id,
                                                               feature.geojson_id,
                                                               path.models,  ## This is properties['models']...
-                                                              path.path_type,  ## This is properties['type']...
+                                                              str(path.path_type),  ## This is properties['type']...
                                                               routed_path.node_feature_ids,
                                                               nerve_features)
         for feature in active_nerve_features:
@@ -797,7 +797,7 @@ class Pathways:
                 if path_id in self.__routes_by_path_id:
                     self.__resolved_pathways.add_pathway(path_id,
                                                          self.__path_models_by_id.get(path_id),
-                                                         self.__type_by_path_id.get(path_id, PATH_TYPE.UNKNOWN),
+                                                         str(self.__type_by_path_id.get(path_id, PATH_TYPE.UNKNOWN)),
                                                          self.__routes_by_path_id[path_id],
                                                          self.__lines_by_path_id.get(path_id, []),
                                                          self.__nerves_by_path_id.get(path_id, []))
