@@ -230,9 +230,9 @@ class ConnectionClassifier:
         def check_powerpoint_connection_end(end_attribute):
             if (connector_id := connection.properties.get(end_attribute)) is not None:
                 if connector_id not in self.__connectors:
-                    connection.log_error(f'Connection end `{connector_id}` is unknown: {connection}')
+                    connection.log_error(f'Connection end `{connector_id}` is unknown')
                 elif connector_id not in connected_end_ids:
-                    connection.log_error(f"Connection end `{connector_id}` isn't at end: {connection}")
+                    connection.log_error(f"Connection end `{connector_id}` isn't at end")
                 else:
                     return
                 connection.log_error("Can't find connected end of Powerpoint connection")
@@ -241,7 +241,7 @@ class ConnectionClassifier:
 
         # Warn when we can't find both ends of a connection
         if len(free_end_connectors):          ## Diaphram dashed line...??
-            connection.log_warning(f'Connection has unconnected end(s): {connection}')
+            connection.log_warning('Connection has unconnected end(s)')
             if len(free_end_connectors) == 1:
                 free_end_connectors[0].fc_class = self.__connectors[connected_end_ids[0]].fc_class
             for connector in free_end_connectors:
@@ -256,7 +256,7 @@ class ConnectionClassifier:
         connector_1 = self.__connectors[connected_end_ids[1]]
 
         if connector.fc_class != connector_1.fc_class:
-            connection.log_error(f"Connection ends {connector}/{connector_1} aren't compatible")
+            connection.log_error(f"Connection ends aren't compatible ({str(connector.fc_class)} != {str(connector_1.fc_class)})")
 
         connection.fc_class = connector.fc_class
 
@@ -264,7 +264,7 @@ class ConnectionClassifier:
             connection.fc_kind = FC_KIND.NEURON
             if (path_type := NEURON_PATH_TYPES.lookup(connection.colour)) is not None:
                 if connector.fc_kind in NODE_CONNECTORS and path_type != connector.path_type:
-                    connection.log_error(f"Connection type doesn't match connector {connection.colour}/{path_type} != {connector.colour}/{connector.path_type}")
+                    connection.log_error(f"Connection type doesn't match connector's: {path_type} != {connector.path_type}")
                 if path_type in [PATH_TYPE.PARASYMPATHETIC, PATH_TYPE.SYMPATHETIC]:
                     line_style = connection.properties.get('line-style', '').lower()
                     path_type |= (PATH_TYPE.PRE_GANGLIONIC if 'dot' in line_style or 'dash' in line_style
@@ -273,13 +273,13 @@ class ConnectionClassifier:
                 connection.properties['kind'] = str(path_type)
                 connection.properties['type'] = 'line-dash' if connection.properties['kind'].endswith('-post') else 'line'
             else:
-                connection.log_error(f"Connection colour ({connection.colour}) doesn't neuron types: {connection}")
+                connection.log_error(f"Connection colour ({connection.colour}) isn't a neuron type")
             connection.properties['stroke-width'] = 1.0
         elif connection.fc_class == FC_CLASS.VASCULAR:
             connection.description = VASCULAR_KINDS.lookup(connection.colour)       # type: ignore
             if (connector.fc_kind in NODE_CONNECTORS
             and connection.description != connector.description):
-                connection.log_error(f"Connection colour doesn't match connector {connection.colour}/{connection.description} != {connector.colour}/{connector.description}")
+                connection.log_error(f"Connection colour doesn't match connector's {connection.colour} != {connector.colour}")
             connection.properties['kind'] = connection.description
             connection.properties['type'] = 'line'
             connection.properties['stroke-width'] = connection.properties.get('stroke-width',
