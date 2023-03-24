@@ -70,11 +70,11 @@ ColourPair = tuple[Optional[str], float]
 #===============================================================================
 
 class Slide:
-    def __init__(self, flatmap: 'FlatMap', source_id: str, kind: str, index: int, pptx_slide: PptxSlide,
+    def __init__(self, flatmap: 'FlatMap', source: 'PowerpointSource', index: int, pptx_slide: PptxSlide,   # type: ignore
                  theme: ColourTheme, bounds: MapBounds, transform: Transform):
         self.__flatmap = flatmap
-        self.__source_id = source_id
-        self.__kind = kind
+        self.__source = source
+        self.__kind = source.kind
         self.__id = 'slide-{:02d}'.format(index+1)
         # Get any layer directives
         if pptx_slide.has_notes_slide:
@@ -126,8 +126,12 @@ class Slide:
         return self.__pptx_slide.slide_id
 
     @property
-    def source_id(self):
-        return self.__source_id
+    def source(self) -> 'PowerpointSource':     # type: ignore
+        return self.__source
+
+    @property
+    def source_id(self) -> str:
+        return self.__source.id
 
     def shape(self, id: str) -> Optional[Shape]:
     #===========================================
@@ -135,7 +139,7 @@ class Slide:
 
     def __shape_id(self, id) -> str:
     #==============================
-        return f'{self.__source_id}/{self.__id}/{id}'
+        return f'{self.__source.id}/{self.__id}/{id}'
 
     def __new_shape(self, type, id: str, geometry, properties=None) -> Shape:
     #========================================================================
@@ -337,9 +341,9 @@ class Slide:
 #===============================================================================
 
 class Powerpoint():
-    def __init__(self, flatmap: 'FlatMap', source_id: str, source_href: str, source_kind: str,
+    def __init__(self, flatmap: 'FlatMap', source: 'PowerpointSource',      # type: ignore
                        SlideClass=Slide, slide_options: Optional[dict]=None):
-        ppt_bytes = FilePath(source_href).get_BytesIO()
+        ppt_bytes = FilePath(source.href).get_BytesIO()
         pptx = Presentation(ppt_bytes)
 
         (width, height) = (pptx.slide_width, pptx.slide_height)
@@ -356,14 +360,10 @@ class Powerpoint():
         colour_theme = ColourTheme(ppt_bytes)
         if slide_options is None:
             slide_options = {}
-        self.__slides: list[Slide] = [SlideClass(flatmap,
-                                                 source_id,
-                                                 source_kind,
-                                                 slide_index,
-                                                 slide,
+        self.__slides: list[Slide] = [SlideClass(flatmap, source,
+                                                 slide_index, slide,
                                                  colour_theme,
-                                                 self.__bounds,
-                                                 self.__transform,
+                                                 self.__bounds, self.__transform,
                                                  **slide_options)
                                             for slide_index, slide in enumerate(pptx.slides)]
 
