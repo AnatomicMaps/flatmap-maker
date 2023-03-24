@@ -129,10 +129,10 @@ def not_empty(image):
 #===============================================================================
 
 class MapSource(object):
-    def __init__(self, flatmap: FlatMap, id: str, source_href: str, kind: str, source_range: Optional[tuple[int, int]]=None):
+    def __init__(self, flatmap: FlatMap, id: str, href: str, kind: str, source_range: Optional[tuple[int, int]]=None):
         self.__flatmap = flatmap
         self.__id = id
-        self.__source_href = source_href
+        self.__href = href
         self.__kind = kind
         self.__source_range = source_range
         self.__errors: list[tuple[str, str]] = []
@@ -191,8 +191,8 @@ class MapSource(object):
         return self.__raster_source
 
     @property
-    def source_href(self):
-        return self.__source_href
+    def href(self):
+        return self.__href
 
     @property
     def source_range(self) -> Optional[tuple[int, int]]:

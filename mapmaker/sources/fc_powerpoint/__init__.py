@@ -70,9 +70,9 @@ def contained_in(inside_shape, outer_shape, outside_fraction=0.0):
 #===============================================================================
 
 class FCPowerpointSource(PowerpointSource):
-    def __init__(self, flatmap, id, source_href, source_kind, source_range=None,
+    def __init__(self, flatmap, id, href, kind, source_range=None,
                  shape_filter: Optional[ShapeFilter]=None):
-        super().__init__(flatmap, id, source_href, source_kind=source_kind,
+        super().__init__(flatmap, id, href, kind=kind,
                          source_range=source_range,
                          SlideClass=FCSlide, slide_options=dict(
                             shape_filter=shape_filter,

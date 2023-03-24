@@ -492,7 +492,7 @@ class MapMaker(object):
             if settings['functionalConnectivity']:
                 if kind in ['base', 'layer']:
                     source_layer = FCPowerpointSource(self.__flatmap, id, href,
-                                                      source_kind=kind,
+                                                      kind=kind,
                                                       source_range=get_range(source.get('slides')),
                                                       shape_filter=self.__shape_filter)
                 else:
