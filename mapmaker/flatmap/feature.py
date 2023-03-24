@@ -107,13 +107,13 @@ class Feature:
         return self.__properties
 
     def visible(self) -> bool:
-        return not self.property('invisible')
+        return not self.get_property('invisible')
 
     def del_property(self, key: str) -> Any:
         if key in self.__properties:
             return self.__properties.pop(key)
 
-    def property(self, key: str, default: Any=None) -> Any:
+    def get_property(self, key: str, default: Any=None) -> Any:
         return self.__properties.get(key, default)
 
     def has_property(self, key: str) -> bool:
@@ -162,7 +162,7 @@ class FeaturePathMap:
         for layer in layers:
             nerve_layer = False
             for feature in features_from_anatomical_id(layer):
-                if feature.property('type') == 'nerve':
+                if feature.get_property('type') == 'nerve':
                     nerve_layer = True
                     break
             if not nerve_layer:

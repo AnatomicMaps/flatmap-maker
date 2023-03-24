@@ -66,8 +66,8 @@ class PowerpointLayer(MapLayer):
 
         if settings.get('functionalConnectivity', False):
             for feature in self.features:
-                if (feature.property('shape-type') == 'connection'
-                and feature.property('fc-class') in ['FC_CLASS.NEURAL', 'FC_CLASS.VASCULAR']):
+                if (feature.get_property('shape-type') == 'connection'
+                and feature.get_property('fc-class') in ['FC_CLASS.NEURAL', 'FC_CLASS.VASCULAR']):
                     # Map neuron path class to viewer path kind/type
                     feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
                     if (settings.get('authoring', False)
@@ -76,11 +76,11 @@ class PowerpointLayer(MapLayer):
                         feature.set_property('kind', 'error')
                     node_ids = [node.geojson_id for node in
                                     [self.flatmap.get_feature(node_id)
-                                        for node_id in feature.property('node-ids', [])]
+                                        for node_id in feature.get_property('node-ids', [])]
                                     if node is not None]
                     self.source.flatmap.connection_set.add(
                         feature.id,                             # type:ignore (all FC features have an id)
-                        feature.property('kind'),
+                        feature.get_property('kind'),
                         feature.geojson_id,
                         node_ids)
 

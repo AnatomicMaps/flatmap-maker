@@ -316,7 +316,7 @@ class ResolvedPathways:
         node_ids = []
         for id in nodes:
             if (feature := self.__flatmap.get_feature(id)) is not None:
-                if not feature.property('exclude'):
+                if not feature.get_property('exclude'):
                     node_id = feature.geojson_id
                     feature.set_property('nodeId', node_id)
                     self.__node_paths[node_id].add(path_id)
@@ -775,7 +775,7 @@ class Pathways:
                                                               routed_path.node_feature_ids,
                                                               nerve_features)
         for feature in active_nerve_features:
-            if feature.property('type') == 'nerve' and feature.geom_type == 'LineString':
+            if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
                 feature.del_property('exclude')
                 feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                 feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)

@@ -77,7 +77,7 @@ class GeoJSONOutput(object):
                 if 'error' in feature.properties:
                     progress_bar.update(1)
                     continue
-            if feature.property('exclude', False):
+            if feature.get_property('exclude', False):
                 progress_bar.update(1)
                 continue
             properties = feature.properties.copy()

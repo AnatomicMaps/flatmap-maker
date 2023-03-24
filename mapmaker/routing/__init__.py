@@ -312,7 +312,7 @@ class Network(object):
     #==============================
         # Is the ``feature`` included in this network?
         return (feature.id in self.__feature_ids
-             or feature.property('tile-layer') == PATHWAYS_TILE_LAYER)
+             or feature.get_property('tile-layer') == PATHWAYS_TILE_LAYER)
 
     def __map_feature(self, feature_id):
     #===================================
@@ -465,7 +465,7 @@ class Network(object):
             for network_node in network_nodes:
                 network_node.set_properties_from_feature(self.__map_feature(network_node.feature_id))
 
-            bz_path = BezierPath.fromSegments(centreline_feature.property('bezier-segments'))
+            bz_path = BezierPath.fromSegments(centreline_feature.get_property('bezier-segments'))
 
             # A node's centre may not be where a centreline into the node finishes
             # so check both ends of the Bezier path to decide the curve's direction
@@ -681,7 +681,7 @@ class Network(object):
         segment_ids = set()
         for centreline_id in centreline_ids:
             if ((feature := self.__map_feature(centreline_id)) is not None
-                and (nerve_id := feature.property('nerve')) is not None):
+                and (nerve_id := feature.get_property('nerve')) is not None):
                     # Save the id of the centreline's nerve cuff
                     nerve_ids.add(nerve_id)
             segment_ids.update(self.__segment_ids_by_centreline[centreline_id])
@@ -1077,7 +1077,7 @@ class Network(object):
             if feature is not None:  # Redundant test...
                 if nerve_id is not None:
                     feature.set_property('nerveId', nerve_id)   # Used in map viewer
-                if 'auto-hide' in feature.property('class', ''):
+                if 'auto-hide' in feature.get_property('class', ''):
                     # Show the hidden feature on the map
                     feature.del_property('exclude')
 
