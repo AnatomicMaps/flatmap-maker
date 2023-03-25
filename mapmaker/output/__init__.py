@@ -17,3 +17,37 @@
 #  limitations under the License.
 #
 #===============================================================================
+
+# These properties of a feature are passed to the viewer along with ``bounds``,
+# ``geometry``, ``layer` and ``markerPosition``, which are added when the feature
+# is saved as GeoJSON.
+
+EXPORTED_FEATURE_PROPERTIES = [
+    'centreline',
+    'class',
+    'colour',
+    'error',
+    'featureId',
+    'group',
+    'hyperlink',
+    'id',
+    'invisible',
+    'kind',
+    'label',
+    'labelled',
+    'maxzoom',
+    'minzoom',
+    'models',
+    'name',
+    'nerveId',
+    'node',
+    'nodeId',
+    'opacity',
+    'scale',
+    'sckan',
+    'source',
+    'stroke-width',
+    'tile-layer',
+    'type',
+    'warning',
+]

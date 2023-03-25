@@ -168,11 +168,6 @@ def properties_to_markup(properties):
 
 #===============================================================================
 
-def ignore_property(name):
-    return SHAPE_FLAGS.matches(name) or name in DEPRECATED_MARKUP
-
-#===============================================================================
-
 if __name__ == '__main__':
 
     def test(method, text):

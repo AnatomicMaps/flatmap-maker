@@ -30,9 +30,10 @@ import shapely.geometry
 #===============================================================================
 
 from mapmaker.geometry import mercator_transform
-from mapmaker.properties.markup import ignore_property
 from mapmaker.settings import settings
 from mapmaker.utils import ProgressBar
+
+from . import EXPORTED_FEATURE_PROPERTIES
 
 #===============================================================================
 
@@ -80,10 +81,10 @@ class GeoJSONOutput(object):
             if feature.get_property('exclude', False):
                 progress_bar.update(1)
                 continue
-            properties = feature.properties.copy()
-            properties.pop('bezier-segments', None)   # Don't export Bezier segments
-            properties.pop('pptx-shape', None)        # Don't export Powerpoint shape
-            properties.pop('svg-element', None)       # Don't export SVG path
+            properties = {
+                name: value for name in EXPORTED_FEATURE_PROPERTIES
+                    if (value := feature.get_property(name)) is not None
+            }
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
@@ -114,10 +115,8 @@ class GeoJSONOutput(object):
                     geojson['tippecanoe']['minzoom'] = 4
             else:
                 geojson['properties']['scale'] = 10
+            geojson['properties'].update(properties)
 
-            for (key, value) in properties.items():
-                if not ignore_property(key):
-                    geojson['properties'][key] = value
             properties['bounds'] = geojson['properties']['bounds']
             if 'Polygon' in geometry.geom_type:
                 properties['markerPosition'] = list(list(mercator_geometry.representative_point().coords)[0])
