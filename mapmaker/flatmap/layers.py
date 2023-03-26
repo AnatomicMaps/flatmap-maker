@@ -196,7 +196,7 @@ class MapLayer(FeatureLayer):
         debug_group = False
         child_class = None
         generate_group = False
-        single_features = [ feature for feature in features if not feature.has_children ]
+        single_features = [ feature for feature in features if not feature.is_group ]
         for feature in single_features:
             if feature.get_property('boundary'):
                 if feature.get_property('group'):
@@ -313,7 +313,7 @@ class MapLayer(FeatureLayer):
 
         feature_group = None  # Our returned Feature
         if generate_group:
-            grouped_polygon_features = [ feature for feature in features if feature.has_children ]
+            grouped_polygon_features = [ feature for feature in features if feature.is_group ]
             for feature in layer_features:
                 grouped_polygon_features.append(feature)
 
@@ -326,7 +326,7 @@ class MapLayer(FeatureLayer):
             if len(grouped_polygons):
                 feature_group = self.flatmap.new_feature(
                         shapely.geometry.MultiPolygon(grouped_polygons).buffer(0),
-                        grouped_properties, True)
+                        grouped_properties, is_group=True)
                 layer_features.append(feature_group)
                 # So that any grouped lines don't have a duplicate id
                 grouped_properties.pop('id', None)

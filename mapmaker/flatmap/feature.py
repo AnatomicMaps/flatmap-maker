@@ -56,13 +56,13 @@ class Feature(PropertyMixin):
     def __init__(self, geojson_id: int,
                        geometry: BaseGeometry,
                        properties: dict[str, Any],
-                       has_children:bool=False):
+                       is_group:bool=False):
         super().__init__(properties)
         self.__geojson_id = geojson_id     # Must be numeric for tipeecanoe
         self.__geometry = geometry
-        self.__has_children = has_children
         self.properties['featureId'] = geojson_id   # Used by flatmap viewer
         self.properties['geometry'] = geometry.geom_type
+        self.__is_group = is_group
 
     def __eq__(self, other):
         return isinstance(other, Feature) and self.__geojson_id == other.__geojson_id
@@ -91,14 +91,12 @@ class Feature(PropertyMixin):
         self.__geometry = geometry
 
     @property
-    def has_children(self) -> bool:
-        return self.__has_children
-
-    @property
     def id(self) -> Optional[str]:
         return self.get_property('id')
 
     @property
+    def is_group(self) -> bool:
+        return self.__is_group
 
     @property
     def models(self) -> Optional[str]:
