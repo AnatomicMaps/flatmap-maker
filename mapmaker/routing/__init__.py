@@ -1079,7 +1079,7 @@ class Network(object):
                     feature.set_property('nerveId', nerve_id)   # Used in map viewer
                 if 'auto-hide' in feature.get_property('class', ''):
                     # Show the hidden feature on the map
-                    feature.del_property('exclude')
+                    feature.pop_property('exclude')
 
         route_graph.graph['path-id'] = path.id
         route_graph.graph['path-type'] = str(path.path_type)

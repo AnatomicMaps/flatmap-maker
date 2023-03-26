@@ -776,7 +776,7 @@ class Pathways:
                                                               nerve_features)
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
-                feature.del_property('exclude')
+                feature.pop_property('exclude')
                 feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                 feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
                 # Add a polygon feature for a nerve cuff

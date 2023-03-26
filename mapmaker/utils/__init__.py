@@ -2,7 +2,7 @@
 #
 #  Flatmap viewer and annotation tools
 #
-#  Copyright (c) 2020  David Brooks
+#  Copyright (c) 2020 - 2023 David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import urllib.request
 # Export from module
 
 from .logging import ProgressBar, configure_logging, log
+from .property_mixin import PropertyMixin
 from .treelist import TreeList
 
 #===============================================================================

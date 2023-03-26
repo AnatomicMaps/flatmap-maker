@@ -363,7 +363,7 @@ class FlatMap(object):
                 # Set the feature's geometry to that of the high-resolution outline
                 feature.geometry = transform.transform_geometry(boundary_feature.geometry)
             else:                             # nerve
-                feature.del_property('maxzoom')
+                feature.pop_property('maxzoom')
 
             if hires_layer.source.raster_source is not None:
                 extent = transform.transform_extent(hires_layer.source.extent)

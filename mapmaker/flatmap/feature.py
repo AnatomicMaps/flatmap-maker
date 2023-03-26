@@ -27,7 +27,7 @@ from shapely.geometry.base import BaseGeometry
 #===============================================================================
 
 from mapmaker.knowledgebase import get_label
-from mapmaker.utils import log, FilePath
+from mapmaker.utils import log, FilePath, PropertyMixin
 
 #===============================================================================
 
@@ -52,17 +52,17 @@ def full_node_name(anatomical_node: AnatomicalNode) -> str:
 
 #===============================================================================
 
-class Feature:
+class Feature(PropertyMixin):
     def __init__(self, geojson_id: int,
                        geometry: BaseGeometry,
                        properties: dict[str, Any],
                        has_children:bool=False):
+        super().__init__(properties)
         self.__geojson_id = geojson_id     # Must be numeric for tipeecanoe
         self.__geometry = geometry
-        self.__properties = properties.copy()
-        self.__properties['featureId'] = geojson_id   # Used by flatmap viewer
-        self.__properties['geometry'] = geometry.geom_type
         self.__has_children = has_children
+        self.properties['featureId'] = geojson_id   # Used by flatmap viewer
+        self.properties['geometry'] = geometry.geom_type
 
     def __eq__(self, other):
         return isinstance(other, Feature) and self.__geojson_id == other.__geojson_id
@@ -71,8 +71,8 @@ class Feature:
         return hash(self.geojson_id)
 
     def __str__(self):
-        return 'Feature: {}, {}'.format(self.__geometry.geom_type,
-            { k:v for k, v in self.__properties.items() if k != 'bezier-segments'})
+        return 'Feature {}: {}, {}'.format(self.__geojson_id, self.__geometry.geom_type,
+            { k:v for k, v in self.properties.items() if k != 'bezier-segments'})
 
     @property
     def geojson_id(self) -> int:
@@ -96,34 +96,16 @@ class Feature:
 
     @property
     def id(self) -> Optional[str]:
-        return self.__properties.get('id')
+        return self.get_property('id')
+
+    @property
 
     @property
     def models(self) -> Optional[str]:
-        return self.__properties.get('models')
-
-    @property
-    def properties(self) -> dict[str, Any]:
-        return self.__properties
+        return self.get_property('models')
 
     def visible(self) -> bool:
         return not self.get_property('invisible')
-
-    def del_property(self, key: str) -> Any:
-        if key in self.__properties:
-            return self.__properties.pop(key)
-
-    def get_property(self, key: str, default: Any=None) -> Any:
-        return self.__properties.get(key, default)
-
-    def has_property(self, key: str) -> bool:
-        return self.__properties.get(key, '') != ''
-
-    def set_property(self, key: str, value: Any) -> None:
-        if value is None:
-            self.del_property(key)
-        else:
-            self.__properties[key] = value
 
 #===============================================================================
 

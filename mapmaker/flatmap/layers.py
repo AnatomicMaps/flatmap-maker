@@ -222,7 +222,7 @@ class MapLayer(FeatureLayer):
                         raise ValueError('Class of boundary shapes have changed in {}: {}'.format(group_name, feature))
             elif feature.get_property('group'):
                 generate_group = True
-                child_class = feature.del_property('children')
+                child_class = feature.pop_property('children')
                 grouped_properties.update(feature.properties)
             elif feature.get_property('region'):
                 regions.append(self.flatmap.new_feature(feature.geometry.representative_point(), feature.properties))
