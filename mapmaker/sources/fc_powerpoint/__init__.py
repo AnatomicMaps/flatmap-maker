@@ -159,8 +159,8 @@ class FCSlide(Slide):
                     shape_kind = shape.properties.get('shape-kind', '')
                     if shape.colour is None:
                         if shape.name != '':
-                    elif (geometry.area < MAX_CONNECTOR_AREA):
                             fc_shape = make_annotation(shape, FC_CLASS.DESCRIPTION)
+                    elif (geometry.area < MAX_CONNECTOR_AREA):
                         fc_shape = None
                         if shape_kind.startswith('star'):
                             if (kind := HYPERLINK_KINDS.lookup(shape.colour)) is not None:
