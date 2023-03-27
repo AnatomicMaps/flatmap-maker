@@ -84,6 +84,7 @@ class GeoJSONOutput(object):
             properties = {
                 name: value for name in EXPORTED_FEATURE_PROPERTIES
                     if (value := feature.get_property(name)) is not None
+                    and value != ''
             }
             geometry = feature.geometry
             area = geometry.area

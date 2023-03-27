@@ -2,7 +2,7 @@
 #
 #  Flatmap viewer and annotation tools
 #
-#  Copyright (c) 2019  David Brooks
+#  Copyright (c) 2019 - 2023  David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -23,30 +23,35 @@
 # is saved as GeoJSON.
 
 EXPORTED_FEATURE_PROPERTIES = [
-    'centreline',
+    'cd-class',         # str
+    'centreline',       # bool
+    'children',         # list[int]
     'class',
     'colour',
+    'description',
     'error',
-    'featureId',
+    'fc-class',
+    'fc-kind',
+    'featureId',        # int
     'group',
-    'hyperlink',
-    'id',
-    'invisible',
+    'hyperlinks',       # Optional[list[dict[str, str]]]    # id, url
+    'id',               # Optional[str]
+    'invisible',        # bool
     'kind',
     'label',
-    'labelled',
-    'maxzoom',
-    'minzoom',
+    'labelled',         # bool
+    'maxzoom',          # int
+    'minzoom',          # int
     'models',
     'name',
     'nerveId',
-    'node',
+    'node',             # bool
     'nodeId',
-    'opacity',
+    'opacity',          # float
     'scale',
     'sckan',
     'source',
-    'stroke-width',
+    'stroke-width',     # float
     'tile-layer',
     'type',
     'warning',
