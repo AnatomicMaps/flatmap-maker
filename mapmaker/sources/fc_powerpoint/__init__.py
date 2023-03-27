@@ -114,6 +114,10 @@ class FCSlide(Slide):
         super().process(annotator)
         self.__extract_shapes(annotator)
         self.__add_connections()
+        if self.__shape_filter is not None and self.kind == 'base':
+            # All shapes have been added to the filter so create it
+            # for use by subsequent layers
+            self.__shape_filter.create_filter()
         return self.shapes
 
     def __extract_shapes(self, annotator: Optional['Annotator']):
@@ -122,12 +126,11 @@ class FCSlide(Slide):
 
         if annotator is not None:
             self.__add_annotation(annotator)
-
-        # Add shapes to the filter if we are processing a base map, or
-        # exclude them from the layer because they are similar to those
-        # in the base map
-        for shape in self.shapes.flatten(skip=1):
-            if self.__shape_filter is not None:
+        if self.__shape_filter is not None:
+            # Add shapes to the filter if we are processing a base layer, or
+            # exclude them from the layer because they are similar to those
+            # in the base layer
+            for shape in self.shapes.flatten(skip=1):
                 if self.kind == 'base':
                     self.__shape_filter.add_shape(shape)
                 elif self.kind == 'layer':
