@@ -31,7 +31,7 @@ import shapely.geometry
 
 from mapmaker.geometry import mercator_transform
 from mapmaker.settings import settings
-from mapmaker.utils import log, ProgressBar
+from mapmaker.utils import log, ProgressBar, set_as_list
 
 from . import EXPORTED_FEATURE_PROPERTIES
 
@@ -58,12 +58,12 @@ class GeoJSONOutput(object):
                         'type': 'FeatureCollection',
                         'features': features
                     }
-                    output_file.write(json.dumps(feature_collection, indent=4))
+                    output_file.write(json.dumps(feature_collection, indent=4, default=set_as_list))
                 else:
                     # Tippecanoe doesn't need a FeatureCollection
                     # Delimit features with RS...LF   (RS = 0x1E)
                     for feature in features:
-                        output_file.write('\x1E{}\x0A'.format(json.dumps(feature)))
+                        output_file.write('\x1E{}\x0A'.format(json.dumps(feature, default=set_as_list)))
         return saved_filenames
 
     def __save_features(self, features):

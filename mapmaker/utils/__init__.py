@@ -49,6 +49,12 @@ def pathlib_path(path: str) -> pathlib.Path:
 
 #===============================================================================
 
+# Output sets as JSON lists
+def set_as_list(s):
+    return list(s) if isinstance(s, set) else s
+
+#===============================================================================
+
 class FilePathError(IOError):
     pass
 

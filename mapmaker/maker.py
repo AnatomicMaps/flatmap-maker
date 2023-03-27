@@ -38,7 +38,7 @@ import giturlparse
 #===============================================================================
 
 from mapmaker import FLATMAP_VERSION, __version__
-from mapmaker.utils import configure_logging, log, FilePath
+from mapmaker.utils import configure_logging, log, FilePath, set_as_list
 
 #===============================================================================
 
@@ -609,7 +609,7 @@ class MapMaker(object):
         # Save pathway details in metadata
         tile_db.add_metadata(pathways=json.dumps(self.__flatmap.connectivity()))
         # Save annotations in metadata
-        tile_db.add_metadata(annotations=json.dumps(self.__flatmap.annotations))
+        tile_db.add_metadata(annotations=json.dumps(self.__flatmap.annotations, default=set_as_list))
 
         # Commit updates to the database
         tile_db.execute("COMMIT")
