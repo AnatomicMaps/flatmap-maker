@@ -54,7 +54,6 @@ from .geometry import get_shape_geometry
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
 from .transform import DrawMLTransform
 
-
 #===============================================================================
 
 def svg_path_from_geometry(geometry: BaseGeometry):
@@ -279,19 +278,27 @@ class Slide:
         for pptx_shape in pptx_shapes:
             shape_name = pptx_shape.name
             shape_properties = parse_markup(shape_name) if shape_name.startswith('.') else {}
+            shape_properties['pptx-shape'] = pptx_shape
+            shape_properties['shape-name'] = shape_name
+
+            def good_geometry(geometry):
+                if geometry is None:
+                    log.warning(f'Shape "{shape_name}" {pptx_shape.shape_type}/{shape_properties.get("shape-kind")} not processed -- cannot get geometry')
+                elif not geometry.is_valid:
+                    log.warning(f'Shape "{shape_name}" {pptx_shape.shape_type}/{shape_properties.get("shape-kind")} not processed -- cannot get valid geometry')
+                else:
+                    return True
+                return False
+
             if (pptx_shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE              # type: ignore
              or pptx_shape.shape_type == MSO_SHAPE_TYPE.FREEFORM                # type: ignore
              or pptx_shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX                # type: ignore
              or pptx_shape.shape_type == MSO_SHAPE_TYPE.LINE):                  # type: ignore
                 colour, alpha = self.__get_colour(pptx_shape, group_colour)     # type: ignore
-                shape_properties.update({
-                    'shape-name': shape_name,
-                    'colour': colour
-                })
+                shape_properties['colour'] = colour
                 if alpha < 1.0:
                     shape_properties['opacity'] = alpha
-                geometry = get_shape_geometry(pptx_shape, transform, shape_properties)
-                if geometry is not None and geometry.is_valid:
+                if good_geometry(geometry := get_shape_geometry(pptx_shape, transform, shape_properties)):
                     shape_xml = etree.fromstring(pptx_shape.element.xml)
                     for link_ref in shape_xml.findall('.//a:hlinkClick',
                                                     namespaces=PPTX_NAMESPACE):
@@ -320,7 +327,6 @@ class Slide:
                         if name != '':
                             shape_properties['name'] = name
                             shape_properties['align'] = text_alignment(pptx_shape)
-                    shape_properties['pptx-shape'] = pptx_shape
                     shape = self.__new_shape(shape_type, pptx_shape.shape_id, geometry, shape_properties)
                     shapes.append(shape)
                 elif geometry is None:
@@ -330,7 +336,13 @@ class Slide:
             elif pptx_shape.shape_type == MSO_SHAPE_TYPE.GROUP:             # type: ignore
                 shapes.append(self.__process_group(pptx_shape, transform))  # type: ignore
             elif pptx_shape.shape_type == MSO_SHAPE_TYPE.PICTURE:           # type: ignore
-                log.warning('Image "{}" {} not processed...'.format(shape_name, str(pptx_shape.shape_type)))
+                shape_type = SHAPE_TYPE.FEATURE
+                shape_properties['shape-kind'] = pptx_shape.image.content_type
+                shape_properties['image-data'] = pptx_shape.image.blob
+                if good_geometry(geometry := get_shape_geometry(pptx_shape, transform, shape_properties)):
+                    shape_properties['svg-element'] = 'image'
+                    shape = self.__new_shape(shape_type, pptx_shape.shape_id, geometry, shape_properties)
+                    shapes.append(shape)
             else:
                 log.warning('Shape "{}" {} not processed...'.format(shape_name, str(pptx_shape.shape_type)))
             progress_bar.update(1)

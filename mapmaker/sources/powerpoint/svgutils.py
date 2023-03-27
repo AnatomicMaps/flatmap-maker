@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import base64
 from math import sqrt
 from typing import Any, Optional
 
@@ -293,6 +294,15 @@ class SvgFromSlide:
                 svg_element.set_markers((marker_id(pptx_shape.line.headEnd, 'head'),            # type: ignore
                                          None, marker_id(pptx_shape.line.tailEnd, 'tail')       # type: ignore
                                        ))
+        elif (kind := shape.kind) is None or not kind.startswith('image'):
+            bbox = shape.geometry.bounds
+            svg_element.attribs['x'] =  bbox[0]
+            svg_element.attribs['y'] = -bbox[3]
+            svg_element.attribs['width'] = bbox[2]-bbox[0]
+            svg_element.attribs['height'] = bbox[3]-bbox[1]
+            image = base64.b64encode(shape.properties['image-data']).decode('utf-8')
+            svg_element.attribs['href'] = f'data:{kind};charset=utf-8;base64,{image}'
+            svg_parent.add(svg_element)
         elif not exclude_shape:
             svg_element.attribs.update(self.__get_fill(pptx_shape, group_colour))
             svg_element.attribs.update(self.__get_stroke(pptx_shape))
