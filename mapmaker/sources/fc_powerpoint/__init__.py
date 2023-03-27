@@ -160,6 +160,7 @@ class FCSlide(Slide):
                     if shape.colour is None:
                         if shape.name != '':
                             fc_shape = make_annotation(shape, FC_CLASS.DESCRIPTION)
+                            fc_shape.set_property('exclude', True)    ## Only include if authoring??
                     elif (geometry.area < MAX_CONNECTOR_AREA):
                         fc_shape = None
                         if shape_kind.startswith('star'):
