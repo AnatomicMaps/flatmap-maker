@@ -67,7 +67,7 @@ class ConnectionGraph:
 
     def add_connector(self, connector):
     #==================================
-        self.__connection_graph.add_node(connector.global_id, connector=connector)
+        self.__connection_graph.add_node(connector.global_shape.id, connector=connector)
 
     def add_connection(self, connection):
     #====================================
@@ -203,7 +203,7 @@ class ConnectionClassifier:
                 component = self.__components_by_geometry[id(component_geometry)]
                 if (connection.fc_class == component.fc_class
                 and component_geometry.intersection(connection.geometry).length > component.fc_long_side):
-                    component_ids.add(component.global_id)
+                    component_ids.add(component.global_shape.id)
         return component_ids
 
     def add_connection(self, connection: Shape):
@@ -248,7 +248,7 @@ class ConnectionClassifier:
                 self.__add_connector_node(connector)
                 connected_end_ids.append(connector.id)
 
-        connection.connector_ids.extend([self.__connectors[id].global_id
+        connection.connector_ids.extend([self.__connectors[id].global_shape.id
                                             for id in connected_end_ids])      # Only compatible connectors??
 
         connector = self.__connectors[connected_end_ids[0]]
@@ -321,17 +321,17 @@ class ConnectionClassifier:
                                     join1_dirn = direction(join1_coords[:2])
                                     coordinates = [list(join0_coords), join1_coords]
                                 if similar_direction(join0_dirn, join1_dirn):   # Within 30 degrees
-                                    self.__neural_graph.remove_edge(connector.global_id, neighbours[0])
+                                    self.__neural_graph.remove_edge(connector.global_shape.id, neighbours[0])
                                     if connector.fc_kind == FC_KIND.CONNECTOR_JOINER:
                                         connector.set_property('exclude', True)
                                     elif connector.fc_kind in [FC_KIND.CONNECTOR_NODE, FC_KIND.CONNECTOR_THROUGH]:
-                                        connection.intermediate_connectors.append(connector.global_id)
+                                        connection.intermediate_connectors.append(connector.global_shape.id)
                                     join_connection.set_property('exclude', True)
                                     self.__join_nodes.remove(connector)
                                     connection.geometry = LineString(coordinates[0]+coordinates[1])
                                     # Want connections new end connector to be end of join_connection
-                                    join_connection.connector_ids.remove(connector.global_id)
-                                    connection.connector_ids.remove(connector.global_id)
+                                    join_connection.connector_ids.remove(connector.global_shape.id)
+                                    connection.connector_ids.remove(connector.global_shape.id)
                                     connection.connector_ids.append(join_connection.connector_ids.pop())
 
                         elif len(neighbours) > 1:

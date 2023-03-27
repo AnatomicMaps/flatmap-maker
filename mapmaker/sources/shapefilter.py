@@ -38,7 +38,7 @@ class CommonAttributes:
         self.__name = shape.name
         self.__colour = shape.colour
         self.__opacity = shape.opacity
-        self.__global_id = shape.id
+        self.__global_shape = shape
 
     def __eq__(self, other):
         return (self.__name == other.__name
@@ -53,7 +53,8 @@ class CommonAttributes:
             'name': self.__name,
             'colour': self.__colour,
             'opacity': self.__opacity,
-            'global-id': self.__global_id
+            'filtered': True,
+            'global-shape': self.__global_shape
         }
 
 #===============================================================================

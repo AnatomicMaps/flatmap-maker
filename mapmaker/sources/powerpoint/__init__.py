@@ -84,8 +84,14 @@ class PowerpointLayer(MapLayer):
                         feature.get_property('kind'),
                         feature.geojson_id,
                         node_ids)
-                if (shape := feature.pop_property('fc-shape')) is not None:
-                    feature.set_property('children', [s.geojson_id for s in shape.children if s.geojson_id])
+            for shape in shapes.flatten(skip=1):
+                feature = shape.global_shape.get_property('feature') if shape.filtered else shape.get_property('feature')
+                if feature is not None:
+                    child_ids = set(s.geojson_id for s in shape.children if s.geojson_id)
+                    if feature.has_property('children'):
+                        feature.get_property('children').update(child_ids)
+                    else:
+                        feature.set_property('children', child_ids)
 
     def __process_shape_list(self, shapes: TreeList) -> list[Feature]:
     #=================================================================
@@ -109,7 +115,7 @@ class PowerpointLayer(MapLayer):
                     feature = self.flatmap.new_feature(shape.geometry, properties)
                     features.append(feature)
                     shape.geojson_id = feature.geojson_id
-                    feature.set_property('fc-shape', shape)
+                    shape.set_property('feature', feature)
         return features
 
 #===============================================================================

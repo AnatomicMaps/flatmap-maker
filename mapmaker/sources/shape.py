@@ -74,8 +74,8 @@ class Shape(PropertyMixin):
         return self.get_property('geojson-id', 0)
 
     @property
-    def global_id(self) -> str:                     # The ``id`` of the shape that excluded this one via a filter
-        return self.get_property('global-id', self.id)
+    def global_shape(self) -> 'Shape':              # The shape that excluded this one via a filter
+        return self.get_property('global-shape', self)
 
     @property
     def kind(self) -> Optional[str]:                # The geometric name of the shape or, for an image,
