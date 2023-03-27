@@ -18,15 +18,8 @@
 #
 #===============================================================================
 
-from dataclasses import dataclass, field
-import enum
-from typing import Optional
-
-#===============================================================================
-
 from mapmaker.properties.pathways import PATH_TYPE
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
-from mapmaker.utils import log
 
 from .colours import ColourMatcher, ColourMatcherDict
 
@@ -38,61 +31,63 @@ MAX_CONNECTION_GAP =     4000               # metres, approx. sqrt(MAX_AREA)/2
 
 #===============================================================================
 
-class CD_CLASS(enum.IntFlag):
-    UNKNOWN    = 0
-    LAYER      = enum.auto()
-    COMPONENT  = enum.auto()   # What has CONNECTORs
-    CONNECTOR  = enum.auto()   # What a CONNECTION connects to
-    CONNECTION = enum.auto()   # The path between CONNECTORS
-    ANNOTATION = enum.auto()   # Additional information about something
+class CD_CLASS:
+    UNKNOWN    = 'celldl:Unknown'
+    LAYER      = 'celldl:Layer'
+    COMPONENT  = 'celldl:Component'     # What has CONNECTORs
+    CONNECTOR  = 'celldl:Connector'     # What a CONNECTION connects to
+    CONNECTION = 'celldl:Connection'    # The path between CONNECTORS
+    ANNOTATION = 'celldl:Annotation'    # Additional information about something
 
 #===============================================================================
 
-class FC_KIND(enum.IntFlag):
-    UNKNOWN              = 0
-    BRAIN                = enum.auto()
-    DIAPHRAM             = enum.auto()
+class FC_CLASS:
+    UNKNOWN     = 'fc-class:Unknown'
+    LAYER       = 'fc-class:Layer'
+    SYSTEM      = 'fc-class:System'
+    ORGAN       = 'fc-class:Organ'
+    FTU         = 'fc-class:Ftu'
 
-    ARTERIAL             = enum.auto()
-    VENOUS               = enum.auto()
-    VEIN                 = enum.auto()
-    ARTERY               = enum.auto()
-    VASCULAR_REGION      = enum.auto()
-
-    GANGLION             = enum.auto()
-    NEURON               = enum.auto()
-    NERVE                = enum.auto()
-    PLEXUS               = enum.auto()
-
-    CONNECTOR_JOINER     = enum.auto()  # double headed arrow
-    CONNECTOR_FREE_END   = enum.auto()  # unattached connection end
-    CONNECTOR_NODE       = enum.auto()  # ganglionic node??
-    CONNECTOR_PORT       = enum.auto()  # a neural connection end in FTU
-    CONNECTOR_THROUGH    = enum.auto()  # cross in plexus and/or glanglion
-
-    HYPERLINK_WIKIPEDIA  = enum.auto()
-    HYPERLINK_PUBMED     = enum.auto()
-    HYPERLINK_PROVENANCE = enum.auto()
-
-class FC_CLASS(enum.IntFlag):
-    UNKNOWN    = 0
-    LAYER      = enum.auto()
-    SYSTEM     = enum.auto()
-    ORGAN      = enum.auto()
-    FTU        = enum.auto()
-
-    DESCRIPTION = enum.auto()
-    HYPERLINK  = enum.auto()
+    DESCRIPTION = 'fc-class:Description'
+    HYPERLINK   = 'fc-class:Hyperlink'
 
     # Connector and Connection classes
-    NEURAL     = enum.auto()
-    VASCULAR   = enum.auto()
+    NEURAL      = 'fc-class:Neural'
+    VASCULAR    = 'fc-class:Vascular'
+
+#===============================================================================
+
+class FC_KIND:
+    UNKNOWN              = 'fc-kind:Unknown'
+    BRAIN                = 'fc-kind:Brain'
+    DIAPHRAM             = 'fc-kind:Diaphram'
+
+    ARTERIAL             = 'fc-kind:Arterial'
+    VENOUS               = 'fc-kind:Venous'
+    VEIN                 = 'fc-kind:Vein'
+    ARTERY               = 'fc-kind:Artery'
+    VASCULAR_REGION      = 'fc-kind:VascularRegion'
+
+    GANGLION             = 'fc-kind:Ganglion'
+    NEURON               = 'fc-kind:Neuron'
+    NERVE                = 'fc-kind:Nerve'
+    PLEXUS               = 'fc-kind:Plexus'
+
+    CONNECTOR_JOINER     = 'fc-kind:ConnectorJoiner'    # double headed arrow
+    CONNECTOR_FREE_END   = 'fc-kind:ConnectorFreeEnd'   # unattached connection end
+    CONNECTOR_NODE       = 'fc-kind:ConnectorNode'      # ganglionic node??
+    CONNECTOR_PORT       = 'fc-kind:ConnectorPort'      # a neural connection end in FTU
+    CONNECTOR_THROUGH    = 'fc-kind:ConnectorThrough'   # cross in plexus and/or glanglion
+
+    HYPERLINK_WIKIPEDIA  = 'fc-kind:HyperlinkWikipedia'
+    HYPERLINK_PUBMED     = 'fc-kind:HyperlinkPubMed'
+    HYPERLINK_PROVENANCE = 'fc-kind:HyperlinkProvenance'
 
 #===============================================================================
 
 HYPERLINK_IDENTIFIERS = {
-    FC_KIND.HYPERLINK_WIKIPEDIA:  'wikipedia',
-    FC_KIND.HYPERLINK_PUBMED:     'pubmed',
+    FC_KIND.HYPERLINK_WIKIPEDIA:'wikipedia',
+    FC_KIND.HYPERLINK_PUBMED:'pubmed',
     FC_KIND.HYPERLINK_PROVENANCE: 'provenance',
 }
 
@@ -161,149 +156,63 @@ VASCULAR_REGION_COLOUR = ColourMatcher('#FF99CC') # pink
 
 #===============================================================================
 
-@dataclass
-class FCShape:
-    shape: Shape
-    __cd_class: CD_CLASS = field(default=CD_CLASS.UNKNOWN, init=False)
-    __fc_class: FC_CLASS = field(default=FC_CLASS.UNKNOWN, init=False)
-    __fc_kind: FC_KIND = field(default=FC_KIND.UNKNOWN, init=False)
-    description: str = field(default='', init=False)
-
-    def __post_init__(self):
-    #=======================
-        if self.description is None:
-            self.description = ''
-        self.properties['id'] = self.shape.id
-        self.properties['name'] = self.properties.pop('name', '').replace('\t', '|').strip()
-        self.properties['hyperlinks'] = []
-
-    def __str__(self):
-        return f'FC({self.id}: {self.shape_kind}/{str(self.cd_class)}/{str(self.fc_class)}/{str(self.fc_kind)}/{self.description} `{self.name}`)'
-
-    @property
-    def global_id(self) -> str:
-        return self.properties.get('global-id', self.id)
-
-    @property
-    def colour(self) -> Optional[str]:
-        return self.properties.get('colour')
-
-    @property
-    def cd_class(self):
-        return self.__cd_class
-
-    @cd_class.setter
-    def cd_class(self, cls):
-        self.__cd_class = cls
-        self.properties['cd-class'] = str(cls)
-
-    @property
-    def fc_class(self):
-        return self.__fc_class
-
-    @fc_class.setter
-    def fc_class(self, cls):
-        self.__fc_class = cls
-        self.properties['fc-class'] = str(cls)
-
-    @property
-    def fc_kind(self):
-        return self.__fc_kind
-
-    @fc_kind.setter
-    def fc_kind(self, kind):
-        self.__fc_kind = kind
-        self.properties['fc-kind'] = str(kind)
-
-    @property
-    def feature_id(self) -> Optional[str]:
-        return self.properties.get('id')
-
-    @property
-    def geometry(self):
-        return self.shape.geometry
-
-    @property
-    def id(self):
-        return self.shape.id
-
-    @property
-    def models(self):
-        return self.properties.get('models', '')
-
-    @property
-    def name(self):
-        return self.properties.get('name', '')
-
-    @name.setter
-    def name(self, name):
-        self.properties['name'] = name
-
-    @property
-    def properties(self):
-        return self.shape.properties
-
-    @property
-    def shape_kind(self):
-        return self.properties.get('shape-kind', '')
-
-    def log_error(self, msg: str):
-        self.properties['error'] = msg
-        log.error(msg)
-
-    def log_warning(self, msg: str):
-        self.properties['warning'] = msg
-        log.warning(msg)
-
-    def set_geometry(self, geometry):
-        self.shape.geometry = geometry
+def make_fc_shape(shape):
+    shape.cd_class = CD_CLASS.UNKNOWN
+    shape.fc_class = FC_CLASS.UNKNOWN
+    shape.fc_kind = FC_KIND.UNKNOWN
+    shape.description = ''
+    shape.set_property('name', shape.name.replace('\t', '|').strip())
+    shape.hyperlinks = []
+    return shape
 
 #===============================================================================
 
-class Annotation(FCShape):
-    def __init__(self, shape: Shape, fc_class: FC_CLASS):
-        super().__init__(shape)
-        self.cd_class = CD_CLASS.ANNOTATION
-        self.fc_class = fc_class
-        self.parent: Optional[Component] = None
+def is_annotation(shape):
+    return shape.get_property('cd-class') == CD_CLASS.ANNOTATION
+
+def make_annotation(shape, fc_class: str):
+    make_fc_shape(shape)
+    shape.cd_class = CD_CLASS.ANNOTATION
+    shape.fc_class = fc_class
+    return shape
 
 #===============================================================================
 
-class Component(FCShape):
-    def __init__(self, shape: Shape):
-        super().__init__(shape)
-        if shape.type == SHAPE_TYPE.LAYER:
-            self.cd_class = CD_CLASS.LAYER
-            self.fc_class = FC_CLASS.LAYER
-        else:
-            self.cd_class = CD_CLASS.COMPONENT
-        self.children: list[FCShape] = []
-        self.parents: list[Component] = []
+def is_component(shape):
+    return shape.get_property('cd-class') == CD_CLASS.COMPONENT
 
-    def __str__(self):
-        return f'{str(self.fc_class)}({self.name} in {self.parent})'
-
-    @property
-    def parent(self):
-        return self.parents[0] if self.parents else None
+def make_component(shape):
+    make_fc_shape(shape)
+    if shape.type == SHAPE_TYPE.LAYER:
+        shape.cd_class = CD_CLASS.LAYER
+        shape.fc_class = FC_CLASS.LAYER
+    else:
+        shape.cd_class = CD_CLASS.COMPONENT
+    return shape
 
 #===============================================================================
 
-class Connector(FCShape):
-    def __init__(self, shape: Shape):
-        super().__init__(shape)
-        self.cd_class = CD_CLASS.CONNECTOR
-        self.parent: Optional[Component] = None
-        self.path_type: PATH_TYPE = PATH_TYPE.UNKNOWN
+def is_connection(shape):
+    return shape.get_property('cd-class') == CD_CLASS.CONNECTION
+
+def make_connection(shape):
+    make_fc_shape(shape)
+    shape.cd_class = CD_CLASS.CONNECTION
+    shape.path_type = PATH_TYPE.UNKNOWN
+    shape.connector_ids = []
+    shape.intermediate_connectors = []
+    shape.intermediate_components = []
+    return shape
 
 #===============================================================================
 
-class Connection(FCShape):
-    def __init__(self, shape: Shape):
-        super().__init__(shape)
-        self.cd_class = CD_CLASS.CONNECTION
-        self.connector_ids: list[str] = []
-        self.intermediate_connectors: list[str] = []
-        self.path_type: PATH_TYPE = PATH_TYPE.UNKNOWN
+def is_connector(shape):
+    return shape.get_property('cd-class') == CD_CLASS.CONNECTOR
+
+def make_connector(shape):
+    make_fc_shape(shape)
+    shape.cd_class = CD_CLASS.CONNECTOR
+    shape.path_type = PATH_TYPE.UNKNOWN
+    return shape
 
 #===============================================================================

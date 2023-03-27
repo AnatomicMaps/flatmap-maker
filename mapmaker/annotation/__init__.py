@@ -23,7 +23,8 @@ from typing import Optional
 
 #===============================================================================
 
-from mapmaker.sources.fc_powerpoint.components import Component, Connector
+from mapmaker.sources.shape import Shape
+from mapmaker.sources.fc_powerpoint.components import is_connector
 from mapmaker.sources.fc_powerpoint.components import FC_CLASS, PATH_TYPE
 from mapmaker.utils import log
 
@@ -50,8 +51,8 @@ class Annotator:
             self.__add_term(ftu.term, ftu.name, *ftu.parent_list)
         self.__create_index()
 
-    def lookup_component(self, component: Component) -> Optional[str]:
-    #=================================================================
+    def lookup_component(self, component: Shape) -> Optional[str]:
+    #=============================================================
         self.__check_component_known(component)
         return self.__find_term_by_names(component.name,
                                          component.parent.name if component.parent is not None else None)
@@ -108,8 +109,8 @@ class Annotator:
             term = self.__terms_by_keys.get(names[0])
         return term
 
-    def __check_component_known(self, component: 'FCShape'):
-    #=======================================================
+    def __check_component_known(self, component: Shape):
+    #===================================================
         if component.fc_class == FC_CLASS.SYSTEM:
             self.__annotations.add_system(component.name)
         elif component.fc_class == FC_CLASS.ORGAN:
@@ -123,7 +124,7 @@ class Annotator:
         elif component.fc_class == FC_CLASS.FTU:
             connected = False
             for child in component.children:
-                if isinstance(child, Connector) and child.fc_class == FC_CLASS.NEURAL and child.path_type != PATH_TYPE.MOTOR:
+                if is_connector(child) and child.fc_class == FC_CLASS.NEURAL and child.path_type != PATH_TYPE.MOTOR:
                     connected = True
                     break
             organ = component.parent.name if component.parent is not None else ''

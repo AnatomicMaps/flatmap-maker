@@ -18,11 +18,14 @@
 #
 #===============================================================================
 
-from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
 
-from shapely.geometry.base import BaseGeometry
+from shapely.geometry.base import BaseGeometry      # type: ignore
+
+#===============================================================================
+
+from mapmaker.utils import log, PropertyMixin
 
 #===============================================================================
 
@@ -34,40 +37,78 @@ class SHAPE_TYPE(Enum):
 
 #===============================================================================
 
-@dataclass
-class Shape:
-    type: SHAPE_TYPE
-    id: str
-    geometry: BaseGeometry
-    properties: dict[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self):
+class Shape(PropertyMixin):
+    def __init__(self, type: SHAPE_TYPE, id: str, geometry: BaseGeometry, properties=None):
+        self.__initialising = True
+        super().__init__(properties)
+        self.type = type
+        self.id = id
+        self.geometry = geometry
+        self.children = []
+        self.parents = []
         self.metadata: dict[str, str] = {}  # kw_only=True field for Python 3.10
+        if self.has_property('id'):
+            self.id = self.get_property('id')
+        else:
+            self.set_property('id', self.id)
+        # We've now defined the new instance's attributes
+        self.__initialising = False
+
+    def __getattr__(self, key: str) -> Any:
+        if key.startswith('_') or self.__initialising:
+            return object.__getattribute__(self, key)
+        else:
+            return self.get_property(key.replace('_', '-'))
+
+    def __setattr__(self, key: str, value: Any=None):
+        if key.startswith('_') or self.__initialising:
+            object.__setattr__(self, key, value)
+        else:
+            self.set_property(key.replace('_', '-'), value)
+
+    def __str__(self):
+        return f'Shape: {self.properties}'
+
+    @property
+    def geojson_id(self) -> int:
+        return self.get_property('geojson-id', 0)
+
+    @property
+    def global_id(self) -> str:                     # The ``id`` of the shape that excluded this one via a filter
+        return self.get_property('global-id', self.id)
+
+    @property
+    def kind(self) -> Optional[str]:                # The geometric name of the shape or, for an image,
+        return self.get_property('shape-kind')      # its content type: e.g. ``rect`` or ``image/png``
+
+    @property
+    def name(self) -> str:                          # Any text content associated with the shape: e.g. ``Bladder``
+        return self.get_property('name', '')
 
     @property
     def opacity(self) -> float:
-        return self.properties.get('opacity', 1.0)
+        return self.get_property('opacity', 1.0)
 
     @property
-    def colour(self) -> Optional[str]:
-        return self.properties.get('colour')
+    def parent(self):
+        return self.parents[0] if self.parents else None
 
     @property
-    def kind(self) -> Optional[str]:
-        return self.properties.get('shape-kind')
+    def shape_name(self) -> str:                    # The name of the shape in the source: e.g. ``Text Box 3086``
+        return self.get_property('shape-name', '')
 
-    @property
-    def name(self) -> str:
-        return self.properties.get('name', '')
-
-    @property
-    def shape_name(self) -> Optional[str]:
-        return self.properties.get('shape-name')
+    def get_metadata(self, name: str, default: Optional[str]=None) -> Optional[str]:
+        return self.metadata.get(name, default)
 
     def set_metadata(self, name: str, value: str):
         self.metadata[name] = value
 
-    def get_metadata(self, name: str, default: Optional[str]=None) -> Optional[str]:
-        return self.metadata.get(name, default)
+    def log_error(self, msg: str):
+        self.set_property('error', msg)
+        log.error(msg)
+
+    def log_warning(self, msg: str):
+        self.set_property('warning', msg)
+        log.warning(msg)
 
 #===============================================================================

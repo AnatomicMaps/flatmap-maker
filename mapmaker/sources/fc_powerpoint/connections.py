@@ -34,7 +34,7 @@ from mapmaker.properties.pathways import PATH_TYPE
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
-from .components import Component, Connection, Connector
+from .components import make_connector
 from .components import CD_CLASS, FC_KIND, FC_CLASS
 from .components import NEURON_PATH_TYPES, VASCULAR_KINDS
 from .components import MAX_CONNECTION_GAP
@@ -128,7 +128,6 @@ class ConnectionClassifier:
     def __init__(self):
         self.__neural_graph = ConnectionGraph()
         self.__vascular_graph = ConnectionGraph()
-        self.__connections = {}
         self.__connectors = {}
         self.__connector_ids_by_geometry = {}
         self.__connector_geometries = []
@@ -145,20 +144,20 @@ class ConnectionClassifier:
             'vascular': self.__vascular_graph.as_dict()
         }
 
-    def add_component(self, component: Component):
-    #=============================================
+    def add_component(self, component: Shape):
+    #=========================================
         if self.__component_index is not None:
             log.error("Cannot add components once connections are added")
         elif component.cd_class == CD_CLASS.COMPONENT:
             bounds = component.geometry.bounds
             # Use geometric mean of side lengths as a measure to determine if a connection
             # is alligned with the nerve
-            component.properties['fc-long-side'] = math.sqrt((bounds[2]-bounds[0])**2 + (bounds[3]-bounds[1])**2)
+            component.fc_long_side = math.sqrt((bounds[2]-bounds[0])**2 + (bounds[3]-bounds[1])**2)
             self.__component_geometries.append(component.geometry)
             self.__components_by_geometry[id(component.geometry)] = component
 
-    def add_connector(self, connector: Connector):
-    #=============================================
+    def add_connector(self, connector: Shape):
+    #=========================================
         if self.__connector_index is not None:
             log.error("Cannot add connectors once connections are added")
         elif connector.cd_class == CD_CLASS.CONNECTOR:
@@ -175,7 +174,7 @@ class ConnectionClassifier:
             self.__vascular_graph.add_connector(connector)
 
     def __check_indexes(self, connection):
-    #=========================
+    #=====================================
         if self.__component_index is None:
             if len(self.__component_geometries) == 0:
                 connection.log_warning(f'No components to connect to: {connection}')
@@ -195,20 +194,20 @@ class ConnectionClassifier:
             if closest_geometry.distance(point) < MAX_CONNECTION_GAP:
                 return self.__connector_ids_by_geometry[id(closest_geometry)]
 
-    def __crossed_component(self, connection: Connection):
-    #======================================================
+    def __crossed_component(self, connection: Shape):
+    #================================================
         component_ids = set()
         if self.__component_index is not None:
             for index in self.__component_index.query(connection.geometry):
                 component_geometry = self.__component_geometries[index]
                 component = self.__components_by_geometry[id(component_geometry)]
                 if (connection.fc_class == component.fc_class
-                and component_geometry.intersection(connection.geometry).length > component.properties['fc-long-side']):
+                and component_geometry.intersection(connection.geometry).length > component.fc_long_side):
                     component_ids.add(component.global_id)
         return component_ids
 
-    def add_connection(self, connection: Connection):
-    #================================================
+    def add_connection(self, connection: Shape):
+    #===========================================
         self.__check_indexes(connection)
 
         # First find connectors at the end of the connection
@@ -222,7 +221,7 @@ class ConnectionClassifier:
             else:
                 ## Add a JOIN connector if the end point has no connector
                 connector_id = f'{connection.id}/{coord_index+1}'
-                connector = Connector(Shape(SHAPE_TYPE.FEATURE, connector_id, end_point.buffer(MAX_CONNECTION_GAP)))
+                connector = make_connector(Shape(SHAPE_TYPE.FEATURE, connector_id, end_point.buffer(MAX_CONNECTION_GAP)))
                 free_end_connectors.append(connector)
             connection_end_index[connector_id] = coord_index
 
@@ -256,7 +255,7 @@ class ConnectionClassifier:
         connector_1 = self.__connectors[connected_end_ids[1]]
 
         if connector.fc_class != connector_1.fc_class:
-            connection.log_error(f"Connection ends aren't compatible ({str(connector.fc_class)} != {str(connector_1.fc_class)})")
+            connection.log_error(f"Connection ends aren't compatible ({connector.fc_class} != {connector_1.fc_class})")
 
         connection.fc_class = connector.fc_class
 
@@ -266,24 +265,25 @@ class ConnectionClassifier:
                 if connector.fc_kind in NODE_CONNECTORS and path_type != connector.path_type:
                     connection.log_error(f"Connection type doesn't match connector's: {path_type} != {connector.path_type}")
                 if path_type in [PATH_TYPE.PARASYMPATHETIC, PATH_TYPE.SYMPATHETIC]:
-                    line_style = connection.properties.get('line-style', '').lower()
+                    line_style = connection.get_property('line-style', '').lower()
                     path_type |= (PATH_TYPE.PRE_GANGLIONIC if 'dot' in line_style or 'dash' in line_style
                              else PATH_TYPE.POST_GANGLIONIC)
                 connection.path_type = path_type
-                connection.properties['kind'] = str(path_type)
-                connection.properties['type'] = 'line-dash' if connection.properties['kind'].endswith('-post') else 'line'
+                path_kind = str(path_type)
+                connection.set_property('kind', path_kind)
+                connection.set_property('type', 'line-dash' if path_kind.endswith('-post') else 'line')
             else:
                 connection.log_error(f"Connection colour ({connection.colour}) isn't a neuron type")
-            connection.properties['stroke-width'] = 1.0
+            connection.set_property('stroke-width', 1.0)
         elif connection.fc_class == FC_CLASS.VASCULAR:
             connection.description = VASCULAR_KINDS.lookup(connection.colour)       # type: ignore
             if (connector.fc_kind in NODE_CONNECTORS
             and connection.description != connector.description):
                 connection.log_error(f"Connection colour doesn't match connector's {connection.colour} != {connector.colour}")
-            connection.properties['kind'] = connection.description
-            connection.properties['type'] = 'line'
-            connection.properties['stroke-width'] = connection.properties.get('stroke-width',
-                                                                               STROKE_WIDTH_SCALE_FACTOR)/STROKE_WIDTH_SCALE_FACTOR
+            connection.set_property('kind', connection.description)
+            connection.set_property('type', 'line')
+            connection.set_property('stroke-width', connection.get_property('stroke-width',
+                                                                               STROKE_WIDTH_SCALE_FACTOR)/STROKE_WIDTH_SCALE_FACTOR)
         if connection.fc_class == FC_CLASS.NEURAL:
             # Attempt to join neuron segments
             for connector_id in connected_end_ids:
@@ -323,12 +323,12 @@ class ConnectionClassifier:
                                 if similar_direction(join0_dirn, join1_dirn):   # Within 30 degrees
                                     self.__neural_graph.remove_edge(connector.global_id, neighbours[0])
                                     if connector.fc_kind == FC_KIND.CONNECTOR_JOINER:
-                                        connector.properties['exclude'] = True
+                                        connector.set_property('exclude', True)
                                     elif connector.fc_kind in [FC_KIND.CONNECTOR_NODE, FC_KIND.CONNECTOR_THROUGH]:
                                         connection.intermediate_connectors.append(connector.global_id)
-                                    join_connection.properties['exclude'] = True
+                                    join_connection.set_property('exclude', True)
                                     self.__join_nodes.remove(connector)
-                                    connection.set_geometry(LineString(coordinates[0]+coordinates[1]))
+                                    connection.geometry = LineString(coordinates[0]+coordinates[1])
                                     # Want connections new end connector to be end of join_connection
                                     join_connection.connector_ids.remove(connector.global_id)
                                     connection.connector_ids.remove(connector.global_id)
@@ -351,6 +351,6 @@ class ConnectionClassifier:
         # JOINS have max 2 connections
 
         # Map neuron path class to viewer path kind/type
-        connection.properties['shape-type'] = 'connection'
+        connection.shape_type = 'connection'
 
 #===============================================================================
