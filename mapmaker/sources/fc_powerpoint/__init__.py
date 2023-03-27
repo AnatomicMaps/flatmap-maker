@@ -136,8 +136,6 @@ class FCSlide(Slide):
                 elif self.kind == 'layer':
                     self.__shape_filter.filter(shape)
 
-
-
     def __classify_shapes(self):
     #===========================
         # First extract shape geometries and create a spatial index
