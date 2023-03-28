@@ -189,7 +189,8 @@ class PropertiesStore(object):
                 feature_properties['kind'] = 'scaffold'
             elif 'simulations' in feature_properties:
                 feature_properties['kind'] = 'simulation'
-        name_used = False
+        # Only separately show name when authoring FC map
+        name_used = not settings.get('functionalConnectivity', False)
         if (entity := feature_properties.get('models')) is not None and entity.strip() != '':
             # Make sure our knowledgebase knows about the anatomical object
             knowledge = knowledgebase.get_knowledge(entity)
