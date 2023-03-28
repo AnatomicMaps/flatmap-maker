@@ -31,6 +31,7 @@ import shapely.strtree
 #===============================================================================
 
 from mapmaker.geometry import Transform
+from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.sources import MapBounds
 from mapmaker.utils import log
@@ -49,8 +50,6 @@ from .components import NERVE_FEATURE_KINDS, NEURON_PATH_TYPES
 from .components import ORGAN_COLOUR, ORGAN_KINDS
 from .components import VASCULAR_KINDS, VASCULAR_REGION_COLOUR, VASCULAR_VESSEL_KINDS
 from .connections import ConnectionClassifier
-
-from .sckan import SckanNeuronPopulations
 
 #===============================================================================
 
@@ -77,7 +76,7 @@ class FCPowerpointSource(PowerpointSource):
                          source_range=source_range,
                          SlideClass=FCSlide, slide_options=dict(
                             shape_filter=shape_filter,
-                            sckan_neurons=SckanNeuronPopulations()
+                            sckan_neurons=flatmap.sckan_neuron_populations
                         ))
 
     def get_raster_source(self):

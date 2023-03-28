@@ -37,6 +37,7 @@ from mapmaker.geometry import normalised_coords
 from mapmaker.flatmap.feature import AnatomicalNode
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.knowledgebase import get_knowledge
+from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
 from mapmaker.properties import ConnectionSet, PropertiesStore
 from mapmaker.settings import settings
 from mapmaker.utils import log
@@ -61,6 +62,7 @@ class FlatMap(object):
         self.__annotations = {}
         self.__annotator = annotator
         self.__connection_set = ConnectionSet('connections')
+        self.__sckan_neuron_populations = SckanNeuronPopulations()
 
     def __len__(self):
         return self.__visible_layer_count
@@ -128,6 +130,10 @@ class FlatMap(object):
     @property
     def models(self):
         return self.__models
+
+    @property
+    def sckan_neuron_populations(self):
+        return self.__sckan_neuron_populations
 
     @property
     def uuid(self):
