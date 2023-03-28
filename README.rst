@@ -99,8 +99,8 @@ Command line help
                     [--clean] [--background-tiles]
                     [--authoring] [--ignore-git] [--debug] [--only-networks]
                     [--save-drawml] [--save-geojson] [--save-svg] [--tippecanoe]
-                    [--initial-zoom N] [--max-zoom N] [--min-zoom N]
-                    [--clean-connectivity] [--id ID] [--single-file {celldl,svg}]
+                    [--initial-zoom N] [--max-zoom N] [--min-zoom N] [--clean-connectivity]
+                    [--export-neurons EXPORT_FILE] [--id ID] [--single-file {celldl,svg}]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -141,6 +141,8 @@ Command line help
 
     Miscellaneous:
       --clean-connectivity  Refresh local connectivity knowledge from SciCrunch
+      --export-neurons EXPORT_FILE
+                            Export details of functional connectivity neurons as JSON
       --id ID               Set explicit ID for flatmap, overriding manifest
       --single-file {celldl,svg}
                             Source is a single file of the designated type, not a

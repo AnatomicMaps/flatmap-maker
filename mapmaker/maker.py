@@ -454,6 +454,11 @@ class MapMaker(object):
         # We are finished with the knowledge base
         settings['KNOWLEDGE_STORE'].close()
 
+        # Write out details of FC neurons if option set
+        if (export_file := settings.get('exportNeurons')) is not None:
+            with open(export_file, 'w') as fp:
+                fp.write(json.dumps(self.__flatmap.sckan_neuron_populations.found_connection_paths(), indent=4))
+
         # Show what the map is about
         if self.__flatmap.models is not None:
             log(f'Generated map: id: {self.id}, uuid: {self.uuid}, models: {self.__flatmap.models}, output: {self.__map_dir}')

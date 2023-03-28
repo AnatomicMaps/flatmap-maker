@@ -74,6 +74,7 @@ class SckanNeuronPopulations:
                 self.__paths_by_id[path['id']] = path_knowledge
                 path_type = path_type_from_phenotypes(path_knowledge.get('phenotypes', []))
                 self.__sckan_path_nodes_by_type[path_type][path['id']] = SckanNodeSet(path['id'], path_knowledge['connectivity'])
+        self.__found_connection_paths = defaultdict(set)
 
     def find_connection_paths(self, end_nodes: list[tuple[str, Optional[str]]], path_type: PATH_TYPE) -> list[str]:
     #==============================================================================================================
@@ -82,7 +83,17 @@ class SckanNeuronPopulations:
             if (node_set.has_connector(*end_nodes[0])
             and node_set.has_connector(*end_nodes[1])):
                 path_ids.append(path_id)
+        # Keep track of neuron paths we've found (or not found)
+        self.__found_connection_paths[(tuple(sorted(end_nodes)), str(path_type))].update(path_ids)
         return path_ids
+
+    def found_connection_paths(self):
+    #================================
+        return [{
+            'nodes': nodes_type[0],
+            'type': nodes_type[1],
+            'paths': sorted(paths)
+        } for nodes_type, paths in self.__found_connection_paths.items()]
 
     def knowledge(self, path_id: str) -> Optional[dict]:
     #===================================================

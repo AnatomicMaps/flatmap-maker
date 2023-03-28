@@ -80,6 +80,9 @@ def arg_parser():
     misc_options = parser.add_argument_group('Miscellaneous')
     misc_options.add_argument('--clean-connectivity', dest='cleanConnectivity', action='store_true',
                         help='Refresh local connectivity knowledge from SciCrunch')
+    misc_options.add_argument('--export-neurons', dest='exportNeurons', metavar='EXPORT_FILE',
+                        help='Export details of functional connectivity neurons as JSON')
+
     misc_options.add_argument('--id', metavar='ID',
                         help='Set explicit ID for flatmap, overriding manifest')
     misc_options.add_argument('--single-file', dest='singleFile', choices=['celldl', 'svg'],
