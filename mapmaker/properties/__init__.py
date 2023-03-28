@@ -196,8 +196,10 @@ class PropertiesStore(object):
             label = knowledge.get('label')
             if label == entity and (source_label := feature_properties.get('label', '')):
                 feature_properties['label'] = source_label
-            else:
+            elif settings.get('authoring', False):
                 feature_properties['label'] = f'{label} ({entity})'
+            else:
+                feature_properties['label'] = label
             # FC neuron path with connection information in name
             if 'sckan' in feature_properties:
                 label = 'Neuron in ' + feature_properties['label']
