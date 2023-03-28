@@ -223,7 +223,8 @@ class FCSlide(Slide):
                         connectors.append(fc_shape)
                     else:
                         fc_shape.log_error(f'Connector has no parent: {fc_shape}')
-                elif is_annotation(fc_shape) and fc_shape.has_property('hyperlink'):
+                    connectors.append(fc_shape)
+                elif is_annotation(fc_shape) and fc_shape.fc_class == FC_CLASS.HYPERLINK:
                     # Assignment confuses __setattr__
                     fc_shape.parents.append(geometry_to_shape[containing_ids_area_order[0]])
                     hyperlinks.append(fc_shape)
@@ -309,7 +310,7 @@ class FCSlide(Slide):
 
         # Hyperlinks become properties of the feature they are on
         for hyperlink in hyperlinks:
-            if (parent := hyperlink.parent) is not None:
+            if hyperlink.has_property('hyperlink') and (parent := hyperlink.parent) is not None:
                 parent.get_property('hyperlinks').append({
                     'id': HYPERLINK_IDENTIFIERS[hyperlink.fc_kind],
                     'url': hyperlink.properties['hyperlink']
