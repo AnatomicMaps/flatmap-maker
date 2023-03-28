@@ -343,8 +343,6 @@ class FCSlide(Slide):
                         connector.path_type = path_type
             if connector.fc_class != FC_CLASS.UNKNOWN:
                 self.__connection_classifier.add_connector(connector)
-            if connector.parent is None:
-                connector.log_error(f"Connector doesn't have a parent: {connector}")
 
     def __add_annotation(self, annotator: 'Annotator'):
     #================================================
