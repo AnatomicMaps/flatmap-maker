@@ -220,7 +220,6 @@ class FCSlide(Slide):
                         # Assignment confuses __setattr__
                         fc_shape.parents.append(parent)
                         parent.children.append(fc_shape)
-                        connectors.append(fc_shape)
                     else:
                         fc_shape.log_error(f'Connector has no parent: {fc_shape}')
                     connectors.append(fc_shape)
