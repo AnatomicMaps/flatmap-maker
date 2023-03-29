@@ -76,7 +76,7 @@ class GeoJSONOutput(object):
             if not settings.get('authoring', False):
                 feature.properties.pop('warning', None)
                 if 'error' in feature.properties:
-                    log.warning(f'Feature not output because it has errors: {feature}')
+                    log.warning(f'Feature not output because it has errors: {feature.id}')
                     progress_bar.update(1)
                     continue
             if feature.get_property('exclude', False):

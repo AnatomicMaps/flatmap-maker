@@ -37,6 +37,8 @@ class SHAPE_TYPE(Enum):
 
 #===============================================================================
 
+PropertiesInString = ['name', 'cd-class', 'shape-name', 'shape-kind']
+
 class Shape(PropertyMixin):
     def __init__(self, type: SHAPE_TYPE, id: str, geometry: BaseGeometry, properties=None):
         self.__initialising = True
@@ -67,7 +69,9 @@ class Shape(PropertyMixin):
             self.set_property(key.replace('_', '-'), value)
 
     def __str__(self):
-        return f'Shape: {self.properties}'
+        properties = {key: value for key, value in self.properties.items()
+                                    if key in PropertiesInString}
+        return f'Shape {self.id}: {properties}'
 
     @property
     def geojson_id(self) -> int:
