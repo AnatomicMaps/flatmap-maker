@@ -181,6 +181,7 @@ class FCSlide(Slide):
 
         # We now identify systems and for non-system features (both components and connectors)
         # find features which overlap them
+        nervous_system = None
         non_system_components = []
         connectors = []
         hyperlinks = []
@@ -191,6 +192,9 @@ class FCSlide(Slide):
                 fc_shape.fc_class = FC_CLASS.SYSTEM
                 fc_shape.add_parent(self.__shapes_by_id[SLIDE_LAYER_ID])
                 self.__system_ids.add(shape_id)
+                if 'BRAIN' in fc_shape.name:
+                    fc_shape.fc_kind = FC_KIND.NERVOUS_SYSTEM
+                    nervous_system = fc_shape
             else:       # Component, Connector, or Annotation (Hyperlink)
                 # STRtree query returns geometries whose bounding box intersects the shape's bounding box
                 bigger_intersecting_geometries: list[int] = [id for id in idx.query(fc_shape.geometry)
@@ -287,14 +291,15 @@ class FCSlide(Slide):
             if (fc_shape.fc_class == FC_CLASS.UNKNOWN
             and fc_shape.name != ''):
                 if ((kind := NERVE_FEATURE_KINDS.lookup(fc_shape.colour)) is not None
-                  or (fc_shape.parent is not None
-                  and fc_shape.parent.fc_class == FC_CLASS.SYSTEM
-                  and 'BRAIN' in fc_shape.parent.name)):
+                 or nervous_system in fc_shape.parents):
                     if fc_shape.name == 'G':
                         fc_shape.name = 'Ganglion'
                     fc_shape.fc_class = FC_CLASS.NEURAL
                     self.__nerve_ids.add(fc_shape.id)
                     fc_shape.description = kind
+                    if nervous_system not in fc_shape.parents:
+                        # Neural features are part of the nervous system
+                        fc_shape.add_parent(nervous_system)
                 elif (kind := VASCULAR_VESSEL_KINDS.lookup(fc_shape.colour)) is not None:
                     fc_shape.fc_class = FC_CLASS.VASCULAR
                     fc_shape.fc_kind = kind

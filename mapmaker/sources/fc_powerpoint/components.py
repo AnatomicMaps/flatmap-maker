@@ -59,7 +59,9 @@ class FC_CLASS:
 
 class FC_KIND:
     UNKNOWN              = 'fc-kind:Unknown'
-    BRAIN                = 'fc-kind:Brain'
+
+    # WIP: System kinds (is this independent to FC_KIND?)
+    NERVOUS_SYSTEM       = 'fc-kind:NervousSystem'
     DIAPHRAM             = 'fc-kind:Diaphram'
 
     ARTERIAL             = 'fc-kind:Arterial'
