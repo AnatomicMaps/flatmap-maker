@@ -189,8 +189,7 @@ class FCSlide(Slide):
             if (is_component(fc_shape)
             and len(fc_shape.name) > 6 and fc_shape.name == fc_shape.name.upper()):
                 fc_shape.fc_class = FC_CLASS.SYSTEM
-                fc_shape.parents.append(self.__shapes_by_id[SLIDE_LAYER_ID])    # type: ignore
-                self.__shapes_by_id[SLIDE_LAYER_ID].children.append(fc_shape)   # type: ignore
+                fc_shape.add_parent(self.__shapes_by_id[SLIDE_LAYER_ID])
                 self.__system_ids.add(shape_id)
             else:       # Component, Connector, or Annotation (Hyperlink)
                 # STRtree query returns geometries whose bounding box intersects the shape's bounding box
@@ -206,8 +205,7 @@ class FCSlide(Slide):
                 if is_component(fc_shape):
                     for shape_id in containing_ids_area_order:
                         parent = geometry_to_shape[shape_id]
-                        fc_shape.parents.append(parent)
-                        parent.children.append(fc_shape)
+                        fc_shape.add_parent(parent)
                     non_system_components.append(fc_shape)
                 elif is_connector(fc_shape):
                     parent = None
@@ -216,15 +214,12 @@ class FCSlide(Slide):
                         if is_component(parent):
                             break
                     if parent is not None:
-                        # Assignment confuses __setattr__
-                        fc_shape.parents.append(parent)
-                        parent.children.append(fc_shape)
+                        fc_shape.add_parent(parent)
                     else:
                         fc_shape.log_error(f'Connector has no parent: {fc_shape}')
                     connectors.append(fc_shape)
                 elif is_annotation(fc_shape) and fc_shape.fc_class == FC_CLASS.HYPERLINK:
-                    # Assignment confuses __setattr__
-                    fc_shape.parents.append(geometry_to_shape[containing_ids_area_order[0]])
+                    fc_shape.add_parent(geometry_to_shape[containing_ids_area_order[0]])
                     hyperlinks.append(fc_shape)
 
         # Classify connectors that are unambigously neural connectors

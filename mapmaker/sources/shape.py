@@ -101,6 +101,10 @@ class Shape(PropertyMixin):
     def shape_name(self) -> str:                    # The name of the shape in the source: e.g. ``Text Box 3086``
         return self.get_property('shape-name', '')
 
+    def add_parent(self, parent):
+        self.parents.append(parent)
+        parent.children.append(self)
+
     def get_metadata(self, name: str, default: Optional[str]=None) -> Optional[str]:
         return self.metadata.get(name, default)
 
