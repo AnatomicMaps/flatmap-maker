@@ -217,19 +217,28 @@ class Slide:
                     return shapes
             geometries.append(shape.geometry)
         geometry = shapely.ops.unary_union(geometries)
-        if geometry.geom_type != 'Polygon':
+        if 'Polygon' not in geometry.geom_type:
             return shapes
-        svg_element = svg_path_from_geometry(geometry)
-        if svg_element is None:
+
+        svg = etree.fromstring(geometry.svg())
+        svg_elements = []
+        if svg.tag == 'path' and (svg_path := svg.attrib.get('d')) is not None:
+            svg_elements.append(svgelements.Path(svg_path))
+        elif svg.tag == 'g':
+            for e in svg:
+                if e.tag == 'path' and (svg_path := e.attrib.get('d')) is not None:
+                    svg_elements.append(svgelements.Path(svg_path))
+        if len(svg_elements) == 0:
             return shapes
         return self.__new_shape(SHAPE_TYPE.FEATURE, group.shape_id, geometry, {
-                                'colour': colour,
+                                'colour': colour.rgb_colour,
                                 'name': name,
                                 'shape-name': group.name,
                                 'shape-kind': shapes[0].kind,
                                 'text-align': alignment,
                                 'pptx-shape': pptx_shape,
-                                'svg-element': svg_element
+                                'svg-element': svg_elements[0] if len(svg_elements) == 1 else svg_elements,
+                                'svg-kind': 'path' if len(svg_elements) == 1 else 'group'
                                 })
 
     def __process_group(self, group: PptxGroupShape, transform: Transform) -> Shape | TreeList:
