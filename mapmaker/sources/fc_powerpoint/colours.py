@@ -37,7 +37,7 @@ setattr(numpy, "asscalar", patch_asscalar)
 #===============================================================================
 
 # CIE Delta E 2000 color difference
-CLOSE_COLOUR_DISTANCE = 5       # Perceptible on close inspection
+CLOSE_COLOUR_DISTANCE = 6       # Perceptible on close inspection
 
 #===============================================================================
 
