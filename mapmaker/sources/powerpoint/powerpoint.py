@@ -49,17 +49,12 @@ from mapmaker.sources import MapBounds, WORLD_METRES_PER_EMU
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import FilePath, log, ProgressBar, TreeList
 
+from ..fc_powerpoint.colours import ColourMatcher
+
 from .colour import ColourMap, ColourTheme
 from .geometry import get_shape_geometry
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
 from .transform import DrawMLTransform
-
-#===============================================================================
-
-def svg_path_from_geometry(geometry: BaseGeometry):
-    svg_element = etree.fromstring(geometry.svg())
-    if svg_element.tag == 'path':
-        return SvgPath(**svg_element.attrib)
 
 #===============================================================================
 
@@ -202,19 +197,20 @@ class Slide:
          or isinstance(shapes[0], TreeList)
          or shapes[0].type != SHAPE_TYPE.FEATURE):
             return shapes
-        colour = shapes[0].colour
         name = shapes[0].name
+        colour = ColourMatcher(shapes[0].colour)
         alignment = shapes[0].properties.get('align')
         geometries = [shapes[0].geometry]
         pptx_shape = shapes[0].properties['pptx-shape']
         for shape in shapes[1:]:
             if (isinstance(shape, TreeList)
              or shape.type != SHAPE_TYPE.FEATURE
-             or colour != shape.colour):
+             or not colour.matches(shape.colour)):
                 return shapes
             if shape.name != '':
                 if name == '':
                     name = shape.name
+                    colour = ColourMatcher(shape.colour)
                     alignment = shape.properties.get('align')
                     pptx_shape = shape.properties['pptx-shape']
                 elif name != shape.name:

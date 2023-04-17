@@ -42,8 +42,13 @@ CLOSE_COLOUR_DISTANCE = 6       # Perceptible on close inspection
 #===============================================================================
 
 class ColourMatcher:
-    def __init__(self, colour: str):
-        self.__colour = convert_color(sRGBColor.new_from_rgb_hex(colour), LabColor)
+    def __init__(self, rgb_colour: str):
+        self.__colour = convert_color(sRGBColor.new_from_rgb_hex(rgb_colour), LabColor)
+        self.__rgb_colour = rgb_colour
+
+    @property
+    def rgb_colour(self):
+        return self.__rgb_colour
 
     def matches(self, colour: Optional[str]) -> bool:
         if colour is not None:
