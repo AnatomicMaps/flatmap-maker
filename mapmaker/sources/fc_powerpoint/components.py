@@ -34,9 +34,13 @@ MAX_CONNECTION_GAP =     4000               # metres, approx. sqrt(MAX_AREA)/2
 class CD_CLASS:
     UNKNOWN    = 'celldl:Unknown'
     LAYER      = 'celldl:Layer'
+
     COMPONENT  = 'celldl:Component'     # What has CONNECTORs
+
     CONNECTOR  = 'celldl:Connector'     # What a CONNECTION connects to
     CONNECTION = 'celldl:Connection'    # The path between CONNECTORS
+    CONDUIT    = 'celldl:Conduit'       # A container for CONNECTIONs
+
     ANNOTATION = 'celldl:Annotation'    # Additional information about something
 
 #===============================================================================
@@ -44,16 +48,19 @@ class CD_CLASS:
 class FC_CLASS:
     UNKNOWN     = 'fc-class:Unknown'
     LAYER       = 'fc-class:Layer'
+
+    # Component classes
     SYSTEM      = 'fc-class:System'
     ORGAN       = 'fc-class:Organ'
     FTU         = 'fc-class:Ftu'
 
-    DESCRIPTION = 'fc-class:Description'
-    HYPERLINK   = 'fc-class:Hyperlink'
-
-    # Connector and Connection classes
+    # Connector, Connection, and Conduit classes
     NEURAL      = 'fc-class:Neural'
     VASCULAR    = 'fc-class:Vascular'
+
+    # Annotation classes
+    DESCRIPTION = 'fc-class:Description'
+    HYPERLINK   = 'fc-class:Hyperlink'
 
 #===============================================================================
 
@@ -62,25 +69,31 @@ class FC_KIND:
 
     # WIP: System kinds (is this independent to FC_KIND?)
     NERVOUS_SYSTEM       = 'fc-kind:NervousSystem'
+
+    # WIP: Organ kinds (is this independent to FC_KIND?)
     DIAPHRAM             = 'fc-kind:Diaphram'
 
+    # Vascular kinds
     ARTERIAL             = 'fc-kind:Arterial'
     VENOUS               = 'fc-kind:Venous'
     VEIN                 = 'fc-kind:Vein'
     ARTERY               = 'fc-kind:Artery'
     VASCULAR_REGION      = 'fc-kind:VascularRegion'
 
+    # Neural kinds
     GANGLION             = 'fc-kind:Ganglion'
     NEURON               = 'fc-kind:Neuron'
     NERVE                = 'fc-kind:Nerve'
     PLEXUS               = 'fc-kind:Plexus'
 
+    # Connector kinds
     CONNECTOR_JOINER     = 'fc-kind:ConnectorJoiner'    # double headed arrow
     CONNECTOR_FREE_END   = 'fc-kind:ConnectorFreeEnd'   # unattached connection end
     CONNECTOR_NODE       = 'fc-kind:ConnectorNode'      # ganglionic node??
     CONNECTOR_PORT       = 'fc-kind:ConnectorPort'      # a neural connection end in FTU
     CONNECTOR_THROUGH    = 'fc-kind:ConnectorThrough'   # cross in plexus and/or glanglion
 
+    # Hyperlink kinds
     HYPERLINK_WIKIPEDIA  = 'fc-kind:HyperlinkWikipedia'
     HYPERLINK_PUBMED     = 'fc-kind:HyperlinkPubMed'
     HYPERLINK_PROVENANCE = 'fc-kind:HyperlinkProvenance'
