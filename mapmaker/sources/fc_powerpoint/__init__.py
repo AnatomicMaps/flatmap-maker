@@ -181,6 +181,7 @@ class FCSlide(Slide):
 
         # We now identify systems and for non-system features (both components and connectors)
         # find features which overlap them
+        cardio_system = None
         nervous_system = None
         non_system_components = []
         connectors = []
@@ -191,7 +192,10 @@ class FCSlide(Slide):
                 fc_shape.fc_class = FC_CLASS.SYSTEM
                 fc_shape.add_parent(self.__shapes_by_id[SLIDE_LAYER_ID])
                 self.__system_ids.add(shape_id)
-                if 'BRAIN' in fc_shape.name:
+                if 'CARDIO' in fc_shape.name:
+                    fc_shape.fc_kind = FC_KIND.CARDIOVASCULAR_SYSTEM
+                    cardio_system = fc_shape
+                elif 'BRAIN' in fc_shape.name:
                     fc_shape.fc_kind = FC_KIND.NERVOUS_SYSTEM
                     nervous_system = fc_shape
             else:       # Component, Connector, or Annotation (Hyperlink)
@@ -302,6 +306,9 @@ class FCSlide(Slide):
                 elif (kind := VASCULAR_VESSEL_KINDS.lookup(fc_shape.colour)) is not None:
                     fc_shape.fc_class = FC_CLASS.VASCULAR
                     fc_shape.fc_kind = kind
+                    if cardio_system not in fc_shape.parents:
+                        # Vascular features are part of the cardiovascular system
+                        fc_shape.add_parent(cardio_system)
             if fc_shape.fc_class not in [FC_CLASS.LAYER, FC_CLASS.UNKNOWN]:
                 self.__connection_classifier.add_component(fc_shape)
 

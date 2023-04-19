@@ -69,6 +69,7 @@ class FC_KIND:
 
     # WIP: System kinds (is this independent to FC_KIND?)
     NERVOUS_SYSTEM       = 'fc-kind:NervousSystem'
+    CARDIOVASCULAR_SYSTEM = 'fc-kind:CardiovascularSystem'
 
     # WIP: Organ kinds (is this independent to FC_KIND?)
     DIAPHRAM             = 'fc-kind:Diaphram'
