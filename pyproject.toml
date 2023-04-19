@@ -39,6 +39,7 @@ giturlparse = "^0.10.0"
 types-requests = "^2.28.11.2"
 colormath = "^3.0.0"
 pandas = "^1.5.3"
+svgelements = "^1.9.1"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.982"

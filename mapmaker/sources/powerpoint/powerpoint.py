@@ -27,7 +27,7 @@ import numpy as np
 import shapely.geometry
 from shapely.geometry.base import BaseGeometry
 import shapely.ops
-from svgwrite.path import Path as SvgPath
+import svgelements
 
 from pptx import Presentation
 from pptx.dml.fill import FillFormat
