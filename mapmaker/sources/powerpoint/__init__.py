@@ -30,7 +30,7 @@ from mapmaker.settings import settings
 from mapmaker.utils import log, pathlib_path, TreeList
 
 from .. import MapSource, RasterSource
-from ..fc_powerpoint.components import FC_CLASS
+from ..fc_powerpoint.components import CD_CLASS
 
 from .powerpoint import Powerpoint, Slide
 from .svgutils import SvgFromShapes
@@ -67,8 +67,7 @@ class PowerpointLayer(MapLayer):
 
         if settings.get('functionalConnectivity', False):
             for feature in self.features:
-                if (feature.get_property('shape-type') == 'connection'
-                and feature.get_property('fc-class') in [FC_CLASS.NEURAL, FC_CLASS.VASCULAR]):
+                if feature.get_property('cd-class') == CD_CLASS.CONNECTION:
                     # Map neuron path class to viewer path kind/type
                     feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
                     if (settings.get('authoring', False)

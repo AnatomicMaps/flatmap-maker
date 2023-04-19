@@ -353,7 +353,4 @@ class ConnectionClassifier:
         # NODES have max 2 connections
         # JOINS have max 2 connections
 
-        # Map neuron path class to viewer path kind/type
-        connection.shape_type = 'connection'
-
 #===============================================================================
