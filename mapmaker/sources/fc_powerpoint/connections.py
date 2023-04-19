@@ -332,6 +332,10 @@ class ConnectionClassifier:
                                     join_connection.connector_ids.remove(connector.global_shape.id)
                                     connection.connector_ids.remove(connector.global_shape.id)
                                     connection.connector_ids.append(join_connection.connector_ids.pop())
+                                #else:
+                                ### This means that there isn't an outgoing connection at the join
+                                ### amd needs some warning, but can only detect this after **all**
+                                ### connections have been processed.
 
                         elif len(neighbours) > 1:
                             connection.log_error(f'Connector has too many edges from it: {connector}')
