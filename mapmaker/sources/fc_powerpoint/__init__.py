@@ -243,6 +243,7 @@ class FCSlide(Slide):
             for child in fc_shape.children:
                 if is_connector(child) and child.fc_kind == FC_KIND.CONNECTOR_PORT:
                     fc_shape.fc_class = FC_CLASS.FTU
+                    break
 
         # Organs are components that are contained in at least one system and
         # have ORGAN_COLOUR colour or contain FTUs
