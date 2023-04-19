@@ -138,6 +138,8 @@ class MapRepository:
 class Manifest:
     def __init__(self, manifest_path, single_file=None, id=None, ignore_git=False):
         self.__path = FilePath(manifest_path)
+        if single_file is not None:
+            ignore_git = True
         if not ignore_git:
             self.__repo = MapRepository(pathlib.Path(manifest_path).parent)
         self.__ignore_git = ignore_git
