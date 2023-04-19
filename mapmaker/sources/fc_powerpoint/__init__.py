@@ -412,7 +412,7 @@ class FCSlide(Slide):
             if connection.fc_kind == FC_KIND.NEURON:
                 connection.properties['sckan'] = False                      # Assume no paths are valid
                 if self.__sckan_neurons is not None and len(end_node_terms) > 1:
-                    if neuron_path_ids := self.__sckan_neurons.find_connection_paths(end_node_terms, connection.path_type):
+                    if neuron_path_ids := self.__sckan_neurons.find_connection_paths(connection.id, end_node_terms, connection.path_type):
                         connection.properties['sckan'] = True
                         connection.properties['models'] = neuron_path_ids[0]
                         for n, neuron_path_id in enumerate(neuron_path_ids[1:]):
