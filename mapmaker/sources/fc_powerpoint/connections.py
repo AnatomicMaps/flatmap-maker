@@ -229,18 +229,17 @@ class ConnectionClassifier:
         def check_powerpoint_connection_end(end_attribute):
             if (connector_id := connection.properties.get(end_attribute)) is not None:
                 if connector_id not in self.__connectors:
-                    connection.log_error(f'Connection end `{connector_id}` is unknown')
+                    connection.log_warning(f'End of Powerpoint connection is unknown, connector: {connector_id}')
                 elif connector_id not in connected_end_ids:
-                    connection.log_error(f"Connection end `{connector_id}` isn't at end")
+                    connection.log_warning(f"End of Powerpoint connection isn't at end, connector: {connector_id}")
                 else:
                     return
-                connection.log_error("Can't find connected end of Powerpoint connection")
         check_powerpoint_connection_end('connection-start')
         check_powerpoint_connection_end('connection-end')
 
         # Warn when we can't find both ends of a connection
         if len(free_end_connectors):          ## Diaphram dashed line...??
-            connection.log_warning('Connection has unconnected end(s)')
+            connection.log_warning(f'Connection has unconnected end(s): {connection.id}')
             if len(free_end_connectors) == 1:
                 free_end_connectors[0].fc_class = self.__connectors[connected_end_ids[0]].fc_class
             for connector in free_end_connectors:
