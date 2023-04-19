@@ -50,6 +50,7 @@ from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import FilePath, log, ProgressBar, TreeList
 
 from ..fc_powerpoint.colours import ColourMatcher
+from ..fc_powerpoint.components import is_system_name
 
 from .colour import ColourMap, ColourTheme
 from .geometry import get_shape_geometry
@@ -216,6 +217,9 @@ class Slide:
                 elif name != shape.name:
                     return shapes
             geometries.append(shape.geometry)
+        if not is_system_name(name):
+            return shapes
+
         geometry = shapely.ops.unary_union(geometries)
         if 'Polygon' not in geometry.geom_type:
             return shapes

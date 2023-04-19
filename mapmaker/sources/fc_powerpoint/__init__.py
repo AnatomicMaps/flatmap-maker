@@ -43,7 +43,7 @@ from ..powerpoint.colour import ColourTheme
 #===============================================================================
 
 from .components import make_annotation, make_component, make_connection, make_connector
-from .components import is_annotation, is_component, is_connection, is_connector
+from .components import is_annotation, is_component, is_connector, is_system_name
 from .components import FC_CLASS, FC_KIND
 from .components import HYPERLINK_KINDS, HYPERLINK_IDENTIFIERS
 from .components import NERVE_FEATURE_KINDS, NEURON_PATH_TYPES
@@ -187,8 +187,7 @@ class FCSlide(Slide):
         hyperlinks = []
         for shape_id, fc_shape in self.__shapes_by_id.items():
             # Do we need a better way of detecting systems??
-            if (is_component(fc_shape)
-            and len(fc_shape.name) > 6 and fc_shape.name == fc_shape.name.upper()):
+            if is_component(fc_shape) and is_system_name(fc_shape.name):
                 fc_shape.fc_class = FC_CLASS.SYSTEM
                 fc_shape.add_parent(self.__shapes_by_id[SLIDE_LAYER_ID])
                 self.__system_ids.add(shape_id)
