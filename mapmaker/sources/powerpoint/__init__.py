@@ -40,6 +40,15 @@ from .powerpoint import Slide
 
 #===============================================================================
 
+def set_relationship_property(feature, property, relatives):
+    geojson_ids = set(s.geojson_id for s in relatives if s.geojson_id)
+    if feature.has_property(property):
+        feature.get_property(property).update(geojson_ids)
+    else:
+        feature.set_property(property, geojson_ids)
+
+#===============================================================================
+
 class PowerpointLayer(MapLayer):
     def __init__(self, source: PowerpointSource, id: str, slide: Slide, slide_number: int):
         if source.source_range is None:
@@ -83,14 +92,12 @@ class PowerpointLayer(MapLayer):
                         feature.get_property('kind'),
                         feature.geojson_id,
                         node_ids)
+            # Pass parent/child containment to the viewer
             for shape in shapes.flatten(skip=1):
                 feature = shape.global_shape.get_property('feature') if shape.filtered else shape.get_property('feature')
                 if feature is not None:
-                    child_ids = set(s.geojson_id for s in shape.children if s.geojson_id)
-                    if feature.has_property('children'):
-                        feature.get_property('children').update(child_ids)
-                    else:
-                        feature.set_property('children', child_ids)
+                    set_relationship_property(feature, 'children', shape.children)
+                    set_relationship_property(feature, 'parents', shape.parents)
 
     def __process_shape_list(self, shapes: TreeList) -> list[Feature]:
     #=================================================================
