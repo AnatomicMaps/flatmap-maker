@@ -40,6 +40,7 @@ class SHAPE_TYPE(Enum):
 PropertiesInString = ['name', 'cd-class', 'shape-name', 'shape-kind']
 
 class Shape(PropertyMixin):
+    __attributes = ['type', 'id', 'geometry', 'parents', 'children']
     def __init__(self, type: SHAPE_TYPE, id: str, geometry: BaseGeometry, properties=None):
         self.__initialising = True
         super().__init__(properties)
@@ -57,13 +58,13 @@ class Shape(PropertyMixin):
         self.__initialising = False
 
     def __getattr__(self, key: str) -> Any:
-        if key.startswith('_') or self.__initialising:
+        if key.startswith('_') or self.__initialising or key in self.__attributes:
             return object.__getattribute__(self, key)
         else:
             return self.get_property(key.replace('_', '-'))
 
     def __setattr__(self, key: str, value: Any=None):
-        if key.startswith('_') or self.__initialising:
+        if key.startswith('_') or self.__initialising or key in self.__attributes:
             object.__setattr__(self, key, value)
         else:
             self.set_property(key.replace('_', '-'), value)
