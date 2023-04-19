@@ -26,8 +26,8 @@ from typing import Optional
 
 #===============================================================================
 
-import cv2
-import numpy as np
+import cv2                  # type: ignore
+import numpy as np          # type: ignore
 
 #===============================================================================
 
