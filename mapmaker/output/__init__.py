@@ -48,10 +48,12 @@ EXPORTED_FEATURE_PROPERTIES = [
     'node',             # bool
     'nodeId',
     'opacity',          # float
+    'parents',          # list[int]
     'scale',
     'sckan',
     'source',
     'stroke-width',     # float
+    'systems',          # list[str]
     'tile-layer',
     'type',
     'warning',
