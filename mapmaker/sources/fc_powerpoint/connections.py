@@ -121,7 +121,7 @@ class ConnectionGraph:
 
 #===============================================================================
 
-JOINING_CONNECTORS = [FC_KIND.CONNECTOR_JOINER, FC_KIND.CONNECTOR_NODE, FC_KIND.CONNECTOR_THROUGH]
+JOINING_CONNECTORS = [FC_KIND.CONNECTOR_JOINER, FC_KIND.CONNECTOR_THROUGH]
 NODE_CONNECTORS = [FC_KIND.CONNECTOR_NODE, FC_KIND.CONNECTOR_PORT]
 
 class ConnectionClassifier:
@@ -324,7 +324,7 @@ class ConnectionClassifier:
                                     self.__neural_graph.remove_edge(connector.global_shape.id, neighbours[0])
                                     if connector.fc_kind == FC_KIND.CONNECTOR_JOINER:
                                         connector.set_property('exclude', True)
-                                    elif connector.fc_kind in [FC_KIND.CONNECTOR_NODE, FC_KIND.CONNECTOR_THROUGH]:
+                                    elif connector.fc_kind == FC_KIND.CONNECTOR_THROUGH:
                                         connection.intermediate_connectors.append(connector.global_shape.id)
                                     join_connection.set_property('exclude', True)
                                     self.__join_nodes.remove(connector)
