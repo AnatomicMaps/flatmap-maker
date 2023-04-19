@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 from collections import OrderedDict
-import datetime
+from datetime import datetime, timezone
 import os
 from typing import Optional
 
@@ -191,8 +191,8 @@ class FlatMap(object):
         # Generate metadata with connection information
         self.__resolve_connectivity()
         # Set creation time
-        self.__created = datetime.datetime.utcnow()
-        self.__metadata['created'] = self.__created.isoformat()
+        self.__created = datetime.now(tz=timezone.utc)
+        self.__metadata['created'] = self.__created.isoformat(timespec='seconds')
 
     def full_filename(self, localname):
     #==================================
