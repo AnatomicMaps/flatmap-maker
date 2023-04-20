@@ -41,3 +41,4 @@ dependencies:
       - skia-python>=87.5,<88.0
       - cssselect2>=0.6.0,<0.7.0
       - giturlparse>=0.10.0
+      - svgelements>=1.9.1
