@@ -41,7 +41,7 @@ from .powerpoint import Slide
 #===============================================================================
 
 def set_relationship_property(feature, property, relatives):
-    geojson_ids = set(s.geojson_id for s in relatives if s.geojson_id)
+    geojson_ids = set(s.global_shape.geojson_id for s in relatives if s.global_shape.geojson_id)
     if feature.has_property(property):
         feature.get_property(property).update(geojson_ids)
     else:
@@ -79,6 +79,14 @@ class PowerpointLayer(MapLayer):
                 if feature.get_property('cd-class') == CD_CLASS.CONNECTION:
                     # Map neuron path class to viewer path kind/type
                     feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
+                    for system_id in feature.get_property('systems', []):
+                        if (system_feature := self.flatmap.get_feature(system_id)) is not None:
+                            if (path_ids := system_feature.get_property('path-ids')) is not None:
+                                if feature.geojson_id not in path_ids:
+                                    path_ids.append(feature.geojson_id)
+                            else:
+                                system_feature.set_property('path-ids', [feature.geojson_id])
+
                     if (settings.get('authoring', False)
                     and (feature.has_property('error')
                       or feature.has_property('warning'))):

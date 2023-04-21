@@ -34,7 +34,7 @@ from mapmaker.properties.pathways import PATH_TYPE
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
-from .components import make_connector
+from .components import make_connector, system_ids
 from .components import CD_CLASS, FC_KIND, FC_CLASS
 from .components import NEURON_PATH_TYPES, VASCULAR_KINDS
 from .components import MAX_CONNECTION_GAP
@@ -249,6 +249,7 @@ class ConnectionClassifier:
 
         connection.connector_ids.extend([self.__connectors[id].global_shape.id
                                             for id in connected_end_ids])      # Only compatible connectors??
+        connection.local_connector_ids.extend(connected_end_ids)
 
         connector = self.__connectors[connected_end_ids[0]]
         connector_1 = self.__connectors[connected_end_ids[1]]
@@ -332,6 +333,10 @@ class ConnectionClassifier:
                                     join_connection.connector_ids.remove(connector.global_shape.id)
                                     connection.connector_ids.remove(connector.global_shape.id)
                                     connection.connector_ids.append(join_connection.connector_ids.pop())
+                                    # Need both local and global connector identifiers
+                                    join_connection.local_connector_ids.remove(connector.id)
+                                    connection.local_connector_ids.remove(connector.id)
+                                    connection.local_connector_ids.append(join_connection.local_connector_ids.pop())
                                 #else:
                                 ### This means that there isn't an outgoing connection at the join
                                 ### amd needs some warning, but can only detect this after **all**
@@ -339,6 +344,12 @@ class ConnectionClassifier:
 
                         elif len(neighbours) > 1:
                             connection.log_error(f'Connector has too many edges from it: {connector}')
+
+            systems = set()
+            for id in connection.local_connector_ids:
+                connector = self.__connectors[id]
+                systems.update(system_ids(connector))
+            connection.systems = systems
 
         connection.intermediate_components = list(self.__crossed_component(connection))
         if connection.fc_class == FC_CLASS.NEURAL:

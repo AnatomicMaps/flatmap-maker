@@ -216,6 +216,7 @@ def make_connection(shape):
     shape.cd_class = CD_CLASS.CONNECTION
     shape.path_type = PATH_TYPE.UNKNOWN
     shape.connector_ids = []
+    shape.local_connector_ids = []
     shape.intermediate_connectors = []
     shape.intermediate_components = []
     return shape
@@ -235,5 +236,13 @@ def make_connector(shape):
 
 def is_system_name(name):
     return len(name) > 6 and name == name.upper()
+
+def system_ids(component) -> set[str]:
+    if component.fc_class == FC_CLASS.SYSTEM:
+        return set([component.global_shape.id])
+    names = set()
+    for parent in component.parents:
+        names.update(system_ids(parent))
+    return names
 
 #===============================================================================

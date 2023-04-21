@@ -53,7 +53,6 @@ class CommonAttributes:
             'name': self.__name,
             'colour': self.__colour,
             'opacity': self.__opacity,
-            'filtered': True,
             'global-shape': self.__global_shape
         }
 

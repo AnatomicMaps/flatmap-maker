@@ -53,7 +53,7 @@ EXPORTED_FEATURE_PROPERTIES = [
     'sckan',
     'source',
     'stroke-width',     # float
-    'systems',          # list[str]
+    'path-ids',         # list[str]
     'tile-layer',
     'type',
     'warning',
