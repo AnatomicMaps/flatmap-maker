@@ -532,10 +532,9 @@ class ConnectionSet:
     def __len__(self):
         return len(self.__connections)
 
-    def add(self, connection_id: str, path_type: str, geojson_id: int, connector_ids: list[int]):
-    #============================================================================================
+    def add(self, path_id: str, path_type: str, geojson_id: int, connector_ids: list[int]):
+    #======================================================================================
         # Need geojson id of shape's feature
-        path_id = f'{self.__id}/{connection_id}'
         self.__connections[path_id] = geojson_id
         self.__connections_by_type[path_type].append(path_id)
         self.__connectors_by_connection[path_id] = connector_ids
