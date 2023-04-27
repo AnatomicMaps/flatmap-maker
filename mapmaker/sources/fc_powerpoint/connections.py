@@ -202,7 +202,7 @@ class ConnectionClassifier:
                 component_geometry = self.__component_geometries[index]
                 component = self.__components_by_geometry[id(component_geometry)]
                 if (connection.fc_class == component.fc_class
-                and component_geometry.intersection(connection.geometry).length > component.fc_long_side):
+                and component_geometry.intersection(connection.geometry).length > component.fc_mean_side):
                     component_ids.add(component.global_shape.id)
         return component_ids
 
