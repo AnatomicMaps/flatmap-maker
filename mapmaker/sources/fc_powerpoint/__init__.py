@@ -305,14 +305,16 @@ class FCSlide(Slide):
                     fc_shape.fc_class = FC_CLASS.NEURAL
                     self.__nerve_ids.add(fc_shape.id)
                     fc_shape.description = kind
-                    if nervous_system not in fc_shape.parents:
-                        # Neural features are part of the nervous system
+                    if len(fc_shape.parents) != 1 or fc_shape.parent != nervous_system:
+                        # All neural components are just be in the nervous system
+                        fc_shape.orphan()
                         fc_shape.add_parent(nervous_system)
                 elif (kind := VASCULAR_VESSEL_KINDS.lookup(fc_shape.colour)) is not None:
                     fc_shape.fc_class = FC_CLASS.VASCULAR
                     fc_shape.fc_kind = kind
-                    if cardio_system not in fc_shape.parents:
-                        # Vascular features are part of the cardiovascular system
+                    if len(fc_shape.parents) != 1 or fc_shape.parent != cardio_system:
+                        # All vascular components are just be in the cardiovascular system
+                        fc_shape.orphan()
                         fc_shape.add_parent(cardio_system)
             if fc_shape.fc_class not in [FC_CLASS.LAYER, FC_CLASS.UNKNOWN]:
                 self.__connection_classifier.add_component(fc_shape)
