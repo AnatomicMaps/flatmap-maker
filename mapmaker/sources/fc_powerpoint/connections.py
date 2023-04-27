@@ -152,7 +152,7 @@ class ConnectionClassifier:
             bounds = component.geometry.bounds
             # Use geometric mean of side lengths as a measure to determine if a connection
             # is alligned with the nerve
-            component.fc_long_side = math.sqrt((bounds[2]-bounds[0])**2 + (bounds[3]-bounds[1])**2)
+            component.fc_mean_side = math.sqrt(abs((bounds[2]-bounds[0])*(bounds[3]-bounds[1])))
             self.__component_geometries.append(component.geometry)
             self.__components_by_geometry[id(component.geometry)] = component
 
