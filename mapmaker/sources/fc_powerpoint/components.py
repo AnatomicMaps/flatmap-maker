@@ -144,12 +144,12 @@ NERVE_FEATURE_KINDS = ColourMatcherDict({  # colour ==> nerve kind
     '#ADFCFE': 'cyan',          # e.g. upper branch of laryngeal nerve
     '#93FFFF': 'cyan',          # e.g. upper branch of internal laryngeal nerve
     '#9FCE63': 'green',         # e.g. maxillary nerve
+    '#ED70F8': 'purple',        # e.g. pharyngeal nerve, vagus nerve communicating gradient
+    '#FFD966': 'dark-biege',    # e.g. chorda tympani nerve
+    '#B5C4E3': 'pale-blue',     # e.g. paravertebral ganglion
     '#E5F0DB': 'pale-green',    # e.g. pterygopalatine ganglia
-    '#ED70F8': 'purple',        # e.g. pharyngeal nerve
-    '#ED70F8': 'purple',        # e.g. vagus nerve communicating gradient
     '#FDF3D0': 'biege',         # e.g. pharyngeal nerve plexus, cardiac ganglia
     '#FFF3CC': 'biege',         # e.g. carotid plexus
-    '#FFD966': 'dark-biege',    # e.g. chorda tympani nerve
 })
 
 #===============================================================================
