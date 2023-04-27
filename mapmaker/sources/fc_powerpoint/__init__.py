@@ -212,8 +212,11 @@ class FCSlide(Slide):
                 if is_component(fc_shape):
                     for shape_id in containing_ids_area_order:
                         parent = geometry_to_shape[shape_id]
+                        if parent.fc_class == FC_CLASS.SYSTEM:      # Systems are only parents of Organs
+                            break                                   # and are assigned later
                         fc_shape.add_parent(parent)
                     non_system_components.append(fc_shape)
+                    fc_shape.containing_ids = containing_ids_area_order
                 elif is_connector(fc_shape):
                     parent = None
                     for shape_id in containing_ids_area_order:
@@ -267,10 +270,11 @@ class FCSlide(Slide):
                     if fc_shape.name == '':
                         fc_shape.log_error(f'An organ must have a name: {fc_shape}')
                     have_system = False
-                    for parent in fc_shape.parents:
-                        if parent.fc_class == FC_CLASS.SYSTEM:
+                    for shape_id in fc_shape.containing_ids:
+                        parent = geometry_to_shape[shape_id]
+                        if parent.fc_class == FC_CLASS.SYSTEM:      # Systems are only parents of Organs
+                            fc_shape.add_parent(parent)
                             have_system = True
-                            break
                     if not have_system:
                         fc_shape.log_error(f'An organ must be in at least one system: {fc_shape}')
 
