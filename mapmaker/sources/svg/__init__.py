@@ -98,7 +98,7 @@ class SVGSource(MapSource):
             self.__boundary_geometry = self.__layer.boundary_feature.geometry
         if not settings.get('authoring', False) and self.__exported:
             # Save a cleaned copy of the SVG in the map's output directory
-            cleaner = SVGCleaner(self.__source_file, properties_store=self.flatmap.map_properties, all_layers=True)
+            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=True)
             cleaner.clean()
             with open(self.flatmap.full_filename(f'{self.flatmap.id}.svg'), 'wb') as fp:
                 cleaner.save(fp)
@@ -109,7 +109,7 @@ class SVGSource(MapSource):
 
     def __get_data(self):
     #====================
-        cleaner = SVGCleaner(self.__source_file, feature_map=self.flatmap.feature_map, all_layers=False)
+        cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
         cleaner.clean()
         cleaned_svg = tempfile.TemporaryFile()
         cleaner.save(cleaned_svg)

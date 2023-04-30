@@ -42,10 +42,9 @@ if TYPE_CHECKING:
 #===============================================================================
 
 class SVGCleaner(object):
-    def __init__(self, svg_file: FilePath, properties_store: Optional[PropertiesStore]=None, feature_map: Optional[FeatureMap]=None, all_layers: bool=True):
+    def __init__(self, svg_file: FilePath, properties_store: PropertiesStore, all_layers: bool=True):
         self.__svg = etree.parse(svg_file.get_fp())
         self.__properties_store = properties_store
-        self.__feature_map = feature_map
         self.__all_layers = all_layers
 
     def clean(self):
@@ -75,12 +74,7 @@ class SVGCleaner(object):
         markup = svg_markup(element)
         if markup.startswith('.'):
             properties = parse_markup(markup)
-            if self.__properties_store is not None:
-                properties = self.__properties_store.update_properties(properties)
-            elif self.__feature_map is not None and 'id' in properties:
-                feature = self.__feature_map.get_feature(properties['id'])
-                if feature is not None:
-                    properties.update(feature.properties)
+            properties = self.__properties_store.update_properties(properties)
             for key, value in properties.items():
                 if not self.__all_layers and key == 'tile-layer' and value in EXCLUDE_TILE_LAYERS:
                     return True
