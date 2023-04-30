@@ -284,14 +284,6 @@ class Route:
 #===============================================================================
 
 class ResolvedPathways:
-    """
-    A set of :class:`ResolvedPath`\'s.
-
-        Arguments:
-        ----------
-        feature_map
-            A mapping from a feature's id and class attributes to its numeric identifier.
-    """
     def __init__(self, flatmap: 'FlatMap'):
         self.__flatmap = flatmap
         self.__paths: dict[str, ResolvedPath] = defaultdict(ResolvedPath)   #! Paths by :class:`ResolvedPath`\ s

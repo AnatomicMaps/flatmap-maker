@@ -58,7 +58,6 @@ class FlatMap(object):
         self.__extent = None
         self.__centre = None
         self.__min_zoom = maker.zoom[0]
-        self.__feature_map = None
         self.__annotations = {}
         self.__annotator = annotator
         self.__connection_set = ConnectionSet('connections')
@@ -98,10 +97,6 @@ class FlatMap(object):
     @property
     def entities(self):
         return self.__entities
-
-    @property
-    def feature_map(self):
-        return self.__feature_map
 
     @property
     def id(self):
