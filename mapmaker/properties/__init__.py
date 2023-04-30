@@ -86,7 +86,7 @@ class PropertiesStore(object):
                 log.warning(f'Connectivity for {model_uri} not available in SCKAN')
 
         # Load network centreline definitions
-        self.__networks = { network.get('id'): Network(flatmap, network)
+        self.__networks = { network.get('id'): Network(flatmap, network, self)
                                 for network in properties_dict.get('networks', []) }
 
     @property
