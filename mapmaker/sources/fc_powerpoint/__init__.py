@@ -44,6 +44,7 @@ from ..powerpoint.colour import ColourTheme
 
 from .components import make_annotation, make_component, make_connection, make_connector
 from .components import is_annotation, is_component, is_connector, is_system_name
+from .components import ensure_parent_system
 from .components import FC_CLASS, FC_KIND
 from .components import HYPERLINK_KINDS, HYPERLINK_IDENTIFIERS
 from .components import NERVE_FEATURE_KINDS, NEURON_PATH_TYPES
@@ -305,19 +306,18 @@ class FCSlide(Slide):
                     fc_shape.fc_class = FC_CLASS.NEURAL
                     self.__nerve_ids.add(fc_shape.id)
                     fc_shape.description = kind
-                    if len(fc_shape.parents) != 1 or fc_shape.parent != nervous_system:
-                        # All neural components are just be in the nervous system
-                        fc_shape.orphan()
-                        fc_shape.add_parent(nervous_system)
                 elif (kind := VASCULAR_VESSEL_KINDS.lookup(fc_shape.colour)) is not None:
                     fc_shape.fc_class = FC_CLASS.VASCULAR
                     fc_shape.fc_kind = kind
-                    if len(fc_shape.parents) != 1 or fc_shape.parent != cardio_system:
-                        # All vascular components are just be in the cardiovascular system
-                        fc_shape.orphan()
-                        fc_shape.add_parent(cardio_system)
-            if fc_shape.fc_class not in [FC_CLASS.LAYER, FC_CLASS.UNKNOWN]:
+            elif fc_shape.fc_class == FC_CLASS.UNKNOWN:
+                unknown_shapes.append(fc_shape)
+            # A nerve or vessel that connections may pass through
+            if fc_shape.fc_class in [FC_CLASS.NEURAL, FC_CLASS.VASCULAR]:
                 self.__connection_classifier.add_component(fc_shape)
+                # All neural components must be part of the nervous system and
+                # all vascular components must be part of the cardiovascular system
+                ensure_parent_system(fc_shape, nervous_system if fc_shape.fc_class == FC_CLASS.NEURAL
+                                               else cardio_system)
 
         # Hyperlinks become properties of the feature they are on
         for hyperlink in hyperlinks:

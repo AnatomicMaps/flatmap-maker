@@ -249,4 +249,22 @@ def system_ids(component) -> set[str]:
         names.update(system_ids(parent))
     return names
 
+def ensure_parent_system(component, parent_system):
+    if parent_system in component.parents:
+        return
+    if len(component.parents) == 0:
+        component.add_parent(parent_system)
+        return
+    parent_systems = []
+    for parent in component.parents:
+        if parent.fc_class in [FC_CLASS.FTU, FC_CLASS.ORGAN]:
+            return      # We don't climb out of FTUs or organs
+        elif parent.fc_class == FC_CLASS.SYSTEM:
+            parent_systems.append(parent)
+    if len(parent_systems):
+        component.add_parent(parent_system)
+        return
+    for parent in component.parents:
+        ensure_parent_system(parent, parent_system)
+
 #===============================================================================
