@@ -112,29 +112,26 @@ class FCSlide(Slide):
     def process(self, annotator: Optional['Annotator']=None):
     #======================================================
         super().process(annotator)
-        self.__extract_shapes(annotator)
-        self.__add_connections()
-        if self.__shape_filter is not None and self.kind == 'base':
-            # All shapes have been added to the filter so create it
-            # for use by subsequent layers
-            self.__shape_filter.create_filter()
-        return self.shapes
 
-    def __extract_shapes(self, annotator: Optional['Annotator']):
-    #==========================================================
         self.__classify_shapes()
-
         if annotator is not None:
             self.__add_annotation(annotator)
+
         if self.__shape_filter is not None:
-            # Add shapes to the filter if we are processing a base layer, or
-            # exclude them from the layer because they are similar to those
-            # in the base layer
-            for shape in self.shapes.flatten(skip=1):
-                if self.kind == 'base':
+            if self.kind == 'base':
+                # Add shapes to the filter
+                for shape in self.shapes.flatten(skip=1):
                     self.__shape_filter.add_shape(shape)
-                elif self.kind == 'layer':
+                # Now create it for use by subsequent layers
+                self.__shape_filter.create_filter()
+            elif self.kind == 'layer':
+                # Exclude shapes from the layer if they are similar to those in the base layer.
+                # Excluded shapes have a ``global-shape`` property giving the matching base shape.
+                for shape in self.shapes.flatten(skip=1):
                     self.__shape_filter.filter(shape)
+
+        self.__add_connections()
+        return self.shapes
 
     def __classify_shapes(self):
     #===========================
