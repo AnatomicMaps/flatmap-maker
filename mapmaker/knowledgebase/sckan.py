@@ -19,12 +19,41 @@
 #===============================================================================
 
 from collections import defaultdict
+import json
+from pathlib import Path
+import sqlite3
 from typing import Optional
 
 #===============================================================================
 
 import mapmaker.knowledgebase as knowledgebase
 from mapmaker.properties.pathways import PATH_TYPE, path_type_from_phenotypes
+from mapmaker.settings import settings
+from mapmaker.utils import log
+
+#===============================================================================
+
+class AnnotatorDatabase:
+    def __init__(self, flatmap_dir):
+        self.__db = None
+        db_name = (Path(flatmap_dir) / '..' / 'annotation.db').resolve()
+        if db_name.exists():
+            self.__db = sqlite3.connect(db_name)
+        elif settings.get('exportNeurons') is not None:
+            log.warning(f'Missing annotator database: {db_name}')
+
+    def get_derivation(self, feature_id: str) -> list[str]:
+    #======================================================
+        result = []
+        if self.__db is not None:
+            row = self.__db.execute('''select value from annotations as a
+                                        where created=(select max(created) from annotations
+                                            where feature=? and property='prov:wasDerivedFrom')
+                                        and a.property='prov:wasDerivedFrom' ''',
+                                    (feature_id,)).fetchone()
+            if row:
+                result = [url for url in json.loads(row[0]) if url.startswith('http')]
+        return result
 
 #===============================================================================
 
@@ -63,7 +92,8 @@ class SckanNodeSet:
 #===============================================================================
 
 class SckanNeuronPopulations:
-    def __init__(self):
+    def __init__(self, flatmap_dir):
+        self.__annotator_database = AnnotatorDatabase(flatmap_dir)
         self.__sckan_path_nodes_by_type: dict[PATH_TYPE, dict[str, SckanNodeSet]] = defaultdict(dict[str, SckanNodeSet])
         self.__paths_by_id = {}
         connectivity_models = knowledgebase.connectivity_models()
@@ -74,27 +104,34 @@ class SckanNeuronPopulations:
                 self.__paths_by_id[path['id']] = path_knowledge
                 path_type = path_type_from_phenotypes(path_knowledge.get('phenotypes', []))
                 self.__sckan_path_nodes_by_type[path_type][path['id']] = SckanNodeSet(path['id'], path_knowledge['connectivity'])
-        self.__found_connection_paths = defaultdict(set)
+        self.__unknown_connections = []
 
-    def find_connection_paths(self, neuron_id: str, end_nodes: list[tuple[str, Optional[str]]], path_type: PATH_TYPE) -> list[str]:
-    #==============================================================================================================================
+    def lookup_connection(self, neuron_id: str,
+                                end_nodes: list[tuple[str, Optional[str]]],
+                                intermediates: list[tuple[str, Optional[str]]],
+                                path_type: PATH_TYPE) -> list[str]:
+    #==========================================================================
         path_ids = []
         for path_id, node_set in self.__sckan_path_nodes_by_type[path_type].items():
             if (node_set.has_connector(*end_nodes[0])
             and node_set.has_connector(*end_nodes[1])):
                 path_ids.append(path_id)
         # Keep track of neuron paths we've found (or not found)
-        self.__found_connection_paths[(neuron_id, tuple(sorted(end_nodes)), str(path_type))].update(path_ids)
+        if len(path_ids) == 0:
+            evidence = {
+                'id': neuron_id,
+                'endNodes': tuple(sorted(end_nodes)),
+                'type': str(path_type),
+                'evidence': self.__annotator_database.get_derivation(neuron_id)
+            }
+            if len(intermediates):
+                evidence['intermediates'] = intermediates
+            self.__unknown_connections.append(evidence)
         return path_ids
 
-    def found_connection_paths(self):
-    #================================
-        return [{
-            'id': nodes_type[0],
-            'nodes': nodes_type[1],
-            'type': nodes_type[2],
-            'paths': sorted(paths)
-        } for nodes_type, paths in self.__found_connection_paths.items()]
+    def unknown_connections_with_evidence(self):
+    #===========================================
+        return [data for data in self.__unknown_connections if data['evidence']]
 
     def knowledge(self, path_id: str) -> Optional[dict]:
     #===================================================

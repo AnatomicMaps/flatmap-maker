@@ -61,7 +61,7 @@ class FlatMap(object):
         self.__annotations = {}
         self.__annotator = annotator
         self.__connection_set = ConnectionSet('connections')
-        self.__sckan_neuron_populations = SckanNeuronPopulations()
+        self.__sckan_neuron_populations = SckanNeuronPopulations(maker.map_dir)
 
     def __len__(self):
         return self.__visible_layer_count
