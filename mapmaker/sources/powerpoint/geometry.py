@@ -30,7 +30,7 @@ from beziers.quadraticbezier import QuadraticBezier
 
 from pptx.shapes.base import BaseShape as PptxShape
 import shapely.geometry
-from svgwrite.path import Path as SvgPath
+import svgelements
 
 #===============================================================================
 
@@ -45,6 +45,11 @@ from .transform import DrawMLTransform
 
 #===============================================================================
 
+def segment_as_string(*args):
+    return ' '.join(str(a) for a in args)
+
+#===============================================================================
+
 def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
 #===============================================================================
 ##
@@ -54,7 +59,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
     coordinates = []
     bezier_segments = []
     pptx_geometry = Geometry(shape)
-    svg_path = SvgPath(id=shape.shape_id, fill='none', class_='non-scaling-stroke')
+    svg_path = svgelements.Path()
     for path in pptx_geometry.path_list:
         bbox = (shape.width, shape.height) if path.w is None or path.h is None else (path.w, path.h)
         T = transform@DrawMLTransform(shape, bbox)
@@ -67,30 +72,31 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
             if   c.tag == DRAWINGML('arcTo'):
                 (wR, hR) = ((pptx_geometry.attrib_value(c, 'wR'),
                              pptx_geometry.attrib_value(c, 'hR')))
-                stAng = radians_from_st_angle(pptx_geometry.attrib_value(c, 'stAng'))
-                swAng = radians_from_st_angle(pptx_geometry.attrib_value(c, 'swAng'))
-                p1 = ellipse_point(wR, hR, stAng)
-                p2 = ellipse_point(wR, hR, stAng + swAng)
+                start_angle = radians_from_st_angle(pptx_geometry.attrib_value(c, 'stAng'))
+                swing_angle = radians_from_st_angle(pptx_geometry.attrib_value(c, 'swAng'))
+                p1 = ellipse_point(wR, hR, start_angle)
+                p2 = ellipse_point(wR, hR, start_angle + swing_angle)
                 pt = (current_point[0] - p1[0] + p2[0],
                       current_point[1] - p1[1] + p2[1])
-                large_arc_flag = 1 if swAng >= math.pi else 0
+                large_arc_flag = 1 if swing_angle >= math.pi else 0
                 segs = bezier_segments_from_arc_endpoints(tuple2(wR, hR),
                                     0, large_arc_flag, 1,
                                     tuple2(*current_point), tuple2(*pt),
                                     T)
                 bezier_segments.extend(segs)
                 coordinates.extend(bezier_sample(BezierPath.fromSegments(segs)))
-                phi = math.degrees(T.rotate_angle(0))
-                sweep_angle = 1 if abs(phi) <= 90 else 0
-                svg_path.push('A', *T.scale_length((wR, hR)),
-                                   phi, large_arc_flag, sweep_angle,
-                                   *T.transform_point(pt))
+                x_axis_rotation = math.degrees(start_angle)
+                sweep_flag = 1 if segs[0].curvatureAtTime(0) > 0 else 0
+                svg_path.append(svgelements.Arc(T.transform_point(current_point),
+                                                *T.scale_length((wR, hR)),
+                                                x_axis_rotation, large_arc_flag, sweep_flag,
+                                                T.transform_point(pt)))
                 current_point = pt
 
             elif c.tag == DRAWINGML('close'):
                 if first_point is not None and current_point != first_point:
                     coordinates.append(T.transform_point(first_point))
-                svg_path.push('Z')
+                svg_path.append('Z')
                 closed = True
                 first_point = None
                 # Close current pptx_geometry and start a new one...
@@ -107,7 +113,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
                 bz = CubicBezier(*coords)
                 bezier_segments.append(bz)
                 coordinates.extend(bezier_sample(bz))
-                svg_path.push('C', *svg_coords)
+                svg_path.append(segment_as_string('C', *svg_coords))
 
             elif c.tag == DRAWINGML('lnTo'):
                 if moved:
@@ -116,14 +122,14 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
                 pt = pptx_geometry.point(c.pt)
                 xy = T.transform_point(pt)
                 coordinates.append(xy)
-                svg_path.push('L', *xy)
+                svg_path.append(segment_as_string('L', *xy))
                 current_point = pt
 
             elif c.tag == DRAWINGML('moveTo'):
                 moved = True
                 pt = pptx_geometry.point(c.pt)
                 xy = T.transform_point(pt)
-                svg_path.push('M', *xy)
+                svg_path.append(segment_as_string('M', *xy))
                 if first_point is None:
                     first_point = pt
                 current_point = pt
@@ -140,7 +146,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
                 bz = QuadraticBezier(*coords)
                 bezier_segments.append(bz)
                 coordinates.extend(bezier_sample(bz))
-                svg_path.push('Q', *svg_coords)
+                svg_path.append(segment_as_string('Q', *svg_coords))
 
             else:
                 log.warning('Unknown path element: {}'.format(c.tag))
@@ -155,6 +161,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
         properties['closed'] = closed
         properties['shape-kind'] = pptx_geometry.shape_kind
         properties['svg-element'] = svg_path
+        properties['svg-kind'] = 'path'
 
     if len(coordinates) == 0:
         return None

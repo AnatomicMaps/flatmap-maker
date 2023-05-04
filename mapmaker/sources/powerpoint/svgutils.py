@@ -27,11 +27,14 @@ from typing import Any, Optional
 from lxml import etree
 import numpy as np
 
+import svgelements
 import svgwrite.gradients
 from svgwrite import Drawing as SvgDrawing
 from svgwrite.base import BaseElement as SvgElement
 from svgwrite.container import Group as SvgGroup
 from svgwrite.container import Hyperlink as SvgHyperlink
+from svgwrite.image import Image as SvgImage
+from svgwrite.path import Path as SvgPath
 from svgwrite.text import Text as SvgText
 
 #===============================================================================
@@ -50,7 +53,7 @@ from pptx.shapes.group import GroupShape as PptxGroupShape
 #===============================================================================
 
 from mapmaker.geometry import Transform
-from mapmaker.sources import EMU_PER_METRE, MapBounds, WORLD_METRES_PER_PIXEL, WORLD_METRES_PER_POINT
+from mapmaker.sources import EMU_PER_METRE, MapBounds, WORLD_METRES_PER_PIXEL, POINTS_PER_PIXEL
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log, TreeList
 
@@ -85,9 +88,9 @@ def text_content(shape):
 
 #===============================================================================
 
-def points_to_meters(pts):
-#=========================
-    return pts*WORLD_METRES_PER_POINT
+def points_to_pixels(pts):
+#======================
+    return pts/POINTS_PER_PIXEL
 
 #===============================================================================
 
@@ -96,7 +99,7 @@ def points_to_meters(pts):
 def __scale(t):
 #==============
     try:
-        return str(WORLD_METRES_PER_PIXEL*float(t))
+        return str(POINTS_PER_PIXEL*float(t))
     except ValueError:
         return t
 
@@ -240,8 +243,9 @@ class Gradient(object):
 #===============================================================================
 
 class SvgFromSlide:
-    def __init__(self, drawing: SvgDrawing, slide: Slide, base_slide: bool=False):
+    def __init__(self, drawing: SvgDrawing, transform_matrix: svgelements.Matrix, slide: Slide, base_slide: bool=False):
         self.__drawing = drawing
+        self.__matrix = transform_matrix
         self.__slide = slide
         self.__base_slide = base_slide
         self.__colour_map = slide.colour_map
@@ -276,10 +280,42 @@ class SvgFromSlide:
                               group_colour: Optional[ColourPair]=None):
     #==================================================================
         pptx_shape = shape.properties.pop('pptx-shape')
-        svg_element = shape.properties.pop('svg-element')   ## this might be a <g> elememt...
+        svg_shape = shape.properties.pop('svg-element')
+        svg_kind = shape.properties.pop('svg-kind')
+        if svg_kind == 'group':
+            svg_group = SvgGroup(id=shape.id)
+            for n, svg in enumerate(svg_shape):
+                self.__process_svg_shape(svg, 'path', svg_group, group_colour,
+                                         f'{shape.id}/{n}', shape.type, shape.geometry.bounds, shape.properties,
+                                         pptx_shape)
+            svg_parent.add(svg_group)
+        else:
+            self.__process_svg_shape(svg_shape, svg_kind, svg_parent, group_colour,
+                                     shape.id, shape.type, shape.geometry.bounds, shape.properties,
+                                     pptx_shape)
 
-        shape.properties.pop('bezier-segments', None)
-        shape.properties.pop('messages', None)
+    def __process_svg_shape(self, svg_shape, svg_kind, svg_parent, group_colour,
+                            shape_id, shape_type, bounds, properties, pptx_shape):
+    #===============================================================================
+        transformed_svg = svg_shape * self.__matrix
+        transformed_svg.reify()
+
+        if svg_kind == 'path':
+            svg_element = SvgPath(str(transformed_svg),
+                class_='non-scaling-stroke',
+                fill='none',
+                id=shape_id)
+        elif svg_kind == 'image':
+            image_href = transformed_svg.values['data-image-href']
+            bbox = transformed_svg.bbox()
+            svg_element = SvgImage(image_href,
+                insert=(bbox[0], bbox[1]),
+                size=(bbox[2]-bbox[0], bbox[3]-bbox[1]),
+                id=shape_id)
+        else:
+            log.error(f'Unknown kind of SVG element for shape: {svg_kind}')
+            return
+
 
         exclude_shape = (shape.type != SHAPE_TYPE.FEATURE
                       or shape.properties.get('fc-class') != 'FC_CLASS.DESCRIPTION')
@@ -294,6 +330,9 @@ class SvgFromSlide:
                 svg_element.set_markers((marker_id(pptx_shape.line.headEnd, 'head'),            # type: ignore
                                          None, marker_id(pptx_shape.line.tailEnd, 'tail')       # type: ignore
                                        ))
+            svg_element.attribs.update(self.__get_stroke(pptx_shape))
+            svg_parent.add(svg_element)
+
         elif (kind := shape.kind) is None or not kind.startswith('image'):
             bbox = shape.geometry.bounds
             svg_element.attribs['x'] =  bbox[0]
@@ -303,12 +342,13 @@ class SvgFromSlide:
             image = base64.b64encode(shape.properties['image-data']).decode('utf-8')
             svg_element.attribs['href'] = f'data:{kind};charset=utf-8;base64,{image}'
             svg_parent.add(svg_element)
+
         elif not exclude_shape:
             svg_element.attribs.update(self.__get_fill(pptx_shape, group_colour))
             svg_element.attribs.update(self.__get_stroke(pptx_shape))
             label = text_content(pptx_shape)    ### shape.label
             if not exclude_text and label is not None:
-                svg_text = self.__draw_shape_label(pptx_shape, label, shape.geometry.bounds)    # type: ignore
+                svg_text = self.__draw_shape_label(pptx_shape, label, bounds)    # type: ignore
             if (hyperlink := self.__get_link(pptx_shape)) is not None:
                 if label is None:
                     label = hyperlink
@@ -454,7 +494,7 @@ class SvgFromSlide:
     def __get_stroke(self, pptx_shape: PptxConnector | PptxShape) -> dict[str, Any]:
     #===============================================================================
         stroke_attribs = {}
-        stroke_width = points_to_meters(max(Length(pptx_shape.line.width).pt, MIN_STROKE_WIDTH))  # type: ignore
+        stroke_width = points_to_pixels(max(Length(pptx_shape.line.width).pt, MIN_STROKE_WIDTH))  # type: ignore
         stroke_attribs['stroke-width'] = stroke_width
         shape_xml = etree.fromstring(pptx_shape.element.xml)
         line_dash = pptx_shape.line.prstDash                                        # type: ignore
@@ -495,12 +535,9 @@ class SvgFromSlide:
 #===============================================================================
 
 class SvgFromShapes:
-    def __init__(self):
+    def __init__(self, powerpoint: Powerpoint):
         self.__drawing = SvgDrawing(size=None)
         add_marker_definitions(self.__drawing)
-
-    def set_transform(self, powerpoint: Powerpoint):
-    #===============================================
         ## World --> pixels
         bounds = powerpoint.bounds   # southwest and northeast corners
         T = Transform(
@@ -512,14 +549,12 @@ class SvgFromShapes:
                  [                     0.0,                       0.0, 1.0]])
         svg_size = T.transform_point((bounds[2], bounds[1]))
         self.__drawing.attribs['viewBox'] = f'0 0 {svg_size[0]} {svg_size[1]}'
-        self.__drawing_top = SvgGroup()
-        self.__drawing_top.attribs['transform'] = 'matrix(' + ', '.join([str(v) for v in T.svg_matrix]) + ')'
-        self.__drawing.add(self.__drawing_top)
+        self.__transform_matrix = svgelements.Matrix(T.svg_matrix)
 
-    def add_slide(self, slide: Slide, base_slide=False):
-    #===================================================
-        svg_maker = SvgFromSlide(self.__drawing, slide, base_slide=base_slide)
-        svg_maker.add_shape_svgs(self.__drawing_top)
+    def add_slide(self, slide: Slide, **kwds):
+    #=========================================
+        svg_maker = SvgFromSlide(self.__drawing, self.__transform_matrix, slide, **kwds)  ## flip_text  ## Pass transform...
+        svg_maker.add_shape_svgs(self.__drawing)
 
     def save(self, file_object):
     #===========================

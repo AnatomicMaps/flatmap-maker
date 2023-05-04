@@ -172,12 +172,11 @@ class PowerpointSource(MapSource):
     def get_raster_source(self):
     #===========================
         if self.kind == 'base':  # Only rasterise base source layer
-            return RasterSource('svg', self.__get_raster_data)
+            return RasterSource('svg', self.get_raster_data)
 
-    def __get_raster_data(self):
-    #===========================
-        svg_maker = SvgFromShapes()                                      ## Options
-        svg_maker.set_transform(self.__powerpoint)
+    def get_raster_data(self):
+    #=========================
+        svg_maker = SvgFromShapes(self.__powerpoint)
         for slide in self.__powerpoint.slides:
             svg_maker.add_slide(slide, base_slide=(self.kind=='base'))   ## Options
 
