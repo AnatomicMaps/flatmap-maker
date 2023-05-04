@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import base64
 from typing import Optional
 
 #===============================================================================
@@ -346,11 +347,17 @@ class Slide:
                 shapes.append(self.__process_group(pptx_shape, transform))  # type: ignore
             elif pptx_shape.shape_type == MSO_SHAPE_TYPE.PICTURE:           # type: ignore
                 shape_type = SHAPE_TYPE.FEATURE
-                shape_properties['shape-kind'] = pptx_shape.image.content_type
-                shape_properties['image-data'] = pptx_shape.image.blob
                 if good_geometry(geometry := get_shape_geometry(pptx_shape, transform, shape_properties)):
-                    shape_properties['svg-element'] = 'image'
                     shape = self.__new_shape(shape_type, pptx_shape.shape_id, geometry, shape_properties)
+                    bbox = geometry.bounds                      # type: ignore
+                    image_pos = (bbox[0], bbox[1])
+                    image_size = (bbox[2]-bbox[0], bbox[3]-bbox[1])
+                    image = base64.b64encode(pptx_shape.image.blob).decode('utf-8')
+                    image_data = f'data:{pptx_shape.image.content_type};charset=utf-8;base64,{image}'
+                    image_rect = svgelements.Rect(*image_pos, *image_size)
+                    image_rect.set('data-image-href', image_data)
+                    shape.set_property('svg-element', image_rect)
+                    shape.set_property('svg-kind', 'image')
                     shapes.append(shape)
             else:
                 log.warning('Shape "{}" {} not processed...'.format(shape_name, str(pptx_shape.shape_type)))
