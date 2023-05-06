@@ -130,6 +130,6 @@ class Annotator:
             organ = component.parent.name if component.parent is not None else ''
             self.__annotations.add_ftu(component.name, organ, connected)
         elif component.fc_class != FC_CLASS.LAYER:
-            component.log_error(f'FC type unknown: {component}')
+            component.log_warning(f'FC class unknown: {component}')
 
 #===============================================================================
