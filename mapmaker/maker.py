@@ -492,38 +492,38 @@ class MapMaker(object):
             self.__shape_filter = ShapeFilter()
         else:
             settings['functionalConnectivity'] = False
-        for layer_number, source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
-            id = source.get('id')
-            kind = source.get('kind')
-            href = source['href']
+        for layer_number, manifest_source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
+            id = manifest_source.get('id')
+            kind = manifest_source.get('kind')
+            href = manifest_source['href']
             if settings['functionalConnectivity']:
                 if kind in ['base', 'layer']:
-                    source_layer = FCPowerpointSource(self.__flatmap, id, href,
-                                                      kind=kind,
-                                                      source_range=get_range(source.get('slides')),
-                                                      shape_filter=self.__shape_filter)
+                    source = FCPowerpointSource(self.__flatmap, id, href,
+                                                kind=kind,
+                                                source_range=get_range(manifest_source.get('slides')),
+                                                shape_filter=self.__shape_filter)
                 else:
                     raise ValueError('Unsupported FC kind: {}'.format(kind))
             elif kind == 'slides':
-                source_layer = PowerpointSource(self.__flatmap, id, href,
-                                    source_range=get_range(source.get('slides')))
+                source = PowerpointSource(self.__flatmap, id, href,
+                                    source_range=get_range(manifest_source.get('slides')))
             elif kind == 'image':
-                if layer_number > 0 and 'boundary' not in source:
+                if layer_number > 0 and 'boundary' not in manifest_source:
                     raise ValueError('An image source must specify a boundary')
-                source_layer = MBFSource(self.__flatmap, id, href,
-                                         boundary_id=source.get('boundary'),
-                                         exported=(layer_number==0))
+                source = MBFSource(self.__flatmap, id, href,
+                                   boundary_id=manifest_source.get('boundary'),
+                                   exported=(layer_number==0))
             elif kind in ['base', 'details']:
-                source_layer = SVGSource(self.__flatmap, id, href, kind)
+                source = SVGSource(self.__flatmap, id, href, kind)
             else:
                 raise ValueError('Unsupported source kind: {}'.format(kind))
-            source_layer.process()
-            for (kind, msg) in source_layer.errors:
+            source.process()
+            for (kind, msg) in source.errors:
                 if kind == 'error':
                     log.error(msg)
                 else:
                     log.warning(msg)
-            self.__flatmap.add_source_layers(layer_number, source_layer)
+            self.__flatmap.add_source_layers(layer_number, source)
 
     def __check_raster_tiles(self):
     #==============================
