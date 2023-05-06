@@ -21,7 +21,7 @@
 from __future__ import annotations
 from collections import defaultdict
 import enum
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 #===============================================================================
 
@@ -34,6 +34,7 @@ import shapely.geometry
 from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER, FeatureLayer
 from mapmaker.knowledgebase import get_knowledge
+from mapmaker.routing import Network
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
@@ -287,7 +288,7 @@ class ResolvedPathways:
     def __init__(self, flatmap: 'FlatMap'):
         self.__flatmap = flatmap
         self.__paths: dict[str, ResolvedPath] = defaultdict(ResolvedPath)   #! Paths by :class:`ResolvedPath`\ s
-        self.__node_paths: dict[int, set[str]] = defaultdict(set)           #! Paths by node
+        self.__node_paths: dict[int, set[str]] = defaultdict(set)           #! Paths by node geojson_id
         self.__type_paths: dict[str, set[str]] = defaultdict(set)           #! Paths by path type
 
     @property
@@ -304,28 +305,28 @@ class ResolvedPathways:
     def type_paths(self):
         return { typ: list(paths) for typ, paths in self.__type_paths.items() }
 
-    def __resolve_nodes_for_path(self, path_id, nodes):
-        node_ids = []
-        for id in nodes:
-            if (feature := self.__flatmap.get_feature(id)) is not None:
+    def __resolve_nodes_for_path(self, path_id, node_feature_ids):
+        node_geojson_ids = []
+        for feature_id in node_feature_ids:
+            if (feature := self.__flatmap.get_feature(feature_id)) is not None:
                 if not feature.get_property('exclude'):
-                    node_id = feature.geojson_id
-                    feature.set_property('nodeId', node_id)
-                    self.__node_paths[node_id].add(path_id)
-                    node_ids.append(node_id)
+                    geojson_id = feature.geojson_id
+                    feature.set_property('nodeId', geojson_id)
+                    self.__node_paths[geojson_id].add(path_id)
+                    node_geojson_ids.append(geojson_id)
             else:
                 log.warning(f'Cannot find feature for node: {id}')
-        return node_ids
+        return node_geojson_ids
 
-    def add_connectivity(self, path_id: str, geojson_id: int,
+    def add_connectivity(self, path_id: str, line_geojson_ids: list[int],
                          model: str, path_type: str,
-                         node_feature_ids: list[Feature], nerve_features: list[Feature]):
+                         node_feature_ids: set[str], nerve_features: list[Feature]):
         resolved_path = self.__paths[path_id]
         if model is not None:
             resolved_path.set_model_id(model)
         self.__type_paths[path_type].add(path_id)
         resolved_path.extend_nodes(self.__resolve_nodes_for_path(path_id, node_feature_ids))
-        resolved_path.extend_lines([geojson_id])
+        resolved_path.extend_lines(line_geojson_ids)
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
 
     def add_pathway(self, path_id: str, model: Optional[str], path_type: str,
@@ -701,8 +702,8 @@ class Pathways:
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
-    def __route_network_connectivity(self, network):
-    #===============================================
+    def __route_network_connectivity(self, network: Network):
+    #========================================================
         if self.__resolved_pathways is None:
             log.error('Cannot route network when no pathways')
             return
@@ -727,44 +728,41 @@ class Pathways:
         layer = FeatureLayer(f'{network.id}_routes', self.__flatmap, exported=True)
         self.__flatmap.add_layer(layer)
         for route_number, routed_path in routed_paths.items():
-            for geometric_shape in routed_path.geometry():
-                properties = {
-                    'layout': 'auto',
-                    'tile-layer': PATHWAYS_TILE_LAYER,
-                }
-                properties.update(geometric_shape.properties)
-                path_id = properties.pop('path-id', None)
-                if properties.get('type') == 'junction':
-                    if path_id in self.__type_by_path_id:
-                        properties['kind'] = str(self.__type_by_path_id[path_id])
-                    path_id = None      # Junctions aren't a paths
-                elif path_id is not None:
-                    path = paths_by_id[path_id]
-                    properties.update(self.__line_properties(path_id))
-                    path_model = path.models
-                    if settings.get('authoring', False):
-                        labels = []
-                        if path_model is not None:
-                            labels.append(f'Models: {path_model}')
-                            labels.append(f'Label: {path.label}')
-                        labels.append(f'Number: {route_number}')
-                        properties['label'] = '\n'.join(labels)
-                    elif path_model is not None:
-                        properties['label'] = path.label
-                ## ardell-13 is somehow doubled...
-                feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
-                layer.add_feature(feature)
-                if path_id is not None:
-                    path = paths_by_id[path_id]
-                    nerve_feature_ids = routed_path.nerve_feature_ids
-                    nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
-                    active_nerve_features.update(nerve_features)
-                    self.__resolved_pathways.add_connectivity(path_id,
-                                                              feature.geojson_id,
-                                                              path.models,  ## This is properties['models']...
-                                                              str(path.path_type),  ## This is properties['type']...
-                                                              routed_path.node_feature_ids,
-                                                              nerve_features)
+            for path_id, geometric_shapes in routed_path.path_geometry().items():
+                feature_geojson_ids = []
+                path = paths_by_id[path_id]
+                for geometric_shape in geometric_shapes:
+                    properties = {
+                        'layout': 'auto',
+                        'tile-layer': PATHWAYS_TILE_LAYER,
+                    }
+                    properties.update(geometric_shape.properties)
+                    if properties.get('type') in ['arrow', 'junction']:
+                        properties['kind'] = str(path.path_type)
+                    else:
+                        properties.update(self.__line_properties(path_id))
+                        path_model = path.models
+                        if settings.get('authoring', False):
+                            labels = []
+                            if path_model is not None:
+                                labels.append(f'Models: {path_model}')
+                                labels.append(f'Label: {path.label}')
+                            labels.append(f'Number: {route_number}')
+                            properties['label'] = '\n'.join(labels)
+                        elif path_model is not None:
+                            properties['label'] = path.label
+                    feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
+                    feature_geojson_ids.append(feature.geojson_id)
+                    layer.add_feature(feature)
+                nerve_feature_ids = routed_path.nerve_feature_ids
+                nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
+                active_nerve_features.update(nerve_features)
+                self.__resolved_pathways.add_connectivity(path_id,
+                                                          feature_geojson_ids,
+                                                          path.models,
+                                                          str(path.path_type),  ## This is properties['type']...
+                                                          routed_path.node_feature_ids,
+                                                          nerve_features)
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
                 feature.pop_property('exclude')
@@ -777,8 +775,8 @@ class Pathways:
                     shapely.geometry.Polygon(feature.geometry.coords).buffer(0), properties)
                 layer.features.append(nerve_polygon_feature)
 
-    def generate_connectivity(self, networks):
-    #=========================================
+    def generate_connectivity(self, networks: Iterable[Network]):
+    #============================================================
         if self.__resolved_pathways is not None:
             return
         self.__resolved_pathways = ResolvedPathways(self.__flatmap)

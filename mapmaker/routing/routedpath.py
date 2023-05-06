@@ -214,12 +214,11 @@ def bezier_control_points(bezier, label=''):
         geometry.append(GeometricShape.line(*bz_pts[2:4], properties={'type': 'bezier'}))
     return geometry
 
-def join_geometry(node, node_dict, edge_dict_0, edge_dict_1):
-#============================================================
+def extend_geometry_by_join(geometry, node, node_dict, edge_dict_0, edge_dict_1):
+#===============================================================================
     """
     Smoothly join two edges of a route at a node.
     """
-    geometry = []
     try:
         bz = smooth_join(edge_dict_0['path-end'][node],
                             node_dict['edge-direction'][edge_dict_0['segment']],
@@ -229,30 +228,32 @@ def join_geometry(node, node_dict, edge_dict_0, edge_dict_1):
         log.warning(f"{edge_dict_0['path-id']}: Missing edge direction for `{node}` with `{edge_dict_0['segment']}` and/or `{edge_dict_1['segment']}`")
         return geometry
 
+    path_id_0 = edge_dict_0.get('path-id')
     if edge_dict_0.get('path-id') == edge_dict_1.get('path-id'):
-        geometry.append(
+        geometry[path_id_0].append(
             GeometricShape(bezier_to_linestring(bz), {
                 'nerve': edge_dict_0.get('nerve'),
-                'path-id': edge_dict_0.get('path-id'),
+                'path-id': path_id_0,
                 'source': edge_dict_0.get('source')
                 }))
     else:
         # The edges are from different paths so show a junction.
         mid_point = bz.pointAtTime(0.5)
-        geometry.append(GeometricShape.circle(
+        geometry[path_id_0].append(GeometricShape.circle(
             point_to_coords(mid_point),
             radius = 1.2*PATH_SEPARATION,
             properties = {
                 'type': 'junction',
-                'path-id': edge_dict_0.get('path-id'),
+                'path-id': path_id_0,
                 'source': edge_dict_0.get('source')
             }))
         edge_dicts = [edge_dict_0, edge_dict_1]
         for n, bz in enumerate(bz.splitAtTime(0.5)):
-            geometry.append(
+            path_id_n = edge_dicts[n].get('path-id')
+            geometry[path_id_n].append(
                 GeometricShape(bezier_to_linestring(bz), {
                     'nerve': edge_dicts[n].get('nerve'),
-                    'path-id': edge_dicts[n].get('path-id'),
+                    'path-id': path_id_n,
                     'source': edge_dicts[n].get('source')
                 }))
     return geometry
@@ -318,15 +319,15 @@ class RoutedPath(object):
     def path_id(self):
         return self.__path_id
 
-    def geometry(self) -> list[GeometricShape]:
-    #==========================================
+    def path_geometry(self) -> dict[str, list[GeometricShape]]:
+    #==========================================================
         """
         Returns:
             A list of geometric objects. This are LineStrings describing paths
             between nodes and possibly additional features (e.g. way markers)
             of the paths.
         """
-        geometry = []
+        path_geometry = defaultdict(list)
         for node_0, node_1, edge_dict in self.__graph.edges(data=True):
             path_id = edge_dict.get('path-id')
             path_source = edge_dict.get('source')
@@ -348,20 +349,22 @@ class RoutedPath(object):
                 if isinstance(component, IntermediateNode):
                     component_num += 1
                     if self.__trace:
-                        geometry.extend(bezier_control_points(path_components[component_num], label=f'{path_id}-{component_num}'))
+                        path_geometry[path_id].extend(bezier_control_points(path_components[component_num],
+                                                                            label=f'{path_id}-{component_num}'))
                     next_line_coords = bezier_to_line_coords(path_components[component_num], offset=path_offset)
                     intermediate_geometry = component.geometry(path_source, path_id,
                                                                intermediate_start, BezierPoint(*next_line_coords[0]),
                                                                offset=2*offset/edge_dict['max-paths'],
                                                                show_controls=self.__trace)
                     line_coords = intermediate_geometry[0]
-                    geometry.extend(intermediate_geometry[1])
+                    path_geometry[path_id].extend(intermediate_geometry[1])
                     coords.extend(line_coords)
                     line_coords = next_line_coords
                     intermediate_start = BezierPoint(*line_coords[-1])
                 else:
                     if self.__trace:
-                        geometry.extend(bezier_control_points(component, label=f'{path_id}-{component_num}'))
+                        path_geometry[path_id].extend(bezier_control_points(component,
+                                                                            label=f'{path_id}-{component_num}'))
                     line_coords = bezier_to_line_coords(component, offset=path_offset)
                     if len(line_coords) == 0:
                         log.warning(f'{path_id}: offset too big for parallel path...')
@@ -373,7 +376,7 @@ class RoutedPath(object):
             if path_line is not None:
                 # Draw path line
                 path_line = path_line.simplify(SMOOTHING_TOLERANCE, preserve_topology=False)
-                geometry.append(GeometricShape(path_line, properties))
+                path_geometry[path_id].append(GeometricShape(path_line, properties))
                 if edge_dict.get('type') not in ['terminal', 'upstream']:
                     start_point = BezierPoint(*path_line.coords[0])
                     end_point = BezierPoint(*path_line.coords[-1])
@@ -387,17 +390,19 @@ class RoutedPath(object):
                     self.__graph.nodes[edge_dict['end-node']]['start-point'] = end_point
 
         # Draw paths to terminal nodes
-        def draw_arrow(start_point, end_point):
+        def draw_arrow(start_point, end_point, path_id, path_source):
             heading = (end_point - start_point).angle
             end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
-            geometry.append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
-                'type': 'junction',
-                'path-id': edge_dict.get('path-id'),
-                'source': edge_dict.get('source')
+            path_geometry[path_id].append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
+                'type': 'arrow',
+                'path-id': path_id,
+                'source': path_source
             }))
 
         terminal_nodes = set()
-        for node_0, node_1, edge_dict in self.__graph.edges.data():    ## This assumes node_1 is the terminal...
+        for node_0, node_1, edge_dict in self.__graph.edges(data=True):    ## This assumes node_1 is the terminal...
+            path_id = edge_dict.get('path-id')
+            path_source = edge_dict.get('source')
             if ((edge_type := edge_dict.get('type')) == 'terminal'
              or (edge_type == 'upstream'
               and 'upstream' not in [self.__graph.nodes[node_0].get('type'),
@@ -406,14 +411,16 @@ class RoutedPath(object):
                 terminal_nodes.update([node_0, node_1])
                 start_coords = self.__graph.nodes[node_0]['geometry'].centroid.coords[0]
                 end_coords = self.__graph.nodes[node_1]['geometry'].centroid.coords[0]
-                geometry.append(GeometricShape.line(start_coords, end_coords, properties={
-                        'path-id': edge_dict.get('path-id'),
-                        'source': edge_dict.get('source')
-                    }))
+                path_geometry[path_id].append(GeometricShape.line(start_coords, end_coords, properties={
+                    'path-id': path_id,
+                    'source': path_source
+                }))
                 if self.__graph.degree(node_0) == 1:
-                    draw_arrow(coords_to_point(end_coords), coords_to_point(start_coords))
+                    draw_arrow(coords_to_point(end_coords), coords_to_point(start_coords),
+                               path_id, path_source)
                 if self.__graph.degree(node_1) == 1:
-                    draw_arrow(coords_to_point(start_coords), coords_to_point(end_coords))
+                    draw_arrow(coords_to_point(start_coords), coords_to_point(end_coords),
+                               path_id, path_source)
 
             elif edge_type == 'upstream':
                 terminal_nodes.update([node_0, node_1])
@@ -435,32 +442,34 @@ class RoutedPath(object):
                     heading = (end_point - start_point).angle
                     end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
                     bz = bezier_connect(start_point, end_point, angle, heading)
-                    geometry.append(GeometricShape(
+                    path_geometry[path_id].append(GeometricShape(
                         bezier_to_linestring(bz), {
-                            'path-id': edge_dict.get('path-id'),
-                            'source': edge_dict.get('source')
+                            'path-id': path_id,
+                            'source': path_source
                         }))
                     if self.__trace:
-                        geometry.extend(bezier_control_points(bz, label=f'{self.__path_id}-T'))
+                        path_geometry[path_id].extend(bezier_control_points(bz, label=f'{self.__path_id}-T'))
                     # Draw arrow iff degree(node_1) == 1
                     if self.__graph.degree(terminal_node) == 1:
-                        geometry.append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
-                            'type': 'junction',
-                            'path-id': edge_dict.get('path-id'),
-                            'source': edge_dict.get('source')
+                        path_geometry[path_id].append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
+                            'type': 'arrow',
+                            'path-id': path_id,
+                            'source': path_source
                         }))
                 else:
                     # This is when the upstream node doesn't have an ongoing centreline
                     start_coords = self.__graph.nodes[upstream_node]['geometry'].centroid.coords[0]
                     end_coords = self.__graph.nodes[terminal_node]['geometry'].centroid.coords[0]
-                    geometry.append(GeometricShape.line(start_coords, end_coords, properties={
-                        'path-id': edge_dict.get('path-id'),
-                        'source': edge_dict.get('source')
+                    path_geometry[path_id].append(GeometricShape.line(start_coords, end_coords, properties={
+                        'path-id': path_id,
+                        'source': path_source
                     }))
                     if self.__graph.degree(upstream_node) == 1:
-                        draw_arrow(coords_to_point(end_coords), coords_to_point(start_coords))
+                        draw_arrow(coords_to_point(end_coords), coords_to_point(start_coords),
+                                   path_id, path_source)
                     if self.__graph.degree(terminal_node) == 1:
-                        draw_arrow(coords_to_point(start_coords), coords_to_point(end_coords))
+                        draw_arrow(coords_to_point(start_coords), coords_to_point(end_coords),
+                                   path_id, path_source)
 
         # Connect edges at branch nodes
         for node, node_dict in self.__graph.nodes(data=True):
@@ -494,7 +503,7 @@ class RoutedPath(object):
                         log.warning(f"{edge_dict.get('path-id')}: Missing geometry for {node} and/or {edge_nodes[0]}")
                     """
                 elif len(edge_nodes) == 2:
-                    geometry.extend(join_geometry(node, node_dict, edge_dicts[0], edge_dicts[1]))
+                    extend_geometry_by_join(path_geometry, node, node_dict, edge_dicts[0], edge_dicts[1])
                 elif len(edge_nodes) == 3:  ## Generalise
                     # Check angles between edges to find two most obtuse...
                     centre = node_dict['centre']
@@ -512,14 +521,7 @@ class RoutedPath(object):
                             min_pair = pairs[-1]
                     for pair in pairs:
                         if pair != min_pair:
-                            geometry.extend(join_geometry(node, node_dict, edge_dicts[pair[0]], edge_dicts[pair[1]]))
-
-        return geometry
-
-    # def properties(self):
-    #     return {
-    #         'kind': self.__path_type,
-    #         'type': 'line-dash' if self.__path_type.endswith('-post') else 'line'
-    #     }
+                            extend_geometry_by_join(path_geometry, node, node_dict, edge_dicts[pair[0]], edge_dicts[pair[1]])
+        return path_geometry
 
 #===============================================================================
