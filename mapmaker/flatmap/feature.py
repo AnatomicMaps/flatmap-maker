@@ -52,6 +52,12 @@ def full_node_name(anatomical_node: AnatomicalNode) -> str:
 
 #===============================================================================
 
+EXCLUDE_PROPERTIES_FROM_STR = [
+    'bezier-segments',
+    'pptx-shape',
+    'svg-element'
+]
+
 class Feature(PropertyMixin):
     def __init__(self, geojson_id: int,
                        geometry: BaseGeometry,
@@ -72,7 +78,7 @@ class Feature(PropertyMixin):
 
     def __str__(self):
         return 'Feature {}: {}, {}'.format(self.__geojson_id, self.__geometry.geom_type,
-            { k:v for k, v in self.properties.items() if k != 'bezier-segments'})
+            { k:v for k, v in self.properties.items() if k not in EXCLUDE_PROPERTIES_FROM_STR })
 
     @property
     def geojson_id(self) -> int:
