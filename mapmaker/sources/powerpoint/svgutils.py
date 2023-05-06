@@ -69,6 +69,18 @@ TEXT_MARGINS = (6, 0)   # pixels
 
 #===============================================================================
 
+"""
+Slashes aren't valid in SVG (XML) IDs so we replace them with periods (``.``)
+
+In practice, feature IDs are have the form ``LAYER_NAME/Slide-N/NNNNN`` and
+won't contain any embedded periods.
+"""
+def svg_id(id):
+#==============
+    return id.replace('/', '.')
+
+#===============================================================================
+
 def text_alignment(shape):
 #=========================
     para = shape.text_frame.paragraphs[0].alignment
@@ -116,7 +128,7 @@ def add_marker_definitions(drawing):
     # arrowhead markers (see https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)
     # 18 Jan 2023: markers appear in Chrome with black fill; no markers in Firefox
     for id, path in ARROW_MARKERS.items():
-        marker = drawing.marker(id=id,
+        marker = drawing.marker(id=svg_id(id),
                                 viewBox=__scale_to_world('0 0 10 10'),
                                 refX=__scale_to_world('5'),
                                 refY=__scale_to_world('5'),
@@ -185,7 +197,7 @@ class Gradient(object):
         fill = pptx_shape.fill
         gradient = None
         if fill._fill._gradFill.path is None:
-            gradient = svgwrite.gradients.LinearGradient(id=self.__id)
+            gradient = svgwrite.gradients.LinearGradient(id=svg_id(self.__id))
             rotation = fill.gradient_angle
             if ('rotWithShape' in fill._fill._gradFill.attrib
              and fill._fill._gradFill.attrib['rotWithShape'] == '1'):
@@ -216,7 +228,7 @@ class Gradient(object):
                         print('Preset radial gradient for shape:', pptx_shape.name)
                 else:
                     radius = sqrt(((cx-sx)/scale_x)**2 + ((cy-sy)/scale_y)**2)
-                gradient = svgwrite.gradients.RadialGradient((cx/scale_x, cy/scale_y), radius, id=self.__id)
+                gradient = svgwrite.gradients.RadialGradient((cx/scale_x, cy/scale_y), radius, id=svg_id(self.__id))
                 if pptx_shape.rotation != 0:
                     gradient.rotate(pptx_shape.rotation, (0.5, 0.5))
                 if pptx_shape.width != pptx_shape.height:
@@ -258,7 +270,7 @@ class SvgFromSlide:
     #==================================================================
         if group[0].type != SHAPE_TYPE.GROUP:
             raise TypeError(f'Invalid shape treelist: index 0 shape type ({group[0].type}) != SHAPE_TYPE.GROUP')
-        svg_group = SvgGroup(id=group[0].id)
+        svg_group = SvgGroup(id=svg_id(group[0].id))
         pptx_group = group[0].properties['pptx-shape']
         self.__process_shape_list(group, svg_group, group_colour=self.__get_colour(pptx_group))
         svg_parent.add(svg_group)
@@ -282,7 +294,7 @@ class SvgFromSlide:
         svg_shape = shape.properties.pop('svg-element')
         svg_kind = shape.properties.pop('svg-kind')
         if svg_kind == 'group':
-            svg_group = SvgGroup(id=shape.id)
+            svg_group = SvgGroup(id=svg_id(shape.id))
             for n, svg in enumerate(svg_shape):
                 self.__process_svg_shape(svg, 'path', svg_group, group_colour,
                                          f'{shape.id}/{n}', shape.type, shape.geometry.bounds, shape.properties,
@@ -303,14 +315,14 @@ class SvgFromSlide:
             svg_element = SvgPath(str(transformed_svg),
                 class_='non-scaling-stroke',
                 fill='none',
-                id=shape_id)
+                id=svg_id(shape_id))
         elif svg_kind == 'image':
             image_href = transformed_svg.values['data-image-href']
             bbox = transformed_svg.bbox()
             svg_element = SvgImage(image_href,
                 insert=(bbox[0], bbox[1]),
                 size=(bbox[2]-bbox[0], bbox[3]-bbox[1]),
-                id=shape_id)
+                id=svg_id(shape_id))
         else:
             log.error(f'Unknown kind of SVG element for shape: {svg_kind}')
             return
