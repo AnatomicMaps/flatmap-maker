@@ -41,7 +41,8 @@ from .cleaner import SVGCleaner
 from .definitions import DefinitionStore, ObjectStore
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import geometry_from_svg_path, length_as_pixels, svg_markup, parse_svg_path, SVG_NS
+from .utils import circle_from_bounds, geometry_from_svg_path, length_as_pixels
+from .utils import svg_markup, parse_svg_path, SVG_NS
 
 #===============================================================================
 
@@ -382,6 +383,9 @@ class SVGLayer(MapLayer):
             must_close = properties.get('closed', None)
         try:
             geometry, bezier_segments = geometry_from_svg_path(path_tokens, transform@SVGTransform(element.attrib.get('transform')), must_close)
+            if properties.get('node', False):
+                # All centeline nodes become circles
+                geometry = circle_from_bounds(geometry.bounds)
             properties['bezier-segments'] = bezier_segments
             return geometry
         except ValueError as err:

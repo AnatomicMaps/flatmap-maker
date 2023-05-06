@@ -155,6 +155,13 @@ def svg_markup(element):
 
 #===============================================================================
 
+def circle_from_bounds(bounds):
+    centre = shapely.geometry.Point((bounds[0] + bounds[2])/2.0,
+                                    (bounds[1] + bounds[3])/2.0)
+    return centre.buffer(math.sqrt(abs((bounds[2] - bounds[0])*(bounds[3] - bounds[1])))/2.0)
+
+#===============================================================================
+
 def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
                            must_close: Optional[bool]=None) -> tuple[BaseGeometry, list[BezierSegment]]:
     coordinates = []
