@@ -420,7 +420,7 @@ class MapMaker(object):
         # Finish flatmap processing (path routing, etc)
         self.__flatmap.close()
 
-        # Do have any map layers?
+        # Do we have any map layers?
         if len(self.__flatmap) == 0:
             raise ValueError('No map layers in sources...')
 
