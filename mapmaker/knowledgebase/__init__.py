@@ -18,6 +18,10 @@
 #
 #===============================================================================
 
+from typing import Any, Optional
+
+#===============================================================================
+
 # Exports
 from flatmapknowledge import KnowledgeStore
 
@@ -27,13 +31,44 @@ from mapmaker.settings import settings
 
 #===============================================================================
 
+class AnatomicalNode(tuple):
+    def __new__ (cls, termlist: list):
+        return super().__new__(cls, (termlist[0], tuple(termlist[1])))
+
+    @property
+    def name(self) -> str:
+        return '/'.join(reversed((self[0],) + self[1]))
+
+    @property
+    def full_name(self) -> str:
+        if len(self[1]) == 0:
+            return entity_name(self[0])
+        else:
+            layer_names = ', '.join([entity_name(entity) for entity in self[1] if entity is not None])
+            return f'{entity_name(self[0])} in {layer_names}'
+
+    def normalised(self):
+        return (self[0], *self[1])
+
+    ## We need to get the label for each anatomical term in the list of nodes
+    ## as they may be looked up by the viewer in upstream/downstream code...
+
+#===============================================================================
+
 def connectivity_models():
     return settings['KNOWLEDGE_STORE'].connectivity_models()
 
-def get_label(entity):
+def get_label(entity: str) -> str:
     return get_knowledge(entity).get('label', entity)
 
-def get_knowledge(entity):
+def get_knowledge(entity: str) -> dict[str, Any]:
     return settings['KNOWLEDGE_STORE'].entity_knowledge(entity)
+
+#===============================================================================
+
+def entity_name(entity: Optional[str]) -> str:
+    if entity is None:
+        return 'None'
+    return get_label(entity)
 
 #===============================================================================

@@ -26,29 +26,8 @@ from shapely.geometry.base import BaseGeometry
 
 #===============================================================================
 
-from mapmaker.knowledgebase import get_label
+from mapmaker.knowledgebase import AnatomicalNode, entity_name
 from mapmaker.utils import log, FilePath, PropertyMixin
-
-#===============================================================================
-
-AnatomicalNode = NewType('AnatomicalNode', tuple[str, tuple[str, ...]])
-
-def anatomical_node_name(node: AnatomicalNode) -> str:
-    return '/'.join(reversed((node[0],) + node[1]))
-
-#===============================================================================
-
-def entity_name(entity: Optional[str]) -> str:
-    if entity is None:
-        return 'None'
-    return get_label(entity)
-
-def full_node_name(anatomical_node: AnatomicalNode) -> str:
-    if len(anatomical_node[1]) == 0:
-        return entity_name(anatomical_node[0])
-    else:
-        layer_names = ', '.join([entity_name(entity) for entity in anatomical_node[1] if entity is not None])
-        return f'{entity_name(anatomical_node[0])} in {layer_names}'
 
 #===============================================================================
 
@@ -155,14 +134,14 @@ class FeaturePathMap:
                 anatomical_layers.append(layer)
 
         # Look for a substitute feature if we can't find the base term
-        matched_node = AnatomicalNode((anatomical_id, tuple(anatomical_layers)))
+        matched_node = AnatomicalNode([anatomical_id, anatomical_layers])
         if len(features) == 0:
             while len(anatomical_layers) > 0:
                 substitute_id = anatomical_layers.pop(0)
                 features = features_from_anatomical_id(substitute_id)
                 if len(features):
                     log.warning(f'Cannot find feature for `{entity_name(anatomical_id)}` ({anatomical_id}), substituted containing `{entity_name(substitute_id)}` region')
-                    matched_node = AnatomicalNode((substitute_id, tuple(anatomical_layers)))
+                    matched_node = AnatomicalNode([substitute_id, anatomical_layers])
                     break
         if len(anatomical_layers) == 0:
             return (matched_node, features)
@@ -184,7 +163,7 @@ class FeaturePathMap:
                 matched_features.add(feature)
         if len(matched_features) == 0 and len(features) == 1:
             matched_features = features
-            log.warning(f'Feature `{full_node_name(matched_node)}` is not in expected layers')
+            log.warning(f'Feature `{matched_node.full_name}` is not in expected layers')
         return (matched_node, matched_features)
 
 #===============================================================================

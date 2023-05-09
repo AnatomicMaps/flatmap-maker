@@ -61,12 +61,12 @@ import shapely.geometry
 
 #===============================================================================
 
-from mapmaker.flatmap.feature import AnatomicalNode, Feature
-from mapmaker.flatmap.feature import anatomical_node_name, full_node_name
+from mapmaker.flatmap.feature import Feature
+from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.geometry.beziers import bezier_to_linestring, closest_time_distance
 from mapmaker.geometry.beziers import coords_to_point
 from mapmaker.geometry.beziers import split_bezier_path_at_point
-from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
+from mapmaker.knowledgebase import AnatomicalNode
 from mapmaker.utils import log
 import mapmaker.utils.graph as graph_utils
 
@@ -697,7 +697,7 @@ class Network(object):
         # Find the features and centrelines that corresponds to a connectivity node
         properties: dict[str, Any] = {
             'node': connectivity_node,
-            'name': anatomical_node_name(connectivity_node),
+            'name': connectivity_node.name,
             'type': None,
             'contains': set(),
             'used': set()
@@ -705,17 +705,17 @@ class Network(object):
         # Can we directly identify the centreline from nodes anatomical base term?
         if (centreline_ids := self.__models_to_id.get(connectivity_node[0])) is not None:
             if len(connectivity_node[1]) > 0:
-                log.error(f'Node {full_node_name(connectivity_node)} has centreline inside layers')
+                log.error(f'Node {connectivity_node.full_name} has centreline inside layers')
             properties.update(self.__segment_properties_from_ids(centreline_ids))
 
         elif (matched := self.__flatmap.path_features_for_node(connectivity_node)) is not None:
-            properties['name'] = anatomical_node_name(matched[0])
+            properties['name'] = matched[0].name
             features = set(f for f in matched[1] if f.id is not None)
             if len(features):
                 properties['type'] = 'feature'
                 properties['features'] = features
             elif connectivity_node not in self.__missing_identifiers:
-                properties['warning'] = f'Cannot find feature for connectivity node {connectivity_node} ({full_node_name(connectivity_node)})'
+                properties['warning'] = f'Cannot find feature for connectivity node {connectivity_node} ({connectivity_node.full_name})'
                 self.__missing_identifiers.add(connectivity_node)
         return properties
 

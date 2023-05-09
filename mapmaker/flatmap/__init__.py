@@ -34,9 +34,8 @@ import numpy as np          # type: ignore
 from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import normalised_coords
-from mapmaker.flatmap.feature import AnatomicalNode
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
-from mapmaker.knowledgebase import get_knowledge
+from mapmaker.knowledgebase import AnatomicalNode, get_knowledge
 from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
 from mapmaker.properties import ConnectionSet, PropertiesStore
 from mapmaker.settings import settings

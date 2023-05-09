@@ -28,9 +28,9 @@ import networkx as nx
 
 #===============================================================================
 
-import mapmaker.knowledgebase as knowledgebase
 from mapmaker.utils import log
 
+import mapmaker.knowledgebase as kb
 from .annotator import AnnotatorDatabase
 
 #===============================================================================
@@ -130,8 +130,8 @@ def connectivity_graph_from_knowledge(knowledge: dict) -> Optional[nx.Graph]:
             path_type = PATH_TYPE.CNS
         G.graph['path-type'] = path_type
         for node in knowledge.get('connectivity', []):
-            node_0 = tuple((node[0][0], tuple(node[0][1])))
-            node_1 = tuple((node[1][0], tuple(node[1][1])))
+            node_0 = kb.AnatomicalNode(node[0])
+            node_1 = kb.AnatomicalNode(node[1])
             G.add_edge(node_0, node_1)
         return G
 
@@ -141,11 +141,8 @@ class SckanNodeSet:
     def __init__(self, path_id, connectivity_graph):
         self.__id = path_id
         self.__node_dict: dict[str, set[tuple[str, ...]]] = defaultdict(set)
-        # Normalise node from tuple[str, tuple[str, ..]] to tuple[str, ..]
-        # removing any duplicates
-        nodes = set()
-        for node in connectivity_graph.nodes:
-            nodes.add((node[0], *node[1]))
+        # Normalise nodes and remove any duplicates
+        nodes = {node.normalised() for node in connectivity_graph.nodes}
         # Build an index with successive terms of a node's tuple
         # identifying any following terms
         for node in nodes:
@@ -175,11 +172,11 @@ class SckanNeuronPopulations:
         self.__annotator_database = AnnotatorDatabase(flatmap_dir)
         self.__sckan_path_nodes_by_type: dict[PATH_TYPE, dict[str, SckanNodeSet]] = defaultdict(dict[str, SckanNodeSet])
         self.__paths_by_id = {}
-        connectivity_models = knowledgebase.connectivity_models()
+        connectivity_models = kb.connectivity_models()
         for model in connectivity_models:
-            model_knowledege = knowledgebase.get_knowledge(model)
+            model_knowledege = kb.get_knowledge(model)
             for path in model_knowledege['paths']:
-                path_knowledge = knowledgebase.get_knowledge(path['id'])
+                path_knowledge = kb.get_knowledge(path['id'])
                 self.__paths_by_id[path['id']] = path_knowledge
         self.__unknown_connections = []
                 G = connectivity_graph_from_knowledge(path_knowledge)
