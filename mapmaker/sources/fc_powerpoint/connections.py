@@ -30,7 +30,7 @@ import shapely.strtree
 
 #===============================================================================
 
-from mapmaker.properties.pathways import PATH_TYPE
+from mapmaker.knowledgebase.sckan import PATH_TYPE
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 

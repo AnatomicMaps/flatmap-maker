@@ -20,7 +20,6 @@
 
 from __future__ import annotations
 from collections import defaultdict
-import enum
 from typing import Any, Iterable, Optional
 
 #===============================================================================
@@ -34,6 +33,8 @@ import shapely.geometry
 from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER, FeatureLayer
 from mapmaker.knowledgebase import get_knowledge
+from mapmaker.knowledgebase.sckan import connectivity_graph_from_knowledge
+from mapmaker.knowledgebase.sckan import PATH_TYPE
 from mapmaker.routing import Network
 from mapmaker.settings import settings
 from mapmaker.utils import log
@@ -94,91 +95,6 @@ def parse_nerves(node_id_string):
     except ParseException:
         raise ValueError('Syntax error in nerve list: {}'.format(node_id_string)) from None
     return nerves
-
-#===============================================================================
-
-class PATH_TYPE(enum.IntFlag):
-    UNKNOWN             = 0
-    #
-    CNS                 = 1
-    ENTERIC             = 2
-    EXCITORY            = 3
-    INHIBITORY          = 4
-    INTESTIONO_FUGAL    = 5
-    INTRINSIC           = 6
-    MOTOR               = 7
-    PARASYMPATHETIC     = 8
-    SENSORY             = 9
-    SPINAL_ASCENDING    = 10
-    SPINAL_DESCENDING   = 11
-    SYMPATHETIC         = 12
-    # These can be or'd with the above
-    POST_GANGLIONIC     = 32
-    PRE_GANGLIONIC      = 64
-    # Mask out PRE/POST status
-    MASK_PRE_POST       = 31
-    MASK_PATH_TYPE      = 96
-
-    @staticmethod
-    def __path_name(path_type):
-        return {
-            PATH_TYPE.UNKNOWN: 'unknown',
-            PATH_TYPE.CNS: 'cns',
-            PATH_TYPE.ENTERIC: 'enteric',
-            PATH_TYPE.EXCITORY: 'excitatory',
-            PATH_TYPE.INHIBITORY: 'inhibitory',
-            PATH_TYPE.INTESTIONO_FUGAL: 'intestine',
-            PATH_TYPE.INTRINSIC: 'intracardiac',
-            PATH_TYPE.MOTOR: 'somatic',     ## Rename to 'motor' but will need viewer update...
-            PATH_TYPE.PARASYMPATHETIC: 'para',
-            PATH_TYPE.SENSORY: 'sensory',
-            PATH_TYPE.SPINAL_ASCENDING: 'cns',
-            PATH_TYPE.SPINAL_DESCENDING: 'cns',
-            PATH_TYPE.SYMPATHETIC: 'symp',
-            PATH_TYPE.POST_GANGLIONIC: 'post',
-            PATH_TYPE.PRE_GANGLIONIC: 'pre'
-        }[path_type]
-
-    def __str__(self):
-        if (pre_post := (self & PATH_TYPE.MASK_PATH_TYPE).value):
-            return f'{self.__path_name(self & PATH_TYPE.MASK_PRE_POST)}-{self.__path_name(pre_post)}'
-        else:
-            return self.__path_name(self)
-
-#===============================================================================
-
-PATH_TYPE_BY_PHENOTYPE = {
-    'ilxtr:MotorPhenotype':                             PATH_TYPE.MOTOR,
-    'ilxtr:ParasympatheticPhenotype':                   PATH_TYPE.PARASYMPATHETIC,
-    'ilxtr:SensoryPhenotype':                           PATH_TYPE.SENSORY,
-    'ilxtr:SympatheticPhenotype':                       PATH_TYPE.SYMPATHETIC,
-    'ilxtr:IntrinsicPhenotype':                         PATH_TYPE.INTRINSIC,
-    'ilxtr:SpinalCordAscendingProjectionPhenotype':     PATH_TYPE.SPINAL_ASCENDING,
-    'ilxtr:SpinalCordDescendingProjectionPhenotype':    PATH_TYPE.SPINAL_DESCENDING,
-    'ilxtr:EntericPhenotype':                           PATH_TYPE.ENTERIC,
-    'ilxtr:IntestinoFugalProjectionPhenotype':          PATH_TYPE.INTESTIONO_FUGAL,
-    'ILX:0104003':                                      PATH_TYPE.EXCITORY,
-    'ILX:0105486':                                      PATH_TYPE.INHIBITORY
-}
-
-PATH_ORDER_BY_PHENOTYPE = {
-    'ilxtr:PostGanglionicPhenotype':    PATH_TYPE.POST_GANGLIONIC,
-    'ilxtr:PreGanglionicPhenotype':     PATH_TYPE.PRE_GANGLIONIC,
-}
-
-def path_type_from_phenotypes(phenotypes) -> PATH_TYPE:
-#======================================================
-    path_type = PATH_TYPE.UNKNOWN
-    for phenotype in phenotypes:
-        if (path_type := PATH_TYPE_BY_PHENOTYPE.get(phenotype, PATH_TYPE.UNKNOWN)) != PATH_TYPE.UNKNOWN:
-            break
-    if path_type == PATH_TYPE.UNKNOWN:
-        return path_type
-    for phenotype in phenotypes:
-        if (path_order := PATH_ORDER_BY_PHENOTYPE.get(phenotype)) is not None:
-            return path_type | path_order
-    return path_type
-
 
 #===============================================================================
 
@@ -401,39 +317,22 @@ class Path:
         self.__source = source
         self.__id = path['id']
         self.__connectivity = None
+        self.__path_type = PATH_TYPE.UNKNOWN
         self.__lines = []
         self.__label = None
         self.__models = path.get('models')
         self.__nerves = list(parse_nerves(path.get('nerves')))
-        self.__path_type = PATH_TYPE.UNKNOWN
         self.__route = None
         self.__trace = trace
 
         if self.__models is not None:
             knowledge = get_knowledge(self.__models)
             self.__label = knowledge.get('label')
-            if 'connectivity' in knowledge:   # Use SciCrunch knowledge
-                # Construct a graph of SciCrunch's connected pairs
-                phenotypes = knowledge.get('phenotypes', [])
-                self.__path_type = path_type_from_phenotypes(phenotypes)
-                if self.__path_type == PATH_TYPE.UNKNOWN:
-                    log.warning(f'SCKAN knowledge error: {self.__id} phenotype {phenotypes} is unknown, defaulting to CNS')
-                    self.__path_type = PATH_TYPE.CNS
-                G = nx.Graph()
-                ##node_type_finder = NodeTypeFinder(knowledge.get('axons', []),
-                ##                                  knowledge.get('dendrites', []),
-                ##                                  self.__id)
-                for node in knowledge.get('connectivity'):
-                    node_0 = tuple((node[0][0], tuple(node[0][1])))
-                    node_1 = tuple((node[1][0], tuple(node[1][1])))
-                    G.add_edge(node_0, node_1)
-                    ##if 'node-type' not in G.nodes[node_0]:
-                    ##    G.nodes[node_0]['node-type'] = node_type_finder.node_type(node_0)
-                    ##if 'node-type' not in G.nodes[node_1]:
-                    ##    G.nodes[node_1]['node-type'] = node_type_finder.node_type(node_1)
-                self.__connectivity = G
+            self.__connectivity = connectivity_graph_from_knowledge(knowledge)
 
-        if self.__connectivity is None:
+        if self.__connectivity is not None:
+            self.__path_type = self.__connectivity.graph['path-type']
+        else:
             log.error(f'Path {self.__id} has no known connectivity...')
 
     @property
