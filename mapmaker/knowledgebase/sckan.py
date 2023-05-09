@@ -19,41 +19,17 @@
 #===============================================================================
 
 from collections import defaultdict
-import json
-from pathlib import Path
-import sqlite3
 from typing import Optional
 
 #===============================================================================
 
 import mapmaker.knowledgebase as knowledgebase
 from mapmaker.properties.pathways import PATH_TYPE, path_type_from_phenotypes
-from mapmaker.settings import settings
 from mapmaker.utils import log
 
+from .annotator import AnnotatorDatabase
 #===============================================================================
 
-class AnnotatorDatabase:
-    def __init__(self, flatmap_dir):
-        self.__db = None
-        db_name = (Path(flatmap_dir) / '..' / 'annotation.db').resolve()
-        if db_name.exists():
-            self.__db = sqlite3.connect(db_name)
-        elif settings.get('exportNeurons') is not None:
-            log.warning(f'Missing annotator database: {db_name}')
-
-    def get_derivation(self, feature_id: str) -> list[str]:
-    #======================================================
-        result = []
-        if self.__db is not None:
-            row = self.__db.execute('''select value from annotations as a
-                                        where created=(select max(created) from annotations
-                                            where feature=? and property='prov:wasDerivedFrom')
-                                        and a.property='prov:wasDerivedFrom' ''',
-                                    (feature_id,)).fetchone()
-            if row:
-                result = [url for url in json.loads(row[0]) if url.startswith('http')]
-        return result
 
 #===============================================================================
 
