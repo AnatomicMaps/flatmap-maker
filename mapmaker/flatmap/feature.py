@@ -92,18 +92,18 @@ class Feature(PropertyMixin):
 
 #===============================================================================
 
-class FeaturePathMap:
-    def __init__(self, connectivity_terms: Optional[str]=None):
-        self.__connectivity_terms: dict[str, str] = {}
-        if connectivity_terms is not None:
-            equivalences = FilePath(connectivity_terms).get_json()
+class FeatureAnatomicalNodeMap:
+    def __init__(self, terms_alias_file: Optional[str]=None):
+        self.__aliases: dict[str, str] = {}
+        if terms_alias_file is not None:
+            equivalences = FilePath(terms_alias_file).get_json()
             for equivalence in equivalences:
                 term = equivalence['id']
                 for alias in equivalence.get('aliases', []):
-                    if alias in self.__connectivity_terms:
-                        log.error(f'Connectivity term {alias} cannot map to both {self.__connectivity_terms[alias]} and {term}')
+                    if alias in self.__aliases:
+                        log.error(f'Alias {alias} cannot map to both {self.__aliases[alias]} and {term}')
                     else:
-                        self.__connectivity_terms[alias] = term
+                        self.__aliases[alias] = term
         self.__model_to_features: dict[str, set[Feature]] = defaultdict(set)
 
     def add_feature(self, feature: Feature):
@@ -111,10 +111,10 @@ class FeaturePathMap:
         if feature.models is not None:
             self.__model_to_features[feature.models].add(feature)
 
-    def path_features_for_node(self, anatomical_node: AnatomicalNode) -> tuple[AnatomicalNode, set[Feature]]:
-    #========================================================================================================
+    def features_for_anatomical_node(self, anatomical_node: AnatomicalNode) -> tuple[AnatomicalNode, set[Feature]]:
+    #==============================================================================================================
         def features_from_anatomical_id(term: str) -> set[Feature]:
-            return set(self.__model_to_features.get(self.__connectivity_terms.get(term, term), []))
+            return set(self.__model_to_features.get(self.__aliases.get(term, term), []))
 
         anatomical_id = anatomical_node[0]
         features = features_from_anatomical_id(anatomical_id)

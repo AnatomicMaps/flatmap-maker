@@ -110,7 +110,7 @@ class FeatureLayer(object):
                 feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
             if self.__exported:
                 # Save relationship between id/class and internal feature id
-                self.__flatmap.save_feature_for_path_lookup(feature)
+                self.__flatmap.save_feature_for_node_lookup(feature)
 
 #===============================================================================
 

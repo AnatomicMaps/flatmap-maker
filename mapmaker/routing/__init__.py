@@ -708,7 +708,7 @@ class Network(object):
                 log.error(f'Node {connectivity_node.full_name} has centreline inside layers')
             properties.update(self.__segment_properties_from_ids(centreline_ids))
 
-        elif (matched := self.__flatmap.path_features_for_node(connectivity_node)) is not None:
+        elif (matched := self.__flatmap.features_for_anatomical_node(connectivity_node)) is not None:
             properties['name'] = matched[0].name
             features = set(f for f in matched[1] if f.id is not None)
             if len(features):

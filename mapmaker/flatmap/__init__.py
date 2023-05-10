@@ -41,7 +41,7 @@ from mapmaker.properties import ConnectionSet, PropertiesStore
 from mapmaker.settings import settings
 from mapmaker.utils import log
 
-from .feature import Feature, FeaturePathMap
+from .feature import Feature, FeatureAnatomicalNodeMap
 from .layers import MapLayer
 
 #===============================================================================
@@ -165,7 +165,7 @@ class FlatMap(object):
 
         self.__annotations = {}
 
-        self.__feature_path_map = FeaturePathMap(self.__manifest.connectivity_terms)
+        self.__feature_node_map = FeatureAnatomicalNodeMap(self.__manifest.connectivity_terms)
         self.__features_with_id: dict[str, Feature] = {}
         self.__last_geojson_id = 0
 
@@ -192,15 +192,15 @@ class FlatMap(object):
     #==================================
         return os.path.join(self.__map_dir, localname)
 
-    def save_feature_for_path_lookup(self, feature: Feature):
+    def save_feature_for_node_lookup(self, feature: Feature):
     #========================================================
-        if self.__feature_path_map is not None:
-            self.__feature_path_map.add_feature(feature)
+        if self.__feature_node_map is not None:
+            self.__feature_node_map.add_feature(feature)
 
-    def path_features_for_node(self, anatomical_node: AnatomicalNode) -> Optional[tuple[AnatomicalNode, set[Feature]]]:
-    #==================================================================================================================
-        if self.__feature_path_map is not None:
-            return self.__feature_path_map.path_features_for_node(anatomical_node)
+    def features_for_anatomical_node(self, anatomical_node: AnatomicalNode) -> Optional[tuple[AnatomicalNode, set[Feature]]]:
+    #========================================================================================================================
+        if self.__feature_node_map is not None:
+            return self.__feature_node_map.features_for_anatomical_node(anatomical_node)
 
     def duplicate_feature_id(self, feature_ids: str) -> bool:
     #========================================================
