@@ -208,13 +208,13 @@ class FCSlide(Slide):
                     for id_area in sorted([(id(geometries[index]), geometries[index].area)
                         for index in bigger_intersecting_geometries], key = lambda x: x[1])]
                 if is_component(fc_shape):
-                    for shape_id in containing_ids_area_order:
-                        parent = geometry_to_shape[shape_id]
-                        if parent.fc_class == FC_CLASS.SYSTEM:      # Systems are only parents of Organs
-                            break                                   # and are assigned later
-                        fc_shape.add_parent(parent)
+                    if len(containing_ids_area_order):
+                        parent = geometry_to_shape[containing_ids_area_order[0]]
+                        if parent.fc_class != FC_CLASS.SYSTEM:      # Systems are only parents of Organs
+                            fc_shape.add_parent(parent)             # and are assigned later
+                        fc_shape.containing_ids = containing_ids_area_order
                     non_system_components.append(fc_shape)
-                    fc_shape.containing_ids = containing_ids_area_order
+
                 elif is_connector(fc_shape):
                     parent = None
                     for shape_id in containing_ids_area_order:
