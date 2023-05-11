@@ -43,7 +43,9 @@ CLOSE_COLOUR_DISTANCE = 6       # Perceptible on close inspection
 
 class ColourMatcher:
     def __init__(self, rgb_colour: str):
-        self.__colour = convert_color(sRGBColor.new_from_rgb_hex(rgb_colour), LabColor)
+        self.__colour = (convert_color(sRGBColor.new_from_rgb_hex(rgb_colour), LabColor)
+            if rgb_colour is not None
+            else None)
         self.__rgb_colour = rgb_colour
 
     @property
@@ -51,10 +53,10 @@ class ColourMatcher:
         return self.__rgb_colour
 
     def matches(self, colour: Optional[str]) -> bool:
-        if colour is not None:
+        if colour is not None and self.__colour is not None:
             lab_colour = convert_color(sRGBColor.new_from_rgb_hex(colour), LabColor)
             return delta_e_cie2000(lab_colour, self.__colour) < CLOSE_COLOUR_DISTANCE
-        return False
+        return colour == self.__colour
 
 #===============================================================================
 
