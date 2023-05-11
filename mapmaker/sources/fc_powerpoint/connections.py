@@ -27,6 +27,7 @@ import networkx as nx
 from shapely.geometry.linestring import LineString
 from shapely.geometry.point import Point
 import shapely.strtree
+import svgelements
 
 #===============================================================================
 
@@ -328,8 +329,13 @@ class ConnectionClassifier:
                                         connection.intermediate_connectors.append(connector.global_shape.id)
                                     join_connection.set_property('exclude', True)
                                     self.__join_nodes.remove(connector)
-                                    connection.geometry = LineString(coordinates[0]+coordinates[1])
-                                    # Want connections new end connector to be end of join_connection
+                                    path_coords = coordinates[0]+coordinates[1]
+                                    connection.geometry = LineString(path_coords)
+                                    # Update SVG representation of the path
+                                    svg_path = svgelements.Path()
+                                    svg_path.move(*path_coords)
+                                    connection.properties['svg-element'] = svg_path
+                                    # Want the connection's new end connector to be the end of the join_connection
                                     join_connection.connector_ids.remove(connector.global_shape.id)
                                     connection.connector_ids.remove(connector.global_shape.id)
                                     connection.connector_ids.append(join_connection.connector_ids.pop())
