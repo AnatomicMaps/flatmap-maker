@@ -82,10 +82,10 @@ class PowerpointLayer(MapLayer):
                     for system_id in feature.get_property('systems', []):
                         if (system_feature := self.flatmap.get_feature(system_id)) is not None:
                             if (path_ids := system_feature.get_property('path-ids')) is not None:
-                                if feature.geojson_id not in path_ids:
-                                    path_ids.append(feature.geojson_id)
+                                if feature.id not in path_ids:
+                                    path_ids.append(feature.id)
                             else:
-                                system_feature.set_property('path-ids', [feature.geojson_id])
+                                system_feature.set_property('path-ids', [feature.id])
 
                     if (settings.get('authoring', False)
                     and (feature.has_property('error')
