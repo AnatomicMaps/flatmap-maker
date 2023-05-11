@@ -372,7 +372,6 @@ class FCSlide(Slide):
         def set_label(parent):
             name = f'{parent.name[0:1].capitalize()}{parent.name[1:]}'
             if parent.models:
-                name += f' ({parent.models})'
                 models.append(parent.models)
             names.append(name)
 
