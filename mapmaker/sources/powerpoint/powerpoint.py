@@ -218,11 +218,12 @@ class Slide:
                 elif name != shape.name:
                     return shapes
             geometries.append(shape.geometry)
-        if not is_system_name(name):
-            return shapes
 
+        if name == '':
+            return shapes
         geometry = shapely.ops.unary_union(geometries)
-        if 'Polygon' not in geometry.geom_type:
+        if ('Polygon' not in geometry.geom_type
+         or geometry.geom_type != 'Polygon' and not is_system_name(name)):
             return shapes
 
         svg = etree.fromstring(geometry.svg())
@@ -235,6 +236,7 @@ class Slide:
                     svg_elements.append(svgelements.Path(svg_path))
         if len(svg_elements) == 0:
             return shapes
+
         return self.__new_shape(SHAPE_TYPE.FEATURE, group.shape_id, geometry, {
                                 'colour': colour.rgb_colour,
                                 'name': name,
