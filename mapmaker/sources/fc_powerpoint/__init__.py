@@ -295,8 +295,7 @@ class FCSlide(Slide):
 
         # Remaining named components should be either neural or vascular
         for fc_shape in non_system_components:
-            if (fc_shape.fc_class == FC_CLASS.UNKNOWN
-            and fc_shape.name != ''):
+            if fc_shape.fc_class == FC_CLASS.UNKNOWN:
                 if ((kind := NERVE_FEATURE_KINDS.lookup(fc_shape.colour)) is not None
                  or nervous_system in fc_shape.parents):
                     if fc_shape.name == 'G':
