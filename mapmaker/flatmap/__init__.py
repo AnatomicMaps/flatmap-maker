@@ -60,7 +60,7 @@ class FlatMap(object):
         self.__annotations = {}
         self.__annotator = annotator
         self.__connection_set = ConnectionSet('connections')
-        self.__sckan_neuron_populations = SckanNeuronPopulations(maker.map_dir)
+        self.__sckan_neuron_populations = SckanNeuronPopulations(self)
 
     def __len__(self):
         return self.__visible_layer_count
@@ -112,6 +112,10 @@ class FlatMap(object):
     @property
     def local_id(self):
         return self.__local_id
+
+    @property
+    def map_dir(self):
+        return self.__map_dir
 
     @property
     def map_properties(self):
@@ -393,6 +397,7 @@ class FlatMap(object):
         log.info('Resolving connectivity...')
         # Route paths and set feature ids of path components
         self.__properties_store.generate_connectivity()
+        self.__sckan_neuron_populations.generate_connectivity()
 
     def __setup_feature_search(self):
     #================================

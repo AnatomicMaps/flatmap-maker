@@ -398,48 +398,21 @@ class FCSlide(Slide):
         for connection in self.__connections:
             self.__connection_classifier.add_connection(connection)
             end_names = []
-            end_node_terms = []
             end_node_parents = set()
-            intermediate_terms = []
             for connector_id in connection.connector_ids:
                 properties = self.__feature_properties(connector_id)
                 if (parent_id := properties.get('parent-id')) is not None:
                     end_node_parents.add(parent_id)
                 if (name := properties.get('name', '')):
                     end_names.append(f'CN: {name[0:1].capitalize()}{name[1:]}')
-                if (models := properties.get('parent-models')) is not None:
-                    end_node_terms.append(models)
-            for component_id in connection.intermediate_components:
-                properties = self.__feature_properties(component_id)
-                if (name := properties.get('name', '')):
-                    cls = ('NV' if properties.get('fc-class') == FC_CLASS.NEURAL else
-                           'VS' if properties.get('fc-class') == FC_CLASS.VASCULAR else
-                           '')
-                    end_names.append(f'{cls}: {name[0:1].capitalize()}{name[1:]}')
-                if (models := properties.get('models')) is not None:
-                    intermediate_terms.append(models)
-            for connector_id in connection.intermediate_connectors:  ## ditto
-                properties = self.__feature_properties(connector_id)
-                if (name := properties.get('name', '')):
-                    end_names.append(f'GN: {name[0:1].capitalize()}{name[1:]}')
             connection.properties['name'] = '\n'.join(end_names)
             connection.properties['node-ids'] = list(end_node_parents
                                                    | set(connection.connector_ids)
                                                    | set(connection.intermediate_components)
                                                    | set(connection.intermediate_connectors))
-            if connection.fc_kind == FC_KIND.NEURON:
+            # Save neuron paths for generating connectivity
+            if self.__sckan_neurons is not None and connection.fc_kind == FC_KIND.NEURON:
                 connection.properties['sckan'] = False                      # Assume no paths are valid
-                if self.__sckan_neurons is not None and len(end_node_terms) > 1:
-                    if neuron_path_ids := self.__sckan_neurons.lookup_connection(connection.id,
-                                                                                 end_node_terms,
-                                                                                 intermediate_terms,
-                                                                                 connection.path_type):
-                        connection.properties['sckan'] = True
-                        connection.properties['models'] = neuron_path_ids[0]
-                        for n, neuron_path_id in enumerate(neuron_path_ids[1:]):
-                            properties = connection.properties.copy()
-                            properties['id'] = f'connection.id/{n}'
-                            properties['models'] = neuron_path_id
-                            self.flatmap.new_feature(connection.geometry, properties)
+                self.__sckan_neurons.add_connection(self.__feature_properties, connection)
 
 #===============================================================================

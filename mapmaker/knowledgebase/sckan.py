@@ -167,10 +167,9 @@ class SckanNodeSet:
 
 #===============================================================================
 
-class SckanNeuronPopulations:
-    def __init__(self, flatmap_dir):
-        self.__annotator_database = AnnotatorDatabase(flatmap_dir)
-        self.__sckan_path_nodes_by_type: dict[PATH_TYPE, dict[str, SckanNodeSet]] = defaultdict(dict[str, SckanNodeSet])
+class SckanNeuronChecker:
+    def __init__(self, flatmap):
+        self.__sckan_path_nodes_by_type: defaultdict[PATH_TYPE, dict[str, SckanNodeSet]] = defaultdict(dict)
         self.__paths_by_id = {}
         connectivity_models = kb.connectivity_models()
         for model in connectivity_models:
@@ -178,45 +177,121 @@ class SckanNeuronPopulations:
             for path in model_knowledege['paths']:
                 path_knowledge = kb.get_knowledge(path['id'])
                 self.__paths_by_id[path['id']] = path_knowledge
-        self.__unknown_connections = []
                 G = connectivity_graph_from_knowledge(path_knowledge)
                 if G:
                     path_type = G.graph['path-type']
                     self.__sckan_path_nodes_by_type[path_type][path['id']] = SckanNodeSet(path['id'], G)
 
-    def lookup_connection(self, neuron_id: str,
-                                end_nodes: list[tuple[str, Optional[str]]],
-                                intermediates: list[tuple[str, Optional[str]]],
-                                path_type: PATH_TYPE) -> list[str]:
-    #==========================================================================
-        path_ids = []
-        for path_id, node_set in self.__sckan_path_nodes_by_type[path_type].items():
-            if (node_set.has_connector(*end_nodes[0])
-            and node_set.has_connector(*end_nodes[1])):
-                path_ids.append(path_id)
-        # Keep track of neuron paths we've found (or not found)
-        if len(path_ids) == 0:
-            evidence = {
-                'id': neuron_id,
-                'endNodes': tuple(sorted(end_nodes)),
-                'type': str(path_type),
-                'evidence': self.__annotator_database.get_derivation(neuron_id)
-            }
-            if len(intermediates):
-                evidence['intermediates'] = intermediates
-            self.__unknown_connections.append(evidence)
-        return path_ids
+    def valid_sckan_paths(self, path_type, end_node_terms):
+    #======================================================
+        sckan_path_ids = []
+        for sckan_path_id, node_set in self.__sckan_path_nodes_by_type[path_type].items():
+            if (node_set.has_connector(*end_node_terms[0])
+            and node_set.has_connector(*end_node_terms[-1])):
+                sckan_path_ids.append(sckan_path_id)
+        return sckan_path_ids
 
-    def unknown_connections_with_evidence(self):
-    #===========================================
-        return [data for data in self.__unknown_connections if data['evidence']]
+#===============================================================================
 
-    def knowledge(self, path_id: str) -> Optional[dict]:
-    #===================================================
-        return self.__paths_by_id.get(path_id)
+class SckanConnection:
+    def __init__(self, connection, end_node_terms, intermediate_terms):
+        self.__connection = connection
+        self.__end_node_terms = end_node_terms
+        self.__intermediate_terms = intermediate_terms
 
-    def path_label(self, path_id: str) -> Optional[str]:
-    #===================================================
-        return self.__paths_by_id.get(path_id, {}).get('label')
+    @property
+    def connection(self):
+        return self.__connection
+
+    @property
+    def has_feature(self):
+        return ('feature' in self.__connection.properties
+            and not self.__connection.properties.get('exclude', False))
+
+    def check_validity(self, neuron_checker):
+    #========================================
+        sckan_path_ids = neuron_checker.valid_sckan_paths(self.__connection.path_type,
+                                                          self.__end_node_terms)
+        description = {
+            'id': self.__connection.id,
+            'endNodes': tuple(sorted(self.__end_node_terms)),
+            'type': str(self.__connection.path_type)
+        }
+        if len(self.__intermediate_terms):
+            description['intermediates'] = self.__intermediate_terms
+        if len(sckan_path_ids):
+            description['sckanPaths'] = sckan_path_ids
+            feature = self.__connection.properties['feature']
+            feature.properties['sckan'] = True
+            feature.properties['models'] = sckan_path_ids[0]
+            label = f"Neuron in '{kb.get_label(sckan_path_ids[0])}'"
+            if 'name' in feature.properties:
+                label += '\n' + feature.properties.get('name', '')
+            feature.properties['label'] = label
+        return description
+
+#===============================================================================
+
+class SckanNeuronPopulations:
+    def __init__(self, flatmap):
+        self.__flatmap = flatmap
+        self.__annotator_database = AnnotatorDatabase(flatmap.map_dir)
+        self.__sckan_connections = []
+        self.__connection_descriptions: list[dict] = []
+
+    def generate_connectivity(self):
+    #===============================
+        neuron_checker = SckanNeuronChecker(self.__flatmap)
+        for sckan_connection in self.__sckan_connections:
+            if sckan_connection.has_feature:
+                description = sckan_connection.check_validity(neuron_checker)
+                self.__connection_descriptions.append(description)
+                if ((sckan_path_ids := description.get('sckanPaths')) is not None
+                  and len(sckan_path_ids) > 1):
+                    # If the neuron is in multiple SCKAN populations then add a line feature for each one
+                    connection = sckan_connection.connection
+                    properties = connection.properties.copy()
+                    properties.pop('feature', None)
+                    for n, sckan_path_id in enumerate(sckan_path_ids[1:]):
+                        properties['id'] = f'connection.id/{n}'
+                        properties['models'] = sckan_path_id
+                        self.__flatmap.new_feature(connection.geometry, properties)
+
+    def add_connection(self, feature_lookup, connection):
+    #====================================================
+        end_node_terms = []
+        for connector_id in connection.connector_ids:
+            properties = feature_lookup(connector_id)
+            if (models := properties.get('parent-models')) is not None:
+                end_node_terms.append(models)
+        intermediate_terms = []
+        for component_id in connection.intermediate_components:
+            properties = feature_lookup(component_id)
+            if (models := properties.get('models')) is not None:
+                intermediate_terms.append(models)
+        for connector_id in connection.intermediate_connectors:
+            properties = feature_lookup(connector_id)
+            if (models := properties.get('models')) is not None:
+                intermediate_terms.append(models)
+        if len(end_node_terms) > 1:
+            self.__sckan_connections.append(SckanConnection(connection,
+                                                            end_node_terms,
+                                                            intermediate_terms))
+
+    def connections_with_evidence(self, evidence_urls='http', sckan_missing=True):
+    #=============================================================================
+        connections = []
+        for description in self.__connection_descriptions:
+            evidence = self.__annotator_database.get_derivation(description['id'])
+            if evidence_urls == 'http':
+                evidence = [e for e in evidence if e.startswith('http')]
+            if evidence_urls == 'non-http':
+                evidence = [e for e in evidence if not e.startswith('http')]
+            if (len(evidence)
+            and (not sckan_missing
+              or sckan_missing and 'sckanPaths' not in description)):
+                description['evidence'] = evidence
+                connections.append(description)
+        return connections
 
 #===============================================================================
