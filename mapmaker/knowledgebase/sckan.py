@@ -40,7 +40,7 @@ class PATH_TYPE(enum.IntFlag):
     #
     CNS                 = 1
     ENTERIC             = 2
-    EXCITORY            = 3
+    EXCITATORY          = 3
     INHIBITORY          = 4
     INTESTIONO_FUGAL    = 5
     INTRINSIC           = 6
@@ -57,15 +57,33 @@ class PATH_TYPE(enum.IntFlag):
     MASK_PRE_POST       = 31
     MASK_PATH_TYPE      = 96
 
-    @staticmethod
-    def __path_name(path_type):
+    def __name(self):
+        return {
+            PATH_TYPE.UNKNOWN: 'unknown',
+            PATH_TYPE.CNS: 'central nervous system',
+            PATH_TYPE.ENTERIC: 'enteric',
+            PATH_TYPE.EXCITATORY: 'excitatory',
+            PATH_TYPE.INHIBITORY: 'inhibitory',
+            PATH_TYPE.INTESTIONO_FUGAL: 'intestinal',
+            PATH_TYPE.INTRINSIC: 'intracardiac',
+            PATH_TYPE.MOTOR: 'motor',
+            PATH_TYPE.PARASYMPATHETIC: 'parasympathetic',
+            PATH_TYPE.SENSORY: 'sensory',
+            PATH_TYPE.SPINAL_ASCENDING: 'spinal ascending',
+            PATH_TYPE.SPINAL_DESCENDING: 'spinal descending',
+            PATH_TYPE.SYMPATHETIC: 'sympathetic',
+            PATH_TYPE.POST_GANGLIONIC: 'post-ganglionic',
+            PATH_TYPE.PRE_GANGLIONIC: 'pre-ganglionic'
+        }[self]
+
+    def __viewer_kind(self):
         return {
             PATH_TYPE.UNKNOWN: 'unknown',
             PATH_TYPE.CNS: 'cns',
             PATH_TYPE.ENTERIC: 'enteric',
-            PATH_TYPE.EXCITORY: 'excitatory',
+            PATH_TYPE.EXCITATORY: 'excitatory',
             PATH_TYPE.INHIBITORY: 'inhibitory',
-            PATH_TYPE.INTESTIONO_FUGAL: 'intestine',
+            PATH_TYPE.INTESTIONO_FUGAL: 'intestinal',
             PATH_TYPE.INTRINSIC: 'intracardiac',
             PATH_TYPE.MOTOR: 'somatic',     ## Rename to 'motor' but will need viewer update...
             PATH_TYPE.PARASYMPATHETIC: 'para',
@@ -75,13 +93,21 @@ class PATH_TYPE(enum.IntFlag):
             PATH_TYPE.SYMPATHETIC: 'symp',
             PATH_TYPE.POST_GANGLIONIC: 'post',
             PATH_TYPE.PRE_GANGLIONIC: 'pre'
-        }[path_type]
+        }[self]
 
-    def __str__(self):
-        if (pre_post := (self & PATH_TYPE.MASK_PATH_TYPE).value):
-            return f'{self.__path_name(self & PATH_TYPE.MASK_PRE_POST)}-{self.__path_name(pre_post)}'
+    @property
+    def name(self):
+        if pre_post := (self & PATH_TYPE.MASK_PATH_TYPE):
+            return f'{pre_post.__name()} {(self & PATH_TYPE.MASK_PRE_POST).__name()}'
         else:
-            return self.__path_name(self)
+            return self.__name()
+
+    @property
+    def viewer_kind(self):
+        if pre_post := (self & PATH_TYPE.MASK_PATH_TYPE):
+            return f'{(self & PATH_TYPE.MASK_PRE_POST).__viewer_kind()}-{pre_post.__viewer_kind()}'
+        else:
+            return self.__viewer_kind()
 
 #===============================================================================
 
@@ -95,7 +121,7 @@ PATH_TYPE_BY_PHENOTYPE = {
     'ilxtr:SpinalCordDescendingProjectionPhenotype':    PATH_TYPE.SPINAL_DESCENDING,
     'ilxtr:EntericPhenotype':                           PATH_TYPE.ENTERIC,
     'ilxtr:IntestinoFugalProjectionPhenotype':          PATH_TYPE.INTESTIONO_FUGAL,
-    'ILX:0104003':                                      PATH_TYPE.EXCITORY,
+    'ILX:0104003':                                      PATH_TYPE.EXCITATORY,
     'ILX:0105486':                                      PATH_TYPE.INHIBITORY
 }
 
@@ -215,7 +241,7 @@ class SckanConnection:
         description = {
             'id': self.__connection.id,
             'endNodes': tuple(sorted(self.__end_node_terms)),
-            'type': str(self.__connection.path_type)
+            'type': self.__connection.path_type.name
         }
         if len(self.__intermediate_terms):
             description['intermediates'] = self.__intermediate_terms

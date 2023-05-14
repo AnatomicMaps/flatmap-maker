@@ -205,7 +205,7 @@ class ResolvedPathways:
         self.__flatmap = flatmap
         self.__paths: dict[str, ResolvedPath] = defaultdict(ResolvedPath)   #! Paths by :class:`ResolvedPath`\ s
         self.__node_paths: dict[int, set[str]] = defaultdict(set)           #! Paths by node geojson_id
-        self.__type_paths: dict[str, set[str]] = defaultdict(set)           #! Paths by path type
+        self.__type_paths: dict[PATH_TYPE, set[str]] = defaultdict(set)     #! Paths by path type
 
     @property
     def node_paths(self):
@@ -219,7 +219,7 @@ class ResolvedPathways:
 
     @property
     def type_paths(self):
-        return { typ: list(paths) for typ, paths in self.__type_paths.items() }
+        return { typ.viewer_kind: list(paths) for typ, paths in self.__type_paths.items() }
 
     def __resolve_nodes_for_path(self, path_id, node_feature_ids):
         node_geojson_ids = []
@@ -235,7 +235,7 @@ class ResolvedPathways:
         return node_geojson_ids
 
     def add_connectivity(self, path_id: str, line_geojson_ids: list[int],
-                         model: str, path_type: str,
+                         model: str, path_type: PATH_TYPE,
                          node_feature_ids: set[str], nerve_features: list[Feature]):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -245,7 +245,7 @@ class ResolvedPathways:
         resolved_path.extend_lines(line_geojson_ids)
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
 
-    def add_pathway(self, path_id: str, model: Optional[str], path_type: str,
+    def add_pathway(self, path_id: str, model: Optional[str], path_type: PATH_TYPE,
                     route: Route, lines: list[str], nerves: list[str]):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -417,18 +417,18 @@ class ConnectionSet:
     def __init__(self, model_id):
         self.__id = model_id
         self.__connections: dict[str, int] = {}
-        self.__connections_by_type: dict[str, list[str]] = defaultdict(list)
+        self.__connections_by_kind: dict[str, list[str]] = defaultdict(list)
         self.__connectors_by_connection: dict[str, list[int]] = defaultdict(list)
         self.__connections_by_connector: dict[int, set[str]] = defaultdict(set)
 
     def __len__(self):
         return len(self.__connections)
 
-    def add(self, path_id: str, path_type: str, geojson_id: int, connector_ids: list[int]):
-    #======================================================================================
+    def add(self, path_id: str, viewer_kind: str, geojson_id: int, connector_ids: list[int]):
+    #========================================================================================
         # Need geojson id of shape's feature
         self.__connections[path_id] = geojson_id
-        self.__connections_by_type[path_type].append(path_id)
+        self.__connections_by_kind[viewer_kind].append(path_id)
         self.__connectors_by_connection[path_id] = connector_ids
         for connector_id in connector_ids:
             self.__connections_by_connector[connector_id].add(path_id)
@@ -450,7 +450,7 @@ class ConnectionSet:
             'node-paths': { node: list(path_ids)
                 for node, path_ids in self.__connections_by_connector.items()},
             'type-paths': {
-                path_type: path_ids for path_type, path_ids in self.__connections_by_type.items()
+                viewer_kind: path_ids for viewer_kind, path_ids in self.__connections_by_kind.items()
             }
         }
 
@@ -515,7 +515,7 @@ class Pathways:
     #====================================
         properties = {}
         if path_id in self.__type_by_path_id:
-            kind = str(self.__type_by_path_id[path_id])
+            kind = self.__type_by_path_id[path_id].viewer_kind
             properties.update({
                 'kind': kind,
                  ## Can we just put this into `kind` and have viewer work out if dashed??
@@ -637,7 +637,7 @@ class Pathways:
                     }
                     properties.update(geometric_shape.properties)
                     if properties.get('type') in ['arrow', 'junction']:
-                        properties['kind'] = str(path.path_type)
+                        properties['kind'] = path.path_type.viewer_kind
                     else:
                         properties.update(self.__line_properties(path_id))
                         path_model = path.models
@@ -659,7 +659,7 @@ class Pathways:
                 self.__resolved_pathways.add_connectivity(path_id,
                                                           feature_geojson_ids,
                                                           path.models,
-                                                          str(path.path_type),  ## This is properties['type']...
+                                                          path.path_type,
                                                           routed_path.node_feature_ids,
                                                           nerve_features)
         for feature in active_nerve_features:

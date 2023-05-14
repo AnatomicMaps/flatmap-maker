@@ -264,13 +264,13 @@ class ConnectionClassifier:
             connection.fc_kind = FC_KIND.NEURON
             if (path_type := NEURON_PATH_TYPES.lookup(connection.colour)) is not None:
                 if connector.fc_kind in NODE_CONNECTORS and path_type != connector.path_type:
-                    connection.log_error(f"Connection type doesn't match connector's: {path_type} != {connector.path_type}")
+                    connection.log_error(f"Connection type doesn't match connector's: `{path_type.name}` != `{connector.path_type.name}`")
                 if path_type in [PATH_TYPE.PARASYMPATHETIC, PATH_TYPE.SYMPATHETIC]:
                     line_style = connection.get_property('line-style', '').lower()
                     path_type |= (PATH_TYPE.PRE_GANGLIONIC if 'dot' in line_style or 'dash' in line_style
                              else PATH_TYPE.POST_GANGLIONIC)
                 connection.path_type = path_type
-                path_kind = str(path_type)
+                path_kind = path_type.viewer_kind
                 connection.set_property('kind', path_kind)
                 connection.set_property('type', 'line-dash' if path_kind.endswith('-post') else 'line')
             else:
