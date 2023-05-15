@@ -27,7 +27,7 @@ from .colours import ColourMatcher, ColourMatcherDict
 
 # If a connection end is closer than this gap to a connector
 # of the same nerve class then it is connected
-MAX_CONNECTION_GAP =     4000               # metres, approx. sqrt(MAX_AREA)/2
+MAX_CONNECTION_GAP = 4000               # metres, approx. sqrt(MAX_AREA)/2
 
 #===============================================================================
 
@@ -92,7 +92,7 @@ class FC_KIND:
     CONNECTOR_FREE_END   = 'fc-kind:ConnectorFreeEnd'   # unattached connection end
     CONNECTOR_NODE       = 'fc-kind:ConnectorNode'      # ganglionic node??
     CONNECTOR_PORT       = 'fc-kind:ConnectorPort'      # a neural connection end in FTU
-    CONNECTOR_THROUGH    = 'fc-kind:ConnectorThrough'   # cross in plexus and/or glanglion
+    CONNECTOR_THROUGH    = 'fc-kind:ConnectorThrough'   # cross in plexus and/or ganglion
 
     # Hyperlink kinds
     HYPERLINK_WIKIPEDIA  = 'fc-kind:HyperlinkWikipedia'

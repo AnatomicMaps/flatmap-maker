@@ -284,7 +284,7 @@ class ConnectionClassifier:
             connection.set_property('kind', connection.description)
             connection.set_property('type', 'line')
             connection.set_property('stroke-width', connection.get_property('stroke-width',
-                                                                               STROKE_WIDTH_SCALE_FACTOR)/STROKE_WIDTH_SCALE_FACTOR)
+                                                                            STROKE_WIDTH_SCALE_FACTOR)/STROKE_WIDTH_SCALE_FACTOR)
         if connection.fc_class == FC_CLASS.NEURAL:
             # Attempt to join neuron segments
             for connector_id in connected_end_ids:
