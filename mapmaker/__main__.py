@@ -82,6 +82,8 @@ def arg_parser():
                         help='Refresh local connectivity knowledge from SciCrunch')
     misc_options.add_argument('--export-neurons', dest='exportNeurons', metavar='EXPORT_FILE',
                         help='Export details of functional connectivity neurons as JSON')
+    misc_options.add_argument('--invalid-neurons', dest='invalidNeurons', action='store_true',
+                        help="Include functional connectivity neurons that aren't known in SCKAN")
 
     misc_options.add_argument('--id', metavar='ID',
                         help='Set explicit ID for flatmap, overriding manifest')

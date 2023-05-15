@@ -28,6 +28,7 @@ import networkx as nx
 
 #===============================================================================
 
+from mapmaker.settings import settings
 from mapmaker.utils import log
 
 import mapmaker.knowledgebase as kb
@@ -245,15 +246,17 @@ class SckanConnection:
         }
         if len(self.__intermediate_terms):
             description['intermediates'] = self.__intermediate_terms
+        feature = self.__connection.properties['feature']
         if len(sckan_path_ids):
             description['sckanPaths'] = sckan_path_ids
-            feature = self.__connection.properties['feature']
             feature.properties['sckan'] = True
             feature.properties['models'] = sckan_path_ids[0]
             label = f"Neuron in '{kb.get_label(sckan_path_ids[0])}'"
             if 'name' in feature.properties:
                 label += '\n' + feature.properties.get('name', '')
             feature.properties['label'] = label
+        elif not settings.get('invalidNeurons', False):
+            feature.properties['exclude'] = True
         return description
 
 #===============================================================================
@@ -303,6 +306,8 @@ class SckanNeuronPopulations:
             self.__sckan_connections.append(SckanConnection(connection,
                                                             end_node_terms,
                                                             intermediate_terms))
+        elif not settings.get('invalidNeurons', False):
+            connection.properties['exclude'] = True
 
     def connections_with_evidence(self, evidence_urls='http', sckan_missing=True):
     #=============================================================================
