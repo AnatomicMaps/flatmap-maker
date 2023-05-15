@@ -271,6 +271,10 @@ class SckanConnection:
         return self.__connection
 
     @property
+    def id(self):
+        return self.__connection.id
+
+    @property
     def has_feature(self):
         return ('feature' in self.__connection.properties
             and not self.__connection.properties.get('exclude', False))
@@ -280,7 +284,7 @@ class SckanConnection:
         sckan_path_ids = neuron_checker.valid_sckan_paths(self.__connection.path_type,
                                                           self.__end_node_terms)
         description = {
-            'id': self.__connection.id,
+            'id': self.id,
             'endNodes': tuple(sorted(self.__end_node_terms)),
             'type': self.__connection.path_type.name
         }
