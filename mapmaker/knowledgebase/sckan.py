@@ -165,24 +165,49 @@ def connectivity_graph_from_knowledge(knowledge: dict) -> Optional[nx.Graph]:
 #===============================================================================
 
 class SckanNodeSet:
-    def __init__(self, path_id, connectivity_graph):
-        self.__id = path_id
+    def __init__(self, connectivity_graph):
         self.__node_dict: dict[str, set[tuple[str, ...]]] = defaultdict(set)
-        # Normalise nodes and remove any duplicates
-        nodes = {node.normalised() for node in connectivity_graph.nodes}
-        # Build an index with successive terms of a node's tuple
-        # identifying any following terms
-        for node in nodes:
-            node_list = list(node)
+        self.__end_node_dict: dict[str, set[tuple[str, ...]]] = defaultdict(set)
+        # Build an index with successive terms of a node's tuple indentifying
+        # any following terms, for both just the ends of the trimmed connectivity
+        # graph and for all its nodes
+        for node, degree in connectivity_graph.degree():
+            # Normalise nodes and remove any duplicates
+            node_list = list(node.normalised())
             while len(node_list):
                 if len(node_list) > 1:
                     self.__node_dict[node_list[0]].add(tuple(node_list[1:]))
+                    if degree == 1:
+                        self.__end_node_dict[node_list[0]].add(tuple(node_list[1:]))
                 else:
                     self.__node_dict[node_list[0]] = set()
+                    if degree == 1:
+                        self.__end_node_dict[node_list[0]] = set()
                 node_list.pop(0)
 
-    def has_connector(self, ftu: str, organ: Optional[str]=None) -> bool:
-    #====================================================================
+    def __has_end_connector(self, ftu: str, organ: Optional[str]=None) -> bool:
+    #==========================================================================
+        if (node_layers := self.__end_node_dict.get(ftu)) is not None:
+            if organ is None or len(node_layers) == 0:
+                return True
+            else:
+                for layers in node_layers:
+                    if organ in layers:
+                        return True
+        return organ is not None and self.__end_node_dict.get(organ) is not None
+
+    def has_end_connectors(self, end_nodes):
+    #==================================
+        return (self.__has_end_connector(*end_nodes[0])
+            and self.__has_end_connector(*end_nodes[-1]))
+
+    def has_connectors(self, end_nodes):
+    #==================================
+        return (self.__has_connector(*end_nodes[0])
+            and self.__has_connector(*end_nodes[-1]))
+
+    def __has_connector(self, ftu: str, organ: Optional[str]=None) -> bool:
+    #======================================================================
         if (node_layers := self.__node_dict.get(ftu)) is not None:
             if organ is None or len(node_layers) == 0:
                 return True
@@ -206,16 +231,31 @@ class SckanNeuronChecker:
                 self.__paths_by_id[path['id']] = path_knowledge
                 G = connectivity_graph_from_knowledge(path_knowledge)
                 if G:
-                    path_type = G.graph['path-type']
-                    self.__sckan_path_nodes_by_type[path_type][path['id']] = SckanNodeSet(path['id'], G)
+                    for node in G.nodes:
+                        G.nodes[node]['node-features'] = flatmap.features_for_anatomical_node(node, warn=False)
+                    self.__trim_non_existent_features(G)
+                    self.__sckan_path_nodes_by_type[G.graph['path-type']][path['id']] = SckanNodeSet(G)
+
+    def __trim_non_existent_features(self, G):
+    #=========================================
+        # Trim non-existent features from end of graph
+        single_nodes = [node for node, degree in G.degree() if degree <= 1 and len(G.nodes[node]['node-features']) == 0]
+        if len(single_nodes):
+            for node in single_nodes:
+                G.remove_node(node)
+            self.__trim_non_existent_features(G)
+
 
     def valid_sckan_paths(self, path_type, end_node_terms):
     #======================================================
         sckan_path_ids = []
         for sckan_path_id, node_set in self.__sckan_path_nodes_by_type[path_type].items():
-            if (node_set.has_connector(*end_node_terms[0])
-            and node_set.has_connector(*end_node_terms[-1])):
+            if node_set.has_end_connectors(end_node_terms):
                 sckan_path_ids.append(sckan_path_id)
+        if len(sckan_path_ids) == 0:
+            for sckan_path_id, node_set in self.__sckan_path_nodes_by_type[path_type].items():
+                if node_set.has_connectors(end_node_terms):
+                    sckan_path_ids.append(sckan_path_id)
         return sckan_path_ids
 
 #===============================================================================

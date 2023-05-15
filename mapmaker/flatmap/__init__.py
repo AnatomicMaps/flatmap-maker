@@ -201,10 +201,10 @@ class FlatMap(object):
         if self.__feature_node_map is not None:
             self.__feature_node_map.add_feature(feature)
 
-    def features_for_anatomical_node(self, anatomical_node: AnatomicalNode) -> Optional[tuple[AnatomicalNode, set[Feature]]]:
-    #========================================================================================================================
+    def features_for_anatomical_node(self, anatomical_node: AnatomicalNode, warn: bool=True) -> Optional[tuple[AnatomicalNode, set[Feature]]]:
+    #=========================================================================================================================================
         if self.__feature_node_map is not None:
-            return self.__feature_node_map.features_for_anatomical_node(anatomical_node)
+            return self.__feature_node_map.features_for_anatomical_node(anatomical_node, warn=warn)
 
     def duplicate_feature_id(self, feature_ids: str) -> bool:
     #========================================================

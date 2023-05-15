@@ -111,8 +111,8 @@ class FeatureAnatomicalNodeMap:
         if feature.models is not None:
             self.__model_to_features[feature.models].add(feature)
 
-    def features_for_anatomical_node(self, anatomical_node: AnatomicalNode) -> tuple[AnatomicalNode, set[Feature]]:
-    #==============================================================================================================
+    def features_for_anatomical_node(self, anatomical_node: AnatomicalNode, warn: bool=True) -> tuple[AnatomicalNode, set[Feature]]:
+    #===============================================================================================================================
         def features_from_anatomical_id(term: str) -> set[Feature]:
             return set(self.__model_to_features.get(self.__aliases.get(term, term), []))
 
@@ -140,7 +140,8 @@ class FeatureAnatomicalNodeMap:
                 substitute_id = anatomical_layers.pop(0)
                 features = features_from_anatomical_id(substitute_id)
                 if len(features):
-                    log.warning(f'Cannot find feature for `{entity_name(anatomical_id)}` ({anatomical_id}), substituted containing `{entity_name(substitute_id)}` region')
+                    if warn:
+                        log.warning(f'Cannot find feature for `{entity_name(anatomical_id)}` ({anatomical_id}), substituted containing `{entity_name(substitute_id)}` region')
                     matched_node = AnatomicalNode([substitute_id, anatomical_layers])
                     break
         if len(anatomical_layers) == 0:
@@ -163,7 +164,8 @@ class FeatureAnatomicalNodeMap:
                 matched_features.add(feature)
         if len(matched_features) == 0 and len(features) == 1:
             matched_features = features
-            log.warning(f'Feature `{matched_node.full_name}` is not in expected layers')
+            if warn:
+                log.warning(f'Feature `{matched_node.full_name}` is not in expected layers')
         return (matched_node, matched_features)
 
 #===============================================================================
