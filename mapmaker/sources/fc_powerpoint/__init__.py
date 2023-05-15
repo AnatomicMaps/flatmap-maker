@@ -347,8 +347,14 @@ class FCSlide(Slide):
                         connector.description = kind
                     elif (path_type := NEURON_PATH_TYPES.lookup(connector.colour)) is not None:
                         connector.fc_class = FC_CLASS.NEURAL
-                        connector.fc_kind = FC_KIND.CONNECTOR_NODE
                         connector.path_type = path_type
+                        if connector.parent is not None and connector.parent.fc_class == FC_CLASS.FTU:
+                            connector.fc_kind = FC_KIND.GANGLION
+                            connector.name = f'{path_type.name} ganglion'
+                        else:
+                            # Connector either without a parent or in a non-neural, non-FTU component
+                            connector.shape.log_error(f'Connector not in FTU as expected: {connector.shape}')
+                            connector.fc_kind = FC_KIND.CONNECTOR_NODE
             if connector.fc_class != FC_CLASS.UNKNOWN:
                 self.__connection_classifier.add_connector(connector)
 
@@ -357,31 +363,33 @@ class FCSlide(Slide):
         # Called after shapes have been extracted
         for fc_shape in self.__shapes_by_id.values():
             if (is_component(fc_shape)
-            and (term := annotator.lookup_component(fc_shape)) is not None):
+            and (term := annotator.lookup_feature(fc_shape)) is not None):
                 fc_shape.properties['models'] = term
 
         # go through all connectors and set FTU/organ for them
         for fc_shape in self.__shapes_by_id.values():
             if is_connector(fc_shape):
+                if (fc_shape.fc_kind == FC_KIND.GANGLION
+                and (term := annotator.lookup_feature(fc_shape)) is not None):
+                    fc_shape.properties['models'] = term
                 self.__annotate_connector(fc_shape)
 
     def __annotate_connector(self, connector: Shape):
     #================================================
-        names = []
-        models = []
+        names = [connector.name.capitalize()] if connector.name else []
+        parent_models = []
         def set_label(parent):
-            name = f'{parent.name[0:1].capitalize()}{parent.name[1:]}'
             if parent.models:
-                models.append(parent.models)
-            names.append(name)
+                parent_models.append(parent.models)
+            names.append(parent.name.capitalize())
 
         if connector.parent is not None:
             set_label(connector.parent)
             if connector.parent.parents:
                 set_label(connector.parent.parents[0])
             connector.properties['name'] = '/'.join(names)
-            if len(models):
-                connector.properties['parent-models'] = tuple(models)
+            if len(parent_models):
+                connector.properties['parent-models'] = tuple(parent_models)
         connector.shape_type = 'connector'
 
     def __feature_properties(self, feature_id):
@@ -402,8 +410,6 @@ class FCSlide(Slide):
                 properties = self.__feature_properties(connector_id)
                 if (parent_id := properties.get('parent-id')) is not None:
                     end_node_parents.add(parent_id)
-                if (name := properties.get('name', '')):
-                    end_names.append(f'CN: {name[0:1].capitalize()}{name[1:]}')
             connection.properties['name'] = '\n'.join(end_names)
             connection.properties['node-ids'] = list(end_node_parents
                                                    | set(connection.connector_ids)
