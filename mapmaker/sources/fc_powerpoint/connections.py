@@ -369,11 +369,11 @@ class ConnectionClassifier:
                         elif len(neighbours) > 1:
                             connection.log_error(f'Connector has too many edges from it: {connector}')
 
+            connection.set_property('connectors', [self.__connectors[id] for id in connection.local_connector_ids])
             systems = set()
-            for id in connection.local_connector_ids:
-                connector = self.__connectors[id]
+            for connector in connection.get_property('connectors'):
                 systems.update(system_ids(connector))
-            connection.systems = systems
+            connection.set_property('system-ids', systems)
 
         connection.intermediate_components = list(self.__crossed_component(connection))
         if connection.fc_class == FC_CLASS.NEURAL:

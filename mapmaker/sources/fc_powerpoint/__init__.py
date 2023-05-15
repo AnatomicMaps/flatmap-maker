@@ -403,7 +403,10 @@ class FCSlide(Slide):
     def __add_connections(self):
     #===========================
         for connection in self.__connections:
+            # First pass will join together sub-paths at joining nodes
             self.__connection_classifier.add_connection(connection)
+
+        for connection in self.__connections:
             end_names = []
             end_node_parents = set()
             for connector_id in connection.connector_ids:
@@ -415,6 +418,12 @@ class FCSlide(Slide):
                                                    | set(connection.connector_ids)
                                                    | set(connection.intermediate_components)
                                                    | set(connection.intermediate_connectors))
+
+            if len([connector for connector in connection.get_property('connectors', [])
+                if connector.fc_kind in [FC_KIND.CONNECTOR_FREE_END, FC_KIND.CONNECTOR_JOINER]]):
+                    log.warning(f'Connection has free ends: {connection}')
+                    connection.properties['kind'] = 'error'
+
             # Save neuron paths for generating connectivity
             if self.__sckan_neurons is not None and connection.fc_kind == FC_KIND.NEURON:
                 connection.properties['sckan'] = False                      # Assume no paths are valid

@@ -79,7 +79,7 @@ class PowerpointLayer(MapLayer):
                 if feature.get_property('cd-class') == CD_CLASS.CONNECTION:
                     # Map neuron path class to viewer path kind/type
                     feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
-                    for system_id in feature.get_property('systems', []):
+                    for system_id in feature.get_property('system-ids', []):
                         if (system_feature := self.flatmap.get_feature(system_id)) is not None:
                             if (path_ids := system_feature.get_property('path-ids')) is not None:
                                 if feature.id not in path_ids:
