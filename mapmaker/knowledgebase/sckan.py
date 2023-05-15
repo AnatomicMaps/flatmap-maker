@@ -349,20 +349,14 @@ class SckanNeuronPopulations:
         elif not settings.get('invalidNeurons', False):
             connection.properties['exclude'] = True
 
-    def connections_with_evidence(self, evidence_urls='http', sckan_missing=True):
-    #=============================================================================
+    def connections_with_evidence(self):
+    #===================================
         connections = []
         for description in self.__connection_descriptions:
             evidence = self.__annotator_database.get_derivation(description['id'])
-            if evidence_urls == 'http':
-                evidence = [e for e in evidence if e.startswith('http')]
-            if evidence_urls == 'non-http':
-                evidence = [e for e in evidence if not e.startswith('http')]
-            if (len(evidence)
-            and (not sckan_missing
-              or sckan_missing and 'sckanPaths' not in description)):
+            if len(evidence):
                 description['evidence'] = evidence
-                connections.append(description)
+            connections.append(description)
         return connections
 
 #===============================================================================

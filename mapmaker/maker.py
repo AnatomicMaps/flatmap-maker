@@ -459,7 +459,7 @@ class MapMaker(object):
         # Write out details of FC neurons if option set
         if (export_file := settings.get('exportNeurons')) is not None:
             with open(export_file, 'w') as fp:
-                fp.write(json.dumps(self.__flatmap.sckan_neuron_populations.unknown_connections_with_evidence(), indent=4))
+                fp.write(json.dumps(self.__flatmap.sckan_neuron_populations.connections_with_evidence(), indent=4))
 
         # Show what the map is about
         if self.__flatmap.models is not None:
