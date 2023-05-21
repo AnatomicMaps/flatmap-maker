@@ -413,6 +413,8 @@ class FCSlide(Slide):
                 properties = self.__feature_properties(connector_id)
                 if (parent_id := properties.get('parent-id')) is not None:
                     end_node_parents.add(parent_id)
+                if settings.get('authoring', False) and (name := properties.get('name', '')):
+                    end_names.append(f'CN: {name.capitalize()}')
             connection.properties['name'] = '\n'.join(end_names)
             connection.properties['node-ids'] = list(end_node_parents
                                                    | set(connection.connector_ids)
