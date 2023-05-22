@@ -64,8 +64,6 @@ def arg_parser():
                         help="Save a slide's DrawML for debugging")
     debug_options.add_argument('--save-geojson', dest='saveGeoJSON', action='store_true',
                         help='Save GeoJSON files for each layer')
-    debug_options.add_argument('--save-svg', dest='saveSVG', action='store_true',
-                        help='Save intermediate SVG files used to generate image tiles')
     debug_options.add_argument('--tippecanoe', dest='showTippe', action='store_true',
                         help='Show command used to run Tippecanoe')
 
@@ -82,6 +80,8 @@ def arg_parser():
                         help='Refresh local connectivity knowledge from SciCrunch')
     misc_options.add_argument('--export-neurons', dest='exportNeurons', metavar='EXPORT_FILE',
                         help='Export details of functional connectivity neurons as JSON')
+    misc_options.add_argument('--export-svg', dest='exportSVG', metavar='EXPORT_FILE',
+                        help='Export Powerpoint sources as SVG')
     misc_options.add_argument('--invalid-neurons', dest='invalidNeurons', action='store_true',
                         help="Include functional connectivity neurons that aren't known in SCKAN")
 

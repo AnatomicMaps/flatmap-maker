@@ -18,8 +18,8 @@
 #
 #===============================================================================
 
-from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.knowledgebase.sckan import PATH_TYPE
+from mapmaker.sources.shape import SHAPE_TYPE
 
 from .colours import ColourMatcher, ColourMatcherDict
 
@@ -46,21 +46,21 @@ class CD_CLASS:
 #===============================================================================
 
 class FC_CLASS:
-    UNKNOWN     = 'fc-class:Unknown'
-    LAYER       = 'fc-class:Layer'
+    UNKNOWN     = 'fc:Unknown'
+    LAYER       = 'fc:Layer'
 
     # Component classes
-    SYSTEM      = 'fc-class:System'
-    ORGAN       = 'fc-class:Organ'
-    FTU         = 'fc-class:Ftu'
+    SYSTEM      = 'fc:System'
+    ORGAN       = 'fc:Organ'
+    FTU         = 'fc:Ftu'
 
     # Connector, Connection, and Conduit classes
-    NEURAL      = 'fc-class:Neural'
-    VASCULAR    = 'fc-class:Vascular'
+    NEURAL      = 'fc:Neural'
+    VASCULAR    = 'fc:Vascular'
 
     # Annotation classes
-    DESCRIPTION = 'fc-class:Description'
-    HYPERLINK   = 'fc-class:Hyperlink'
+    DESCRIPTION = 'fc:Description'
+    HYPERLINK   = 'fc:Hyperlink'
 
 #===============================================================================
 

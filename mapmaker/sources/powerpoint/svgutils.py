@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+from io import StringIO
 from math import sqrt
 from typing import Any, Optional
 
@@ -30,6 +31,8 @@ import svgelements
 import svgwrite.gradients
 from svgwrite import Drawing as SvgDrawing
 from svgwrite.base import BaseElement as SvgElement
+from svgwrite.base import Desc as SvgDescription
+from svgwrite.container import Defs as SvgDefinitions
 from svgwrite.container import Group as SvgGroup
 from svgwrite.container import Hyperlink as SvgHyperlink
 from svgwrite.image import Image as SvgImage
@@ -52,10 +55,14 @@ from pptx.shapes.group import GroupShape as PptxGroupShape
 #===============================================================================
 
 from mapmaker.geometry import Transform
+from mapmaker.knowledgebase.celldl import CellDLGraph
+from mapmaker.settings import settings
 from mapmaker.sources import EMU_PER_METRE, MapBounds, WORLD_METRES_PER_PIXEL, POINTS_PER_PIXEL
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log, TreeList
+from mapmaker.utils.svg import name_from_id, svg_id
 
+from ..fc_powerpoint.components import CD_CLASS, FC_CLASS
 from .colour import ColourPair, ColourMap
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
 from .powerpoint import Powerpoint, Slide
@@ -66,18 +73,6 @@ from .powerpoint import Powerpoint, Slide
 MIN_STROKE_WIDTH = 0.5
 
 TEXT_MARGINS = (6, 0)   # pixels
-
-#===============================================================================
-
-"""
-Slashes aren't valid in SVG (XML) IDs so we replace them with periods (``.``)
-
-In practice, feature IDs are have the form ``LAYER_NAME/Slide-N/NNNNN`` and
-won't contain any embedded periods.
-"""
-def svg_id(id):
-#==============
-    return id.replace('/', '.')
 
 #===============================================================================
 
@@ -254,17 +249,22 @@ class Gradient(object):
 #===============================================================================
 
 class SvgFromSlide:
-    def __init__(self, drawing: SvgDrawing, transform_matrix: svgelements.Matrix, slide: Slide, base_slide: bool=False):
+    def __init__(self, slide_id: str, slide: Slide, drawing: SvgDrawing,
+                 transform_matrix: svgelements.Matrix, celldl: Optional[CellDLGraph]=None):
+        self.__slide_id = slide_id
+        self.__slide = slide
         self.__drawing = drawing
         self.__matrix = transform_matrix
-        self.__slide = slide
-        self.__base_slide = base_slide
+        self.__celldl = celldl
         self.__colour_map = slide.colour_map
         self.__gradient_id = 0
 
-    def add_shape_svgs(self, svg_parent: SvgElement):
-    #================================================
-        self.__process_shape_list(self.__slide.shapes, svg_parent)
+    def process_slide_svgs(self):
+    #============================
+        slide_group = SvgGroup(id=svg_id(self.__slide_id), class_='celldl:Layer')
+        slide_group.set_desc(title=name_from_id(self.__slide_id))
+        self.__process_shape_list(self.__slide.shapes, slide_group)
+        self.__drawing.add(slide_group)
 
     def __process_group(self, group: TreeList, svg_parent: SvgElement):
     #==================================================================
@@ -273,8 +273,9 @@ class SvgFromSlide:
         svg_group = SvgGroup(id=svg_id(group[0].id))
         pptx_group = group[0].properties['pptx-shape']
         self.__process_shape_list(group, svg_group, group_colour=self.__get_colour(pptx_group))
-        svg_parent.add(svg_group)
-        add_markup(svg_group, pptx_group.name)
+        if len(svg_group.elements):
+            svg_parent.add(svg_group)
+            add_markup(svg_group, pptx_group.name)
 
     def __process_shape_list(self, shapes: TreeList, svg_parent: SvgElement,
                                    group_colour: Optional[ColourPair]=None):
@@ -297,17 +298,20 @@ class SvgFromSlide:
             svg_group = SvgGroup(id=svg_id(shape.id))
             for n, svg in enumerate(svg_shape):
                 self.__process_svg_shape(svg, 'path', svg_group, group_colour,
-                                         f'{shape.id}/{n}', shape.type, shape.geometry.bounds, shape.properties,
+                                         f'{shape.id}/{n}', shape.geometry.bounds, shape.properties,
                                          pptx_shape)
-            svg_parent.add(svg_group)
+            if len(svg_group.elements):
+                svg_parent.add(svg_group)
         else:
             self.__process_svg_shape(svg_shape, svg_kind, svg_parent, group_colour,
-                                     shape.id, shape.type, shape.geometry.bounds, shape.properties,
+                                     shape.id, shape.geometry.bounds, shape.properties,
                                      pptx_shape)
+        if self.__celldl is not None:
+            self.__celldl.add_metadata(shape)
 
     def __process_svg_shape(self, svg_shape, svg_kind, svg_parent, group_colour,
-                            shape_id, shape_type, bounds, properties, pptx_shape):
-    #===============================================================================
+                            shape_id, bounds, properties, pptx_shape):
+    #=================================================================
         transformed_svg = svg_shape * self.__matrix
         transformed_svg.reify()
 
@@ -328,49 +332,52 @@ class SvgFromSlide:
             return
 
 
-        exclude_shape = (shape.type != SHAPE_TYPE.FEATURE
-                      or shape.properties.get('fc-class') != 'FC_CLASS.DESCRIPTION')
 
-        exclude_text = shape.properties.get('fc-class') != 'FC_CLASS.SYSTEM'
 
-        svg_text = None
-        label = None
+        if not properties.get('exclude', False):   # Will this handle shape filtering??
+                                                   # this does remove provenance stars but we need to capture links as FTU metadata
+            if properties.get('cd-class') == CD_CLASS.CONNECTION:
+                if 'type' in pptx_shape.line.headEnd or 'type' in pptx_shape.line.tailEnd:          # type: ignore
+                    svg_element.set_markers((marker_id(pptx_shape.line.headEnd, 'head'),            # type: ignore
+                                             None, marker_id(pptx_shape.line.tailEnd, 'tail')       # type: ignore
+                                           ))
+                svg_element.attribs.update(self.__get_stroke(pptx_shape))
+                svg_element.attribs['class'] = 'celldl:Connection'
 
-        if shape.type == SHAPE_TYPE.CONNECTION:
-            if 'type' in pptx_shape.line.headEnd or 'type' in pptx_shape.line.tailEnd:          # type: ignore
-                svg_element.set_markers((marker_id(pptx_shape.line.headEnd, 'head'),            # type: ignore
-                                         None, marker_id(pptx_shape.line.tailEnd, 'tail')       # type: ignore
-                                       ))
-            svg_element.attribs.update(self.__get_stroke(pptx_shape))
-            svg_parent.add(svg_element)
-
-        elif svg_kind == 'image':
-            svg_parent.add(svg_element)
-
-        elif not exclude_shape:
-            svg_element.attribs.update(self.__get_fill(pptx_shape, group_colour))
-            svg_element.attribs.update(self.__get_stroke(pptx_shape))
-            label = text_content(pptx_shape)    ### shape.label
-            if not exclude_text and label is not None:
-                svg_text = self.__draw_shape_label(pptx_shape, label, bounds)    # type: ignore
-            if (hyperlink := self.__get_link(pptx_shape)) is not None:
-                if label is None:
-                    label = hyperlink
-                link_element = SvgHyperlink(href=hyperlink)
-                link_element.add(svg_element)
-                if svg_text is not None:
-                    link_element.add(svg_text)
-                svg_parent.add(link_element)
-            else:
                 svg_parent.add(svg_element)
-                if svg_text is not None:
-                    svg_parent.add(svg_text)
-            if label is not None:
-                add_markup(svg_element, label)  # Set's <title>
-                if svg_text is not None:
-                    add_markup(svg_text, label)   ## shape.label
+
+            elif svg_kind == 'image':
+                svg_parent.add(svg_element)
+
             else:
-                add_markup(svg_element, pptx_shape.name)
+                svg_element.attribs.update(self.__get_fill(pptx_shape, group_colour))
+                svg_element.attribs.update(self.__get_stroke(pptx_shape))
+                if properties.get('cd-class') == CD_CLASS.CONNECTOR:
+                    svg_element.attribs['class'] = 'celldl:Connector'
+
+                label = text_content(pptx_shape)    ### shape.label
+                exclude_text = properties.get('fc-class') != FC_CLASS.SYSTEM
+                svg_text = None
+                if not exclude_text and label is not None:
+                    svg_text = self.__draw_shape_label(pptx_shape, label, bounds)    # type: ignore
+                if (hyperlink := self.__get_link(pptx_shape)) is not None:
+                    if label is None:
+                        label = hyperlink
+                    link_element = SvgHyperlink(href=hyperlink)
+                    link_element.add(svg_element)
+                    if svg_text is not None:
+                        link_element.add(svg_text)
+                    svg_parent.add(link_element)
+                else:
+                    svg_parent.add(svg_element)
+                    if svg_text is not None:
+                        svg_parent.add(svg_text)
+                if label is not None:
+                    add_markup(svg_element, label)  # Set's <title>
+                    if svg_text is not None:
+                        add_markup(svg_text, label)   ## shape.label
+                else:
+                    add_markup(svg_element, pptx_shape.name)
 
     def __draw_shape_label(self, pptx_shape: PptxShape, label: str, bbox: MapBounds) -> SvgElement:
     #==============================================================================================
@@ -538,30 +545,50 @@ class SvgFromSlide:
 
 #===============================================================================
 
-class SvgFromShapes:
-    def __init__(self, powerpoint: Powerpoint):
-        self.__drawing = SvgDrawing(size=None)
-        add_marker_definitions(self.__drawing)
-        ## World --> pixels
-        bounds = powerpoint.bounds   # southwest and northeast corners
-        T = Transform(
-            [[1.0, 0.0, -bounds[0]/WORLD_METRES_PER_PIXEL],
-             [0.0, 1.0 , bounds[3]/WORLD_METRES_PER_PIXEL],
-             [0.0, 0.0,                               1.0]])@np.array(
-                [[1/WORLD_METRES_PER_PIXEL,                       0.0, 0.0],
-                 [                     0.0, -1/WORLD_METRES_PER_PIXEL, 0.0],
-                 [                     0.0,                       0.0, 1.0]])
-        svg_size = T.transform_point((bounds[2], bounds[1]))
-        self.__drawing.attribs['viewBox'] = f'0 0 {svg_size[0]} {svg_size[1]}'
-        self.__transform_matrix = svgelements.Matrix(T.svg_matrix)
+class SvgMaker:
+    def __init__(self, powerpoint: Powerpoint, base_maker=None):
+        if base_maker is None:
+            self.__drawing = SvgDrawing(size=None)
+            add_marker_definitions(self.__drawing)
+            ## World --> pixels
+            bounds = powerpoint.bounds   # southwest and northeast corners
+            T = Transform(
+                [[1.0, 0.0, -bounds[0]/WORLD_METRES_PER_PIXEL],
+                 [0.0, 1.0 , bounds[3]/WORLD_METRES_PER_PIXEL],
+                 [0.0, 0.0,                               1.0]])@np.array(
+                    [[1/WORLD_METRES_PER_PIXEL,                       0.0, 0.0],
+                     [                     0.0, -1/WORLD_METRES_PER_PIXEL, 0.0],
+                     [                     0.0,                       0.0, 1.0]])
+            svg_size = T.transform_point((bounds[2], bounds[1]))
+            self.__drawing.attribs['viewBox'] = f'0 0 {svg_size[0]} {svg_size[1]}'
+            self.__transform_matrix = svgelements.Matrix(T.svg_matrix)
+            self.__celldl = CellDLGraph() if 'exportSVG' in settings else None
+        else:
+            self.__celldl = base_maker.__celldl
+            self.__drawing = base_maker.__drawing
+            self.__transform_matrix = base_maker.__transform_matrix
 
-    def add_slide(self, slide: Slide, **kwds):
-    #=========================================
-        svg_maker = SvgFromSlide(self.__drawing, self.__transform_matrix, slide, **kwds)  ## flip_text  ## Pass transform...
-        svg_maker.add_shape_svgs(self.__drawing)
+    def add_slides(self, slides: dict[tuple[int, str], Slide]):
+    #==========================================================
+        for (_, id), slide in slides.items():
+            # in a group...
+            slide_svg_maker = SvgFromSlide(id, slide, self.__drawing, self.__transform_matrix,
+                                           celldl=self.__celldl)  ## flip_text
+            slide_svg_maker.process_slide_svgs()
 
     def save(self, file_object):
     #===========================
+        if self.__celldl is not None:
+            self.__drawing.set_desc(desc='CellDL Metadata')
+            self.__drawing.elements[0].xml.attrib['data-metadata'] = self.__celldl.as_encoded_turtle()
         self.__drawing.write(file_object, pretty=True, indent=4)
+
+    def svg_bytes(self):
+    #===================
+        svg = StringIO()
+        self.__drawing.write(svg)
+        svg_bytes = svg.getvalue().encode('utf-8')
+        svg.close()
+        return svg_bytes
 
 #===============================================================================

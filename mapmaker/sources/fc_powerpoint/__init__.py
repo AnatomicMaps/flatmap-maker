@@ -32,9 +32,10 @@ import shapely.strtree
 
 from mapmaker.geometry import Transform
 from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
+from mapmaker.settings import settings
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.sources import MapBounds
-from mapmaker.utils import log
+from mapmaker.utils import log, TreeList
 
 from ..powerpoint import PowerpointSource, Slide
 from ..shapefilter import ShapeFilter
@@ -45,7 +46,7 @@ from ..powerpoint.colour import ColourTheme
 from .components import make_annotation, make_component, make_connection, make_connector
 from .components import is_annotation, is_component, is_connector, is_system_name
 from .components import ensure_parent_system
-from .components import FC_CLASS, FC_KIND
+from .components import CD_CLASS, FC_CLASS, FC_KIND
 from .components import HYPERLINK_KINDS, HYPERLINK_IDENTIFIERS
 from .components import NERVE_FEATURE_KINDS, NEURON_PATH_TYPES
 from .components import ORGAN_COLOUR, ORGAN_KINDS
@@ -72,13 +73,14 @@ def contained_in(inside_shape, outer_shape, outside_fraction=0.0):
 
 class FCPowerpointSource(PowerpointSource):
     def __init__(self, flatmap, id, href, kind, source_range=None,
-                 shape_filter: Optional[ShapeFilter]=None):
+                 shape_filter: Optional[ShapeFilter]=None, **kwds):
         super().__init__(flatmap, id, href, kind=kind,
                          source_range=source_range,
                          SlideClass=FCSlide, slide_options=dict(
                             shape_filter=shape_filter,
                             sckan_neurons=flatmap.sckan_neuron_populations
-                        ))
+                         ),
+                         **kwds)
 
     def get_raster_source(self):
     #===========================
@@ -310,6 +312,7 @@ class FCSlide(Slide):
                 unknown_shapes.append(fc_shape)
             # A nerve or vessel that connections may pass through
             if fc_shape.fc_class in [FC_CLASS.NEURAL, FC_CLASS.VASCULAR]:
+                fc_shape.cd_class = CD_CLASS.CONDUIT
                 self.__connection_classifier.add_component(fc_shape)
                 # All neural components must be part of the nervous system and
                 # all vascular components must be part of the cardiovascular system

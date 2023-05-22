@@ -461,6 +461,14 @@ class MapMaker(object):
             with open(export_file, 'w') as fp:
                 fp.write(json.dumps(self.__flatmap.sckan_neuron_populations.connections_with_evidence(), indent=4))
 
+        if ((svg_export_file := settings.get('exportSVG')) is not None
+         and 'svg-maker' in self.__processing_store):
+            svg_maker = self.__processing_store['svg-maker']
+            svg_file = pathlib.Path(svg_export_file).with_suffix('.svg')
+            with open(svg_file, 'w') as fp:
+                svg_maker.save(fp)
+                log.info(f'Saved SVG as {svg_file}')
+
         # Show what the map is about
         if self.__flatmap.models is not None:
             log(f'Generated map: id: {self.id}, uuid: {self.uuid}, models: {self.__flatmap.models}, output: {self.__map_dir}')
@@ -492,6 +500,7 @@ class MapMaker(object):
             self.__shape_filter = ShapeFilter()
         else:
             settings['functionalConnectivity'] = False
+        self.__processing_store = {}
         for layer_number, manifest_source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
             id = manifest_source.get('id')
             kind = manifest_source.get('kind')
@@ -501,7 +510,8 @@ class MapMaker(object):
                     source = FCPowerpointSource(self.__flatmap, id, href,
                                                 kind=kind,
                                                 source_range=get_range(manifest_source.get('slides')),
-                                                shape_filter=self.__shape_filter)
+                                                shape_filter=self.__shape_filter,
+                                                process_store=self.__processing_store)
                 else:
                     raise ValueError('Unsupported FC kind: {}'.format(kind))
             elif kind == 'slides':
