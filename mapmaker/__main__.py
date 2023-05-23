@@ -56,8 +56,6 @@ def arg_parser():
                         help="For use when checking a new map: highlight incomplete features; show centreline network; no image tiles; no neuron paths; etc")
     debug_options.add_argument('--debug', action='store_true',
                         help='See `log.debug()` messages in log')
-    debug_options.add_argument('--ignore-git', dest='ignoreGit', action='store_true',
-                        help="Don't check that sources are committed into git")
     debug_options.add_argument('--only-networks', dest='onlyNetworks', action='store_true',
                         help='Only output features that are part of a centreline network')
     debug_options.add_argument('--save-drawml', dest='saveDrawML', action='store_true',
@@ -82,8 +80,12 @@ def arg_parser():
                         help='Export details of functional connectivity neurons as JSON')
     misc_options.add_argument('--export-svg', dest='exportSVG', metavar='EXPORT_FILE',
                         help='Export Powerpoint sources as SVG')
+    misc_options.add_argument('--ignore-git', dest='ignoreGit', action='store_true',
+                        help="Don't check that sources are committed into git")
     misc_options.add_argument('--invalid-neurons', dest='invalidNeurons', action='store_true',
                         help="Include functional connectivity neurons that aren't known in SCKAN")
+    misc_options.add_argument('--sckan-version', dest='sckanVersion', choices=['production', 'staging'],
+                        help="Overide version of SCKAN specified by map's manifest")
 
     misc_options.add_argument('--id', metavar='ID',
                         help='Set explicit ID for flatmap, overriding manifest')

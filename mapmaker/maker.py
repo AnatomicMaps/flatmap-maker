@@ -302,6 +302,9 @@ class MapMaker(object):
         if options.get('silent', False):
             options['verbose'] = False
 
+        if options.get('sckanVersion') is not None and not options.get('ignoreGit', False):
+            raise ValueError('`--ignore-git` must be set when `--sckan-version` is used')
+
         # Setup logging
 
         log_file = options.get('logFile')
@@ -374,9 +377,8 @@ class MapMaker(object):
         # Raster tile layers
         self.__raster_layers = []
 
-        # Our source of knowledge, updated with information
-        # about maps we've made, held in a global place
-        sckan_version = self.__manifest.sckan_version
+        # Our source of knowledge, updated with information about maps we've made, held in a global place
+        sckan_version = settings.get('sckanVersion', self.__manifest.sckan_version)
         knowledge_store = KnowledgeStore(map_base,
                                          clean_connectivity=settings.get('cleanConnectivity', False),
                                          sckan_version=sckan_version)
