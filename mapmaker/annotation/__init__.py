@@ -52,11 +52,10 @@ class Annotator:
             self.__add_term(ftu.term, ftu.name, *ftu.parent_list)
         self.__create_index()
 
-    def lookup_component(self, component: Shape) -> Optional[str]:
-    #=============================================================
-        self.__check_component_known(component)
-        return self.__find_term_by_names(component.name,
-                                         component.parent.name if component.parent is not None else None)
+    def lookup_shape(self, shape: Shape) -> Optional[str]:
+    #=====================================================
+        self.__check_shape_known(shape)
+        return self.__find_shape_by_names(shape)
 
     def save(self):
     #==============
@@ -100,37 +99,37 @@ class Annotator:
             elif name in self.__terms_by_keys:
                 del self.__terms_by_keys[name]
 
-    def __find_term_by_names(self, *names) -> Optional[str]:
+    def __find_shape_by_names(self, shape) -> Optional[str]:
     #=======================================================
         term = None
-        if len(names) > 1 and names[0] and names[1]:
-            if (term := self.__terms_by_keys.get(names[:2])) is None:
-                term = self.__terms_by_keys.get(names[0])
-        elif names and names[0]:
-            term = self.__terms_by_keys.get(names[0])
+        if shape.name and shape.parent and shape.parent.name:
+            if (term := self.__terms_by_keys.get((shape.name, shape.parent.name))) is None:
+                term = self.__terms_by_keys.get(shape.name)
+        elif shape.name:
+            term = self.__terms_by_keys.get(shape.name)
         return term
 
-    def __check_component_known(self, component: Shape):
-    #===================================================
-        if component.fc_class == FC_CLASS.SYSTEM:
-            self.__annotations.add_system(component.name)
-        elif component.fc_class == FC_CLASS.ORGAN:
-            systems = set(parent.name for parent in component.parents if parent.fc_class == FC_CLASS.SYSTEM)
-            self.__annotations.add_organ(component.name, systems)
-        elif component.fc_class == FC_CLASS.NEURAL:
-            parent = component.parent.name if component.parent is not None else ''
-            self.__annotations.add_nerve(component.name, parent)
-        elif component.fc_class == FC_CLASS.VASCULAR:
-            self.__annotations.add_vessel(component.name)
-        elif component.fc_class == FC_CLASS.FTU:
+    def __check_shape_known(self, shape: Shape):
+    #===========================================
+        if shape.fc_class == FC_CLASS.SYSTEM:
+            self.__annotations.add_system(shape.name)
+        elif shape.fc_class == FC_CLASS.ORGAN:
+            systems = set(parent.name for parent in shape.parents if parent.fc_class == FC_CLASS.SYSTEM)
+            self.__annotations.add_organ(shape.name, systems)
+        elif shape.fc_class == FC_CLASS.NEURAL:
+            parent = shape.parent.name if shape.parent is not None else ''
+            self.__annotations.add_nerve(shape.name, parent)
+        elif shape.fc_class == FC_CLASS.VASCULAR:
+            self.__annotations.add_vessel(shape.name)
+        elif shape.fc_class == FC_CLASS.FTU:
             connected = False
-            for child in component.children:
+            for child in shape.children:
                 if is_connector(child) and child.fc_class == FC_CLASS.NEURAL and child.path_type != PATH_TYPE.MOTOR:
                     connected = True
                     break
-            organ = component.parent.name if component.parent is not None else ''
-            self.__annotations.add_ftu(component.name, organ, connected)
-        elif component.fc_class != FC_CLASS.LAYER:
-            component.log_warning(f'FC class unknown: {component}')
+            organ = shape.parent.name if shape.parent is not None else ''
+            self.__annotations.add_ftu(shape.name, organ, connected)
+        elif shape.fc_class != FC_CLASS.LAYER:
+            shape.log_warning(f'FC class unknown: {shape}')
 
 #===============================================================================

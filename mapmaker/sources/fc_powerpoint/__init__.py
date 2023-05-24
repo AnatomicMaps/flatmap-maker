@@ -366,14 +366,14 @@ class FCSlide(Slide):
         # Called after shapes have been extracted
         for fc_shape in self.__shapes_by_id.values():
             if (is_component(fc_shape)
-            and (term := annotator.lookup_feature(fc_shape)) is not None):
+            and (term := annotator.lookup_shape(fc_shape)) is not None):
                 fc_shape.properties['models'] = term
 
         # go through all connectors and set FTU/organ for them
         for fc_shape in self.__shapes_by_id.values():
             if is_connector(fc_shape):
                 if (fc_shape.fc_kind == FC_KIND.GANGLION
-                and (term := annotator.lookup_feature(fc_shape)) is not None):
+                and (term := annotator.lookup_shape(fc_shape)) is not None):
                     fc_shape.properties['models'] = term
                 self.__annotate_connector(fc_shape)
 
