@@ -377,7 +377,8 @@ class FCSlide(Slide):
                 if (fc_shape.fc_kind == FC_KIND.GANGLION
                 and (term := annotator.lookup_shape(fc_shape)) is not None):
                     fc_shape.properties['models'] = term
-                self.__annotate_connector(fc_shape)
+                if fc_shape.fc_kind not in [FC_KIND.CONNECTOR_JOINER, FC_KIND.CONNECTOR_FREE_END]:
+                    self.__annotate_connector(fc_shape)
 
     def __annotate_connector(self, connector: Shape):
     #================================================
@@ -412,6 +413,8 @@ class FCSlide(Slide):
             self.__connection_classifier.add_connection(connection)
 
         for connection in self.__connections:
+            if connection.get_property('exclude'):
+                continue
             end_names = []
             end_node_parents = set()
             for connector_id in connection.connector_ids:
