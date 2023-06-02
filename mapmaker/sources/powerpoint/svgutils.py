@@ -118,8 +118,8 @@ ARROW_MARKERS = {
     'triangle-tail': __scale_to_world('M 0 0 L 10 5 L 0 10 z')
 }
 
-def add_marker_definitions(drawing):
-#===================================
+def add_marker_definitions(drawing: SvgDrawing):
+#===============================================
     # arrowhead markers (see https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)
     # 18 Jan 2023: markers appear in Chrome with black fill; no markers in Firefox
     for id, path in ARROW_MARKERS.items():
@@ -187,7 +187,7 @@ def add_class(xml, cls):
 #===============================================================================
 
 class Gradient(object):
-    def __init__(self, drawing: SvgDrawing, id: int, pptx_shape, colour_map: ColourMap):
+    def __init__(self, definitions: SvgDefinitions, id: int, pptx_shape, colour_map: ColourMap):
         self.__id = 'gradient-{}'.format(id)
         fill = pptx_shape.fill
         gradient = None
@@ -238,7 +238,7 @@ class Gradient(object):
                 gradient.add_stop_color(offset=stop.position,
                     color=colour_map.lookup(stop.color),
                     opacity=stop.color.alpha)
-            drawing.defs.add(gradient)
+            definitions.add(gradient)
         else:
             print('UNKNOWN FILL: {}\n'.format(pptx_shape.name), fill._fill._element.xml)
 
@@ -484,7 +484,7 @@ class SvgFromSlide:
                 fill_attribs['opacity'] = opacity
         elif pptx_shape.fill.type == MSO_FILL_TYPE.GRADIENT:                        # type: ignore
             self.__gradient_id += 1
-            gradient = Gradient(self.__drawing, self.__gradient_id, pptx_shape, self.__colour_map)
+            gradient = Gradient(self.__drawing.defs, self.__gradient_id, pptx_shape, self.__colour_map)
             fill_attribs['fill'] = gradient.url
         elif pptx_shape.fill.type is None:                                          # type: ignore
             fill_attribs['fill'] = '#FF0000'
