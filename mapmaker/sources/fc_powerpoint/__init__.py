@@ -302,6 +302,8 @@ class FCSlide(Slide):
                  or nervous_system in fc_shape.parents):
                     if fc_shape.name == 'G':
                         fc_shape.name = 'Ganglion'
+                    else:
+                        fc_shape.name = fc_shape.name.replace(' g.', ' ganglion').replace(' n.', ' nerve')
                     fc_shape.fc_class = FC_CLASS.NEURAL
                     self.__nerve_ids.add(fc_shape.id)
                     fc_shape.description = kind
