@@ -33,8 +33,8 @@ MAX_CONNECTION_GAP = 4000               # metres, approx. sqrt(MAX_AREA)/2
 #===============================================================================
 
 HYPERLINK_IDENTIFIERS = {
-    FC_KIND.HYPERLINK_WIKIPEDIA:'wikipedia',
-    FC_KIND.HYPERLINK_PUBMED:'pubmed',
+    FC_KIND.HYPERLINK_WIKIPEDIA: 'wikipedia',
+    FC_KIND.HYPERLINK_PUBMED: 'pubmed',
     FC_KIND.HYPERLINK_PROVENANCE: 'provenance',
 }
 
@@ -119,7 +119,7 @@ def make_fc_shape(shape):
 #===============================================================================
 
 def is_annotation(shape):
-    return shape.get_property('cd-class') == CD_CLASS.ANNOTATION
+    return shape.cd_class == CD_CLASS.ANNOTATION
 
 def make_annotation(shape, fc_class: str):
     make_fc_shape(shape)
@@ -144,7 +144,7 @@ def make_component(shape):
 #===============================================================================
 
 def is_connection(shape):
-    return shape.get_property('cd-class') == CD_CLASS.CONNECTION
+    return shape.cd_class == CD_CLASS.CONNECTION
 
 def make_connection(shape):
     make_fc_shape(shape)
@@ -159,7 +159,7 @@ def make_connection(shape):
 #===============================================================================
 
 def is_connector(shape):
-    return shape.get_property('cd-class') == CD_CLASS.CONNECTOR
+    return shape.cd_class == CD_CLASS.CONNECTOR
 
 def make_connector(shape):
     make_fc_shape(shape)
