@@ -61,7 +61,7 @@ from mapmaker.settings import settings
 from mapmaker.sources import EMU_PER_METRE, MapBounds, WORLD_METRES_PER_PIXEL, POINTS_PER_PIXEL
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log, TreeList
-from mapmaker.utils.svg import name_from_id, svg_id
+from mapmaker.utils.svg import css_class, name_from_id, svg_id
 
 from .colour import ColourPair, ColourMap
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
@@ -261,7 +261,7 @@ class SvgFromSlide:
 
     def process_slide_svgs(self):
     #============================
-        slide_group = SvgGroup(id=svg_id(self.__slide_id), class_='celldl:Layer')
+        slide_group = SvgGroup(id=svg_id(self.__slide_id), class_=css_class(CD_CLASS.LAYER))
         slide_group.set_desc(title=name_from_id(self.__slide_id))
         self.__process_shape_list(self.__slide.shapes, slide_group)
         self.__drawing.add(slide_group)
@@ -336,13 +336,16 @@ class SvgFromSlide:
 
         if not properties.get('exclude', False):   # Will this handle shape filtering??
                                                    # this does remove provenance stars but we need to capture links as FTU metadata
-            if properties.get('cd-class') == CD_CLASS.CONNECTION:
+            celldl_class = properties.get('cd-class')
+            if celldl_class is not None:
+                svg_element.attribs['class'] = css_class(celldl_class)
+
+            if celldl_class == CD_CLASS.CONNECTION:
                 if 'type' in pptx_shape.line.headEnd or 'type' in pptx_shape.line.tailEnd:          # type: ignore
                     svg_element.set_markers((marker_id(pptx_shape.line.headEnd, 'head'),            # type: ignore
                                              None, marker_id(pptx_shape.line.tailEnd, 'tail')       # type: ignore
                                            ))
                 svg_element.attribs.update(self.__get_stroke(pptx_shape))
-                svg_element.attribs['class'] = 'celldl:Connection'
 
                 svg_parent.add(svg_element)
 
@@ -352,8 +355,6 @@ class SvgFromSlide:
             else:
                 svg_element.attribs.update(self.__get_fill(pptx_shape, group_colour))
                 svg_element.attribs.update(self.__get_stroke(pptx_shape))
-                if properties.get('cd-class') == CD_CLASS.CONNECTOR:
-                    svg_element.attribs['class'] = 'celldl:Connector'
 
                 label = text_content(pptx_shape)    ### shape.label
                 exclude_text = properties.get('fc-class') != FC_CLASS.SYSTEM
