@@ -934,7 +934,7 @@ class Network(object):
 
         def get_node_feature(node_dict) -> Feature:
             if len(node_dict['features']) > 1:
-                log.error(f'{path.id}: Terminal node {node_dict["name"]} has multiple features {set(f.id for f in node_dict["features"])}')
+                log.error(f'{path.id}: Terminal node {node_dict["name"]} has multiple features {sorted(set(f.id for f in node_dict["features"]))}')
             return list(f for f in node_dict['features'])[0]
 
         terminal_graphs: dict[tuple, nx.Graph] = {}
