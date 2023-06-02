@@ -108,7 +108,6 @@ class FCSlide(Slide):
         self.__connection_classifier = ConnectionClassifier()
         self.__connections = []
         self.__organ_ids: set[str] = set()
-        self.__nerve_ids: set[str] = set()
         self.__system_ids: set[str] = set()
 
     def process(self, annotator: Optional['Annotator']=None):
@@ -305,7 +304,6 @@ class FCSlide(Slide):
                     else:
                         fc_shape.name = fc_shape.name.replace(' g.', ' ganglion').replace(' n.', ' nerve')
                     fc_shape.fc_class = FC_CLASS.NEURAL
-                    self.__nerve_ids.add(fc_shape.id)
                     fc_shape.description = kind
                 elif (kind := VASCULAR_VESSEL_KINDS.lookup(fc_shape.colour)) is not None:
                     fc_shape.fc_class = FC_CLASS.VASCULAR
