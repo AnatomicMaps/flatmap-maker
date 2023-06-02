@@ -37,7 +37,7 @@ class SHAPE_TYPE(Enum):
 
 #===============================================================================
 
-PropertiesInString = ['name', 'cd-class', 'shape-name', 'shape-kind']
+PropertiesInString = ['name', 'cd-class', 'fc-class', 'fc-kind']
 
 class Shape(PropertyMixin):
     __attributes = ['type', 'id', 'geometry', 'parents', 'children']
