@@ -101,7 +101,7 @@ class PowerpointLayer(MapLayer):
                         node_ids)
             # Pass parent/child containment to the viewer
             for shape in shapes.flatten(skip=1):
-                feature = shape.global_shape.get_property('feature') if shape.filtered else shape.get_property('feature')
+                feature = shape.global_shape.get_property('feature')
                 if feature is not None:
                     set_relationship_property(feature, 'children', shape.children)
                     set_relationship_property(feature, 'parents', shape.parents)
