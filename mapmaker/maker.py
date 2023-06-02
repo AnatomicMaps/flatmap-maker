@@ -461,7 +461,7 @@ class MapMaker(object):
         # Write out details of FC neurons if option set
         if (export_file := settings.get('exportNeurons')) is not None:
             with open(export_file, 'w') as fp:
-                fp.write(json.dumps(self.__flatmap.sckan_neuron_populations.connections_with_evidence(), indent=4))
+                fp.write(json.dumps(self.__flatmap.sckan_neuron_populations.neurons_with_evidence(), indent=4))
 
         if ((svg_export_file := settings.get('exportSVG')) is not None
          and 'svg-maker' in self.__processing_store):

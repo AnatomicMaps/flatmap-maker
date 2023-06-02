@@ -366,7 +366,7 @@ class SckanNeuronPopulations:
         if len(end_terms) <= 1 and not settings.get('invalidNeurons', False):
             connection.properties['exclude'] = True
 
-    def connections_with_evidence(self):
+    def neurons_with_evidence(self):
     #===================================
         neurons = []
         for sckan_connection in self.__sckan_connections:
