@@ -154,8 +154,6 @@ class CellDLGraph:
     def as_encoded_turtle(self):
     #===========================
         turtle = self.__graph.serialize(format='turtle', encoding='utf-8')
-        with open('fc.ttl', 'wb') as fp:
-            fp.write(turtle)
         return f'base64:gzip:turtle:{base64.b64encode(zlib.compress(turtle)).decode()}'
 
 #===============================================================================
