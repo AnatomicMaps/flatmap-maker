@@ -36,7 +36,7 @@ from mapmaker.knowledgebase.sckan import PATH_TYPE
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
-from .components import make_connector, system_ids
+from .components import is_component, make_connector, system_ids
 from .components import NEURON_PATH_TYPES, VASCULAR_KINDS
 from .components import MAX_CONNECTION_GAP
 
@@ -167,7 +167,7 @@ class ConnectionClassifier:
     #=========================================
         if self.__component_index is not None:
             log.error("Cannot add components once connections are added")
-        elif component.cd_class == CD_CLASS.COMPONENT:
+        elif is_component(component):
             bounds = component.geometry.bounds
             # Use geometric mean of side lengths as a measure to determine if a connection
             # is alligned with the nerve

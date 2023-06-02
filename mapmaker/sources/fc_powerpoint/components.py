@@ -130,7 +130,7 @@ def make_annotation(shape, fc_class: str):
 #===============================================================================
 
 def is_component(shape):
-    return shape.get_property('cd-class') == CD_CLASS.COMPONENT
+    return shape.cd_class in [CD_CLASS.CONDUIT, CD_CLASS.COMPONENT]
 
 def make_component(shape):
     make_fc_shape(shape)
