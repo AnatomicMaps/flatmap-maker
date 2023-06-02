@@ -33,6 +33,7 @@ from mapmaker.utils import log
 
 import mapmaker.knowledgebase as kb
 from .annotator import AnnotatorDatabase
+from .celldl import FC_KIND
 
 #===============================================================================
 
@@ -197,13 +198,15 @@ class SckanNodeSet:
         return organ is not None and self.__end_node_dict.get(organ) is not None
 
     def has_end_connectors(self, end_nodes):
-    #==================================
-        return (self.__has_end_connector(*end_nodes[0])
+    #=======================================
+        return (len(end_nodes) >= 2
+            and self.__has_end_connector(*end_nodes[0])
             and self.__has_end_connector(*end_nodes[-1]))
 
     def has_connectors(self, end_nodes):
     #==================================
-        return (self.__has_connector(*end_nodes[0])
+        return (len(end_nodes) >= 2
+            and self.__has_connector(*end_nodes[0])
             and self.__has_connector(*end_nodes[-1]))
 
     def __has_connector(self, ftu: str, organ: Optional[str]=None) -> bool:
@@ -261,14 +264,20 @@ class SckanNeuronChecker:
 #===============================================================================
 
 class SckanConnection:
-    def __init__(self, connection, end_node_terms, intermediate_terms):
+    def __init__(self, connection, end_nodes, end_terms, intermediate_terms):
         self.__connection = connection
-        self.__end_node_terms = end_node_terms
+        self.__end_nodes = end_nodes
+        self.__end_terms = end_terms
         self.__intermediate_terms = intermediate_terms
+        self.__description = {}
 
     @property
     def connection(self):
         return self.__connection
+
+    @property
+    def description(self):
+        return self.__description
 
     @property
     def id(self):
@@ -282,17 +291,17 @@ class SckanConnection:
     def check_validity(self, neuron_checker):
     #========================================
         sckan_path_ids = neuron_checker.valid_sckan_paths(self.__connection.path_type,
-                                                          self.__end_node_terms)
-        description = {
+                                                          self.__end_terms)
+        self.__description = {
             'id': self.id,
-            'endNodes': tuple(sorted(self.__end_node_terms)),
+            'endNodes': tuple(sorted(self.__end_nodes)),
             'type': self.__connection.path_type.name
         }
         if len(self.__intermediate_terms):
-            description['intermediates'] = self.__intermediate_terms
+            self.__description['intermediates'] = self.__intermediate_terms
         feature = self.__connection.properties['feature']
         if len(sckan_path_ids):
-            description['sckanPaths'] = sckan_path_ids
+            self.__description['sckanPaths'] = sckan_path_ids
             feature.properties['sckan'] = True
             feature.properties['models'] = sckan_path_ids[0]
             label = f"Neuron in '{kb.get_label(sckan_path_ids[0])}'"
@@ -301,7 +310,8 @@ class SckanConnection:
             feature.properties['label'] = label
         elif not settings.get('invalidNeurons', False):
             feature.properties['exclude'] = True
-        return description
+
+        return self.__description
 
 #===============================================================================
 
@@ -310,16 +320,14 @@ class SckanNeuronPopulations:
         self.__flatmap = flatmap
         self.__annotator_database = AnnotatorDatabase(flatmap.map_dir)
         self.__sckan_connections = []
-        self.__connection_descriptions: list[dict] = []
 
     def generate_connectivity(self):
     #===============================
         neuron_checker = SckanNeuronChecker(self.__flatmap)
         for sckan_connection in self.__sckan_connections:
-            if sckan_connection.has_feature:
-                description = sckan_connection.check_validity(neuron_checker)
-                self.__connection_descriptions.append(description)
-                if ((sckan_path_ids := description.get('sckanPaths')) is not None
+            if sckan_connection.has_feature:   # That is the connection has not been excluded because of some error
+                sckan_connection.check_validity(neuron_checker)
+                if ((sckan_path_ids := sckan_connection.description.get('sckanPaths')) is not None
                   and len(sckan_path_ids) > 1):
                     # If the neuron is in multiple SCKAN populations then add a line feature for each one
                     connection = sckan_connection.connection
@@ -330,37 +338,44 @@ class SckanNeuronPopulations:
                         properties['models'] = sckan_path_id
                         self.__flatmap.new_feature(connection.geometry, properties)
 
-    def add_connection(self, feature_lookup, connection):
-    #====================================================
-        end_node_terms = []
+    def add_connection(self, feature_properties_lookup, connection):
+    #===============================================================
+        end_nodes = []
+        end_terms = []
         for connector_id in connection.connector_ids:
-            properties = feature_lookup(connector_id)
-            if (models := properties.get('parent-models')) is not None:
-                end_node_terms.append(models)
+            properties = feature_properties_lookup(connector_id)
+            if properties.get('fc-kind') not in [FC_KIND.CONNECTOR_JOINER, FC_KIND.CONNECTOR_FREE_END]:
+                end_node = (properties.get('name', ''), properties.get('parent-models', tuple()))
+                end_nodes.append(end_node)
+                if len(end_node[1]):
+                    end_terms.append(end_node[1])
+                elif settings.get('authoring', False):
+                    log.warning(f'Cannot find term for connector {connector_id} ({end_node[0]}) in connection {connection.id}')
         intermediate_terms = []
         for component_id in connection.intermediate_components:
-            properties = feature_lookup(component_id)
+            properties = feature_properties_lookup(component_id)
             if (models := properties.get('models')) is not None:
                 intermediate_terms.append(models)
         for connector_id in connection.intermediate_connectors:
-            properties = feature_lookup(connector_id)
+            properties = feature_properties_lookup(connector_id)
             if (models := properties.get('models')) is not None:
                 intermediate_terms.append(models)
-        if len(end_node_terms) > 1:
-            self.__sckan_connections.append(SckanConnection(connection,
-                                                            end_node_terms,
-                                                            intermediate_terms))
-        elif not settings.get('invalidNeurons', False):
+        self.__sckan_connections.append(SckanConnection(connection,
+                                                        end_nodes, end_terms,
+                                                        intermediate_terms))
+        if len(end_terms) <= 1 and not settings.get('invalidNeurons', False):
             connection.properties['exclude'] = True
 
     def connections_with_evidence(self):
     #===================================
-        connections = []
-        for description in self.__connection_descriptions:
-            evidence = self.__annotator_database.get_derivation(description['id'])
-            if len(evidence):
-                description['evidence'] = evidence
-            connections.append(description)
-        return connections
+        neurons = []
+        for sckan_connection in self.__sckan_connections:
+            if ((description := sckan_connection.description.copy())
+            and len(description['endNodes']) > 1):
+                evidence = self.__annotator_database.get_derivation(description['id'])
+                if len(evidence):
+                    description['evidence'] = evidence
+                neurons.append(description)
+        return neurons
 
 #===============================================================================
