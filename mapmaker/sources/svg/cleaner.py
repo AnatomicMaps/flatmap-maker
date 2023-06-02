@@ -53,7 +53,7 @@ class SVGCleaner(object):
 
     def save(self, file_object: BinaryIO):
     #=====================================
-        header = ' Generator: mapmaker {} at {} '.format(__version__, datetime.now(timezone.utc).isoformat())
+        header = ' Generator: mapmaker {} at {} '.format(__version__, datetime.now(timezone.utc).isoformat(timespec='seconds'))
         comments = self.__svg.xpath('/comment()')
         if len(comments):
             comments[0].text = header
