@@ -33,6 +33,7 @@ import svgelements
 
 from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS, FC_KIND
 from mapmaker.knowledgebase.sckan import PATH_TYPE
+from mapmaker.settings import settings
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
@@ -273,8 +274,11 @@ class ConnectionClassifier:
         connector = self.__connectors[connected_end_ids[0]]
         connector_1 = self.__connectors[connected_end_ids[1]]
 
+        connection_logger = (connection.log_warning if settings.get('invalidNeurons', False)
+                        else connection.log_error)
+
         if connector.fc_class != connector_1.fc_class:
-            connection.log_error(f"Connection ends aren't compatible ({connector.fc_class} != {connector_1.fc_class})")
+            connection_logger(f"Connection ends aren't compatible ({connector.fc_class} != {connector_1.fc_class})")
 
         connection.fc_class = connector.fc_class
 
@@ -282,7 +286,7 @@ class ConnectionClassifier:
             connection.fc_kind = FC_KIND.NEURON
             if (path_type := NEURON_PATH_TYPES.lookup(connection.colour)) is not None:
                 if connector.fc_kind in NODE_CONNECTORS and path_type != connector.path_type:
-                    connection.log_error(f"Connection type doesn't match connector's: `{path_type.name}` != `{connector.path_type.name}`")
+                    connection_logger(f"Connection {connection.id}'s type doesn't match connector's: `{path_type.name}` != `{connector.path_type.name}`")
                 if path_type in [PATH_TYPE.PARASYMPATHETIC, PATH_TYPE.SYMPATHETIC]:
                     line_style = connection.get_property('line-style', '').lower()
                     path_type |= (PATH_TYPE.PRE_GANGLIONIC if 'dot' in line_style or 'dash' in line_style
@@ -292,13 +296,13 @@ class ConnectionClassifier:
                 connection.set_property('kind', path_kind)
                 connection.set_property('type', 'line-dash' if path_kind.endswith('-post') else 'line')
             else:
-                connection.log_error(f"Connection colour ({connection.colour}) isn't a neuron type")
+                connection_logger(f"Connection colour ({connection.colour}) isn't a neuron type")
             connection.set_property('stroke-width', 1.0)
         elif connection.fc_class == FC_CLASS.VASCULAR:
             connection.description = VASCULAR_KINDS.lookup(connection.colour)       # type: ignore
             if (connector.fc_kind in NODE_CONNECTORS
             and connection.description != connector.description):
-                connection.log_error(f"Connection colour doesn't match connector's {connection.colour} != {connector.colour}")
+                connection_logger(f"Connection colour doesn't match connector's {connection.colour} != {connector.colour}")
             connection.set_property('kind', connection.description)
             connection.set_property('type', 'line')
             connection.set_property('stroke-width', connection.get_property('stroke-width',
@@ -367,7 +371,7 @@ class ConnectionClassifier:
                                 ### connections have been processed.
 
                         elif len(neighbours) > 1:
-                            connection.log_error(f'Connector has too many edges from it: {connector}')
+                            connection_logger(f'Connector has too many edges from it: {connector}')
 
             connection.set_property('connectors', [self.__connectors[id] for id in connection.local_connector_ids])
             systems = set()
