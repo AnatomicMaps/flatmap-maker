@@ -342,7 +342,7 @@ class FCSlide(Slide):
                             connector.path_type = path_type
                     elif connector.shape_kind == 'plus':
                         connector.fc_class = FC_CLASS.NEURAL
-                        connector.fc_kind = FC_KIND.CONNECTOR_THROUGH
+                        connector.fc_kind = FC_KIND.PLEXUS
                 elif connector.shape_kind == 'ellipse':
                     if (kind := VASCULAR_KINDS.lookup(connector.colour)) is not None:
                         connector.fc_class = FC_CLASS.VASCULAR
