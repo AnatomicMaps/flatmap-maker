@@ -202,7 +202,7 @@ class PropertiesStore(object):
             else:
                 feature_properties['label'] = label
             # FC neuron path with connection information in name
-            if 'sckan' in feature_properties:
+            if feature_properties.get('sckan', False):
                 label = f"Neuron in '{feature_properties['label']}'"
                 if 'name' in feature_properties:
                      label += '\n' + feature_properties.get('name', '')
