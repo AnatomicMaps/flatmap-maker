@@ -31,12 +31,12 @@ import svgelements
 
 #===============================================================================
 
+from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS, FC_KIND
 from mapmaker.knowledgebase.sckan import PATH_TYPE
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
 from .components import make_connector, system_ids
-from .components import CD_CLASS, FC_KIND, FC_CLASS
 from .components import NEURON_PATH_TYPES, VASCULAR_KINDS
 from .components import MAX_CONNECTION_GAP
 

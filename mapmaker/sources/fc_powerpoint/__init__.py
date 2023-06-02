@@ -31,6 +31,7 @@ import shapely.strtree
 #===============================================================================
 
 from mapmaker.geometry import Transform
+from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS, FC_KIND
 from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
 from mapmaker.settings import settings
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
@@ -46,7 +47,6 @@ from ..powerpoint.colour import ColourTheme
 from .components import make_annotation, make_component, make_connection, make_connector
 from .components import is_annotation, is_component, is_connector, is_system_name
 from .components import ensure_parent_system
-from .components import CD_CLASS, FC_CLASS, FC_KIND
 from .components import HYPERLINK_KINDS, HYPERLINK_IDENTIFIERS
 from .components import NERVE_FEATURE_KINDS, NEURON_PATH_TYPES
 from .components import ORGAN_COLOUR, ORGAN_KINDS

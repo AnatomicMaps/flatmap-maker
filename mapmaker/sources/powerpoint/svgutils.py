@@ -55,6 +55,7 @@ from pptx.shapes.group import GroupShape as PptxGroupShape
 #===============================================================================
 
 from mapmaker.geometry import Transform
+from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS
 from mapmaker.knowledgebase.celldl import CellDLGraph
 from mapmaker.settings import settings
 from mapmaker.sources import EMU_PER_METRE, MapBounds, WORLD_METRES_PER_PIXEL, POINTS_PER_PIXEL
@@ -62,7 +63,6 @@ from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.utils import log, TreeList
 from mapmaker.utils.svg import name_from_id, svg_id
 
-from ..fc_powerpoint.components import CD_CLASS, FC_CLASS
 from .colour import ColourPair, ColourMap
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
 from .powerpoint import Powerpoint, Slide

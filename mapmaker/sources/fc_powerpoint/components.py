@@ -19,6 +19,7 @@
 #===============================================================================
 
 from mapmaker.knowledgebase.sckan import PATH_TYPE
+from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS, FC_KIND
 from mapmaker.sources.shape import SHAPE_TYPE
 
 from .colours import ColourMatcher, ColourMatcherDict
@@ -28,76 +29,6 @@ from .colours import ColourMatcher, ColourMatcherDict
 # If a connection end is closer than this gap to a connector
 # of the same nerve class then it is connected
 MAX_CONNECTION_GAP = 4000               # metres, approx. sqrt(MAX_AREA)/2
-
-#===============================================================================
-
-class CD_CLASS:
-    UNKNOWN    = 'celldl:Unknown'
-    LAYER      = 'celldl:Layer'
-
-    COMPONENT  = 'celldl:Component'     # What has CONNECTORs
-
-    CONNECTOR  = 'celldl:Connector'     # What a CONNECTION connects to
-    CONNECTION = 'celldl:Connection'    # The path between CONNECTORS
-    CONDUIT    = 'celldl:Conduit'       # A container for CONNECTIONs
-
-    ANNOTATION = 'celldl:Annotation'    # Additional information about something
-
-#===============================================================================
-
-class FC_CLASS:
-    UNKNOWN     = 'fc:Unknown'
-    LAYER       = 'fc:Layer'
-
-    # Component classes
-    SYSTEM      = 'fc:System'
-    ORGAN       = 'fc:Organ'
-    FTU         = 'fc:Ftu'
-
-    # Connector, Connection, and Conduit classes
-    NEURAL      = 'fc:Neural'
-    VASCULAR    = 'fc:Vascular'
-
-    # Annotation classes
-    DESCRIPTION = 'fc:Description'
-    HYPERLINK   = 'fc:Hyperlink'
-
-#===============================================================================
-
-class FC_KIND:
-    UNKNOWN              = 'fc-kind:Unknown'
-
-    # WIP: System kinds (is this independent to FC_KIND?)
-    NERVOUS_SYSTEM       = 'fc-kind:NervousSystem'
-    CARDIOVASCULAR_SYSTEM = 'fc-kind:CardiovascularSystem'
-
-    # WIP: Organ kinds (is this independent to FC_KIND?)
-    DIAPHRAM             = 'fc-kind:Diaphram'
-
-    # Vascular kinds
-    ARTERIAL             = 'fc-kind:Arterial'
-    VENOUS               = 'fc-kind:Venous'
-    VEIN                 = 'fc-kind:Vein'
-    ARTERY               = 'fc-kind:Artery'
-    VASCULAR_REGION      = 'fc-kind:VascularRegion'
-
-    # Neural kinds
-    GANGLION             = 'fc-kind:Ganglion'
-    NEURON               = 'fc-kind:Neuron'
-    NERVE                = 'fc-kind:Nerve'
-    PLEXUS               = 'fc-kind:Plexus'
-
-    # Connector kinds
-    CONNECTOR_JOINER     = 'fc-kind:ConnectorJoiner'    # double headed arrow
-    CONNECTOR_FREE_END   = 'fc-kind:ConnectorFreeEnd'   # unattached connection end
-    CONNECTOR_NODE       = 'fc-kind:ConnectorNode'      # ganglionic node??
-    CONNECTOR_PORT       = 'fc-kind:ConnectorPort'      # a neural connection end in FTU
-    CONNECTOR_THROUGH    = 'fc-kind:ConnectorThrough'   # cross in plexus and/or ganglion
-
-    # Hyperlink kinds
-    HYPERLINK_WIKIPEDIA  = 'fc-kind:HyperlinkWikipedia'
-    HYPERLINK_PUBMED     = 'fc-kind:HyperlinkPubMed'
-    HYPERLINK_PROVENANCE = 'fc-kind:HyperlinkProvenance'
 
 #===============================================================================
 

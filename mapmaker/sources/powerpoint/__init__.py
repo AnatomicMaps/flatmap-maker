@@ -25,11 +25,11 @@ import pathlib
 
 from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
+from mapmaker.knowledgebase.celldl import CD_CLASS
 from mapmaker.settings import settings
 from mapmaker.utils import log, TreeList
 
 from .. import MapSource, RasterSource, PATHWAYS_TILE_LAYER
-from ..fc_powerpoint.components import CD_CLASS
 
 from .powerpoint import Powerpoint, Slide
 from .svgutils import SvgMaker
