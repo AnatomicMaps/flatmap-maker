@@ -44,7 +44,7 @@ from mapmaker.utils import configure_logging, log, FilePath, set_as_list
 
 from .annotation import Annotator
 from .flatmap import FlatMap
-from .knowledgebase import KnowledgeStore
+from . import knowledgebase
 
 from .output.geojson import GeoJSONOutput
 from .output.mbtiles import MBTiles
@@ -379,7 +379,7 @@ class MapMaker(object):
 
         # Our source of knowledge, updated with information about maps we've made, held in a global place
         sckan_version = settings.get('sckanVersion', self.__manifest.sckan_version)
-        knowledge_store = KnowledgeStore(map_base,
+        knowledge_store = knowledgebase.KnowledgeStore(map_base,
                                          clean_connectivity=settings.get('cleanConnectivity', False),
                                          sckan_version=sckan_version)
         settings['KNOWLEDGE_STORE'] = knowledge_store
@@ -621,6 +621,8 @@ class MapMaker(object):
         metadata['settings'] = self.__options
         if (git_status := self.__manifest.git_status) is not None:
             metadata['git-status'] = git_status
+        if (sckan_build := knowledgebase.sckan_build()) is not None:
+            metadata['sckan'] = sckan_build
         tile_db.add_metadata(metadata=json.dumps(metadata))
 
         # Save layer details in metadata

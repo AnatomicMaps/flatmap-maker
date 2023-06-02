@@ -64,6 +64,10 @@ def get_label(entity: str) -> str:
 def get_knowledge(entity: str) -> dict[str, Any]:
     return settings['KNOWLEDGE_STORE'].entity_knowledge(entity)
 
+def sckan_build() -> Optional[dict]:
+    if (scicrunch := settings['KNOWLEDGE_STORE'].scicrunch) is not None:
+        return scicrunch.sckan_build()
+
 #===============================================================================
 
 def entity_name(entity: Optional[str]) -> str:
