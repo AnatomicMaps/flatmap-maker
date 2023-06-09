@@ -154,7 +154,7 @@ def connectivity_graph_from_knowledge(knowledge: dict) -> Optional[nx.Graph]:
         phenotypes = knowledge.get('phenotypes', [])
         path_type = path_type_from_phenotypes(phenotypes)
         if path_type == PATH_TYPE.UNKNOWN:
-            log.warning(f'SCKAN knowledge error: Phenotype {phenotypes} is unknown, defaulting to CNS')
+            log.warning(f"SCKAN knowledge error: Phenotype {phenotypes} is unknown for {knowledge.get('id')}, defaulting to CNS")
             path_type = PATH_TYPE.CNS
         G.graph['path-type'] = path_type
         for node in knowledge.get('connectivity', []):
