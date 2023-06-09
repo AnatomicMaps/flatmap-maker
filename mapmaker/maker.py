@@ -683,6 +683,8 @@ class MapMaker(object):
             map_index['style'] = 'anatomical'
         if git_status is not None:
             map_index['git-status'] = git_status
+        if self.__sckan_build is not None:
+            map_index['sckan'] = self.__sckan_build['created']
 
         # Create `index.json` for building a map in the viewer
         with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:
