@@ -54,6 +54,7 @@ EXPORTED_FEATURE_PROPERTIES = [
     'source',
     'stroke-width',     # float
     'path-ids',         # list[str]
+    'taxon',            # str
     'tile-layer',
     'type',
     'warning',
