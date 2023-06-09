@@ -96,11 +96,11 @@ Command line help
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
-                    [--clean] [--background-tiles]
-                    [--authoring] [--ignore-git] [--debug] [--only-networks]
-                    [--save-drawml] [--save-geojson] [--save-svg] [--tippecanoe]
-                    [--initial-zoom N] [--max-zoom N] [--min-zoom N] [--clean-connectivity]
-                    [--export-neurons EXPORT_FILE] [--id ID] [--single-file {celldl,svg}]
+                    [--clean] [--clean-connectivity] [--background-tiles] [--id ID]
+                    [--ignore-git] [--invalid-neurons] [--sckan-version {production,staging}]
+                    [--authoring] [--debug] [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
+                    [--initial-zoom N] [--max-zoom N] [--min-zoom N]
+                    [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE] [--single-file {celldl,svg}]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -117,21 +117,26 @@ Command line help
 
     Map generation:
       --clean               Remove all files from generated map's directory before
-                            generating new map
+                            generating the new map
+      --clean-connectivity  Refresh local connectivity knowledge from SciCrunch
       --background-tiles    Generate image tiles of map's layers (may take a
                             while...)
+      --id ID               Set explicit ID for flatmap, overriding manifest
+      --ignore-git          Don't check that sources are committed into git
+      --invalid-neurons     Include functional connectivity neurons that aren't known
+                            in SCKAN
+      --sckan-version {production,staging}
+                            Overide version of SCKAN specified by map's manifest
 
     Diagnostics:
       --authoring           For use when checking a new map: highlight incomplete
                             features; show centreline network; no image tiles; no
                             neuron paths; etc
       --debug               See `log.debug()` messages in log
-      --ignore-git          Don't check that sources are committed into git
       --only-networks       Only output features that are part of a centreline
                             network
       --save-drawml         Save a slide's DrawML for debugging
       --save-geojson        Save GeoJSON files for each layer
-      --save-svg            Save intermediate SVG files used to generate image tiles
       --tippecanoe          Show command used to run Tippecanoe
 
     Zoom level:
@@ -140,10 +145,10 @@ Command line help
       --min-zoom N          Minimum zoom level (defaults to 2)
 
     Miscellaneous:
-      --clean-connectivity  Refresh local connectivity knowledge from SciCrunch
       --export-neurons EXPORT_FILE
                             Export details of functional connectivity neurons as JSON
-      --id ID               Set explicit ID for flatmap, overriding manifest
+      --export-svg EXPORT_FILE
+                            Export Powerpoint sources as SVG
       --single-file {celldl,svg}
                             Source is a single file of the designated type, not a
                             flatmap manifest
