@@ -140,7 +140,9 @@ class Manifest:
         self.__path = FilePath(manifest_path)
         if single_file is not None:
             ignore_git = True
-        if not ignore_git:
+        if ignore_git:
+            self.__repo = None
+        else:
             self.__repo = MapRepository(pathlib.Path(manifest_path).parent)
         self.__ignore_git = ignore_git
         self.__url = self.__path.url
@@ -227,8 +229,12 @@ class Manifest:
         return self.__manifest.get('description', '')
 
     @property
+    def git_repository(self):
+        return self.__repo
+
+    @property
     def git_status(self):
-        if not self.__ignore_git and self.__repo.sha is not None:
+        if self.__repo is not None and self.__repo.sha is not None:
             return {
                 'sha': self.__repo.sha,
                 'remotes': self.__repo.remotes
@@ -241,6 +247,10 @@ class Manifest:
     @property
     def kind(self):
         return self.__manifest.get('kind', 'anatomical')
+
+    @property
+    def manifest(self):
+        return self.__manifest
 
     @property
     def models(self):
@@ -268,12 +278,6 @@ class Manifest:
         and (blob_url := self.__repo.path_blob_url(self.__url)) is not None):
             return blob_url
         return self.__url
-
-    @property
-    def uuid(self):
-        if not self.__ignore_git:
-            return str(uuid.uuid5(uuid.NAMESPACE_URL,
-                                  self.__repo.sha + json.dumps(self.__manifest)))
 
     def __check_and_normalise_path(self, path) -> str:
     #=================================================
@@ -354,7 +358,6 @@ class MapMaker(object):
         self.__id = self.__manifest.id
         if self.__id is None:
             raise ValueError('No id given for map')
-        self.__uuid = self.__manifest.uuid
 
         # All set to go
         log('Making map: {}'.format(self.__id))
@@ -363,6 +366,30 @@ class MapMaker(object):
         map_base = options.get('output')
         if not os.path.exists(map_base):
             os.makedirs(map_base)
+
+        # Our source of knowledge, updated with information about maps we've made, held in a global place
+        sckan_version = settings.get('sckanVersion', self.__manifest.sckan_version)
+        knowledge_store = knowledgebase.KnowledgeStore(map_base,
+                                         clean_connectivity=settings.get('cleanConnectivity', False),
+                                         sckan_version=sckan_version)
+        settings['KNOWLEDGE_STORE'] = knowledge_store
+
+        self.__sckan_build = knowledgebase.sckan_build()
+
+        # Our ``uuid`` depends on the source Git repository commit,
+        # the contents of the map's manifest, mapmaker's version,
+        # and the version of SCKAN we use for connectivity.
+        if (self.__sckan_build is not None
+        and (repo := self.__manifest.git_repository) is not None):
+            self.__uuid = str(uuid.uuid5(uuid.NAMESPACE_URL,
+                              repo.sha
+                            + json.dumps(self.__manifest.manifest)
+                            + __version__
+                            + self.__sckan_build['created']))
+        else:
+            self.__uuid = None
+
+        # Where the generated map is saved
         self.__map_dir = os.path.join(map_base, self.__uuid if self.__uuid is not None else self.__id)
         if options.get('clean', False):
             shutil.rmtree(self.__map_dir, True)
@@ -376,13 +403,6 @@ class MapMaker(object):
 
         # Raster tile layers
         self.__raster_layers = []
-
-        # Our source of knowledge, updated with information about maps we've made, held in a global place
-        sckan_version = settings.get('sckanVersion', self.__manifest.sckan_version)
-        knowledge_store = knowledgebase.KnowledgeStore(map_base,
-                                         clean_connectivity=settings.get('cleanConnectivity', False),
-                                         sckan_version=sckan_version)
-        settings['KNOWLEDGE_STORE'] = knowledge_store
 
         # Exclude shapes from a layer if they are in the base layer (FC maps)
         self.__shape_filter = None
@@ -621,8 +641,8 @@ class MapMaker(object):
         metadata['settings'] = self.__options
         if (git_status := self.__manifest.git_status) is not None:
             metadata['git-status'] = git_status
-        if (sckan_build := knowledgebase.sckan_build()) is not None:
-            metadata['sckan'] = sckan_build
+        if self.__sckan_build is not None:
+            metadata['sckan'] = self.__sckan_build
         tile_db.add_metadata(metadata=json.dumps(metadata))
 
         # Save layer details in metadata
