@@ -45,11 +45,21 @@ def arg_parser():
     log_options.add_argument('--verbose', action='store_true',
                         help="Show progress bars")
 
-    tile_options = parser.add_argument_group('Map generation')
-    tile_options.add_argument('--clean', action='store_true',
+    generation_options = parser.add_argument_group('Map generation')
+    generation_options.add_argument('--clean', action='store_true',
                         help="Remove all files from generated map's directory before generating the new map")
-    tile_options.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
+    generation_options.add_argument('--clean-connectivity', dest='cleanConnectivity', action='store_true',
+                        help='Refresh local connectivity knowledge from SciCrunch')
+    generation_options.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
                         help="Generate image tiles of map's layers (may take a while...)")
+    generation_options.add_argument('--id', metavar='ID',
+                        help='Set explicit ID for flatmap, overriding manifest')
+    generation_options.add_argument('--ignore-git', dest='ignoreGit', action='store_true',
+                        help="Don't check that sources are committed into git")
+    generation_options.add_argument('--invalid-neurons', dest='invalidNeurons', action='store_true',
+                        help="Include functional connectivity neurons that aren't known in SCKAN")
+    generation_options.add_argument('--sckan-version', dest='sckanVersion', choices=['production', 'staging'],
+                        help="Overide version of SCKAN specified by map's manifest")
 
     debug_options = parser.add_argument_group('Diagnostics')
     debug_options.add_argument('--authoring', action='store_true',
@@ -74,21 +84,10 @@ def arg_parser():
                         help='Minimum zoom level (defaults to 2)')
 
     misc_options = parser.add_argument_group('Miscellaneous')
-    misc_options.add_argument('--clean-connectivity', dest='cleanConnectivity', action='store_true',
-                        help='Refresh local connectivity knowledge from SciCrunch')
     misc_options.add_argument('--export-neurons', dest='exportNeurons', metavar='EXPORT_FILE',
                         help='Export details of functional connectivity neurons as JSON')
     misc_options.add_argument('--export-svg', dest='exportSVG', metavar='EXPORT_FILE',
                         help='Export Powerpoint sources as SVG')
-    misc_options.add_argument('--ignore-git', dest='ignoreGit', action='store_true',
-                        help="Don't check that sources are committed into git")
-    misc_options.add_argument('--invalid-neurons', dest='invalidNeurons', action='store_true',
-                        help="Include functional connectivity neurons that aren't known in SCKAN")
-    misc_options.add_argument('--sckan-version', dest='sckanVersion', choices=['production', 'staging'],
-                        help="Overide version of SCKAN specified by map's manifest")
-
-    misc_options.add_argument('--id', metavar='ID',
-                        help='Set explicit ID for flatmap, overriding manifest')
     misc_options.add_argument('--single-file', dest='singleFile', choices=['celldl', 'svg'],
                         help='Source is a single file of the designated type, not a flatmap manifest')
 
