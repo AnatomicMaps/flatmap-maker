@@ -316,6 +316,8 @@ class MapMaker(object):
             log_path = options.get('logPath')
             if log_path is not None:
                 log_file = os.path.join(log_path, '{}.log'.format(os.getpid()))
+        if options.get('silent', False) and log_file is None:
+            raise ValueError('`--silent` option requires `--log LOG_FILE` to be given')
         configure_logging(log_file,
             verbose=options.get('verbose', False),
             silent=options.get('silent', False),
