@@ -44,6 +44,9 @@ from mapmaker.utils import log
 from .feature import Feature, FeatureAnatomicalNodeMap
 from .layers import MapLayer
 
+# Exports
+from .manifest import Manifest
+
 #===============================================================================
 
 class FlatMap(object):
