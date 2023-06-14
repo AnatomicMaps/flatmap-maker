@@ -55,6 +55,8 @@ def arg_parser():
                         help="Don't check that sources are committed into git")
     generation_options.add_argument('--invalid-neurons', dest='invalidNeurons', action='store_true',
                         help="Include functional connectivity neurons that aren't known in SCKAN")
+    generation_options.add_argument('--publish', metavar='SPARC_DATASET',
+                        help="Create a SPARC Dataset containing the map's sources and the generated map")
     generation_options.add_argument('--sckan-version', dest='sckanVersion', choices=['production', 'staging'],
                         help="Overide version of SCKAN specified by map's manifest")
 

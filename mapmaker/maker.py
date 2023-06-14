@@ -39,6 +39,7 @@ from . import knowledgebase
 
 from .output.geojson import GeoJSONOutput
 from .output.mbtiles import MBTiles
+from .output.sparc_dataset import SparcDataset
 from .output.styling import MapStyle
 from .output.tilemaker import RasterTileMaker
 
@@ -49,6 +50,14 @@ from .sources.shapefilter import ShapeFilter
 
 #===============================================================================
 
+INVALID_PUBLISHING_OPTIONS = [
+    'authoring',
+    'id',
+    'ignoreGit',
+    'invalidNeurons',
+    'sckanVersion',
+    'singleFile',
+]
 
 #===============================================================================
 
@@ -92,6 +101,17 @@ class MapMaker(object):
             raise ValueError('Initial zoom must be between {} and {}'.format(min_zoom, max_zoom))
         self.__zoom = (min_zoom, max_zoom, initial_zoom)
 
+        if options.get('publish'):
+            # Check the given options are compatible with SDS publishing
+            errors = False
+            for option in INVALID_PUBLISHING_OPTIONS:
+                if options.get(option):
+                    log.warning(f'`{option}` not allowed when publishing a dataset')
+                    errors = True
+            if errors:
+                raise ValueError('Invalid parameters for dataset publishing ')
+            options['backgroundTiles'] = True
+
         # Authoring implies to clean output directory, report deprecated markup, and don't tile background
         if options.get('authoring', False):
             options['showDeprecated'] = True
@@ -112,6 +132,10 @@ class MapMaker(object):
         self.__id = self.__manifest.id
         if self.__id is None:
             raise ValueError('No id given for map')
+
+        # Publishing requires a ``description.json``
+        if options.get('publish') and self.__manifest.description is None:
+            raise ValueError('The manifest must specify a JSON `description` file if publishing')
 
         # All set to go
         log('Making map: {}'.format(self.__id))
@@ -244,6 +268,12 @@ class MapMaker(object):
             with open(svg_file, 'w') as fp:
                 svg_maker.save(fp)
                 log.info(f'Saved SVG as {svg_file}')
+
+        # Create a Sparc dataset if publishing
+        if (sds_output := settings.get('publish')) is not None:
+            sparc_dataset = SparcDataset(self.__manifest, self.__flatmap)
+            sparc_dataset.generate()
+            sparc_dataset.save(sds_output)
 
         # Show what the map is about
         if self.__flatmap.models is not None:

@@ -179,6 +179,8 @@ class Manifest:
                 self.__manifest['anatomicalMap'] = self.__check_and_normalise_path(self.__manifest['anatomicalMap'])
             if 'annotation' in self.__manifest:
                 self.__manifest['annotation'] = self.__check_and_normalise_path(self.__manifest['annotation'])
+            if 'description' in self.__manifest:
+                self.__manifest['description'] = self.__check_and_normalise_path(self.__manifest['description'])
             if 'connectivityTerms' in self.__manifest:
                 self.__manifest['connectivityTerms'] = self.__check_and_normalise_path(self.__manifest['connectivityTerms'])
             if 'properties' in self.__manifest:
@@ -213,8 +215,8 @@ class Manifest:
         return self.__manifest.get('connectivityTerms')
 
     @property
-    def description(self) -> str:
-        return self.__manifest.get('description', '')
+    def description(self):
+        return self.__manifest.get('description')
 
     @property
     def git_repository(self):
