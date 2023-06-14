@@ -2,7 +2,7 @@
 #
 #  Flatmap viewer and annotation tools
 #
-#  Copyright (c) 2019 - 2022  David Brooks
+#  Copyright (c) 2019 - 2023  David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -496,7 +496,7 @@ class MapMaker(object):
             log(f'Generated map: id: {self.id}, uuid: {self.uuid}, models: {self.__flatmap.models}, output: {self.__map_dir}')
         else:
             log(f'Generated map: id: {self.id}, uuid: {self.uuid}, output: {self.__map_dir}')
-        ## FIX v's errorCheck
+
         for filename in self.__geojson_files:
             if settings.get('saveGeoJSON', False):
                 print(filename)
