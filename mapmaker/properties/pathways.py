@@ -219,7 +219,10 @@ class ResolvedPathways:
 
     @property
     def type_paths(self):
-        return { typ.viewer_kind: list(paths) for typ, paths in self.__type_paths.items() }
+        result: dict[str, list[str]] = defaultdict(list)
+        for typ, paths in self.__type_paths.items():
+            result[typ.viewer_kind].extend(paths)
+        return result
 
     def __resolve_nodes_for_path(self, path_id, node_feature_ids):
         node_geojson_ids = []
