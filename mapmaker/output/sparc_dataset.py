@@ -26,11 +26,9 @@ import logging
 import requests
 import openpyxl
 import mimetypes
-from tempfile import NamedTemporaryFile
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from dataclasses import dataclass
-import pandas as pd
 import shutil
 from pathlib import Path
 
@@ -142,14 +140,17 @@ class DatasetDescription:
                 for pos in range(len(values)):
                     row[pos+data_pos].value = str(values[pos])
 
-    def get_file(self):
-        tmp = NamedTemporaryFile()
-        self.__workbook.save(tmp.name)
-        tmp.seek(0)
-        return tmp
+    def get_byte(self):
+        buffer = BytesIO()
+        self.__workbook.save(buffer)
+        buffer.seek(0)
+        return buffer
     
     def get_json(self):
         return self.__description
+    
+    def close(self):
+        self.__workbook.close()
     
 #===============================================================================
 
@@ -218,14 +219,18 @@ class DirectoryManifest:
         self.__file_records.append(record)
 
     def get_byte(self):
-        excel_file = BytesIO()
-        df = pd.DataFrame(self.__file_records, 
-                          columns=self.COLUMNS + tuple(self.__metadata_columns))
-        writer = pd.ExcelWriter(excel_file, engine='xlsxwriter')
-        df.to_excel(writer, sheet_name='Sheet1', index=False)
-        writer.close()
-        excel_file.seek(0)
-        return excel_file
+        workbook = openpyxl.Workbook()
+        worksheet = workbook.active
+        for col, value in enumerate(self.COLUMNS + tuple(self.__metadata_columns), start=1):
+            worksheet.cell(row=1, column=col, value=value)
+        for row, record in enumerate(self.__file_records, start=2):
+            for col, value in enumerate(record, start=1):
+                worksheet.cell(row=row, column=col, value=value)
+        buffer = BytesIO()
+        workbook.save(buffer)
+        buffer.seek(0)
+        workbook.close()
+        return buffer
 
 #===============================================================================
 
@@ -295,12 +300,9 @@ class FlatmapSource:
                                 timestamp.hour, timestamp.minute, timestamp.second)
                 with open(file.fullpath, "rb") as src, archive.open(zinfo, 'w') as dest:
                     shutil.copyfileobj(src, dest, 1024*8)
-            archive.writestr(f'{target}/manifest.xlsx', directory_manifest.get_byte().getvalue())
-
-    def close(self):
-        # closing byte data of directory_manifest
-        for directory_manifest in self.__directory_manifests:
-            directory_manifest.get_byte().close()
+            manifest_workbook = directory_manifest.get_byte()
+            archive.writestr(f'{target}/manifest.xlsx', manifest_workbook.getvalue())
+            manifest_workbook.close()
 
 #===============================================================================
 
@@ -324,17 +326,16 @@ class SparcDataset:
         dataset_archive = ZipFile(dataset, mode='w', compression=ZIP_DEFLATED)
 
         # adding dataset_description
-        desc_file = self.__description.get_file()
-        dataset_archive.write(desc_file.name, 'files/dataset_description.xlsx')
-        desc_file.close()
+        desc_byte = self.__description.get_byte()
+        dataset_archive.writestr('files/dataset_description.xlsx', desc_byte.getvalue())
+        desc_byte.close()
+        self.__description.close()
         
         # copy primary data
         self.__primary.copy_to_archive(dataset_archive, 'files/primary')
-        self.__primary.close()
 
         # this one save derivatives
         self.__derivative.copy_to_archive(dataset_archive, 'files/derivative')
-        self.__derivative.close()
 
         # create and save proper readme file, generated for dataset_description
         self.__add_readme(dataset_archive)
