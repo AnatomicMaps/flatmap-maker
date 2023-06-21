@@ -32,7 +32,6 @@ from pathlib import Path
 from dataclasses import dataclass
 import pandas as pd
 import shutil
-import cv2
 from pathlib import Path
 
 #===============================================================================
@@ -199,7 +198,6 @@ class DirectoryManifest:
         return [f.fullpath for f in self.__files]
 
     def add_file(self, filename, description, **metadata):
-        print(filename, type(filename))
         fullpath = (self.__manifest._Manifest__url / filename).resolve()
         file_type = mimetypes.guess_type(filename, strict=False)[0]
         file_type = fullpath.suffix if file_type == None else file_type
@@ -310,8 +308,6 @@ class SparcDataset:
     def __init__(self, manifest: Manifest, flatmap: FlatMap):
         self.__manifest = manifest
         self.__flatmap = flatmap
-        self.__zoom = 5
-        self.__banner = None
         
     def generate(self):
         # generate dataset_description
@@ -322,9 +318,6 @@ class SparcDataset:
 
         # generate derivative source
         self.__derivative = FlatmapSource(self.__manifest, self.__flatmap, is_git=False)
-
-        # create banner
-        self.__create_banner()
 
     def save(self, dataset: str):
         # create archive
@@ -347,9 +340,9 @@ class SparcDataset:
         self.__add_readme(dataset_archive)
 
         # save banner
-        if self.__banner != None:
-            _, banner = cv2.imencode('.png', self.__banner.get_image())
-            dataset_archive.writestr('files/banner.png', banner.tobytes())
+        if len(self.__manifest.sources) > 0:
+            banner_file = self.__manifest.sources[0].get('href')
+            dataset_archive.write(pathlib_path(banner_file), 'files/banner.svg')
 
         # close archive
         dataset_archive.close()
@@ -360,34 +353,6 @@ class SparcDataset:
         # load flatmat setup
         readme += ['# FLATMAP SETTINGS'] + self.__metadata_parser(self.__flatmap.metadata)        
         archive.writestr(f'files/readme.md', '\n'.join(readme))
-
-    def __create_banner(self):
-        from mapmaker.sources.svg.rasteriser import SVGTiler
-        from mapmaker.flatmap.layers import RasterLayer
-        from mapmaker.output.tilemaker import TileSet
-        from mapmaker.sources.svg import SVGSource
-        from mapmaker.settings import settings
-        from mapmaker import knowledgebase
-
-        map_extent = self.__flatmap.extent
-        manifest_source = self.__manifest.sources[0]
-        id = manifest_source.get('id')
-        kind = 'details'
-        href = pathlib_path(manifest_source['href']) if manifest_source['href'].startswith('file') else manifest_source['href']
-        
-        # need to open connection to knowledgedtore, unless it is not closed 
-        sckan_version = settings.get('sckanVersion', self.__manifest.sckan_version)
-        map_base = os.path.dirname(self.__flatmap.map_dir)
-        knowledge_store = knowledgebase.KnowledgeStore(map_base,
-                                         clean_connectivity=settings.get('cleanConnectivity', False),
-                                         sckan_version=sckan_version)
-        settings['KNOWLEDGE_STORE'] = knowledge_store
-        source = SVGSource(self.__flatmap, id, href, kind)
-        source.process()
-        raster_layer = RasterLayer(id, map_extent, source)
-        tile_set = TileSet(raster_layer.extent, self.__zoom)
-        self.__banner = SVGTiler(raster_layer, tile_set)
-        settings['KNOWLEDGE_STORE'].close()
 
     def __metadata_parser(self, data):
         metadata = []
@@ -405,7 +370,7 @@ class SparcDataset:
                         else:
                             metadata += [f'- {subval}']
                 else:
-                    metadata += [str(val)]
+                    metadata += [str(val), '\n']
         return metadata
         
 #===============================================================================
