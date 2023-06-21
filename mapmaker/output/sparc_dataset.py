@@ -18,18 +18,405 @@
 #
 #===============================================================================
 
+import sqlite3
+from PIL import Image
+from io import BytesIO
+from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
+import os
+import json
+import logging
+import requests
+import openpyxl
+import mimetypes
+from tempfile import NamedTemporaryFile
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+from dataclasses import dataclass
+import pandas as pd
+import shutil
+import cv2
+
+#===============================================================================
+
 from mapmaker.flatmap import FlatMap, Manifest
+
+#===============================================================================
+
+MAPPING_URL = "mapmaker/output/data_mapping.json"
+
+#===============================================================================
+
+from mapmaker.utils import pathlib_path
+
+#===============================================================================
+
+class VersionMapping:
+    def __init__(self):
+        with open(MAPPING_URL, 'r') as f:
+            self.__mappings = json.load(f)
+
+    @property
+    def available_versions(self):
+        return [v['version'] for v in self.__mappings]
+
+    def get_mapping(self, other_params):
+        """
+        : other_params: is a dictionary containing other data such as uuid and version
+        """
+        version = other_params.get('version', None)
+        mapping = None
+        if version == None:
+            mapping = self.__mappings[0]
+        else:
+            for v in self.__mappings:
+                if v['version'] == version:
+                    mapping = v
+        if mapping == None:
+            raise Exception('Dataset-Description version-{} is not available'.format(version))
+        for m in mapping['mapping']:
+            if len(m[1])> 0:
+                param = m[1][-1]
+                if param in other_params:
+                    m[2] = other_params[param]
+        return mapping
+
+#===============================================================================
+
+class DatasetDescription:
+    def __init__(self, description_file, other_params):
+        """
+        : other_params: is a dictionary containing other data including uuid and version
+        """
+        self.__mapping = VersionMapping().get_mapping(other_params)
+        self.__workbook = self.__load_template_workbook(self.__mapping['template_url'])
+        
+        try:
+            if description_file.startswith('file'):
+                description_file = pathlib_path(description_file)
+            with open(description_file, 'r') as fd:
+                self.__description = json.load(fd)
+        except:
+            logging.warning('Cannot create dataset: Cannot open path: {}'.format(description_file))
+        
+        for m in self.__mapping['mapping']:
+             self.__write_cell(m)
+        
+    def __load_template_workbook(self, template_link):
+        """
+        : template_link: link to dataset_description.xlsx
+        """
+        headers = {'Content-Type': 'application/xlsx'}
+        template = requests.request('GET', template_link, headers=headers)
+        workbook = openpyxl.load_workbook(BytesIO(template.content))
+        return workbook
+        
+    def __write_cell(self, map):
+        worksheet = self.__workbook.worksheets[0]
+        data_pos = self.__mapping.get('data_pos', 3)
+        key, dsc, default = map
+        values = default if isinstance(default, list) else [default]
+
+        if len(dsc) == 1:
+            if dsc[0] in self.__description:
+                values = self.__description[dsc[-1]] if isinstance(self.__description[dsc[-1]], list) else [self.__description[dsc[-1]]]
+        elif len(dsc) > 1:
+            tmp_values = self.__description
+            for d in dsc:
+                if isinstance(tmp_values, dict):
+                    tmp_values = tmp_values.get(d, {})
+                elif isinstance(tmp_values, list):
+                    tmp_values = [val.get(d, '') for val in tmp_values]
+            
+            if len(tmp_values) > 0:
+                values = tmp_values if isinstance(tmp_values, list) else [tmp_values]
+
+        for row in worksheet.rows:
+            if row[0].value == None:
+                break
+            if row[0].value.lower().strip() == key:
+                for pos in range(len(values)):
+                    row[pos+data_pos].value = str(values[pos])
+
+    def get_file(self):
+        tmp = NamedTemporaryFile()
+        self.__workbook.save(tmp.name)
+        tmp.seek(0)
+        return tmp
+    
+    def get_json(self):
+        return self.__description
+    
+#===============================================================================
+
+@dataclass
+class DatasetFile:
+    filename: str
+    fullpath: Path
+    timestamp: datetime
+    description: str
+    file_type: str
+
+#===============================================================================
+
+class DirectoryManifest:
+    COLUMNS = (
+        'filename',
+        'timestamp',
+        'description',
+        'file type',
+    )
+
+    def __init__(self, manifest, metadata_columns=None):
+        self.__manifest = manifest
+        self.__metadata_columns = metadata_columns if metadata_columns is not None else []
+        self.__files = []
+        self.__file_records = []
+        self.__repo_datetime = self.__get_repo_datetime()
+
+    def __get_repo_datetime(self):
+        commit = self.__manifest.git_repository._MapRepository__repo.head.commit
+        tzinfo = timezone(timedelta(seconds=commit.author_tz_offset))
+        commit_time = datetime.fromtimestamp(float(commit.committed_date), tzinfo)
+        return commit_time
+
+    @property
+    def files(self):
+        return self.__files
+
+    def add_file(self, filename, description, **metadata):
+        fullpath = (self.__manifest._Manifest__url / filename).resolve()
+        file_type = mimetypes.guess_type(filename, strict=False)[0]
+        file_type = fullpath.suffix if file_type == None else file_type
+        dataset_file = DatasetFile(fullpath.name,
+                                   fullpath,
+                                   self.__repo_datetime,
+                                   description,
+                                   file_type)
+        self.__files.append(dataset_file)
+        record = [
+            dataset_file.filename,
+            dataset_file.timestamp.isoformat(),
+            dataset_file.description,
+            dataset_file.file_type
+        ]
+        for column_name in self.__metadata_columns:
+            record.append(metadata.get(column_name))
+        self.__file_records.append(record)
+
+    def get_byte(self):
+        excel_file = BytesIO()
+        df = pd.DataFrame(self.__file_records, 
+                          columns=self.COLUMNS + tuple(self.__metadata_columns))
+        writer = pd.ExcelWriter(excel_file, engine='xlsxwriter')
+        df.to_excel(writer, sheet_name='Sheet1', index=False)
+        writer.close()
+        excel_file.seek(0)
+        return excel_file
+
+#===============================================================================
+
+class FlatmapSource:
+    def __init__(self, manifest, flatmap, version):
+        """
+        : manifest: a Manifest instance
+        : flatmap: a Flatmap instance
+        """
+        
+        # creating dataset_description.xlsx
+        other_params = {'version':version}
+        other_params['id'] = ['URL', 'UUID']
+        other_params['id_type'] = [manifest.url, flatmap.uuid]
+        
+        self.__dataset_description = DatasetDescription(manifest.description, other_params)
+
+        # creating dataset manifest.xlsx
+        species = manifest.models
+        metadata = {'species': species} if species is not None else {}
+        
+        # adding files to be store in primary directory
+        directory_manifest = DirectoryManifest(manifest, list(metadata.keys()))
+        if manifest.anatomical_map != None:
+            directory_manifest.add_file(pathlib_path(manifest.anatomical_map), 'flatmap annatomical map', **metadata)
+        if manifest.properties != None:
+            directory_manifest.add_file(pathlib_path(manifest.properties), 'flatmap properties', **metadata)
+        if manifest.connectivity_terms != None:
+            directory_manifest.add_file(pathlib_path(manifest.connectivity_terms), 'flatmap connectivity terms', **metadata)
+        for connectivity_file in manifest.connectivity:
+            directory_manifest.add_file(pathlib_path(connectivity_file), 'flatmap connectivity', **metadata)
+        for source in manifest.sources:
+            if source['href'].split(':', 1)[0] in ['file']:
+                directory_manifest.add_file(pathlib_path(source['href']), 'flatmap source', **metadata)
+        directory_manifest.add_file(pathlib_path(manifest._Manifest__url), 'manifest to bult map', **metadata)
+
+        self.__directory_manifests = [directory_manifest]
+
+    @property
+    def dataset_description(self):
+        return self.__dataset_description
+
+    @property
+    def directory_manifests(self):
+        return self.__directory_manifests
+
+    @property
+    def dataset_image(self):
+        for directory_manifest in self.__directory_manifests:
+            for file in directory_manifest.files:
+                if file.filename.endswith('.pptx') or file.filename.endswith('.svg'):
+                    return file.fullpath
+        return None
+    
+    def close(self):
+        # closing temporary file of dataset_description
+        self.dataset_description.get_file().close()
+        # closing byte data of directory_manifest
+        for directory_manifest in self.__directory_manifests:
+            directory_manifest.get_byte().close()
 
 #===============================================================================
 
 class SparcDataset:
     def __init__(self, manifest: Manifest, flatmap: FlatMap):
-        pass
-
+        self.__manifest = manifest
+        self.__flatmap = flatmap
+        self.__map_dir = flatmap.map_dir
+        mbtiles_path = flatmap.layer_metadata()[0].get('image-layers', [''])[0]
+        self.__mbtiles_path = os.path.join(self.__map_dir, f'{mbtiles_path}.mbtiles')
+        self.__zoom = 5
+        self.__source = None
+        self.__banner = None
+        
     def generate(self):
-        pass
+        # generate FlatmapSource
+        self.__source = FlatmapSource(self.__manifest, self.__flatmap, version=None)
+
+        # create banner
+        self.__create_banner()
 
     def save(self, dataset: str):
-        pass
+        if self.__source != None:
+            # create archive
+            dataset_archive = ZipFile(dataset, mode='w', compression=ZIP_DEFLATED)
 
+            # copy primary data
+            self.__copy_primary(dataset_archive)
+
+            # this one save derivatives
+            self.__copy_derivative(dataset_archive)
+
+            # adding dataset_description
+            dataset_description_file = self.__source.dataset_description.get_file()
+            dataset_archive.write(dataset_description_file.name, 'files/dataset_description.xlsx')
+
+            # create and save proper readme file, generated for dataset_description
+            self.__add_readme(dataset_archive)
+
+            # save banner
+            if self.__banner != None:
+                success, banner = cv2.imencode('.png', self.__banner.get_image())
+                dataset_archive.writestr('files/banner.png', banner.tobytes())
+
+            # close archive
+            dataset_archive.close()
+
+            # close source
+            self.__source.close()
+
+    def __copy_primary(self, archive):
+        for directory_manifest in self.__source.directory_manifests:
+            for file in directory_manifest.files:
+                zinfo = ZipInfo.from_file(str(file.fullpath), arcname=f'files/primary/{file.filename}')
+                zinfo.compress_type = ZIP_DEFLATED
+                timestamp = file.timestamp
+                zinfo.date_time = (timestamp.year, timestamp.month, timestamp.day,
+                                timestamp.hour, timestamp.minute, timestamp.second)
+                with open(file.fullpath, "rb") as src, archive.open(zinfo, 'w') as dest:
+                    shutil.copyfileobj(src, dest, 1024*8)
+            archive.writestr(f'files/primary/manifest.xlsx', directory_manifest.get_byte().getvalue())
+
+    def __copy_derivative(self, archive):
+        if self.__map_dir != None:
+            derivative_files = []
+            for root, dirs, files in os.walk(self.__map_dir):
+                for filename in files:
+                    if filename.startswith('.'):
+                        continue
+                    # Get the full path of the file
+                    fullpath = os.path.join(root, filename)
+                    zinfo = ZipInfo.from_file(fullpath, arcname=f'files/derivative/{filename}')
+                    zinfo.compress_type = ZIP_DEFLATED
+                    timestamp = datetime.fromtimestamp(os.path.getmtime(fullpath))
+                    zinfo.date_time = (timestamp.year, timestamp.month, timestamp.day,
+                                    timestamp.hour, timestamp.minute, timestamp.second)
+                    with open(fullpath, "rb") as src, archive.open(zinfo, 'w') as dest:
+                        shutil.copyfileobj(src, dest, 1024*8)
+                    file_type = mimetypes.guess_type(fullpath, strict=False)[0]
+                    if file_type is None:
+                        file_type = fullpath.split('.')[-1] if '.' in fullpath else ''
+                    derivative_files += [[filename, timestamp.isoformat(), 'derivative file loaded by map server', file_type]]
+            if len(derivative_files) > 0:
+                columns = ['filename', 'timestamp', 'description', 'file type',]
+                excel_file = BytesIO()
+                df = pd.DataFrame(derivative_files, columns=columns)
+                writer = pd.ExcelWriter(excel_file, engine='xlsxwriter')
+                df.to_excel(writer, sheet_name='Sheet1', index=False)
+                writer.close()
+                excel_file.seek(0)
+                archive.writestr('files/derivative/manifest.xlsx', excel_file.getvalue())
+
+    def __add_readme(self, archive):
+        # load flatmap description
+        readme = ['# FLATMAP DESCRIPTION'] + self.__metadata_parser(self.__source.dataset_description.get_json())
+        # load flatmat setup
+        readme += ['# FLATMAP SETTINGS'] + self.__metadata_parser(self.__flatmap.metadata)        
+        archive.writestr(f'files/readme.md', '\n'.join(readme))
+
+    def __create_banner(self):
+        from mapmaker.sources.svg.rasteriser import SVGTiler
+        from mapmaker.flatmap.layers import RasterLayer
+        from mapmaker.output.tilemaker import TileSet
+        from mapmaker.sources.svg import SVGSource
+        from mapmaker.settings import settings
+        from mapmaker import knowledgebase
+
+        zoom = 5
+        map_extent = self.__flatmap.extent
+
+        manifest_source = self.__manifest.sources[0]
+        id = manifest_source.get('id')
+        # 'details', 'image', 'layer'
+        kind = 'details'
+        href = pathlib_path(manifest_source['href']) if manifest_source['href'].startswith('file') else manifest_source['href']
+        sckan_version = settings.get('sckanVersion', self.__manifest.sckan_version)
+        map_base = os.path.dirname(self.__flatmap.map_dir)
+        knowledge_store = knowledgebase.KnowledgeStore(map_base,
+                                         clean_connectivity=settings.get('cleanConnectivity', False),
+                                         sckan_version=sckan_version)
+        settings['KNOWLEDGE_STORE'] = knowledge_store
+        source = SVGSource(self.__flatmap, id, href, kind)
+        source.process()
+        raster_layer = RasterLayer(id, map_extent, source)
+        tile_set = TileSet(raster_layer.extent, zoom)
+        self.__banner = SVGTiler(raster_layer, tile_set)
+        settings['KNOWLEDGE_STORE'].close()
+
+    def __metadata_parser(self, data):
+        metadata = []
+        for key, val in data.items():
+                metadata += [f'## {key.capitalize()}']
+                if isinstance(val, dict):
+                    for subkey, subval in val.items():
+                        metadata += [f'- {subkey}: {subval}']
+                elif isinstance(val, list):
+                    for subval in val:
+                        if isinstance(subval, dict):
+                            for subsubkey, subsubval in subval.items():
+                                metadata += [f'- {subsubkey}: {subsubval}']
+                            metadata += ['\n', '<br/>', '\n']
+                        else:
+                            metadata += [f'- {subval}']
+                else:
+                    metadata += [str(val)]
+        return metadata
+        
 #===============================================================================
