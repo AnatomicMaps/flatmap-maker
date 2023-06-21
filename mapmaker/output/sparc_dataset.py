@@ -18,8 +18,6 @@
 #
 #===============================================================================
 
-import sqlite3
-from PIL import Image
 from io import BytesIO
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 import os
