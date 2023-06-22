@@ -110,7 +110,7 @@ class SVGSource(MapSource):
 
     def __get_data(self):
     #====================
-        cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
+        cleaner = SVGCleaner(self.__source_file, self.flatmap.properties_store, all_layers=False)
         cleaner.clean()
         cleaned_svg = tempfile.TemporaryFile()
         cleaner.save(cleaned_svg)
