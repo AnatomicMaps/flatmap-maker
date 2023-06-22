@@ -346,8 +346,8 @@ class SparcDataset:
         self.__add_readme(dataset_archive)
 
         # save banner
-        if len(self.__manifest.sources) > 0:
-            banner_file = self.__manifest.sources[0].get('href')
+        banner_file = self.__flatmap.full_filename(f'{self.__flatmap.id}.svg')
+        if os.path.exists(banner_file):
             dataset_archive.write(pathlib_path(banner_file), 'files/banner.svg')
 
         # close archive
