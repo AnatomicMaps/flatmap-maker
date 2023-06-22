@@ -267,11 +267,11 @@ class RasterSource(object):
         return self.__data
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         return self.__kind
 
     @property
-    def source_path(self):
+    def source_path(self) -> Optional[FilePath]:
         return self.__source_path
 
 #===============================================================================

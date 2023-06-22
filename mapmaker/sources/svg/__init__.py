@@ -109,10 +109,10 @@ class SVGSource(MapSource):
 
     def get_raster_source(self):
     #===========================
-        return RasterSource('svg', self.__get_data, source_path=self.__source_file)
+        return RasterSource('svg', self.__get_raster_data, source_path=self.__source_file)
 
-    def __get_data(self):
-    #====================
+    def __get_raster_data(self) -> bytes:
+    #====================================
         cleaner = SVGCleaner(self.__source_file, self.flatmap.properties_store, all_layers=False)
         cleaner.clean()
         cleaned_svg = tempfile.TemporaryFile()
