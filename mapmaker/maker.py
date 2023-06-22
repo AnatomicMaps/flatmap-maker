@@ -215,7 +215,7 @@ class MapMaker(object):
         self.__begin_make()
 
         # Process flatmap's sources to create MapLayers
-        self.__process_sources()
+        base_source = self.__process_sources()
 
         # Finish flatmap processing (path routing, etc)
         self.__flatmap.close()
@@ -230,11 +230,16 @@ class MapMaker(object):
 
         # Output all features (as GeoJSON)
         self.__output_geojson()
+
         # Generate vector tiles from GeoJSON
         self.__make_vector_tiles()
 
-        # Generate image tiles as needed
+        # Generate image tiles as required
         self.__check_raster_tiles()
+
+        # Save an SVG preview in the output directory
+        if base_source is not None:
+            self.__create_preview(base_source)
 
         # Save the flatmap's metadata
         self.__save_metadata()
@@ -307,6 +312,7 @@ class MapMaker(object):
         else:
             settings['functionalConnectivity'] = False
         self.__processing_store = {}
+        base_source = None
         for layer_number, manifest_source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
             id = manifest_source.get('id')
             kind = manifest_source.get('kind')
@@ -340,6 +346,9 @@ class MapMaker(object):
                 else:
                     log.warning(msg)
             self.__flatmap.add_source_layers(layer_number, source)
+            if base_source is None and kind == 'base':
+                base_source = source
+        return base_source
 
     def __check_raster_tiles(self):
     #==============================
@@ -361,6 +370,11 @@ class MapMaker(object):
         for tilemaker in tilemakers:
             if tilemaker.have_tiles():
                 self.__raster_layers.append(tilemaker.raster_layer)
+
+    def __create_preview(self, source):
+    #==================================
+        log('Creating preview...')
+        source.create_preview()
 
     def __make_vector_tiles(self, compressed=True):
     #==============================================

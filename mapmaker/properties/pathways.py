@@ -219,7 +219,10 @@ class ResolvedPathways:
 
     @property
     def type_paths(self):
-        return { typ.viewer_kind: list(paths) for typ, paths in self.__type_paths.items() }
+        result: dict[str, list[str]] = defaultdict(list)
+        for typ, paths in self.__type_paths.items():
+            result[typ.viewer_kind].extend(paths)
+        return result
 
     def __resolve_nodes_for_path(self, path_id, node_feature_ids):
         node_geojson_ids = []
@@ -323,13 +326,11 @@ class Path:
         self.__models = path.get('models')
         self.__nerves = list(parse_nerves(path.get('nerves')))
         self.__route = None
-        self.__taxons = None
         self.__trace = trace
 
         if self.__models is not None:
             knowledge = get_knowledge(self.__models)
             self.__label = knowledge.get('label')
-            self.__taxons = [taxon] if (taxon := knowledge.get('taxon')) is not None else None
             self.__connectivity = connectivity_graph_from_knowledge(knowledge)
 
         if self.__connectivity is not None:
@@ -372,10 +373,6 @@ class Path:
     @property
     def source(self):
         return self.__source
-
-    @property
-    def taxons(self):
-        return self.__taxons
 
     @property
     def trace(self):
@@ -656,8 +653,6 @@ class Pathways:
                             properties['label'] = '\n'.join(labels)
                         elif path_model is not None:
                             properties['label'] = path.label
-                        if path.taxons is not None:
-                            properties['taxons'] = path.taxons
                     feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
                     feature_geojson_ids.append(feature.geojson_id)
                     layer.add_feature(feature)
@@ -693,7 +688,7 @@ class Pathways:
                 if path_id in self.__routes_by_path_id:
                     self.__resolved_pathways.add_pathway(path_id,
                                                          self.__path_models_by_id.get(path_id),
-                                                         str(self.__type_by_path_id.get(path_id, PATH_TYPE.UNKNOWN)),
+                                                         self.__type_by_path_id.get(path_id, PATH_TYPE.UNKNOWN),
                                                          self.__routes_by_path_id[path_id],
                                                          self.__lines_by_path_id.get(path_id, []),
                                                          self.__nerves_by_path_id.get(path_id, []))

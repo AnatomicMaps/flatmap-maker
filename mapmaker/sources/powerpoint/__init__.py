@@ -185,7 +185,7 @@ class PowerpointSource(MapSource):
         svg_maker.add_slides(self.__slides)
         svg_data = BytesIO(svg_maker.svg_bytes())
         svg_data.seek(0)
-        return svg_data
+        return svg_data.read()
 
     def __make_svg(self):
     #====================

@@ -31,7 +31,6 @@ import shapely.ops
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.properties import not_in_group_properties
-from mapmaker.settings import settings
 from mapmaker.utils import FilePath, ProgressBar, log
 
 from .. import MapSource, RasterSource
@@ -42,19 +41,19 @@ from .definitions import DefinitionStore, ObjectStore
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import circle_from_bounds, geometry_from_svg_path, length_as_pixels
-from .utils import svg_markup, parse_svg_path, SVG_NS
+from .utils import svg_markup, parse_svg_path, SVG_TAG
 
 #===============================================================================
 
 # These SVG tags are not used to determine feature geometry
 
 IGNORED_SVG_TAGS = [
-    SVG_NS('font'),
-    SVG_NS('linearGradient'),
-    SVG_NS('radialGradient'),
-    SVG_NS('style'),
-    SVG_NS('text'),
-    SVG_NS('title'),
+    SVG_TAG('font'),
+    SVG_TAG('linearGradient'),
+    SVG_TAG('radialGradient'),
+    SVG_TAG('style'),
+    SVG_TAG('text'),
+    SVG_TAG('title'),
 ]
 
 #===============================================================================
@@ -97,25 +96,29 @@ class SVGSource(MapSource):
         self.__layer.process()
         if self.__layer.boundary_feature is not None:
             self.__boundary_geometry = self.__layer.boundary_feature.geometry
-        if not settings.get('authoring', False) and self.__exported:
-            # Save a cleaned copy of the SVG in the map's output directory
-            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=True)
-            cleaner.clean()
-            with open(self.flatmap.full_filename(f'{self.flatmap.id}.svg'), 'wb') as fp:
-                cleaner.save(fp)
+
+    def create_preview(self):
+    #========================
+        # Save a cleaned copy of the SVG in the map's output directory. Call after
+        # connectivity has been generated otherwise thno paths will be in the saved SVG
+        cleaner = SVGCleaner(self.__source_file, self.flatmap.properties_store, all_layers=True)
+        cleaner.clean()
+        cleaner.add_connectivity_group(self.flatmap, self.__transform)
+        with open(self.flatmap.full_filename(f'{self.flatmap.id}.svg'), 'wb') as fp:
+            cleaner.save(fp)
 
     def get_raster_source(self):
     #===========================
-        return RasterSource('svg', self.__get_data, source_path=self.__source_file)
+        return RasterSource('svg', self.__get_raster_data, source_path=self.__source_file)
 
-    def __get_data(self):
-    #====================
-        cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=False)
+    def __get_raster_data(self) -> bytes:
+    #====================================
+        cleaner = SVGCleaner(self.__source_file, self.flatmap.properties_store, all_layers=False)
         cleaner.clean()
         cleaned_svg = tempfile.TemporaryFile()
         cleaner.save(cleaned_svg)
         cleaned_svg.seek(0)
-        return cleaned_svg
+        return cleaned_svg.read()
 
 #===============================================================================
 
@@ -123,7 +126,7 @@ class SVGLayer(MapLayer):
     def __init__(self, id, source, svg, exported=True):
         super().__init__(id, source, exported=exported)
         self.__svg = svg
-        self.__style_matcher = StyleMatcher(svg.find(SVG_NS('style')))
+        self.__style_matcher = StyleMatcher(svg.find(SVG_TAG('style')))
         self.__transform = source.transform
         self.__definitions = DefinitionStore()
         self.__clip_geometries = ObjectStore()
@@ -151,7 +154,7 @@ class SVGLayer(MapLayer):
             return None
         children = wrapped_group.etree_children
         while (len(children) == 1
-          and children[0].tag == SVG_NS('g')
+          and children[0].tag == SVG_TAG('g')
           and len(children[0].attrib) == 0):
             # Ignore nested groups with only a single group element with no attributes
             for k, v in group.items():
@@ -201,13 +204,13 @@ class SVGLayer(MapLayer):
             element = wrapped_element.etree_element
             if element.tag is etree.Comment or element.tag is etree.PI:
                 continue
-            elif element.tag == SVG_NS('defs'):
+            elif element.tag == SVG_TAG('defs'):
                 self.__definitions.add_definitions(element)
                 continue
-            elif element.tag == SVG_NS('use'):
+            elif element.tag == SVG_TAG('use'):
                 element = self.__definitions.use(element)
                 wrapped_element = wrap_element(element)
-            if element.tag == SVG_NS('clipPath'):
+            if element.tag == SVG_TAG('clipPath'):
                 self.__add_clip_geometry(element, transform)
             elif (feature := self.__process_element(wrapped_element, transform, parent_properties, parent_style)) is not None:
                 features.append(feature)
@@ -224,12 +227,12 @@ class SVGLayer(MapLayer):
     #===========================================================
         geometries = []
         for element in clip_path_element:
-            if element.tag == SVG_NS('use'):
+            if element.tag == SVG_TAG('use'):
                 element = self.__definitions.use(element)
             if (element is not None
-            and element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
-                               SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
-                               SVG_NS('rect')]):
+            and element.tag in [SVG_TAG('circle'), SVG_TAG('ellipse'), SVG_TAG('line'),
+                               SVG_TAG('path'), SVG_TAG('polyline'), SVG_TAG('polygon'),
+                               SVG_TAG('rect')]):
                 properties = {}
                 geometry = self.__get_geometry(element, properties, transform)
                 if geometry is not None:
@@ -250,9 +253,9 @@ class SVGLayer(MapLayer):
             pass
         elif 'styling' in properties:
             pass
-        elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'),
-                             SVG_NS('line'), SVG_NS('path'), SVG_NS('polyline'),
-                             SVG_NS('polygon'), SVG_NS('rect')]:
+        elif element.tag in [SVG_TAG('circle'), SVG_TAG('ellipse'),
+                             SVG_TAG('line'), SVG_TAG('path'), SVG_TAG('polyline'),
+                             SVG_TAG('polygon'), SVG_TAG('rect')]:
             geometry = self.__get_geometry(element, properties, transform)
             if geometry is None:
                 return None
@@ -263,7 +266,7 @@ class SVGLayer(MapLayer):
                 return None
             else:
                 return self.flatmap.new_feature(geometry, properties)
-        elif element.tag == SVG_NS('image'):
+        elif element.tag == SVG_TAG('image'):
             clip_path_url = element_style.pop('clip-path', None)
             if ((geometry := self.__clip_geometries.get_by_url(clip_path_url)) is None
             and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
@@ -271,7 +274,7 @@ class SVGLayer(MapLayer):
                 geometry = self.__get_clip_geometry(clip_path_element, T)
             if geometry is not None:
                 return self.flatmap.new_feature(geometry, properties)
-        elif element.tag == SVG_NS('g'):
+        elif element.tag == SVG_TAG('g'):
             return self.__process_group(wrapped_element, properties, transform, parent_style)
         elif element.tag in IGNORED_SVG_TAGS:
             pass
@@ -285,10 +288,10 @@ class SVGLayer(MapLayer):
     ## Returns path element as a `shapely` object.
     ##
         path_tokens = []
-        if element.tag == SVG_NS('path'):
+        if element.tag == SVG_TAG('path'):
             path_tokens = list(parse_svg_path(element.attrib.get('d', '')))
 
-        elif element.tag == SVG_NS('rect'):
+        elif element.tag == SVG_TAG('rect'):
             x = length_as_pixels(element.attrib.get('x', 0))
             y = length_as_pixels(element.attrib.get('y', 0))
             width = length_as_pixels(element.attrib.get('width', 0))
@@ -324,22 +327,22 @@ class SVGLayer(MapLayer):
                                'A', rx, ry, 0, 0, 1, x+rx, y,
                                'Z']
 
-        elif element.tag == SVG_NS('line'):
+        elif element.tag == SVG_TAG('line'):
             x1 = length_as_pixels(element.attrib.get('x1', 0))
             y1 = length_as_pixels(element.attrib.get('y1', 0))
             x2 = length_as_pixels(element.attrib.get('x2', 0))
             y2 = length_as_pixels(element.attrib.get('y2', 0))
             path_tokens = ['M', x1, y1, x2, y2]
 
-        elif element.tag == SVG_NS('polyline'):
+        elif element.tag == SVG_TAG('polyline'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
             path_tokens = ['M'] + points
 
-        elif element.tag == SVG_NS('polygon'):
+        elif element.tag == SVG_TAG('polygon'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
             path_tokens = ['M'] + points + ['Z']
 
-        elif element.tag == SVG_NS('circle'):
+        elif element.tag == SVG_TAG('circle'):
             cx = length_as_pixels(element.attrib.get('cx', 0))
             cy = length_as_pixels(element.attrib.get('cy', 0))
             r = length_as_pixels(element.attrib.get('r', 0))
@@ -351,7 +354,7 @@ class SVGLayer(MapLayer):
                            'A', r, r, 0, 0, 0, cx+r, cy,
                            'Z']
 
-        elif element.tag == SVG_NS('ellipse'):
+        elif element.tag == SVG_TAG('ellipse'):
             cx = length_as_pixels(element.attrib.get('cx', 0))
             cy = length_as_pixels(element.attrib.get('cy', 0))
             rx = length_as_pixels(element.attrib.get('rx', 0))
@@ -364,7 +367,7 @@ class SVGLayer(MapLayer):
                            'A', rx, ry, 0, 0, 0, cx+rx, cy,
                            'Z']
 
-        elif element.tag == SVG_NS('image'):
+        elif element.tag == SVG_TAG('image'):
             if 'id' in properties or 'class' in properties:
                 width = length_as_pixels(element.attrib.get('width', 0))
                 height = length_as_pixels(element.attrib.get('height', 0))

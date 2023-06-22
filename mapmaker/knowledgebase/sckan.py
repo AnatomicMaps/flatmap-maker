@@ -288,8 +288,8 @@ class SckanConnection:
         return ('feature' in self.__connection.properties
             and not self.__connection.properties.get('exclude', False))
 
-    def check_validity(self, neuron_checker):
-    #========================================
+    def check_validity(self, neuron_checker, properties_store):
+    #==========================================================
         sckan_path_ids = neuron_checker.valid_sckan_paths(self.__connection.path_type,
                                                           self.__end_terms)
         self.__description = {
@@ -304,10 +304,7 @@ class SckanConnection:
             self.__description['sckanPaths'] = sckan_path_ids
             feature.properties['sckan'] = True
             feature.properties['models'] = sckan_path_ids[0]
-            label = f"Neuron in '{kb.get_label(sckan_path_ids[0])}'"
-            if 'name' in feature.properties:
-                label += '\n' + feature.properties.get('name', '')
-            feature.properties['label'] = label
+            properties_store.update_properties(feature.properties)
         elif not settings.get('invalidNeurons', False):
             feature.properties['exclude'] = True
 
@@ -326,7 +323,7 @@ class SckanNeuronPopulations:
         neuron_checker = SckanNeuronChecker(self.__flatmap)
         for sckan_connection in self.__sckan_connections:
             if sckan_connection.has_feature:   # That is the connection has not been excluded because of some error
-                sckan_connection.check_validity(neuron_checker)
+                sckan_connection.check_validity(neuron_checker, self.__flatmap.properties_store)
                 if ((sckan_path_ids := sckan_connection.description.get('sckanPaths')) is not None
                   and len(sckan_path_ids) > 1):
                     # If the neuron is in multiple SCKAN populations then add a line feature for each one

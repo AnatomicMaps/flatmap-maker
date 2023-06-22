@@ -44,7 +44,7 @@ from .. import WORLD_METRES_PER_PIXEL
 from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import svg_markup, length_as_pixels, length_as_points, parse_svg_path, SVG_NS, XLINK_HREF
+from .utils import svg_markup, length_as_pixels, length_as_points, parse_svg_path, SVG_TAG, XLINK_HREF
 
 #===============================================================================
 
@@ -53,8 +53,8 @@ IMAGE_MEDIA_TYPES = ['image/jpeg', 'image/png']
 #===============================================================================
 
 IGNORED_SVG_TAGS = [
-    SVG_NS('style'),
-    SVG_NS('title'),
+    SVG_TAG('style'),
+    SVG_TAG('title'),
 ]
 
 #===============================================================================
@@ -84,7 +84,7 @@ class GradientStops(object):
         self.__offsets = []
         self.__colours = []
         for stop in element:
-            if stop.tag == SVG_NS('stop'):
+            if stop.tag == SVG_TAG('stop'):
                 styling = ElementStyleDict(stop)
                 self.__offsets.append(float(stop.attrib['offset']))
                 self.__colours.append(make_colour(styling.get('stop-color'),
@@ -241,7 +241,7 @@ class CanvasGroup(CanvasDrawingObject):
 class SVGTiler(object):
     def __init__(self, raster_layer, tile_set):
         self.__bbox = shapely.geometry.box(*extent_to_bounds(raster_layer.extent))
-        self.__svg = etree.parse(raster_layer.source_data).getroot()
+        self.__svg = etree.fromstring(raster_layer.source_data)
         self.__source_path = raster_layer.source_path
         if 'viewBox' in self.__svg.attrib:
             self.__size = tuple(float(x)
@@ -252,7 +252,7 @@ class SVGTiler(object):
         self.__scaling = (tile_set.pixel_rect.width/self.__size[0],
                           tile_set.pixel_rect.height/self.__size[1])
         self.__definitions = DefinitionStore()
-        self.__style_matcher = StyleMatcher(self.__svg.find(SVG_NS('style')))
+        self.__style_matcher = StyleMatcher(self.__svg.find(SVG_TAG('style')))
         self.__clip_paths = ObjectStore()
 
         # Transform from SVG pixels to tile pixels
@@ -355,16 +355,16 @@ class SVGTiler(object):
             element = wrapped_element.etree_element
             if element.tag is etree.Comment or element.tag is etree.PI:
                 continue
-            if element.tag == SVG_NS('defs'):
+            if element.tag == SVG_TAG('defs'):
                 self.__definitions.add_definitions(element)
                 continue
-            elif element.tag == SVG_NS('use'):
+            elif element.tag == SVG_TAG('use'):
                 element = self.__definitions.use(element)
                 wrapped_element = wrap_element(element)
-            elif element.tag in [SVG_NS('linearGradient'), SVG_NS('radialGradient')]:
+            elif element.tag in [SVG_TAG('linearGradient'), SVG_TAG('radialGradient')]:
                 self.__definitions.add_definition(element)
                 continue
-            elif element.tag == SVG_NS('clipPath'):
+            elif element.tag == SVG_TAG('clipPath'):
                 self.__add_clip_path(element)
             else:
                 drawing_objects.extend(
@@ -395,12 +395,12 @@ class SVGTiler(object):
     #============================================
         clip_path = None
         for element in clip_path_element:
-            if element.tag == SVG_NS('use'):
+            if element.tag == SVG_TAG('use'):
                 element = self.__definitions.use(element)
             if (element is not None
-            and element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
-                               SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
-                               SVG_NS('rect')]):
+            and element.tag in [SVG_TAG('circle'), SVG_TAG('ellipse'), SVG_TAG('line'),
+                               SVG_TAG('path'), SVG_TAG('polyline'), SVG_TAG('polygon'),
+                               SVG_TAG('rect')]):
                 path = SVGTiler.__get_graphics_path(element)
                 if path is not None:
                     if clip_path is None:
@@ -415,18 +415,18 @@ class SVGTiler(object):
         element = wrapped_element.etree_element
         element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
 
-        if element.tag == SVG_NS('g'):
+        if element.tag == SVG_TAG('g'):
             canvas_group = self.__draw_group(wrapped_element, parent_transform, parent_style)
             if canvas_group.is_valid:
                 drawing_objects.append(canvas_group)
 
-        elif element.tag == SVG_NS('a'):
+        elif element.tag == SVG_TAG('a'):
             link_elements = self.__draw_element_list(wrapped_element, parent_transform, parent_style)
             drawing_objects.extend(link_elements)
 
-        elif element.tag in [SVG_NS('circle'), SVG_NS('ellipse'), SVG_NS('line'),
-                             SVG_NS('path'), SVG_NS('polyline'), SVG_NS('polygon'),
-                             SVG_NS('rect')]:
+        elif element.tag in [SVG_TAG('circle'), SVG_TAG('ellipse'), SVG_TAG('line'),
+                             SVG_TAG('path'), SVG_TAG('polyline'), SVG_TAG('polygon'),
+                             SVG_TAG('rect')]:
 
             path = SVGTiler.__get_graphics_path(element)
             if path is None: return []
@@ -441,7 +441,7 @@ class SVGTiler(object):
                     if gradient is None:
                         fill = '#800'     # Something's wrong so show show in image...
                         opacity = 0.5
-                    elif gradient.tag == SVG_NS('linearGradient'):
+                    elif gradient.tag == SVG_TAG('linearGradient'):
                         gradient_stops = GradientStops(gradient)
                         points = [(float(gradient.attrib.get('x1', 0.0)),
                                    float(gradient.attrib.get('y1', 0.0))),
@@ -453,7 +453,7 @@ class SVGTiler(object):
                             colors=gradient_stops.colours,
                             localMatrix=SVGTiler.__gradient_matrix(gradient, path)
                         ))
-                    elif gradient.tag == SVG_NS('radialGradient'):
+                    elif gradient.tag == SVG_TAG('radialGradient'):
                         gradient_stops = GradientStops(gradient)
                         centre = (float(gradient.attrib.get('cx')),
                                   float(gradient.attrib.get('cy')))
@@ -530,7 +530,7 @@ class SVGTiler(object):
                     self.__clip_paths.get_by_url(element.attrib.get('clip-path'))
                     ))
 
-        elif element.tag == SVG_NS('image'):
+        elif element.tag == SVG_TAG('image'):
             image_href = element.attrib.get(XLINK_HREF)
             pixel_bytes = None
             if image_href is not None:
@@ -569,7 +569,7 @@ class SVGTiler(object):
                     drawing_objects.append(CanvasImage(image, paint, parent_transform,
                         element.attrib.get('transform'), clip_path, scale=scale))
 
-        elif element.tag == SVG_NS('text'):
+        elif element.tag == SVG_TAG('text'):
             drawing_objects.append(CanvasText(element.text, element.attrib, parent_transform,
                 element.attrib.get('transform'),
                 self.__clip_paths.get_by_url(element_style.get('clip-path'))
@@ -583,10 +583,10 @@ class SVGTiler(object):
     @staticmethod
     def __get_graphics_path(element):
     #================================
-        if element.tag == SVG_NS('path'):
+        if element.tag == SVG_TAG('path'):
             tokens = list(parse_svg_path(element.attrib.get('d', '')))
             path = SVGTiler.__path_from_tokens(tokens)
-        elif element.tag == SVG_NS('rect'):
+        elif element.tag == SVG_TAG('rect'):
             (width, height) = (length_as_pixels(element.attrib.get('width', 0)),
                                length_as_pixels(element.attrib.get('height', 0)))
             if width == 0 or height == 0: return None
@@ -606,26 +606,26 @@ class SVGTiler(object):
                 path = skia.Path.Rect((x, y, width, height))
             else:
                 path = skia.Path.RRect((x, y, width, height), rx, ry)
-        elif element.tag == SVG_NS('line'):
+        elif element.tag == SVG_TAG('line'):
             x1 = length_as_pixels(element.attrib.get('x1', 0))
             y1 = length_as_pixels(element.attrib.get('y1', 0))
             x2 = length_as_pixels(element.attrib.get('x2', 0))
             y2 = length_as_pixels(element.attrib.get('y2', 0))
             path = SVGTiler.__path_from_tokens(['M', x1, y1, x2, y2])
-        elif element.tag == SVG_NS('polyline'):
+        elif element.tag == SVG_TAG('polyline'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
             path = SVGTiler.__path_from_tokens(['M'] + points)
-        elif element.tag == SVG_NS('polygon'):
+        elif element.tag == SVG_TAG('polygon'):
             points = [ float(p) for p in element.attrib.get('points', '').replace(',', ' ').split() ]
             skia_points = [skia.Point(*points[n:n+2]) for n in range(0, len(points), 2)]
             path = skia.Path.Polygon(skia_points, True)
-        elif element.tag == SVG_NS('circle'):
+        elif element.tag == SVG_TAG('circle'):
             r = length_as_pixels(element.attrib.get('r', 0))
             if r == 0: return None
             (cx, cy) = (length_as_pixels(element.attrib.get('cx', 0)),
                         length_as_pixels(element.attrib.get('cy', 0)))
             path = skia.Path.Circle(cx, cy, r)
-        elif element.tag == SVG_NS('ellipse'):
+        elif element.tag == SVG_TAG('ellipse'):
             (rx, ry) = (length_as_pixels(element.attrib.get('rx', 0)),
                         length_as_pixels(element.attrib.get('ry', 0)))
             if rx == 0 or ry == 0: return None

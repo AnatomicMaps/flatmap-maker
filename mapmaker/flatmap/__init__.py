@@ -121,7 +121,7 @@ class FlatMap(object):
         return self.__map_dir
 
     @property
-    def map_properties(self):
+    def properties_store(self):
         return self.__properties_store
 
     @property
@@ -188,7 +188,7 @@ class FlatMap(object):
         # Initialise geographical search for annotated features
         self.__setup_feature_search()
         # Add manual connections into the map's paths
-        self.map_properties.pathways.add_connection_set(self.__connection_set)
+        self.properties_store.pathways.add_connection_set(self.__connection_set)
         # Generate metadata with connection information
         self.__resolve_connectivity()
         # Set creation time
@@ -229,7 +229,7 @@ class FlatMap(object):
     def new_feature(self, geometry, properties, is_group=False):
     #===========================================================
         self.__last_geojson_id += 1
-        self.map_properties.update_properties(properties)   # Update from JSON properties file
+        self.properties_store.update_properties(properties)   # Update from JSON properties file
         feature = Feature(self.__last_geojson_id, geometry, properties, is_group=is_group)
         if feature.id:
             if feature.id in self.__features_with_id:

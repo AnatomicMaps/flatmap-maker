@@ -204,6 +204,10 @@ class MapSource(object):
     #====================================
         self.__layers.append(layer)
 
+    def create_preview(self):
+    #========================
+        pass
+
     def error(self, kind: str, msg: str):
     #====================================
         self.__errors.append((kind, msg))
@@ -250,24 +254,24 @@ class MapSource(object):
 #===============================================================================
 
 class RasterSource(object):
-    def __init__(self, kind: str, get_data: Callable[[], bytes | BytesIO], source_path: Optional[FilePath]=None):
+    def __init__(self, kind: str, get_data: Callable[[], bytes], source_path: Optional[FilePath]=None):
         self.__kind = kind
         self.__get_data = get_data
         self.__data = None
         self.__source_path = source_path
 
     @property
-    def data(self):
+    def data(self) -> Optional[bytes]:
         if self.__data is None and self.__get_data is not None:
             self.__data = self.__get_data()
         return self.__data
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         return self.__kind
 
     @property
-    def source_path(self):
+    def source_path(self) -> Optional[FilePath]:
         return self.__source_path
 
 #===============================================================================
