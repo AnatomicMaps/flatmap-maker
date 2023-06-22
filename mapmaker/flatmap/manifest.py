@@ -97,6 +97,13 @@ class MapRepository:
     def status(self, path: str) -> GitState:
     #=======================================
         if (git_path := self.__git_path(path)) is not None:
+            if git_path in self.__untracked_files:
+                return GitState.UNTRACKED
+            try:
+                _ = self.__repo.head.commit.tree.join(git_path)
+            except KeyError:
+                log.warning(f"{path} is missing from the manifest's directory")
+                return GitState.UNKNOWN
             return (GitState.UNTRACKED if git_path in self.__untracked_files else
                     GitState.CHANGED if git_path in self.__changed_items else
                     GitState.STAGED if git_path in self.__staged_items else
@@ -186,7 +193,7 @@ class Manifest:
             for path in self.__manifest.get('connectivity', []):
                 self.__connectivity.append(self.__check_and_normalise_path(path))
             if not ignore_git and self.__uncommitted:
-                raise TypeError("Not all of the flatmap's sources are commited into git ('--authoring' or '--ignore-git' option intended?)")
+                raise TypeError("Not all sources are commited into git -- was the '--authoring' or '--ignore-git' option intended?")
 
     @property
     def anatomical_map(self):
