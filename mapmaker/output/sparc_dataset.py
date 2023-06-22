@@ -82,7 +82,7 @@ class VersionMapping:
 #===============================================================================
 
 class DatasetDescription:
-    def __init__(self, description_file, flatmap, version):
+    def __init__(self, flatmap, version):
         """
         : description_file: is a pat to description.json
         : flatmap: is a Flatmap instance
@@ -96,14 +96,11 @@ class DatasetDescription:
         self.__mapping = VersionMapping().get_mapping(other_params)
         self.__workbook = self.__load_template_workbook(self.__mapping['template_url'])
         
-        try:
-            if description_file.startswith('file'):
-                description_file = pathlib_path(description_file)
-            with open(description_file, 'r') as fd:
-                self.__description = json.load(fd)
-        except:
-            logging.warning('Cannot create dataset: Cannot open path: {}'.format(description_file))
-        
+    def write(self, description_file):
+        if description_file.startswith('file'):
+            description_file = pathlib_path(description_file)
+        with open(description_file, 'r') as fd:
+            self.__description = json.load(fd)
         for m in self.__mapping['mapping']:
              self.__write_cell(m)
         
@@ -316,7 +313,11 @@ class SparcDataset:
         
     def generate(self):
         # generate dataset_description
-        self.__description = DatasetDescription(self.__manifest.description, self.__flatmap, version=None)
+        self.__description = DatasetDescription(self.__flatmap, version=None)
+        try:
+            self.__description.write(self.__manifest.description)
+        except:
+            logging.error(f'Cannot create dataset: Cannot open: {self.__manifest.description}')
 
         # generate primary source
         self.__primary = FlatmapSource(self.__manifest, self.__flatmap)
