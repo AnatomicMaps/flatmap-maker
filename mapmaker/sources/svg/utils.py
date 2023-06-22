@@ -48,8 +48,10 @@ from .. import PIXELS_PER_INCH
 
 #===============================================================================
 
-def SVG_NS(tag):
+def SVG_TAG(tag):        # An SVG namespaced lxml.etree tag
     return '{{http://www.w3.org/2000/svg}}{}'.format(tag)
+
+#===============================================================================
 
 XLINK_HREF = '{http://www.w3.org/1999/xlink}href'
 
@@ -148,7 +150,7 @@ def adobe_encode(s, suffix=None):
 
 def svg_markup(element):
 #=======================
-    if (markup := element.findtext(SVG_NS('title'), default='')) != '':
+    if (markup := element.findtext(SVG_TAG('title'), default='')) != '':
         return markup
     else:
         return adobe_decode_markup(element)
