@@ -29,6 +29,7 @@ import os
 from pathlib import Path
 import shutil
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
+from typing import Optional
 
 #===============================================================================
 
@@ -172,7 +173,7 @@ class DirectoryManifest:
         'file type',
     )
 
-    def __init__(self, manifest, is_git=True, metadata_columns=None):
+    def __init__(self, manifest, is_git=True, metadata_columns: Optional[list[str]]=None):
         self.__manifest = manifest
         self.__metadata_columns = metadata_columns if metadata_columns is not None else []
         self.__files = []
@@ -208,7 +209,7 @@ class DirectoryManifest:
                                    description,
                                    file_type)
         self.__files.append(dataset_file)
-        record = [
+        record: list[str|None] = [
             dataset_file.filename,
             dataset_file.timestamp.isoformat(),
             dataset_file.description,
