@@ -141,7 +141,7 @@ class DatasetDescription:
                 for pos in range(len(values)):
                     row[pos+data_pos].value = str(values[pos])
 
-    def get_byte(self):
+    def get_bytes(self):
         buffer = BytesIO()
         self.__workbook.save(buffer)
         buffer.seek(0)
@@ -152,7 +152,7 @@ class DatasetDescription:
     
     def close(self):
         self.__workbook.close()
-    
+
 #===============================================================================
 
 @dataclass
@@ -185,7 +185,7 @@ class DirectoryManifest:
             commit_time = datetime.fromtimestamp(float(commit.committed_date), tzinfo)
             self.__repo_datetime =  commit_time
         
-    def __get_repo_datetime(self, fullpath=None):
+    def __get_repo_datetime(self, fullpath):
         if self.__repo_datetime != None:
             return self.__repo_datetime
         else:
@@ -219,7 +219,7 @@ class DirectoryManifest:
             record.append(metadata.get(column_name))
         self.__file_records.append(record)
 
-    def get_byte(self):
+    def get_bytes(self):
         workbook = openpyxl.Workbook()
         worksheet = workbook.active
         for col, value in enumerate(self.COLUMNS + tuple(self.__metadata_columns), start=1):
@@ -301,7 +301,7 @@ class FlatmapSource:
                                 timestamp.hour, timestamp.minute, timestamp.second)
                 with open(file.fullpath, "rb") as src, archive.open(zinfo, 'w') as dest:
                     shutil.copyfileobj(src, dest, 1024*8)
-            manifest_workbook = directory_manifest.get_byte()
+            manifest_workbook = directory_manifest.get_bytes()
             archive.writestr(f'{target}/manifest.xlsx', manifest_workbook.getvalue())
             manifest_workbook.close()
 
@@ -331,9 +331,9 @@ class SparcDataset:
         dataset_archive = ZipFile(dataset, mode='w', compression=ZIP_DEFLATED)
 
         # adding dataset_description
-        desc_byte = self.__description.get_byte()
-        dataset_archive.writestr('files/dataset_description.xlsx', desc_byte.getvalue())
-        desc_byte.close()
+        desc_bytes = self.__description.get_bytes()
+        dataset_archive.writestr('files/dataset_description.xlsx', desc_bytes.getvalue())
+        desc_bytes.close()
         self.__description.close()
         
         # copy primary data
