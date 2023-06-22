@@ -25,18 +25,21 @@ from typing import BinaryIO, Optional, TYPE_CHECKING
 #===============================================================================
 
 from lxml import etree
+import svgelements
 
 #===============================================================================
 
 from mapmaker import __version__
+from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
+from mapmaker.geometry import Transform
 from mapmaker.properties.markup import parse_markup
 from mapmaker.utils import FilePath
 
 from .. import EXCLUDED_FEATURE_TYPES, EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
-from .utils import svg_markup
+from .utils import svg_element_from_feature, svg_markup, SVG_TAG
 
 if TYPE_CHECKING:
-    from mapmaker.flatmap import FeatureMap
+    from mapmaker.flatmap import FlatMap
     from mapmaker.properties import PropertiesStore
 
 #===============================================================================
@@ -46,6 +49,22 @@ class SVGCleaner(object):
         self.__svg = etree.parse(svg_file.get_fp())
         self.__properties_store = properties_store
         self.__all_layers = all_layers
+
+    def add_connectivity_group(self, flatmap: FlatMap, transform: Transform):
+    #========================================================================
+        # add tile-layer features that don't have an 'svg-element'
+        # need to add a <g> element
+        if self.__all_layers:
+            connectivity_group = etree.Element(SVG_TAG('g'))
+            inverse_transform = svgelements.Matrix(transform.inverse().svg_matrix)
+            self.__svg.getroot().append(connectivity_group)
+            for layer in flatmap.layers:
+                if layer.exported:
+                    for feature in layer.features:
+                        if (feature.properties.get('tile-layer') == PATHWAYS_TILE_LAYER
+                        and 'Line' in feature.properties['geometry']):
+                            element = svg_element_from_feature(feature, inverse_transform)
+                            connectivity_group.append(element)
 
     def clean(self):
     #===============

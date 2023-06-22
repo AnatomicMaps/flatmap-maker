@@ -204,6 +204,10 @@ class MapSource(object):
     #====================================
         self.__layers.append(layer)
 
+    def create_preview(self):
+    #========================
+        pass
+
     def error(self, kind: str, msg: str):
     #====================================
         self.__errors.append((kind, msg))

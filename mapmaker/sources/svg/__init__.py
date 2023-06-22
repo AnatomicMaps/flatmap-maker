@@ -31,7 +31,6 @@ import shapely.ops
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.properties import not_in_group_properties
-from mapmaker.settings import settings
 from mapmaker.utils import FilePath, ProgressBar, log
 
 from .. import MapSource, RasterSource
@@ -97,12 +96,16 @@ class SVGSource(MapSource):
         self.__layer.process()
         if self.__layer.boundary_feature is not None:
             self.__boundary_geometry = self.__layer.boundary_feature.geometry
-        if not settings.get('authoring', False) and self.__exported:
-            # Save a cleaned copy of the SVG in the map's output directory
-            cleaner = SVGCleaner(self.__source_file, self.flatmap.map_properties, all_layers=True)
-            cleaner.clean()
-            with open(self.flatmap.full_filename(f'{self.flatmap.id}.svg'), 'wb') as fp:
-                cleaner.save(fp)
+
+    def create_preview(self):
+    #========================
+        # Save a cleaned copy of the SVG in the map's output directory. Call after
+        # connectivity has been generated otherwise thno paths will be in the saved SVG
+        cleaner = SVGCleaner(self.__source_file, self.flatmap.properties_store, all_layers=True)
+        cleaner.clean()
+        cleaner.add_connectivity_group(self.flatmap, self.__transform)
+        with open(self.flatmap.full_filename(f'{self.flatmap.id}.svg'), 'wb') as fp:
+            cleaner.save(fp)
 
     def get_raster_source(self):
     #===========================

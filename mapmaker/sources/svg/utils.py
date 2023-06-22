@@ -37,11 +37,16 @@ from beziers.segment import Segment as BezierSegment
 import shapely.geometry
 from shapely.geometry.base import BaseGeometry
 
+from lxml import etree
+import svgelements
+
 #===============================================================================
 
+from mapmaker.flatmap import Feature
 from mapmaker.geometry import Transform, reflect_point
 from mapmaker.geometry.beziers import bezier_sample
 from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
+from mapmaker.output.path_colours import get_path_colour
 from mapmaker.utils import log
 
 from .. import PIXELS_PER_INCH
@@ -161,6 +166,48 @@ def circle_from_bounds(bounds):
     centre = shapely.geometry.Point((bounds[0] + bounds[2])/2.0,
                                     (bounds[1] + bounds[3])/2.0)
     return centre.buffer(math.sqrt(abs((bounds[2] - bounds[0])*(bounds[3] - bounds[1])))/2.0)
+
+#===============================================================================
+
+def svg_element_from_feature(feature: Feature, inverse_transform: svgelements.Matrix) -> etree.Element:
+    svg = etree.fromstring(feature.geometry.svg())
+    if svg.tag == 'circle':
+        element = svgelements.Circle(svg.attrib)
+    elif svg.tag == 'ellipse':
+        element = svgelements.Ellipse(svg.attrib)
+    elif svg.tag == 'line':
+        element = svgelements.SimpleLine(svg.attrib)
+    elif svg.tag == 'path':
+        element = svgelements.Path(svg.attrib['d'])
+    elif svg.tag == 'polygon':
+        element = svgelements.Polygon(svg.attrib['points'])
+    elif svg.tag == 'polyline':
+        element = svgelements.Polyline(svg.attrib['points'])
+    elif svg.tag == 'rect':
+        element = svgelements.Rect(svg.attrib)
+    else:
+        raise ValueError(f'Unexpected SVG element, `{svg.tag}`, {svg.atrib} for geometry')
+    path = (element * inverse_transform).d()
+    element = etree.Element(SVG_TAG('path'), d=path)
+    if 'Line' in feature.properties['geometry']:
+        element.attrib['fill'] = 'none'
+        if feature.properties['type'] == 'nerve' and 'kind' not in feature.properties:
+            # A nerve cuff
+            element.attrib['stroke'] = '#888'
+            element.attrib['stroke-width'] = '3'
+            element.attrib['stroke-dasharray'] = '6 2'
+        else:
+            element.attrib['stroke'] = get_path_colour(feature.properties['kind'])
+            if feature.properties['kind'] == 'centreline':
+                element.attrib['stroke-width'] = '5'
+                element.attrib['stroke-opacity'] = '0.2'
+            else:
+                element.attrib['stroke-width'] = '2'
+            if 'dash' in feature.properties['type']:
+                element.attrib['stroke-dasharray'] = '4'
+    else:
+        element.attrib['fill'] = '#DDD'             # FUTURE
+    return element
 
 #===============================================================================
 
