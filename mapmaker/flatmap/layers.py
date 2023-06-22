@@ -411,7 +411,7 @@ class RasterLayer(object):
         return self.__min_zoom
 
     @property
-    def source_data(self):
+    def source_data(self) -> bytes:
         return self.__map_source.raster_source.data
 
     @property

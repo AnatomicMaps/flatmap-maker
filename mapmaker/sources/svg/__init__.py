@@ -115,7 +115,7 @@ class SVGSource(MapSource):
         cleaned_svg = tempfile.TemporaryFile()
         cleaner.save(cleaned_svg)
         cleaned_svg.seek(0)
-        return cleaned_svg
+        return cleaned_svg.read()
 
 #===============================================================================
 
