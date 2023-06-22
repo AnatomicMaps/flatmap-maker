@@ -1,0 +1,59 @@
+[
+    {
+        "version": "2.1.0",
+        "mapping": [
+            ["type", [], "computational"],
+            ["title", ["title"], ""],
+            ["subtitle", ["description"], ""],
+            ["keywords", ["keywords"], ""],
+            ["funding", ["funding"], ""],
+            ["acknowledgements", ["acknowledgements"], ""],
+
+            ["study purpose", ["study", "purpose"], "The objective of this project is to present a straightforward two-dimensional graphical depiction of the anatomical structures of a specific species. It includes overlays of nerve connections that empower users to initiate exploration of the entire organism."],
+            ["study data collection", ["study", "data_collection"], "None stated"],
+            ["study primary conclusion", ["study", "primary_conclusion"], "None stated"],
+            ["study organ system", ["study", "organ_system"], "whole body"],
+            ["study approach", ["study", "approach"], "computational modeling"],
+            ["study technique", ["study", "technique"], ["computational modeling", "anatomical mapping"]],
+
+            ["contributor name", ["contributors", "name"], ""],
+            ["contributor orcid", ["contributors", "orcid"], ""],
+            ["contributor affiliation", ["contributors", "affiliation"], ""],
+            ["contributor role", ["contributors", "role"], ""],
+
+            ["identifier description", ["identifier_description"], "Link to map creation software"],
+            ["relation type", ["relation_type"], "HasSoftware"],
+
+            ["identifier", ["id"], ""],
+            ["identifier type", ["id_type"], "URL"],
+            
+            ["number of subjects", [], "0"],
+            ["number of samples", [], "0"]
+        ],
+        "template_url": "https://github.com/SciCrunch/sparc-curation/blob/7163299651648c6286231a0ca071f48c1d4d3bc5/resources/DatasetTemplate/dataset_description.xlsx?raw=true",
+        "data_pos" : 3,
+        "_meta": {"mapping": "is a list of list containing ['field in template', 'fields in description.json', 'default value']"}
+    },
+    {
+        "version": "1.2.3",
+        "mapping": [
+            ["metadata version do not change", [], "1.2.3"],
+            ["name", ["title"], ""],
+            ["title for complete data set", ["title"], ""],
+            ["description", ["description"], ""],
+            ["keywords", ["keywords"], ""],
+            ["contributors", ["contributors", "name"], ""],
+            ["contributor orcid id", ["contributors", "orcid"], ""],
+            ["contributor affiliation", ["contributors", "affiliation"], ""],
+            ["contributor role", ["contributors", "role"], ""],
+            ["is contact person", ["contributors", "contact"], ""],
+            ["funding", ["funding"], ""],
+            ["additional links", [], ["https://github.com/AnatomicMaps/flatmap-maker", "https://github.com/AnatomicMaps/flatmap-server", "https://github.com/ABI-Software/flatmap-viewer"]],
+            ["link description", [], ["Generate flatmaps for viewing", "Server for generated flatmaps", "View generated flatmaps"]],
+            ["number of subjects", [], "0"],
+            ["number of samples", [], "0"]
+        ],
+        "template_url": "https://github.com/SciCrunch/sparc-curation/blob/ed38ffc61aebd28176827f04448cc68e56ac19f5/resources/DatasetTemplate/dataset_description.xlsx?raw=true",
+        "data_pos" : 3
+    }
+]
