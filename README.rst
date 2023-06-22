@@ -97,7 +97,7 @@ Command line help
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
                     [--clean] [--clean-connectivity] [--background-tiles] [--id ID]
-                    [--ignore-git] [--invalid-neurons] [--sckan-version {production,staging}]
+                    [--ignore-git] [--invalid-neurons] [--publish SPARC_DATASET] [--sckan-version {production,staging}]
                     [--authoring] [--debug] [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N] [--min-zoom N]
                     [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE] [--single-file {celldl,svg}]
@@ -125,6 +125,8 @@ Command line help
       --ignore-git          Don't check that sources are committed into git
       --invalid-neurons     Include functional connectivity neurons that aren't known
                             in SCKAN
+      --publish SPARC_DATASET
+                            Create a SPARC Dataset containing the map's sources and the generated map
       --sckan-version {production,staging}
                             Overide version of SCKAN specified by map's manifest
 
