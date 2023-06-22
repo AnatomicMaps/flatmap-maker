@@ -326,13 +326,11 @@ class Path:
         self.__models = path.get('models')
         self.__nerves = list(parse_nerves(path.get('nerves')))
         self.__route = None
-        self.__taxons = None
         self.__trace = trace
 
         if self.__models is not None:
             knowledge = get_knowledge(self.__models)
             self.__label = knowledge.get('label')
-            self.__taxons = [taxon] if (taxon := knowledge.get('taxon')) is not None else None
             self.__connectivity = connectivity_graph_from_knowledge(knowledge)
 
         if self.__connectivity is not None:
@@ -375,10 +373,6 @@ class Path:
     @property
     def source(self):
         return self.__source
-
-    @property
-    def taxons(self):
-        return self.__taxons
 
     @property
     def trace(self):
@@ -659,8 +653,6 @@ class Pathways:
                             properties['label'] = '\n'.join(labels)
                         elif path_model is not None:
                             properties['label'] = path.label
-                        if path.taxons is not None:
-                            properties['taxons'] = path.taxons
                     feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
                     feature_geojson_ids.append(feature.geojson_id)
                     layer.add_feature(feature)
