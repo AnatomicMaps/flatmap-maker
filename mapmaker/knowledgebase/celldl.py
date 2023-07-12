@@ -137,7 +137,7 @@ class CellDLGraph:
             return
         this = FLATMAP[svg_id(shape.id)]
         self.__graph.add((this, RDF.type, CELLDL_CLASS_TO_RDF[shape.cd_class]))
-        self.__graph.add((this, FC.type, FC[shape.fc_class.split(':')[-1]]))
+        self.__graph.add((this, RDF.type, FC[shape.fc_class.split(':')[-1]]))
         if shape.label:
             self.__graph.add((this, RDFS.label, rdflib.Literal(shape.label))) ## add port/node in XXX ??
         if (shape.name
