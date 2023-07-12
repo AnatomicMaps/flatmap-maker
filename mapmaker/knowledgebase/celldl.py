@@ -121,6 +121,10 @@ CELLDL_CLASS_TO_RDF = {
 
 #===============================================================================
 
+GZIP_BASE64_DATA_URI = 'data:application/gzip;base64,'
+
+#===============================================================================
+
 class CellDLGraph:
     def __init__(self):
         self.__graph = rdflib.Graph()
@@ -154,6 +158,6 @@ class CellDLGraph:
     def as_encoded_turtle(self):
     #===========================
         turtle = self.__graph.serialize(format='turtle', encoding='utf-8')
-        return f'base64:gzip:turtle:{base64.b64encode(zlib.compress(turtle)).decode()}'
+        return f'{GZIP_BASE64_DATA_URI}{base64.b64encode(zlib.compress(turtle)).decode()}'
 
 #===============================================================================

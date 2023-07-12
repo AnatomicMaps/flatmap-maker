@@ -581,6 +581,7 @@ class SvgMaker:
     #===========================
         if self.__celldl is not None:
             self.__drawing.set_desc(desc='CellDL Metadata')
+            self.__drawing.elements[0].xml.attrib['data-metadata-format'] = 'text/turtle'
             self.__drawing.elements[0].xml.attrib['data-metadata'] = self.__celldl.as_encoded_turtle()
         self.__drawing.write(file_object, pretty=True, indent=4)
 
