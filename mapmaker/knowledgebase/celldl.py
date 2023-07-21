@@ -130,6 +130,9 @@ class CellDLGraph:
         self.__graph = rdflib.Graph()
         self.__graph.bind('celldl', str(CELLDL))
         self.__graph.bind('fc', str(FC))
+        this = FLATMAP['']
+        self.__graph.add((this, RDF.type, CELLDL.Document))
+        self.__graph.add((this, RDF.type, FC.Diagram))
 
     def add_metadata(self, shape):
     #=============================
