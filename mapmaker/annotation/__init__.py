@@ -44,8 +44,8 @@ class Annotator:
             self.__add_term(system.term, system.name)
         for nerve in self.__annotations.nerves:
             self.__add_term(nerve.term, nerve.name, *nerve.parent_list)
-        for vessels in self.__annotations.vessels:
-            self.__add_term(vessels.term, vessels.name)
+        for vessel in self.__annotations.vessels:
+            self.__add_term(vessel.term, vessel.name)
         for organ in self.__annotations.organs:
             self.__add_term(organ.term, organ.name)
         for ftu in self.__annotations.ftus:
