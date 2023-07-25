@@ -241,7 +241,7 @@ class CanvasGroup(CanvasDrawingObject):
 class SVGTiler(object):
     def __init__(self, raster_layer, tile_set):
         self.__bbox = shapely.geometry.box(*extent_to_bounds(raster_layer.extent))
-        self.__svg = etree.fromstring(raster_layer.source_data)
+        self.__svg = etree.fromstring(raster_layer.source_data, parser=etree.XMLParser(huge_tree=True))
         self.__source_path = raster_layer.source_path
         if 'viewBox' in self.__svg.attrib:
             self.__size = tuple(float(x)
