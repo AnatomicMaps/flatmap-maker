@@ -47,7 +47,7 @@ class Annotator:
         for vessels in self.__annotations.vessels:
             self.__add_term(vessels.term, vessels.name)
         for organ in self.__annotations.organs:
-            self.__add_term(organ.term, organ.name, *organ.parent_list)
+            self.__add_term(organ.term, organ.name)
         for ftu in self.__annotations.ftus:
             self.__add_term(ftu.term, ftu.name, *ftu.parent_list)
         self.__create_index()
