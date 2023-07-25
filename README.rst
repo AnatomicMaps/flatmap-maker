@@ -100,7 +100,8 @@ Command line help
                     [--ignore-git] [--invalid-neurons] [--publish SPARC_DATASET] [--sckan-version {production,staging}]
                     [--authoring] [--debug] [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N] [--min-zoom N]
-                    [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE] [--single-file {celldl,svg}]
+                    [--export-identifiers EXPORT_FILE] [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE]
+                    [--single-file {celldl,svg}]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -147,6 +148,8 @@ Command line help
       --min-zoom N          Minimum zoom level (defaults to 2)
 
     Miscellaneous:
+      --export-identifiers EXPORT_FILE
+                            Export identifiers and anatomical terms of features as JSON
       --export-neurons EXPORT_FILE
                             Export details of functional connectivity neurons as JSON
       --export-svg EXPORT_FILE

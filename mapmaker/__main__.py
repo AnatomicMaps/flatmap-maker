@@ -83,6 +83,8 @@ def arg_parser():
                         help='Minimum zoom level (defaults to 2)')
 
     misc_options = parser.add_argument_group('Miscellaneous')
+    misc_options.add_argument('--export-identifiers', dest='exportIdentifiers', metavar='EXPORT_FILE',
+                        help='Export identifiers and anatomical terms of features as JSON')
     misc_options.add_argument('--export-neurons', dest='exportNeurons', metavar='EXPORT_FILE',
                         help='Export details of functional connectivity neurons as JSON')
     misc_options.add_argument('--export-svg', dest='exportSVG', metavar='EXPORT_FILE',
