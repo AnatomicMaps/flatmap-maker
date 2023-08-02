@@ -194,7 +194,7 @@ class FCSlide(Slide):
                 if 'CARDIO' in fc_shape.name:
                     fc_shape.fc_kind = FC_KIND.CARDIOVASCULAR_SYSTEM
                     cardio_system = fc_shape
-                elif 'BRAIN' in fc_shape.name:
+                elif 'NERVOUS' in fc_shape.name:
                     fc_shape.fc_kind = FC_KIND.NERVOUS_SYSTEM
                     nervous_system = fc_shape
             else:       # Component, Connector, or Annotation (Hyperlink)
