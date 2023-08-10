@@ -145,6 +145,7 @@ class Manifest:
         self.__connectivity = []
         self.__neuron_connectivity = []
         self.__uncommitted = 0
+        self.__clean_file_set = []
 
         if single_file is not None:
             # A special case is to make a map from a standalone source file
@@ -226,6 +227,10 @@ class Manifest:
         return self.__manifest.get('description')
 
     @property
+    def file_set(self):
+        return self.__clean_file_set
+
+    @property
     def git_repository(self):
         return self.__repo
 
@@ -276,18 +281,20 @@ class Manifest:
             return blob_url
         return self.__url
 
-    def __check_and_normalise_path(self, path) -> str:
-    #=================================================
+    def __check_and_normalise_path(self, path: str) -> str:
+    #======================================================
         normalised_path = self.__path.join_url(path)
         if not self.__ignore_git:
             self.__check_committed(normalised_path)
         return normalised_path
 
-    def __check_committed(self, path):
-    #=================================
+    def __check_committed(self, path: str):
+    #======================================
         if self.__repo is not None:
             git_state = self.__repo.status(path)
-            if git_state != GitState.DONTCARE:
+            if git_state == GitState.DONTCARE:
+                self.__clean_file_set.append(path)
+            else:
                 message = ('unknown to git' if git_state == GitState.UNKNOWN else
                            'staged to be committed' if git_state == GitState.STAGED else
                            'unstaged with changes' if git_state == GitState.CHANGED else
