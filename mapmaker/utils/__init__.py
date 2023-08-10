@@ -101,10 +101,10 @@ class FilePath(object):
         bytesio.seek(0)
         return bytesio
 
-    def join_path(self, path):
+    def join_path(self, path: str) -> FilePath:
         return FilePath(urljoin(self.__url, path))
 
-    def join_url(self, path):
+    def join_url(self, path: str) -> str:
         return urljoin(self.__url, path)
 
 #===============================================================================
