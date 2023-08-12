@@ -208,17 +208,17 @@ class ResolvedPathways:
         self.__type_paths: dict[PATH_TYPE, set[str]] = defaultdict(set)     #! Paths by path type
 
     @property
-    def node_paths(self):
+    def node_paths(self) -> dict[int, list[str]]:
         return { node: list(paths) for node, paths in self.__node_paths.items() }
 
     @property
-    def paths_dict(self):
+    def paths_dict(self) -> dict[str, dict]:
         return { path_id: resolved_path.as_dict
                     for path_id, resolved_path in self.__paths.items()
                }
 
     @property
-    def type_paths(self):
+    def type_paths(self) -> dict[str, list[str]]:
         result: dict[str, list[str]] = defaultdict(list)
         for typ, paths in self.__type_paths.items():
             result[typ.viewer_kind].extend(paths)
@@ -475,7 +475,8 @@ class Pathways:
         self.__connectivity_models = []
         self.__active_nerve_ids: set[str] = set()   ### Manual layout only???
         self.__connection_sets: list[ConnectionSet] = []
-        self.add_connectivity({'paths': paths_list})
+        if len(paths_list):
+            self.add_connectivity({'paths': paths_list})
 
     @staticmethod
     def make_list(lst):
@@ -488,8 +489,8 @@ class Pathways:
         connectivity: dict[str, Any] = {
             'models': [],
             'paths': {},
-            'node-paths': {},
-            'type-paths': {}
+            'node-paths': defaultdict(list),
+            'type-paths': defaultdict(list)
         }
         for model in self.__connectivity_models:
             if model.source is not None:
@@ -499,14 +500,16 @@ class Pathways:
                 })
         if self.__resolved_pathways is not None:
             connectivity['paths'] = self.__resolved_pathways.paths_dict
-            connectivity['node-paths'] = self.__resolved_pathways.node_paths
-            connectivity['type-paths'] = self.__resolved_pathways.type_paths
+            connectivity['node-paths'] = defaultdict(list, self.__resolved_pathways.node_paths)
+            connectivity['type-paths'] = defaultdict(list, self.__resolved_pathways.type_paths)
         for connection_set in self.__connection_sets:
             connection_set_dict = connection_set.as_dict()
             connectivity['models'].extend(connection_set_dict['models'])
             connectivity['paths'].update(connection_set_dict['paths'])
-            connectivity['node-paths'].update(connection_set_dict['node-paths'])
-            connectivity['type-paths'].update(connection_set_dict['type-paths'])
+            for node, paths in connection_set_dict['node-paths'].items():
+                connectivity['node-paths'][node].extend(paths)
+            for path_type, paths in connection_set_dict['type-paths'].items():
+                connectivity['type-paths'][path_type].extend(paths)
         return connectivity
 
     def add_connection_set(self, connection_set):
