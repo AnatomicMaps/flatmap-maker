@@ -18,6 +18,8 @@
 #
 #===============================================================================
 
+from collections import namedtuple
+from datetime import datetime
 from enum import Enum
 import os
 import pathlib
@@ -46,6 +48,10 @@ class GitState(Enum):
     STAGED    = 2
     CHANGED   = 3
     UNTRACKED = 4
+
+#===============================================================================
+
+ManifestFile = namedtuple('ManifestFile', ['path', 'description'])
 
 #===============================================================================
 
@@ -145,7 +151,7 @@ class Manifest:
         self.__connectivity = []
         self.__neuron_connectivity = []
         self.__uncommitted = 0
-        self.__clean_file_set = []
+        self.__clean_file_set: list[ManifestFile] = []
 
         if single_file is not None:
             # A special case is to make a map from a standalone source file
@@ -163,7 +169,7 @@ class Manifest:
             }
         else:
             # Check the manifest itself is committed into the repository
-            self.__check_committed(self.__url)
+            self.__check_committed(self.__url, 'Flatmap source manifest')
 
             self.__manifest = self.__path.get_json()
             if id is not None:
@@ -182,19 +188,19 @@ class Manifest:
             if 'sources' not in self.__manifest:
                 raise ValueError('No sources given for manifest')
             for source in self.__manifest['sources']:
-                source['href'] = self.__check_and_normalise_path(source['href'])
+                source['href'] = self.__check_and_normalise_path(source['href'], 'Flatmap source file')
             if 'anatomicalMap' in self.__manifest:
-                self.__manifest['anatomicalMap'] = self.__check_and_normalise_path(self.__manifest['anatomicalMap'])
+                self.__manifest['anatomicalMap'] = self.__check_and_normalise_path(self.__manifest['anatomicalMap'], 'Flatmap anatomical map')
             if 'annotation' in self.__manifest:
-                self.__manifest['annotation'] = self.__check_and_normalise_path(self.__manifest['annotation'])
+                self.__manifest['annotation'] = self.__check_and_normalise_path(self.__manifest['annotation'], 'Flatmap annotation')
             if 'description' in self.__manifest:
-                self.__manifest['description'] = self.__check_and_normalise_path(self.__manifest['description'])
+                self.__manifest['description'] = self.__check_and_normalise_path(self.__manifest['description'], 'Flatmap description')
             if 'connectivityTerms' in self.__manifest:
-                self.__manifest['connectivityTerms'] = self.__check_and_normalise_path(self.__manifest['connectivityTerms'])
+                self.__manifest['connectivityTerms'] = self.__check_and_normalise_path(self.__manifest['connectivityTerms'], 'Flatmap connectivity terms')
             if 'properties' in self.__manifest:
-                self.__manifest['properties'] = self.__check_and_normalise_path(self.__manifest['properties'])
+                self.__manifest['properties'] = self.__check_and_normalise_path(self.__manifest['properties'], 'Flatmap properties')
             for path in self.__manifest.get('connectivity', []):
-                self.__connectivity.append(self.__check_and_normalise_path(path))
+                self.__connectivity.append(self.__check_and_normalise_path(path, 'Flatmap connectivity'))
             if not ignore_git and self.__uncommitted:
                 raise TypeError("Not all sources are commited into git -- was the '--authoring' or '--ignore-git' option intended?")
 
@@ -227,7 +233,7 @@ class Manifest:
         return self.__manifest.get('description')
 
     @property
-    def file_set(self):
+    def file_set(self) -> list[ManifestFile]:
         return self.__clean_file_set
 
     @property
@@ -281,19 +287,19 @@ class Manifest:
             return blob_url
         return self.__url
 
-    def __check_and_normalise_path(self, path: str) -> str:
-    #======================================================
+    def __check_and_normalise_path(self, path: str, desc: str='') -> str:
+    #====================================================================
         normalised_path = self.__path.join_url(path)
         if not self.__ignore_git:
-            self.__check_committed(normalised_path)
+            self.__check_committed(normalised_path, desc)
         return normalised_path
 
-    def __check_committed(self, path: str):
-    #======================================
+    def __check_committed(self, path: str, desc: str=''):
+    #====================================================
         if self.__repo is not None:
             git_state = self.__repo.status(path)
             if git_state == GitState.DONTCARE:
-                self.__clean_file_set.append(path)
+                self.__clean_file_set.append(ManifestFile(path, desc))
             else:
                 message = ('unknown to git' if git_state == GitState.UNKNOWN else
                            'staged to be committed' if git_state == GitState.STAGED else
