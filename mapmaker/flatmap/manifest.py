@@ -131,16 +131,6 @@ class MapRepository:
 #===============================================================================
 
 class Manifest:
-    ##. Have a 'legends' section referencing 'legends.json'
-    ##
-    ##  Categories: [
-    ##    {
-    ##      title: paths
-    ##      selectable: T/F
-    ##      { id/key, colour, text}
-    ##    }
-    ##  ]
-
     def __init__(self, manifest_path, single_file=None, id=None, ignore_git=False):
         self.__path = FilePath(manifest_path)
         if single_file is not None:
