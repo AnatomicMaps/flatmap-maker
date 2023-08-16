@@ -50,7 +50,7 @@ from .manifest import Manifest
 #===============================================================================
 
 class FlatMap(object):
-    def __init__(self, manifest, maker, annotator=None):
+    def __init__(self, manifest: Manifest, maker, annotator=None):
         self.__id = maker.id
         self.__uuid = maker.uuid
         self.__map_dir = maker.map_dir
