@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
 from io import BytesIO
@@ -38,7 +38,7 @@ import requests
 
 #===============================================================================
 
-from mapmaker.flatmap import FlatMap, Manifest
+from mapmaker.flatmap import FlatMap
 
 #===============================================================================
 
@@ -173,23 +173,10 @@ class DirectoryManifest:
         'file type',
     )
 
-    def __init__(self, manifest, is_git=True, metadata_columns: Optional[list[str]]=None):
-        self.__manifest = manifest
-        self.__metadata_columns = metadata_columns if metadata_columns is not None else []
+    def __init__(self, metadata: Optional[dict[str, str]]=None):
+        self.__metadata = metadata if metadata is not None else {}
         self.__files = []
         self.__file_records = []
-        self.__repo_datetime = None
-        if is_git:
-            commit = self.__manifest.git_repository._MapRepository__repo.head.commit
-            tzinfo = timezone(timedelta(seconds=commit.author_tz_offset))
-            commit_time = datetime.fromtimestamp(float(commit.committed_date), tzinfo)
-            self.__repo_datetime =  commit_time
-        
-    def __get_repo_datetime(self, fullpath):
-        if self.__repo_datetime != None:
-            return self.__repo_datetime
-        else:
-            return datetime.fromtimestamp(os.path.getmtime(fullpath))
 
     @property
     def files(self):
@@ -199,13 +186,15 @@ class DirectoryManifest:
     def file_list(self):
         return [f.fullpath for f in self.__files]
 
-    def add_file(self, filename, description, **metadata):
-        fullpath = (self.__manifest._Manifest__url / filename).resolve()
-        file_type = mimetypes.guess_type(filename, strict=False)[0]
+    def add_file(self, filepath, description, timestamp):
+        fullpath = Path(filepath)
+
+
+        file_type = mimetypes.guess_type(fullpath, strict=False)[0]
         file_type = fullpath.suffix if file_type == None else file_type
         dataset_file = DatasetFile(fullpath.name,
                                    fullpath,
-                                   self.__get_repo_datetime(fullpath),
+                                   timestamp,
                                    description,
                                    file_type)
         self.__files.append(dataset_file)
@@ -215,14 +204,14 @@ class DirectoryManifest:
             dataset_file.description,
             dataset_file.file_type
         ]
-        for column_name in self.__metadata_columns:
-            record.append(metadata.get(column_name))
+        for value in self.__metadata.values():
+            record.append(value)
         self.__file_records.append(record)
 
-    def get_bytes(self):
+    def __get_bytes(self):
         workbook = openpyxl.Workbook()
         worksheet = workbook.active
-        for col, value in enumerate(self.COLUMNS + tuple(self.__metadata_columns), start=1):
+        for col, value in enumerate(self.COLUMNS + tuple(self.__metadata.keys()), start=1):
             worksheet.cell(row=1, column=col, value=value)
         for row, record in enumerate(self.__file_records, start=2):
             for col, value in enumerate(record, start=1):
@@ -233,98 +222,76 @@ class DirectoryManifest:
         workbook.close()
         return buffer
 
+    def copy_to_archive(self, archive: ZipFile, target: str):
+        for file in self.files:
+            zinfo = ZipInfo.from_file(str(file.fullpath), arcname=f'{target}/{file.filename}')
+            zinfo.compress_type = ZIP_DEFLATED
+            timestamp = file.timestamp
+            zinfo.date_time = (timestamp.year, timestamp.month, timestamp.day,
+                            timestamp.hour, timestamp.minute, timestamp.second)
+            with open(file.fullpath, "rb") as src, archive.open(zinfo, 'w') as dest:
+                shutil.copyfileobj(src, dest, 1024*8)
+        manifest_workbook = self.__get_bytes()
+        archive.writestr(f'{target}/manifest.xlsx', manifest_workbook.getvalue())
+        manifest_workbook.close()
+
 #===============================================================================
 
-class FlatmapSource:
-    def __init__(self, manifest, flatmap, is_git=True):
-        """
-        : manifest: a Manifest instance
-        : flatmap: a Flatmap instance
-        : is_git: a binary whether the source manage by repo or not
-        """
-        
+class FlatmapDirectoryManifests:
+    def __init__(self, flatmap: FlatMap):
         # creating dataset manifest.xlsx
+
+        manifest = flatmap.manifest
         species = manifest.models
         metadata = {'species': species} if species is not None else {}
-        
-        directory_manifest = DirectoryManifest(manifest, is_git, list(metadata.keys()))
-        
-        if is_git:
-            # adding files to be store in primary directory    
-            directory_manifest.add_file(pathlib_path(manifest.description), 'flatmap description', **metadata)
-            if manifest.anatomical_map != None:
-                directory_manifest.add_file(pathlib_path(manifest.anatomical_map), 'flatmap annatomical map', **metadata)
-            if manifest.properties != None:
-                directory_manifest.add_file(pathlib_path(manifest.properties), 'flatmap properties', **metadata)
-            if manifest.connectivity_terms != None:
-                directory_manifest.add_file(pathlib_path(manifest.connectivity_terms), 'flatmap connectivity terms', **metadata)
-            for connectivity_file in manifest.connectivity:
-                directory_manifest.add_file(pathlib_path(connectivity_file), 'flatmap connectivity', **metadata)
-            for source in manifest.sources:
-                if source['href'].split(':', 1)[0] in ['file']:
-                    directory_manifest.add_file(pathlib_path(source['href']), 'flatmap source', **metadata)
-            manifest_dir = pathlib_path(manifest.description).parent
-            manifest_path = (manifest_dir / pathlib_path(manifest.url).name).resolve()
-            directory_manifest.add_file(manifest_path, 'manifest to built map', **metadata)
-            # adding other file
-            for file in os.listdir(manifest_dir):
-                file_path = (manifest_dir / file).resolve()
-                if file_path not in directory_manifest.file_list and file_path.is_file():
-                    directory_manifest.add_file(file_path, 'another primary flatmap file', **metadata)
-        else:
-            for file in os.listdir(flatmap.map_dir):
-                file_path = (Path(flatmap.map_dir) / file).resolve()
-                if file_path.is_file():
-                    directory_manifest.add_file(file_path, 'derivative file to be used by map server', **metadata)
 
-        self.__directory_manifests = [directory_manifest]
+        self.__dataset_image: Optional[Path] = None
+        # Scan the output directory first since this is where we expect an SVG to use for the image
+        self.__dataset_image = None
+        self.__derivative_manifest = DirectoryManifest(metadata)
+        for file in os.listdir(flatmap.map_dir):
+            fullpath = (Path(flatmap.map_dir) / file).resolve()
+            if fullpath.is_file():
+                self.__derivative_manifest.add_file(fullpath, 'Generarate file for flatmap server',
+                    datetime.fromtimestamp(os.path.getmtime(fullpath)))
+                if self.__dataset_image is None and fullpath.suffix == '.svg':
+                    self.__dataset_image = fullpath
 
-    @property
-    def directory_manifests(self):
-        return self.__directory_manifests
+        self.__primary_manifest = DirectoryManifest(metadata)
+        git_status = manifest.git_status
+        if git_status is None:
+            raise TypeError('Map sources must be all be committed into git before SDS creation')
+        source_timestamp: datetime = git_status['committed']
+        for manifest_file in manifest.file_set:
+            fullpath = Path(manifest_file.path)
+            self.__primary_manifest.add_file(fullpath, manifest_file.description, source_timestamp)
+            if self.__dataset_image is None and fullpath.suffix == '.svg':
+                self.__dataset_image = fullpath
 
     @property
     def dataset_image(self):
-        for directory_manifest in self.__directory_manifests:
-            for file in directory_manifest.files:
-                if file.filename.endswith('.svg'):
-                    return file.fullpath
-        return None
-    
-    def copy_to_archive(self, archive, target):
-        for directory_manifest in self.directory_manifests:
-            for file in directory_manifest.files:
-                zinfo = ZipInfo.from_file(str(file.fullpath), arcname=f'{target}/{file.filename}')
-                zinfo.compress_type = ZIP_DEFLATED
-                timestamp = file.timestamp
-                zinfo.date_time = (timestamp.year, timestamp.month, timestamp.day,
-                                timestamp.hour, timestamp.minute, timestamp.second)
-                with open(file.fullpath, "rb") as src, archive.open(zinfo, 'w') as dest:
-                    shutil.copyfileobj(src, dest, 1024*8)
-            manifest_workbook = directory_manifest.get_bytes()
-            archive.writestr(f'{target}/manifest.xlsx', manifest_workbook.getvalue())
-            manifest_workbook.close()
+        return self.__dataset_image
+
+    def copy_to_archive(self, archive: ZipFile):
+        self.__primary_manifest.copy_to_archive(archive, 'files/primary')
+        self.__derivative_manifest.copy_to_archive(archive, 'files/derivative')
 
 #===============================================================================
 
 class SparcDataset:
-    def __init__(self, manifest: Manifest, flatmap: FlatMap):
-        self.__manifest = manifest
+    def __init__(self, flatmap: FlatMap):
         self.__flatmap = flatmap
         
     def generate(self):
         # generate dataset_description
         self.__description = DatasetDescription(self.__flatmap, version=None)
         try:
-            self.__description.write(self.__manifest.description)
+            self.__description.write(self.__flatmap.manifest.description)
         except:
-            logging.error(f'Cannot create dataset: Cannot open: {self.__manifest.description}')
+            logging.error(f'Cannot create dataset: Cannot open: {self.__flatmap.__manifest.description}')
 
-        # generate primary source
-        self.__primary = FlatmapSource(self.__manifest, self.__flatmap)
-
-        # generate derivative source
-        self.__derivative = FlatmapSource(self.__manifest, self.__flatmap, is_git=False)
+        # generate flatmap directory manifests
+        self.__flatmap_manifests = FlatmapDirectoryManifests(self.__flatmap)
 
     def save(self, dataset: str):
         # create archive
@@ -336,19 +303,16 @@ class SparcDataset:
         desc_bytes.close()
         self.__description.close()
         
-        # copy primary data
-        self.__primary.copy_to_archive(dataset_archive, 'files/primary')
-
-        # this one save derivatives
-        self.__derivative.copy_to_archive(dataset_archive, 'files/derivative')
+        # copy data
+        self.__flatmap_manifests.copy_to_archive(dataset_archive)
 
         # create and save proper readme file, generated for dataset_description
         self.__add_readme(dataset_archive)
 
         # save banner
-        banner_file = self.__flatmap.full_filename(f'{self.__flatmap.id}.svg')
-        if os.path.exists(banner_file):
-            dataset_archive.write(pathlib_path(banner_file), 'files/banner.svg')
+        banner_file = self.__flatmap_manifests.dataset_image
+        if banner_file is not None:
+            dataset_archive.write(banner_file, 'files/banner.svg')
 
         # close archive
         dataset_archive.close()
@@ -356,8 +320,8 @@ class SparcDataset:
     def __add_readme(self, archive):
         # load flatmap description
         readme = ['# FLATMAP DESCRIPTION'] + self.__metadata_parser(self.__description.get_json())
-        # load flatmat setup
-        readme += ['# FLATMAP SETTINGS'] + self.__metadata_parser(self.__flatmap.metadata)        
+        # load flatmap setup
+        readme += ['# FLATMAP SETTINGS'] + self.__metadata_parser(self.__flatmap.metadata)
         archive.writestr(f'files/readme.md', '\n'.join(readme))
 
     def __metadata_parser(self, data):
