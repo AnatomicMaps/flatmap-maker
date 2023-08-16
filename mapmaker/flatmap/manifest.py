@@ -68,6 +68,10 @@ class MapRepository:
             raise ValueError("Flatmap sources must be in a git managed directory ('--authoring' or '--ignore-git' option intended?)")
 
     @property
+    def committed(self) -> datetime:
+        return self.__repo.head.commit.committed_datetime
+
+    @property
     def remotes(self) -> dict[str, str]:
         return {
             remote.name: giturlparse.parse(remote.url).url2https
@@ -245,7 +249,8 @@ class Manifest:
         if self.__repo is not None and self.__repo.sha is not None:
             return {
                 'sha': self.__repo.sha,
-                'remotes': self.__repo.remotes
+                'remotes': self.__repo.remotes,
+                'committed': self.__repo.committed
             }
 
     @property
