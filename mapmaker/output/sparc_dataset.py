@@ -200,7 +200,7 @@ class DirectoryManifest:
         self.__files.append(dataset_file)
         record: list[str|None] = [
             dataset_file.filename,
-            dataset_file.timestamp.isoformat(),
+            dataset_file.timestamp.isoformat(timespec='milliseconds'),
             dataset_file.description,
             dataset_file.file_type
         ]
@@ -228,7 +228,7 @@ class DirectoryManifest:
             zinfo.compress_type = ZIP_DEFLATED
             timestamp = file.timestamp
             zinfo.date_time = (timestamp.year, timestamp.month, timestamp.day,
-                            timestamp.hour, timestamp.minute, timestamp.second)
+                               timestamp.hour, timestamp.minute, timestamp.second)
             with open(file.fullpath, "rb") as src, archive.open(zinfo, 'w') as dest:
                 shutil.copyfileobj(src, dest, 1024*8)
         manifest_workbook = self.__get_bytes()
