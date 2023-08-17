@@ -121,6 +121,10 @@ class FlatMap(object):
         return self.__map_dir
 
     @property
+    def manifest(self):
+        return self.__manifest
+
+    @property
     def properties_store(self):
         return self.__properties_store
 
