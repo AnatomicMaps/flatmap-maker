@@ -188,8 +188,8 @@ class DirectoryManifest:
 
     def add_file(self, filepath, description, timestamp):
         fullpath = Path(filepath)
-
-
+        if fullpath.parts[0] == 'file:':
+            fullpath = Path('/', *fullpath.parts[1:])
         file_type = mimetypes.guess_type(fullpath, strict=False)[0]
         file_type = fullpath.suffix if file_type == None else file_type
         dataset_file = DatasetFile(fullpath.name,
@@ -224,7 +224,7 @@ class DirectoryManifest:
 
     def copy_to_archive(self, archive: ZipFile, target: str):
         for file in self.files:
-            zinfo = ZipInfo.from_file(str(file.fullpath), arcname=f'{target}/{file.filename}')
+            zinfo = ZipInfo.from_file(file.fullpath, arcname=f'{target}/{file.filename}')
             zinfo.compress_type = ZIP_DEFLATED
             timestamp = file.timestamp
             zinfo.date_time = (timestamp.year, timestamp.month, timestamp.day,
