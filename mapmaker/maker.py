@@ -277,7 +277,7 @@ class MapMaker(object):
         # Create a Sparc dataset if publishing
         if (sds_output := settings.get('publish')) is not None:
             log(f'Generating SPARC dataset {sds_output}...')
-            sparc_dataset = SparcDataset(self.__manifest, self.__flatmap)
+            sparc_dataset = SparcDataset(self.__flatmap)
             sparc_dataset.generate()
             sparc_dataset.save(sds_output)
 
