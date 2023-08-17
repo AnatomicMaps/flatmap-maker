@@ -457,6 +457,7 @@ class MapMaker(object):
         metadata['settings'] = self.__options
         if (git_status := self.__manifest.git_status) is not None:
             metadata['git-status'] = git_status
+            metadata['git-status']['committed'] = metadata['git-status']['committed'].isoformat(timespec='milliseconds')
         if self.__sckan_build is not None:
             metadata['sckan'] = self.__sckan_build
         tile_db.add_metadata(metadata=json.dumps(metadata))
