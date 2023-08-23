@@ -90,10 +90,11 @@ class DatasetDescription:
         : version: is SDS version
         """
         
-        other_params = {'version':version}
-        other_params['id'] = ['URL', 'UUID']
-        other_params['id_type'] = [flatmap.metadata.get('source'), flatmap.uuid]
-
+        other_params = {
+            'version': version,
+            'id': [flatmap.metadata.get('source'), flatmap.uuid],
+            'id_type': ['SourceManifestUrl', 'UUID'],
+        }
         self.__mapping = VersionMapping().get_mapping(other_params)
         self.__workbook = self.__load_template_workbook(self.__mapping['template_url'])
         
