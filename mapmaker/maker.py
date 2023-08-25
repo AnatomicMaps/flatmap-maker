@@ -153,18 +153,21 @@ class MapMaker(object):
                                          log_sckan_build=True)
         settings['KNOWLEDGE_STORE'] = knowledge_store
 
-        self.__sckan_build = knowledgebase.sckan_build()
+        if (sckan_build := knowledgebase.sckan_build()) is not None:
+            self.__sckan_version = sckan_build['created']
+        else:
+            self.__sckan_version = None
 
         # Our ``uuid`` depends on the source Git repository commit,
         # the contents of the map's manifest, mapmaker's version,
         # and the version of SCKAN we use for connectivity.
-        if (self.__sckan_build is not None
+        if (self.__sckan_version is not None
         and (repo := self.__manifest.git_repository) is not None):
             self.__uuid = str(uuid.uuid5(uuid.NAMESPACE_URL,
                               repo.sha
                             + json.dumps(self.__manifest.manifest)
                             + __version__
-                            + self.__sckan_build['created']))
+                            + self.__sckan_version))
         else:
             self.__uuid = None
 
@@ -202,6 +205,10 @@ class MapMaker(object):
     @property
     def map_dir(self):
         return self.__map_dir
+
+    @property
+    def sckan_version(self):
+        return self.__sckan_version
 
     @property
     def uuid(self):
@@ -459,8 +466,6 @@ class MapMaker(object):
         if (git_status := self.__manifest.git_status) is not None:
             metadata['git-status'] = git_status
             metadata['git-status']['committed'] = metadata['git-status']['committed'].isoformat(timespec='milliseconds')
-        if self.__sckan_build is not None:
-            metadata['sckan'] = self.__sckan_build
         tile_db.add_metadata(metadata=json.dumps(metadata))
 
         # Save layer details in metadata
@@ -501,8 +506,8 @@ class MapMaker(object):
             map_index['style'] = 'anatomical'
         if git_status is not None:
             map_index['git-status'] = git_status
-        if self.__sckan_build is not None:
-            map_index['sckan'] = self.__sckan_build['created']
+        if self.__sckan_version is not None:
+            map_index['sckan'] = self.__sckan_version
 
         # Create `index.json` for building a map in the viewer
         with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:
