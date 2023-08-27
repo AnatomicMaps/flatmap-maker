@@ -196,8 +196,8 @@ class FlatMap(object):
         self.__setup_feature_search()
         # Add manual connections into the map's paths
         self.properties_store.pathways.add_connection_set(self.__connection_set)
-        # Generate metadata with connection information
-        self.__resolve_connectivity()
+        # Generate connectivity and associated metadata
+        self.__generate_connectivity()
         # Set creation time
         self.__created = datetime.now(tz=timezone.utc)
         self.__metadata['created'] = self.__created.isoformat(timespec='seconds')
@@ -402,9 +402,9 @@ class FlatMap(object):
     #======================
         return self.__properties_store.connectivity
 
-    def __resolve_connectivity(self):
-    #================================
-        log.info('Resolving connectivity...')
+    def __generate_connectivity(self):
+    #=================================
+        log.info('Generating connectivity...')
         # Route paths and set feature ids of path components
         self.__properties_store.generate_connectivity()
         self.__sckan_neuron_populations.generate_connectivity()

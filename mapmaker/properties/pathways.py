@@ -561,21 +561,36 @@ class Pathways:
     def add_connectivity_model(self, model_uri, properties_data, path_filter=None, traced_paths=None):
     #=================================================================================================
         connectivity = {
+            'id': model_uri.rsplit('/', 1)[-1],
             'source': model_uri,
             'network': 'neural',
             'paths': []
         }
         connectivity.update(get_knowledge(model_uri))
+        self.__add_connectivity_paths(connectivity, properties_data, path_filter, traced_paths)
+
+    def add_connectivity_path(self, path_uri, properties_data, path_filter=None, traced_paths=None):
+    #===============================================================================================
+        connectivity = {
+            'id': path_uri,
+            'source': path_uri,
+            'network': 'neural',
+            'paths': [{
+            'id': path_uri,
+            'models': path_uri
+            }]
+        }
+        self.__add_connectivity_paths(connectivity, properties_data, path_filter, traced_paths)
+
+    def __add_connectivity_paths(self, connectivity, properties_data, path_filter, traced_paths):
+    #============================================================================================
         if path_filter is not None:
             connectivity['paths'] = list(filter(lambda path: path_filter(path['id']), connectivity['paths']))
         if traced_paths is not None:
             connectivity['traced-paths'] = traced_paths
-
         # External properties overrides knowledge base
         for path in connectivity['paths']:
             path.update(properties_data.properties(path.get('models')))
-
-        connectivity['id'] = model_uri.rsplit('/', 1)[-1]
         self.add_connectivity(connectivity)
 
     def add_connectivity(self, connectivity):
@@ -630,7 +645,7 @@ class Pathways:
         routed_paths = network.layout(route_graphs)
 
         # Add features to the map for the geometric objects that make up each path
-        layer = FeatureLayer(f'{network.id}_routes', self.__flatmap, exported=True)
+        layer = FeatureLayer(f'{network.id}-routes', self.__flatmap, exported=True)
         self.__flatmap.add_layer(layer)
         for route_number, routed_path in routed_paths.items():
             for path_id, geometric_shapes in routed_path.path_geometry().items():
@@ -639,6 +654,7 @@ class Pathways:
                 for geometric_shape in geometric_shapes:
                     properties = {
                         'layout': 'auto',
+                        'sckan': True,          #   Auto layout connectivity originates in SCKAN
                         'tile-layer': PATHWAYS_TILE_LAYER,
                     }
                     properties.update(geometric_shape.properties)

@@ -83,7 +83,7 @@ class PropertiesStore(object):
             if model_uri in connectivity_models:
                 self.__pathways.add_connectivity_model(model_uri, self, path_filter=path_filter, traced_paths=traced_paths)
             else:
-                log.warning(f'Connectivity for {model_uri} not available in SCKAN')
+                self.__pathways.add_connectivity_path(model_uri, self, path_filter=path_filter, traced_paths=traced_paths)
 
         # Load network centreline definitions
         self.__networks = { network.get('id'): Network(flatmap, network, self)
@@ -202,7 +202,7 @@ class PropertiesStore(object):
             else:
                 feature_properties['label'] = label
             # FC neuron path with connection information in name
-            if feature_properties.get('sckan', False):
+            if feature_properties.get('population', False):
                 label = f"Neuron in '{feature_properties['label']}'"
                 if 'name' in feature_properties:
                      label += '\n' + feature_properties.get('name', '')
