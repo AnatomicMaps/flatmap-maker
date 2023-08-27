@@ -133,13 +133,13 @@ files = [
 
 [[package]]
 name = "click"
-version = "8.1.6"
+version = "8.1.7"
 description = "Composable command line interface toolkit"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "click-8.1.6-py3-none-any.whl", hash = "sha256:fa244bb30b3b5ee2cae3da8f55c9e5e0c0e86093306301fb418eb9dc40fbded5"},
-    {file = "click-8.1.6.tar.gz", hash = "sha256:48ee849951919527a045bfe3bf7baa8a959c423134e1a5b98c05c20ba75a1cbd"},
+    {file = "click-8.1.7-py3-none-any.whl", hash = "sha256:ae74fb96c20a0277a1d615f1e4d73c8414f5a98db8b799a7931d1582f3390c28"},
+    {file = "click-8.1.7.tar.gz", hash = "sha256:ca9853ad459e787e2192211578cc907e7594e294c7ccc834310722b41b9ca6de"},
 ]
 
 [package.dependencies]
@@ -227,20 +227,20 @@ files = [
 
 [[package]]
 name = "flatmapknowledge"
-version = "1.4.1"
+version = "1.5.0a1"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "flatmapknowledge-1.4.1-py3-none-any.whl", hash = "sha256:f7eabcbe6df746b38b194b4b7fe82fbe99748a7bbbd9ae560b1419e343bc03a0"},
+    {file = "flatmapknowledge-1.5.0a1-py3-none-any.whl", hash = "sha256:cb3b8be9c5d7c88b0baa66429b1bcb3a5f66add823148edfc693394700e41845"},
 ]
 
 [package.dependencies]
-mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.14.1/mapknowledge-0.14.1-py3-none-any.whl"}
+mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.15.0-a.1/mapknowledge-0.15.0a1-py3-none-any.whl"}
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.4.1/flatmapknowledge-1.4.1-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.5.0-a.1/flatmapknowledge-1.5.0a1-py3-none-any.whl"
 
 [[package]]
 name = "gitdb"
@@ -443,22 +443,23 @@ source = ["Cython (>=0.29.35)"]
 
 [[package]]
 name = "mapknowledge"
-version = "0.14.1"
+version = "0.15.0a1"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "mapknowledge-0.14.1-py3-none-any.whl", hash = "sha256:34fc3dd3fd682ef6917f6b7cf3178b022043cffb58c330a3654516ac756b5c31"},
+    {file = "mapknowledge-0.15.0a1-py3-none-any.whl", hash = "sha256:674b4630978128dfc25bbe6f9baabb2e4497d76900ec5d1d594f909445afcbc3"},
 ]
 
 [package.dependencies]
 networkx = ">=2.8.8,<3.0.0"
 rdflib = ">=6.2.0,<7.0.0"
 requests = ">=2.28.1,<3.0.0"
+sparqlwrapper = ">=2.0.0,<3.0.0"
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.14.1/mapknowledge-0.14.1-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.15.0-a.1/mapknowledge-0.15.0a1-py3-none-any.whl"
 
 [[package]]
 name = "markupsafe"
@@ -937,27 +938,27 @@ plugins = ["importlib-metadata"]
 
 [[package]]
 name = "pyomo"
-version = "6.6.1"
+version = "6.6.2"
 description = "Pyomo: Python Optimization Modeling Objects"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "Pyomo-6.6.1-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:ca93f624c536bd043cfa9dad7426cc8e317b95eb854d1f9796a4629fa8c37830"},
-    {file = "Pyomo-6.6.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d5ee14bdbfbe532379329d0e50306bdc609feb548b5e77c2d51b43077b6bbd7c"},
-    {file = "Pyomo-6.6.1-cp310-cp310-win_amd64.whl", hash = "sha256:32644ad06a962917bcc1246ebbdc825b30342ea8cada39e01ef483d1eb60456c"},
-    {file = "Pyomo-6.6.1-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:fa2442abdd4872320c0a8eca960136fdd9d4faa14353be3391eff11403547027"},
-    {file = "Pyomo-6.6.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1f795a4fb345ab5676acf57b39643a3605f1d88c6d10d6710514d959bd52bfb1"},
-    {file = "Pyomo-6.6.1-cp311-cp311-win_amd64.whl", hash = "sha256:44e0b12f82f0c70ed246bb8b5eed8279cee07d7f2218bc8dd955562b9a82e595"},
-    {file = "Pyomo-6.6.1-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:05764117cecff51897ef473b000afbb6b353f51b70ce2101f16c9c447c8c0d31"},
-    {file = "Pyomo-6.6.1-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:96302d16a5fa94e6985d388fc42d7bfbcddd6f65a165edf92497bdc40bd33bec"},
-    {file = "Pyomo-6.6.1-cp37-cp37m-win_amd64.whl", hash = "sha256:1283eb424a4f23eeefb82716124dc43611a6131e3a1cfee45c7bd7d3901ad392"},
-    {file = "Pyomo-6.6.1-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:2a6311679f60d1e2f3e611029d4436188e4873e33dcc7f110426e5b96248164f"},
-    {file = "Pyomo-6.6.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2b14a4b72f9a10cc28303ba9625f493cf19d4398d91632b7bff5bd36f6bfe670"},
-    {file = "Pyomo-6.6.1-cp38-cp38-win_amd64.whl", hash = "sha256:f9b99bbbc9cada3af590627a1daba21676f7c63f55f957c8025f5da3c8cca7fd"},
-    {file = "Pyomo-6.6.1-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:d27678616ea4e619554b158a9321f3d71702504ed6b0df4f3d38c2a2940a6eae"},
-    {file = "Pyomo-6.6.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:024fec287be5bc7bde660888f9f9309f71cb76dfef99a2b61ec286045a2c03a3"},
-    {file = "Pyomo-6.6.1-cp39-cp39-win_amd64.whl", hash = "sha256:f32de1a02f35bf3888229d3ddee3e2e176f3de8ec6d506d2660830794991afa2"},
-    {file = "Pyomo-6.6.1.tar.gz", hash = "sha256:3fb0aba7b0f4120e6ce0f242502c0e61478d61e326bc90b7dc392bbefd114b34"},
+    {file = "Pyomo-6.6.2-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:a6bf4c8e8560b03a23fee783ea425c01abfe7b17544a8011fed5da09e9253615"},
+    {file = "Pyomo-6.6.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8508e8cf654ada06675da2ae4291935f0ba1c8bd44285d133b1bc2e2ce0350f1"},
+    {file = "Pyomo-6.6.2-cp310-cp310-win_amd64.whl", hash = "sha256:c866666093c055a9956dabee42b876e9533eba8703d892d73945620b252e333c"},
+    {file = "Pyomo-6.6.2-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:cd2e262b5d2e754b47c2f376c7ff0f48dff74f2fdad08b995db0b1539553c64d"},
+    {file = "Pyomo-6.6.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:95fe255dd402af84e1294dc22437a2c292ef708f04974da0aa56eb10065178f1"},
+    {file = "Pyomo-6.6.2-cp311-cp311-win_amd64.whl", hash = "sha256:6a2463b38bbe1f8e50584ba87659ec425e420236070b078b707849fac7fb6b02"},
+    {file = "Pyomo-6.6.2-cp37-cp37m-macosx_11_0_x86_64.whl", hash = "sha256:cdd2bc12a0e536d3cc5a5535efaf8af8499d12e790b564e46897d68092e335b3"},
+    {file = "Pyomo-6.6.2-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1e3fe82aaabb7f5aa0ab60f4fb05ba038dee014f9dfc10657d1b6cd0e5910f90"},
+    {file = "Pyomo-6.6.2-cp37-cp37m-win_amd64.whl", hash = "sha256:067c2f533bb0f05b673f95caa38f6b6d3d2f774a3b97aca280b1350a1516857f"},
+    {file = "Pyomo-6.6.2-cp38-cp38-macosx_11_0_x86_64.whl", hash = "sha256:f26cb95531580fb4932cad04962aca854bc7bd3832c77f66ef7c502891c59b6f"},
+    {file = "Pyomo-6.6.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5c94e2a711f59ac81bd576955529944b286a3fd87cdfe95011534966746af289"},
+    {file = "Pyomo-6.6.2-cp38-cp38-win_amd64.whl", hash = "sha256:47402204e99df3fefd6ee584b45cfca4b00f60a1dce20208340449b152b308a2"},
+    {file = "Pyomo-6.6.2-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:9a739bc8add47c1a6275746d272c6e664d0240923a9b6fd58800173e3f513a12"},
+    {file = "Pyomo-6.6.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:867d6351718e8d0e14b5144a83a964348fd0d16dd5d19db429296349f17755c9"},
+    {file = "Pyomo-6.6.2-cp39-cp39-win_amd64.whl", hash = "sha256:e22380fe8615b8e29cc4e01dd3b08ce9575867242fe4fb974589dfd93f00926b"},
+    {file = "Pyomo-6.6.2.tar.gz", hash = "sha256:c8ad55213ff8b1a2c4e469110db8079722d5a6f364c6c46a42e2f750fc9e4d26"},
 ]
 
 [package.dependencies]
@@ -1297,6 +1298,26 @@ files = [
 ]
 
 [[package]]
+name = "sparqlwrapper"
+version = "2.0.0"
+description = "SPARQL Endpoint interface to Python"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "SPARQLWrapper-2.0.0-py3-none-any.whl", hash = "sha256:c99a7204fff676ee28e6acef327dc1ff8451c6f7217dcd8d49e8872f324a8a20"},
+    {file = "SPARQLWrapper-2.0.0.tar.gz", hash = "sha256:3fed3ebcc77617a4a74d2644b86fd88e0f32e7f7003ac7b2b334c026201731f1"},
+]
+
+[package.dependencies]
+rdflib = ">=6.1.1"
+
+[package.extras]
+dev = ["mypy (>=0.931)", "pandas (>=1.3.5)", "pandas-stubs (>=1.2.0.48)", "setuptools (>=3.7.1)"]
+docs = ["sphinx (<5)", "sphinx-rtd-theme"]
+keepalive = ["keepalive (>=0.5)"]
+pandas = ["pandas (>=1.3.5)"]
+
+[[package]]
 name = "sphinx"
 version = "6.2.1"
 description = "Python documentation generator"
@@ -1349,18 +1370,18 @@ markdown = ["CommonMark (>=0.5.6)"]
 
 [[package]]
 name = "sphinx-rtd-theme"
-version = "1.2.2"
+version = "1.3.0"
 description = "Read the Docs theme for Sphinx"
 optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,>=2.7"
 files = [
-    {file = "sphinx_rtd_theme-1.2.2-py2.py3-none-any.whl", hash = "sha256:6a7e7d8af34eb8fc57d52a09c6b6b9c46ff44aea5951bc831eeb9245378f3689"},
-    {file = "sphinx_rtd_theme-1.2.2.tar.gz", hash = "sha256:01c5c5a72e2d025bd23d1f06c59a4831b06e6ce6c01fdd5ebfe9986c0a880fc7"},
+    {file = "sphinx_rtd_theme-1.3.0-py2.py3-none-any.whl", hash = "sha256:46ddef89cc2416a81ecfbeaceab1881948c014b1b6e4450b815311a89fb977b0"},
+    {file = "sphinx_rtd_theme-1.3.0.tar.gz", hash = "sha256:590b030c7abb9cf038ec053b95e5380b5c70d61591eb0b552063fbe7c41f0931"},
 ]
 
 [package.dependencies]
 docutils = "<0.19"
-sphinx = ">=1.6,<7"
+sphinx = ">=1.6,<8"
 sphinxcontrib-jquery = ">=4,<5"
 
 [package.extras]
@@ -1468,13 +1489,13 @@ test = ["pytest"]
 
 [[package]]
 name = "sphinxcontrib-serializinghtml"
-version = "1.1.8"
+version = "1.1.9"
 description = "sphinxcontrib-serializinghtml is a sphinx extension which outputs \"serialized\" HTML files (json and pickle)"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "sphinxcontrib_serializinghtml-1.1.8-py3-none-any.whl", hash = "sha256:27849e7227277333d3d32f17c138ee148a51fa01f888a41cd6d4e73bcabe2d06"},
-    {file = "sphinxcontrib_serializinghtml-1.1.8.tar.gz", hash = "sha256:aaf3026335146e688fd209b72320314b1b278320cf232e3cda198f873838511a"},
+    {file = "sphinxcontrib_serializinghtml-1.1.9-py3-none-any.whl", hash = "sha256:9b36e503703ff04f20e9675771df105e58aa029cfcbc23b8ed716019b7416ae1"},
+    {file = "sphinxcontrib_serializinghtml-1.1.9.tar.gz", hash = "sha256:0c64ff898339e1fac29abd2bf5f11078f3ec413cfe9c046d3120d7ca65530b54"},
 ]
 
 [package.dependencies]
@@ -1486,13 +1507,13 @@ test = ["pytest"]
 
 [[package]]
 name = "svgelements"
-version = "1.9.5"
+version = "1.9.6"
 description = "Svg Elements Parsing"
 optional = false
 python-versions = "*"
 files = [
-    {file = "svgelements-1.9.5-py2.py3-none-any.whl", hash = "sha256:32b583484a627eb19d66a4da923856336fa512698eac75540915446fd1ab28ff"},
-    {file = "svgelements-1.9.5.tar.gz", hash = "sha256:e192648ab7e07a67a355ce19b7f1d8a1497d62feca6debe3ddbd92d8617ef3be"},
+    {file = "svgelements-1.9.6-py2.py3-none-any.whl", hash = "sha256:8a5cf2cc066d98e713d5b875b1d6e5eeb9b92e855e835ebd7caab2713ae1dcad"},
+    {file = "svgelements-1.9.6.tar.gz", hash = "sha256:7c02ad6404cd3d1771fd50e40fbfc0550b0893933466f86a6eb815f3ba3f37f7"},
 ]
 
 [[package]]
@@ -1685,4 +1706,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "97a1f07e9260426c98e088464ee09203bf77bc4269e992b4ca5a87c122b6a339"
+content-hash = "ef9f271e517b768dd28d4061bfc5b07844ff67e5f3df5f9f622133bffbca0261"

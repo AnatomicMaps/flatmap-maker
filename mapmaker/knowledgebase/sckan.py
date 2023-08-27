@@ -37,6 +37,8 @@ from .celldl import FC_KIND
 
 #===============================================================================
 
+## NPO example at https://github.com/tgbugs/pyontutils/blob/master/neurondm/docs/NeuronLangExample.ipynb
+
 class PATH_TYPE(enum.IntFlag):
     UNKNOWN             = 0
     #
@@ -124,7 +126,13 @@ PATH_TYPE_BY_PHENOTYPE = {
     'ilxtr:EntericPhenotype':                           PATH_TYPE.ENTERIC,
     'ilxtr:IntestinoFugalProjectionPhenotype':          PATH_TYPE.INTESTIONO_FUGAL,
     'ILX:0104003':                                      PATH_TYPE.EXCITATORY,
-    'ILX:0105486':                                      PATH_TYPE.INHIBITORY
+    'ILX:0105486':                                      PATH_TYPE.INHIBITORY,
+
+    # Ex NLP neurons from NPO
+    'ilxtr:neuron-phenotype-para-pre':                  PATH_TYPE.PARASYMPATHETIC | PATH_TYPE.PRE_GANGLIONIC,
+    'ilxtr:neuron-phenotype-para-post':                 PATH_TYPE.PARASYMPATHETIC | PATH_TYPE.POST_GANGLIONIC,
+    'ilxtr:neuron-phenotype-sym-pre':                   PATH_TYPE.SYMPATHETIC | PATH_TYPE.PRE_GANGLIONIC,
+    'ilxtr:neuron-phenotype-sym-post':                  PATH_TYPE.SYMPATHETIC | PATH_TYPE.POST_GANGLIONIC,
 }
 
 PATH_ORDER_BY_PHENOTYPE = {
