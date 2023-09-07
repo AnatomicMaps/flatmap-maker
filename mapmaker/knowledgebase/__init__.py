@@ -66,7 +66,7 @@ def get_knowledge(entity: str) -> dict[str, Any]:
 
 def sckan_build() -> Optional[dict]:
     if (scicrunch := settings['KNOWLEDGE_STORE'].scicrunch) is not None:
-        return scicrunch.sckan_build()
+        return scicrunch.build()
 
 #===============================================================================
 
