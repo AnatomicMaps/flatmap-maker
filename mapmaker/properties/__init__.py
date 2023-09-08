@@ -19,6 +19,7 @@
 #===============================================================================
 
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 #===============================================================================
 
@@ -32,6 +33,9 @@ from .anatomicalmap import AnatomicalMap
 # Exports
 from .pathways import ConnectionSet, Pathways
 
+if TYPE_CHECKING:
+    from mapmaker.flatmap import FlatMap, Manifest
+
 #===============================================================================
 
 def not_in_group_properties(properties: dict) -> bool:
@@ -42,7 +46,7 @@ def not_in_group_properties(properties: dict) -> bool:
 #===============================================================================
 
 class PropertiesStore(object):
-    def __init__(self, flatmap, manifest):
+    def __init__(self, flatmap: "FlatMap", manifest: "Manifest"):
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
         self.__properties_by_class = defaultdict(dict)
         self.__properties_by_id = defaultdict(dict)
