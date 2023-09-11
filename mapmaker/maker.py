@@ -151,7 +151,7 @@ class MapMaker(object):
                                          clean_connectivity=settings.get('cleanConnectivity', False),
                                          sckan_version=sckan_version,
                                          npo=True,
-                                         log_sckan_build=True)
+                                         log_build=True)
         settings['KNOWLEDGE_STORE'] = knowledge_store
 
         if (sckan_build := knowledgebase.sckan_build()) is not None:
