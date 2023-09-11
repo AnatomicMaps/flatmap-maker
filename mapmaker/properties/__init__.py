@@ -69,6 +69,7 @@ class PropertiesStore(object):
 
         # NPO connectivity models
         if 'NPO' in manifest.neuron_connectivity:
+            settings['NPO'] = True
             for connectivity_model in knowledgebase.connectivity_models('NPO').keys():
                 self.__pathways.add_connectivity_model(connectivity_model, self)
 

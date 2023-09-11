@@ -286,6 +286,11 @@ class ConnectionClassifier:
 
         connection.fc_class = connector.fc_class
 
+        # Only add drawn connections if not using NPO connectivity
+        if connection.fc_class == FC_CLASS.NEURAL and settings.get('NPO', False):
+            connection.set_property('exclude', True)
+            return
+
         if connection.fc_class == FC_CLASS.NEURAL:
             connection.fc_kind = FC_KIND.NEURON
             if (path_type := NEURON_PATH_TYPES.lookup(connection.colour)) is not None:
