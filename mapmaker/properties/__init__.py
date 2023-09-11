@@ -67,8 +67,13 @@ class PropertiesStore(object):
             connectivity = FilePath(connectivity_source).get_json()
             self.__pathways.add_connectivity(connectivity)
 
-        # Connectivity from SciCrunch
-        connectivity_models = knowledgebase.connectivity_models()
+        # NPO connectivity models
+        if 'NPO' in manifest.neuron_connectivity:
+            for connectivity_model in knowledgebase.connectivity_models('NPO').keys():
+                self.__pathways.add_connectivity_model(connectivity_model, self)
+
+        # ApiNATOMY connectivity models from SciCrunch
+        apinatomy_models = knowledgebase.connectivity_models('APINATOMY')
         for connectivity_model in manifest.neuron_connectivity:
             path_filter = None
             traced_paths = None
@@ -84,10 +89,10 @@ class PropertiesStore(object):
                                                and (exclude_ids is None or exclude_ids is not None and path_id not in exclude_ids))
             else:
                 model_uri = connectivity_model
-            if model_uri in connectivity_models:
+            if model_uri in apinatomy_models:
                 self.__pathways.add_connectivity_model(model_uri, self, path_filter=path_filter, traced_paths=traced_paths)
-            else:
-                self.__pathways.add_connectivity_path(model_uri, self, path_filter=path_filter, traced_paths=traced_paths)
+            elif model_uri != 'NPO':
+                log.warning(f'Connectivity for {model_uri} not available in SCKAN')
 
         # Load network centreline definitions
         self.__networks = { network.get('id'): Network(flatmap, network, self)
