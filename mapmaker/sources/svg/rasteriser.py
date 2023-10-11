@@ -495,7 +495,7 @@ class SVGTiler(object):
                         stroked = False
                 opacity = stroke_opacity*float(element_style.get('stroke-opacity', 1.0))
                 dasharray = element_style.get('stroke-dasharray')
-                if dasharray is not None:
+                if dasharray is not None and dasharray != 'none':
                     pattern = [float(d) for d in dasharray.replace(',', ' ').split()]
                     if (len(pattern) % 2) == 1:
                         pattern = 2*pattern
