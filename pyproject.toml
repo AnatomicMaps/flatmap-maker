@@ -44,6 +44,8 @@ svgelements = "^1.9.1"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.982"
+
+[tool.poetry.group.docs.dependencies]
 sphinx = "^6.0"
 sphinx-rtd-theme = "^1.1.1"
 sphinx-argparse = "^0.3.1"
