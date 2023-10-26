@@ -1,5 +1,5 @@
-Flatmap Sources
-===============
+Flatmap Source Diagrams
+=======================
 
 Powerpoint slides
 -----------------
