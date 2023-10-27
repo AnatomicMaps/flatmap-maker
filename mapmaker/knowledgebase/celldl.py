@@ -168,4 +168,8 @@ class CellDLGraph:
         turtle = self.__graph.serialize(format='turtle', encoding='utf-8')
         return f'{GZIP_BASE64_DATA_URI}{base64.b64encode(zlib.compress(turtle)).decode()}'
 
+    def as_xml(self):
+    #================
+        return self.__graph.serialize(format='xml', encoding='utf-8')
+
 #===============================================================================
