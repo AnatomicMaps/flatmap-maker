@@ -231,7 +231,7 @@ class SckanNeuronChecker:
         connectivity_models = kb.connectivity_models()
         for model in connectivity_models:
             model_knowledege = kb.get_knowledge(model)
-            for path in model_knowledege['paths']:
+            for path in model_knowledege.get('paths', []):
                 path_knowledge = kb.get_knowledge(path['id'])
                 self.__paths_by_id[path['id']] = path_knowledge
                 G = connectivity_graph_from_knowledge(path_knowledge)
