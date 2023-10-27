@@ -16,7 +16,7 @@ Authoring
 ~~~~~~~~~
 
 
-A generic SVG editor, such as `Boxy SVG <https://boxy-svg.com/>`_ or `Inkscape <https://inkscape.org/>`_ is the recommended way to create SVG files suitable for use with ``mapmaker``. Adobe Illustrator may be used (see below) although through experience, it has been found to corrupt SVG sources after repeated file saves.
+A generic SVG editor, such as `Boxy SVG <https://boxy-svg.com/>`_ or `Inkscape <https://inkscape.org/>`_ is the recommended way to create SVG files for use with ``mapmaker``. Adobe Illustrator may be used (see below) although through experience, it has been found to corrupt SVG sources after repeated file saves.
 
 
 Adobe Illustrator
