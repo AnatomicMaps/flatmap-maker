@@ -54,6 +54,7 @@ INVALID_PUBLISHING_OPTIONS = [
     'authoring',
     'id',
     'ignoreGit',
+    'ignoreSckan',
     'invalidNeurons',
     'sckanVersion',
     'singleFile',
@@ -111,6 +112,10 @@ class MapMaker(object):
             if errors:
                 raise ValueError('Invalid parameters for dataset publishing ')
             options['backgroundTiles'] = True
+
+        # Ignore SCKAN implies accepting invalid neurons
+        if options.get('ignoreSckan', False):
+            options['invalidNeurons'] = True
 
         # Authoring implies to clean output directory, report deprecated markup, and don't tile background
         if options.get('authoring', False):

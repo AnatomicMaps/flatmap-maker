@@ -53,6 +53,8 @@ def arg_parser():
                         help='Set explicit ID for flatmap, overriding manifest')
     generation_options.add_argument('--ignore-git', dest='ignoreGit', action='store_true',
                         help="Don't check that sources are committed into git")
+    generation_options.add_argument('--ignore-sckan', dest='ignoreSckan', action='store_true',
+                        help="Don't check if functional connectivity neurons are known in SCKAN. Sets `--invalid-neurons` option")
     generation_options.add_argument('--invalid-neurons', dest='invalidNeurons', action='store_true',
                         help="Include functional connectivity neurons that aren't known in SCKAN")
     generation_options.add_argument('--publish', metavar='SPARC_DATASET',

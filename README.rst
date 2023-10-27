@@ -97,7 +97,8 @@ Command line help
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
                     [--clean] [--clean-connectivity] [--background-tiles] [--id ID]
-                    [--ignore-git] [--invalid-neurons] [--publish SPARC_DATASET] [--sckan-version {production,staging}]
+                    [--ignore-git] [--ignore-sckan] [--invalid-neurons] [--publish SPARC_DATASET]
+                    [--sckan-version {production,staging}]
                     [--authoring] [--debug] [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N] [--min-zoom N]
                     [--export-identifiers EXPORT_FILE] [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE]
@@ -124,6 +125,8 @@ Command line help
                             while...)
       --id ID               Set explicit ID for flatmap, overriding manifest
       --ignore-git          Don't check that sources are committed into git
+      --ignore-sckan        Don't check if functional connectivity neurons are known
+                            in SCKAN. Sets `--invalid-neurons` option
       --invalid-neurons     Include functional connectivity neurons that aren't known
                             in SCKAN
       --publish SPARC_DATASET
