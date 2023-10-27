@@ -31,6 +31,10 @@ from mapmaker.utils.svg import svg_id
 
 #===============================================================================
 
+CELLDL_SCHEMA_VERSION = '1.0'
+
+#===============================================================================
+
 class CD_CLASS:
     UNKNOWN    = 'celldl:Unknown'
     LAYER      = 'celldl:Layer'
@@ -132,6 +136,7 @@ class CellDLGraph:
         self.__graph.bind('fc', str(FC))
         this = FLATMAP['']
         self.__graph.add((this, RDF.type, CELLDL.Document))
+        self.__graph.add((this, CELLDL.schema, rdflib.Literal(CELLDL_SCHEMA_VERSION)))
         self.__graph.add((this, RDF.type, FC.Diagram))
 
     def add_metadata(self, shape):
