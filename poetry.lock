@@ -248,20 +248,20 @@ files = [
 
 [[package]]
 name = "flatmapknowledge"
-version = "1.6.1"
+version = "1.6.2"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "flatmapknowledge-1.6.1-py3-none-any.whl", hash = "sha256:4dd04f46bfb6b7ee88aab58c5d476e048c6e0ba85b51caffd56957105a5fbd61"},
+    {file = "flatmapknowledge-1.6.2-py3-none-any.whl", hash = "sha256:0810e4dbba9aeb7dcb6f5ee5ae8f97a54893520a47b61eb314e734f011736f11"},
 ]
 
 [package.dependencies]
-mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.1/mapknowledge-0.16.1-py3-none-any.whl"}
+mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.2/mapknowledge-0.16.2-py3-none-any.whl"}
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.6.1/flatmapknowledge-1.6.1-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.6.2/flatmapknowledge-1.6.2-py3-none-any.whl"
 
 [[package]]
 name = "gitdb"
@@ -467,12 +467,12 @@ source = ["Cython (>=0.29.35)"]
 
 [[package]]
 name = "mapknowledge"
-version = "0.16.1"
+version = "0.16.2"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "mapknowledge-0.16.1-py3-none-any.whl", hash = "sha256:f694103be0ad24abc9d8e4343cac169a3e4a5ae239d2a79166caf91c6b26eafa"},
+    {file = "mapknowledge-0.16.2-py3-none-any.whl", hash = "sha256:9c16eef08a7ee4a17f1a8a1d082a7d34d162577851813adaf122e4906addb2a8"},
 ]
 
 [package.dependencies]
@@ -483,7 +483,7 @@ sparqlwrapper = ">=2.0.0,<3.0.0"
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.1/mapknowledge-0.16.1-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.2/mapknowledge-0.16.2-py3-none-any.whl"
 
 [[package]]
 name = "markupsafe"
@@ -1757,4 +1757,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "ed272ee6120bf68eb5cd71a93bf712c74a66612abf6fa5e45305c6dfdc03bd0d"
+content-hash = "78f37e94d5c51a8c65d74d775c1492bd99b382ce26d6c2734b998d730245aa7e"
