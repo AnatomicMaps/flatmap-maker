@@ -21,6 +21,7 @@
 from io import StringIO
 from math import sqrt
 from typing import Any, Optional
+import xml.etree.ElementTree as ET
 
 #===============================================================================
 
@@ -31,7 +32,6 @@ import svgelements
 import svgwrite.gradients
 from svgwrite import Drawing as SvgDrawing
 from svgwrite.base import BaseElement as SvgElement
-from svgwrite.base import Desc as SvgDescription
 from svgwrite.container import Defs as SvgDefinitions
 from svgwrite.container import Group as SvgGroup
 from svgwrite.container import Hyperlink as SvgHyperlink
@@ -583,6 +583,7 @@ class SvgMaker:
             self.__drawing.set_desc(desc='CellDL Metadata')
             self.__drawing.elements[0].xml.attrib['data-metadata-format'] = 'text/turtle'
             self.__drawing.elements[0].xml.attrib['data-metadata'] = self.__celldl.as_encoded_turtle()
+            self.__drawing.set_metadata(ET.fromstring(self.__celldl.as_xml()))
         self.__drawing.write(file_object, pretty=True, indent=4)
 
     def svg_bytes(self):

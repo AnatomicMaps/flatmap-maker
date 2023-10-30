@@ -1,5 +1,5 @@
-Flatmap Sources
-===============
+Flatmap Source Diagrams
+=======================
 
 Powerpoint slides
 -----------------
@@ -14,6 +14,10 @@ SVG diagrams
 
 Authoring
 ~~~~~~~~~
+
+
+A generic SVG editor, such as `Boxy SVG <https://boxy-svg.com/>`_ or `Inkscape <https://inkscape.org/>`_ is the recommended way to create SVG files for use with ``mapmaker``. Adobe Illustrator may be used (see below) although through experience, it has been found to corrupt SVG sources after repeated file saves.
+
 
 Adobe Illustrator
 .................
@@ -32,7 +36,7 @@ Adobe Illustrator
 
             Decimal Places: 3
 
-*   To assist with this the ``scripts/adobe/SaveFlatmap.jsx`` (**link to GitHub**) can be used (**AI Menu option**). This script can be added to AI's ``File/Scripts`` menu by placing it in .... (**link to AI docs??**).
+*   To assist with this `scripts/adobe/SaveFlatmap.jsx <https://raw.githubusercontent.com/AnatomicMaps/flatmap-maker/main/scripts/adobe/SaveFlatmap.jsx>`_ can be used (**AI Menu option**). This script can be added to AI's ``File/Scripts`` menu by placing it in .... (**link to AI docs??**).
 
 *   The initial export to SVG may result in additional group elements being added to the diagram, which could then result in ``mapmaker`` processing errors. It's advisable that these be found and fixed before any subsequent work on the diagram. In particular, ``.boundary`` markup on a shape with an image fill will be transferred to a path within a new group element and this path needs to manually moved outside of the new group. A newly exported file in Illustrator will need closing and reopening in order to see these changes.
 

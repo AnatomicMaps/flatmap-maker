@@ -234,6 +234,8 @@ class SckanNeuronChecker:
     def __init__(self, flatmap):
         self.__sckan_path_nodes_by_type: defaultdict[PATH_TYPE, dict[str, SckanNodeSet]] = defaultdict(dict)
         self.__paths_by_id = {}
+        if settings.get('ignoreSckan', False):
+            return
         connectivity_models = kb.connectivity_models('APINATOMY')
         connectivity_models.update(kb.connectivity_models('NPO'))
         for model in connectivity_models:
