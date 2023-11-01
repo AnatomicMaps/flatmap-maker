@@ -1067,6 +1067,9 @@ class Network(object):
                 if node_1 != upstream_node:
                     route_graph.nodes[node_1].update(set_properties_from_feature_id(node_1))
 
+        # Make sure the set of path nodes includes those from the routed path
+        path_node_ids.update(route_graph.nodes)
+
         # Identify features on the path with a nerve cuff used by the path
         # and make hidden nodes that are actually used in the route visible
         nerve_id = list(path_nerve_ids)[0] if len(path_nerve_ids) else None
