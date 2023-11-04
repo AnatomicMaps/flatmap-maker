@@ -28,7 +28,6 @@ from __future__ import annotations
 from collections import defaultdict
 import itertools
 import math
-from typing import Optional
 
 #===============================================================================
 
@@ -38,12 +37,12 @@ from beziers.point import Point as BezierPoint
 
 import networkx as nx
 import shapely.geometry
-from shapely.geometry.base import BaseGeometry
 
 #===============================================================================
 
 from mapmaker.geometry.beziers import bezier_connect, bezier_to_line_coords, bezier_to_linestring
 from mapmaker.geometry.beziers import coords_to_point, point_to_coords, width_along_line
+from mapmaker.geometry.shapes import GeometricShape
 from mapmaker.utils import log
 
 from .layout import TransitMap
@@ -158,36 +157,6 @@ class PathRouter(object):
 
         return { route_number: RoutedPath(path_id, route_graph, route_number)
             for route_number, (path_id, route_graph) in enumerate(routes) }
-
-#===============================================================================
-
-class GeometricShape(object):
-    def __init__(self, geometry: BaseGeometry, properties: Optional[dict] = None):
-        self.__geometry = geometry
-        self.__properties = properties if properties is not None else {}
-
-    @property
-    def geometry(self) -> BaseGeometry:
-        return self.__geometry
-
-    @property
-    def properties(self) -> dict:
-        return self.__properties
-
-    @classmethod
-    def circle(cls, centre: tuple[float, float], radius: float = 2000, properties: Optional[dict] = None):
-        return cls(shapely.geometry.Point(centre).buffer(radius), properties)
-
-    @classmethod
-    def line(cls, start: tuple[float, float], end: tuple[float, float], properties: Optional[dict] = None):
-        return cls(shapely.geometry.LineString([start, end]), properties)
-
-    @classmethod
-    def arrow(cls, back: BezierPoint, heading: float, length: float, properties: Optional[dict] = None):
-        tip = back + BezierPoint.fromAngle(heading)*length
-        offset = BezierPoint.fromAngle(heading + math.pi/2)*length/3
-        arrow = shapely.geometry.Polygon([point_to_coords(tip), point_to_coords(back+offset), point_to_coords(back-offset)])
-        return cls(arrow, properties)
 
 #===============================================================================
 
