@@ -218,7 +218,7 @@ class CanvasText(CanvasDrawingObject):
 
 class CanvasGroup(CanvasDrawingObject):
     def __init__(self, drawing_objects, parent_transform, transform_attribute, clip_path, outermost=False):
-        bbox = (shapely.ops.unary_union([element.bbox for element in drawing_objects]).envelope
+        bbox = (shapely.box(*shapely.total_bounds([element.bbox for element in drawing_objects]))
                     if len(drawing_objects) > 0 else
                 None)
         super().__init__(None, None, parent_transform, transform_attribute, clip_path, bbox=bbox, root_object=outermost)
