@@ -85,7 +85,7 @@ def get_shape_geometry(shape: PptxShape, transform: Transform, properties=None):
                                     T)
                 bezier_segments.extend(segs)
                 coordinates.extend(bezier_sample(BezierPath.fromSegments(segs)))
-                x_axis_rotation = math.degrees(start_angle)
+                x_axis_rotation = 0
                 sweep_flag = 1 if segs[0].curvatureAtTime(0) > 0 else 0
                 svg_path.append(svgelements.Arc(T.transform_point(current_point),
                                                 *T.scale_length((wR, hR)),
