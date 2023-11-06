@@ -163,8 +163,13 @@ class Slide:
             elif fill.type == MSO_FILL_TYPE.GRADIENT:               # type: ignore
                 colours = [(self.__colour_map.lookup(stop.color), stop.color.alpha)
                                 for stop in fill.gradient_stops]
-                log.warning(f'{shape.text}: gradient fill ignored, first stop colour used')
-                return colours[0]
+                n = 0
+                while n < len(colours) and colours[n][0] == '#FFFFFF':
+                    n += 1
+                if n >= len(colours):
+                    n = 0
+                log.warning(f'{shape.text}: gradient fill ignored, stop colour `{n}` used')
+                return colours[n]
             elif fill.type == MSO_FILL_TYPE.GROUP:                  # type: ignore
                 if group_colour is not None:
                     return group_colour
