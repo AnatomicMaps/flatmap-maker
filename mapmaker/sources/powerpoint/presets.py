@@ -33,12 +33,13 @@ from pptx.oxml.shapes.groupshape import CT_GroupShapeProperties
 from pptx.oxml.shapes.shared import CT_LineProperties
 from pptx.oxml.simpletypes import XsdString
 from pptx.oxml.slide import _BaseSlideElement
-
+from pptx.oxml.text import CT_TextParagraph
 from pptx.oxml.xmlchemy import (
     BaseOxmlElement,
     Choice,
     OneAndOnlyOne,
     RequiredAttribute,
+    ZeroOrMore,
     ZeroOrOne,
     ZeroOrOneChoice
 )
@@ -70,8 +71,11 @@ def pptx_uri(qname: str) -> str:
 
 #===============================================================================
 
-ns._nsmap['drawml'] = ("http://www.ecma-international.org/flat/publications/standards/Ec"
-                       "ma-376/drawingml/")
+# Add namespace mappings not included with pptx.oxml.ns
+
+ns._nsmap['a14'] = ("http://schemas.microsoft.com/office/drawing/2010/main")
+ns._nsmap['a16'] = ("http://schemas.microsoft.com/office/drawing/2014/main")
+ns._nsmap['drawml'] = ("http://www.ecma-international.org/flat/publications/standards/Ecma-376/drawingml/")
 
 #===============================================================================
 
@@ -276,5 +280,14 @@ CT_LineProperties.prstDash.populate_class_members(CT_LineProperties, "prstDash")
 LineFormat.prstDash = property(lambda self: (self._ln.prstDash.attrib['val']      # type: ignore
                                   if self._ln is not None and self._ln.prstDash is not None
                                   else 'solid'))
+
+#===============================================================================
+
+# Monkey patch to get embedded maths in a text frame via its paragraphs
+
+class CT_TextMath(BaseOxmlElement):
+    pass
+
+oxml.register_element_cls("a14:m", CT_TextMath)
 
 #===============================================================================

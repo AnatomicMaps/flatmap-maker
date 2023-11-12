@@ -35,6 +35,7 @@ from pptx.dml.fill import FillFormat
 from pptx.enum.dml import MSO_FILL_TYPE             # type: ignore
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN     # type: ignore
+from pptx.oxml.text import CT_RegularTextRun, CT_TextLineBreak, CT_TextField
 from pptx.shapes.autoshape import Shape as PptxShape
 from pptx.shapes.connector import Connector as PptxConnector
 from pptx.shapes.group import GroupShape as PptxGroupShape
@@ -55,8 +56,10 @@ from ..fc_powerpoint.components import is_system_name
 
 from .colour import ColourMap, ColourTheme
 from .geometry import get_shape_geometry
-from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
+from .presets import CT_TextMath, DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
 from .transform import DrawMLTransform
+
+from .omml2latex import openmath2latex
 
 #===============================================================================
 
@@ -253,6 +256,25 @@ class Slide:
                                 'svg-kind': 'path' if len(svg_elements) == 1 else 'group'
                                 })
 
+    def __text_content(self, shape: PptxShape) -> str:
+    #=================================================
+        text_types = {CT_RegularTextRun, CT_TextLineBreak, CT_TextField}
+        shape_text = []
+        for paragraph in shape.text_frame.paragraphs:
+            paragraph_text = []
+            for child in paragraph._element:
+                if type(child) in text_types:
+                    paragraph_text.append(child.text.replace('\n', ' ')
+                                                    .replace('\xA0', ' ')
+                                                    .replace('\v', ' '))        # Newline, non-breaking space, vertical-tab
+                elif isinstance(child, CT_TextMath):
+                    xml = etree.tostring(child.getchildren()[0], encoding='unicode')
+                    latex = openmath2latex(xml)
+                    paragraph_text.append(f'`{latex}`')
+            shape_text.append(''.join(paragraph_text))
+        text = ' '.join(shape_text)
+        return ' '.join(text.split()) if text not in ['', '.'] else ''
+
     def __process_group(self, group: PptxGroupShape, transform: Transform) -> Shape | TreeList:
     #==========================================================================================
         colour = self.__get_colour(group)
@@ -283,9 +305,6 @@ class Slide:
                     'top' if vertical == MSO_ANCHOR.TOP else
                     'bottom' if vertical == MSO_ANCHOR.BOTTOM else
                     'middle')
-        def text_content(shape) -> str:
-            text = shape.text.replace('\n', ' ').replace('\xA0', ' ').replace('\v', ' ').strip() # Newline, non-breaking space, vertical-tab
-            return ' '.join(text.split()) if text not in ['', '.'] else ''
 
         progress_bar = ProgressBar(show=show_progress,
             total=len(pptx_shapes),
