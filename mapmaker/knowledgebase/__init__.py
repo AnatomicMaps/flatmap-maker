@@ -64,6 +64,9 @@ def get_label(entity: str) -> str:
 def get_knowledge(entity: str) -> dict[str, Any]:
     return settings['KNOWLEDGE_STORE'].entity_knowledge(entity)
 
+def npo_connectivity_paths() -> dict[str, dict[str, str]]:
+    return settings['KNOWLEDGE_STORE'].npo.connectivity_paths()
+
 def sckan_build() -> Optional[dict]:
     if (scicrunch := settings['KNOWLEDGE_STORE'].scicrunch) is not None:
         return scicrunch.build()

@@ -67,20 +67,15 @@ class PropertiesStore(object):
             connectivity = FilePath(connectivity_source).get_json()
             self.__pathways.add_connectivity(connectivity)
 
-        # NPO connectivity models
-        if 'NPO' in manifest.neuron_connectivity:
-            settings['NPO'] = True
-            for connectivity_model in knowledgebase.connectivity_models('NPO').keys():
-                self.__pathways.add_connectivity_model(connectivity_model, self)
-
         # ApiNATOMY connectivity models from SciCrunch
         apinatomy_models = knowledgebase.connectivity_models('APINATOMY')
-        for connectivity_model in manifest.neuron_connectivity:
+        seen_npo = False
+        for connectivity_source in manifest.neuron_connectivity:
             path_filter = None
             traced_paths = None
-            if isinstance(connectivity_model, dict):
-                model_uri = connectivity_model['uri']
-                if (filter_lists := connectivity_model.get('filter')) is not None:
+            if isinstance(connectivity_source, dict):
+                model_source = connectivity_source['uri']
+                if (filter_lists := connectivity_source.get('filter')) is not None:
                     include_ids = filter_lists['include'] if 'include' in filter_lists else None
                     exclude_ids = filter_lists['exclude'] if 'exclude' in filter_lists else None
                     if 'trace' in filter_lists:
@@ -89,12 +84,20 @@ class PropertiesStore(object):
                     path_filter = lambda path_id: ((include_ids is None or include_ids is not None and path_id in include_ids)
                                                and (exclude_ids is None or exclude_ids is not None and path_id not in exclude_ids))
             else:
-                model_uri = connectivity_model
-            if model_uri in apinatomy_models:
-                self.__pathways.add_connectivity_model(model_uri, self, path_filter=path_filter, traced_paths=traced_paths)
-            elif model_uri != 'NPO':
-                log.warning(f'Connectivity for {model_uri} not available in SCKAN')
-
+                model_source = connectivity_source
+            if model_source in apinatomy_models:
+                self.__pathways.add_connectivity_model(model_source, self,
+                    path_filter=path_filter, traced_paths=traced_paths)
+            elif model_source == 'NPO':
+                # NPO connectivity paths
+                if seen_npo:
+                    log.warning(f'`NPO` can only be specified once as a connectivity source')
+                else:
+                    seen_npo = True
+                    settings['NPO'] = True
+                    for connectivity_path in knowledgebase.npo_connectivity_paths().keys():
+                        self.__pathways.add_connectivity_path(connectivity_path,
+                            self, path_filter=path_filter, traced_paths=traced_paths)
         # Load network centreline definitions
         self.__networks = { network.get('id'): Network(flatmap, network, self)
                                 for network in properties_dict.get('networks', []) }

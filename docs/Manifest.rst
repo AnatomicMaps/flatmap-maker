@@ -66,14 +66,14 @@ Neuron connectivity is specified as a list consisting of a mix of:
 
 *   URLs referencing ApiNATOMY models, optained from the SCKAN endpoint.
 *   JSON dictionaries specifing individual neuron paths in an ApiNATOMY model from SCKAN.
-*   the keyword ``"NPO"`` to include all connectivity models from the NPO endpoint.
+*   the keyword ``"NPO"`` to include all connectivity paths from the NPO endpoint.
 
 When a JSON dictionary is used to define neuron connectivity:
 
-*   it MUST specify the ``"uri"`` of an ApiNATOMY model.
+*   it MUST specify either the ``"uri"`` of an ApiNATOMY model or the keyword ``"NPO"``.
 *   it MAY specify a ``"filter"``, as a JSON dictionary containing three optional lists:
 
-    -   ``"exclude"`` giving neuron path URIs from the model to exclude from the map.
+    -   ``"exclude"`` giving neuron path URIs, from the ApiNATOMY model or NPO, to exclude from the map.
     -   ``"include"`` giving neuron path URIs to render on the map.
     -   ``"trace"`` giving neuron path URIs to render and also log information about
         their routing when making the map.

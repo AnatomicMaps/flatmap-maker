@@ -236,19 +236,20 @@ class SckanNeuronChecker:
         self.__paths_by_id = {}
         if settings.get('ignoreSckan', False):
             return
-        connectivity_models = kb.connectivity_models('APINATOMY')
-        connectivity_models.update(kb.connectivity_models('NPO'))
-        for model in connectivity_models:
+        connectivity_paths = set()
+        for model in kb.connectivity_models('APINATOMY'):
             model_knowledege = kb.get_knowledge(model)
-            for path in model_knowledege.get('paths', []):
-                path_knowledge = kb.get_knowledge(path['id'])
-                self.__paths_by_id[path['id']] = path_knowledge
-                G = connectivity_graph_from_knowledge(path_knowledge)
-                if G:
-                    for node in G.nodes:
-                        G.nodes[node]['node-features'] = flatmap.features_for_anatomical_node(node, warn=False)
-                    self.__trim_non_existent_features(G)
-                    self.__sckan_path_nodes_by_type[G.graph['path-type']][path['id']] = SckanNodeSet(G)
+            connectivity_paths.update([path['id'] for path in model_knowledege.get('paths', [])])
+        connectivity_paths.update(kb.npo_connectivity_paths().keys())
+        for path_id in connectivity_paths:
+            path_knowledge = kb.get_knowledge(path_id)
+            self.__paths_by_id[path_id] = path_knowledge
+            G = connectivity_graph_from_knowledge(path_knowledge)
+            if G:
+                for node in G.nodes:
+                    G.nodes[node]['node-features'] = flatmap.features_for_anatomical_node(node, warn=False)
+                self.__trim_non_existent_features(G)
+                self.__sckan_path_nodes_by_type[G.graph['path-type']][path_id] = SckanNodeSet(G)
 
     def __trim_non_existent_features(self, G):
     #=========================================
