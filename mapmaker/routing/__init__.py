@@ -694,6 +694,11 @@ class Network(object):
 
     def __feature_properties_from_node(self, connectivity_node: AnatomicalNode) -> dict[str, Any]:
     #=============================================================================================
+        # # Allow to use the identified alias
+        if (matched:=self.__flatmap.features_for_anatomical_node(connectivity_node)) is not None:
+            if connectivity_node.name != matched[0].name:
+                connectivity_node = matched[0]
+
         # Find the features and centrelines that corresponds to a connectivity node
         properties: dict[str, Any] = {
             'node': connectivity_node,
@@ -708,7 +713,7 @@ class Network(object):
                 log.error(f'Node {connectivity_node.full_name} has centreline inside layers')
             properties.update(self.__segment_properties_from_ids(centreline_ids))
 
-        elif (matched := self.__flatmap.features_for_anatomical_node(connectivity_node)) is not None:
+        elif matched is not None:
             properties['name'] = matched[0].name
             features = set(f for f in matched[1] if f.id is not None)
             if len(features):
