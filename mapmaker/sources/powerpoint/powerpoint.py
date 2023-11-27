@@ -359,7 +359,7 @@ class Slide:
                         shape_properties['stroke-width'] = abs(transform.scale_length((int(pptx_shape.line.width.emu), 0))[0])  # type: ignore
                     else:
                         shape_type = SHAPE_TYPE.FEATURE
-                        name = text_content(pptx_shape)
+                        name = self.__text_content(pptx_shape)
                         if name != '':
                             shape_properties['name'] = name
                             shape_properties['align'] = text_alignment(pptx_shape)
