@@ -94,16 +94,18 @@ class Feature(PropertyMixin):
 
 class FeatureAnatomicalNodeMap:
     def __init__(self, terms_alias_file: Optional[str]=None):
-        self.__aliases: dict[str, str] = {}
+        self.__anatomical_aliases: dict[str, str] = {}
         if terms_alias_file is not None:
             equivalences = FilePath(terms_alias_file).get_json()
             for equivalence in equivalences:
                 term = equivalence['id']
+                term = (term[0], tuple(term[1])) if isinstance(term, list) else term
                 for alias in equivalence.get('aliases', []):
-                    if alias in self.__aliases:
-                        log.error(f'Alias {alias} cannot map to both {self.__aliases[alias]} and {term}')
+                    alias = (alias[0], tuple(alias[1])) if isinstance(alias, list) else alias
+                    if alias in self.__anatomical_aliases:
+                        log.error(f'Alias {alias} cannot map to both {self.__anatomical_aliases[alias]} and {term}')
                     else:
-                        self.__aliases[alias] = term
+                        self.__anatomical_aliases[alias] = term
         self.__model_to_features: dict[str, set[Feature]] = defaultdict(set)
 
     def add_feature(self, feature: Feature):
@@ -114,7 +116,11 @@ class FeatureAnatomicalNodeMap:
     def features_for_anatomical_node(self, anatomical_node: AnatomicalNode, warn: bool=True) -> tuple[AnatomicalNode, set[Feature]]:
     #===============================================================================================================================
         def features_from_anatomical_id(term: str) -> set[Feature]:
-            return set(self.__model_to_features.get(self.__aliases.get(term, term), []))
+            return set(self.__model_to_features.get(self.__anatomical_aliases.get(term, term), []))
+
+        # check availability of anatomical_node as an alias
+        if anatomical_node in self.__anatomical_aliases:
+            anatomical_node = AnatomicalNode(self.__anatomical_aliases[anatomical_node])
 
         anatomical_id = anatomical_node[0]
         features = features_from_anatomical_id(anatomical_id)

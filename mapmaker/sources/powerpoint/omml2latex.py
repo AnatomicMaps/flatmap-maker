@@ -26,7 +26,7 @@ from saxonche import PySaxonProcessor
 
 #===============================================================================
 
-def latex(openmathml: str) -> str:
+def openmath2latex(openmathml: str) -> str:
     with PySaxonProcessor(license=False) as proc:
         # Load stylesheets
         omml_proc = proc.new_xslt30_processor()

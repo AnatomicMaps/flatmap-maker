@@ -51,6 +51,13 @@ sphinx = "^6.0"
 sphinx-rtd-theme = "^1.1.1"
 sphinx-argparse = "^0.3.1"
 
+[tool.poetry.group.alignments]
+optional = true
+
+[tool.poetry.group.alignments.dependencies]
+torch = "^2.1.1"
+sentence-transformers = "^2.2.2"
+
 [tool.poetry.scripts]
 mapmaker = 'mapmaker.__main__:main'
 
