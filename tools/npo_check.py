@@ -78,17 +78,15 @@ def load_log_file(log_file, npo_knowledge):
     map_log = {}
     with open(log_file, 'r') as f:
         while line := f.readline():
-            tag = 'Cannot find feature for connectivity node '
-            if tag in line:
-                line = line.split(tag)[-1].split(') (')
-                missing_nodes[ast.literal_eval(f'{line[0]})')] = f'({line[1]}'.strip()
-                
-            tag = 'Cannot find any sub-segments of centreline for '
-            if tag in line:
+            tag_feature = 'Cannot find feature for connectivity node '
+            tag_segment = 'Cannot find any sub-segments of centreline for '
+            if tag_feature in line:
+                feature = line.split(tag_feature)[-1].split(') (')
+                missing_nodes[ast.literal_eval(f'{feature[0]})')] = f'({feature[1]}'.strip()
+            elif tag_segment in line:
                 path_id = line[33:].split(': ')[0]
                 if path_id not in missing_segments: missing_segments[path_id] = []
-                missing_segments[path_id] += [line.split(tag)[-1][1:-2]]
-        
+                missing_segments[path_id] += [line.split(tag_segment)[-1][1:-2]]
     for path_id, connectivities in npo_knowledge.items():
         map_log[path_id] = {}
         nodes, edges = set(), set()
@@ -211,7 +209,7 @@ def main():
     parser.add_argument('--artefac-dir', dest='artefac_dir', metavar='ARTEFAC_DIR', help='Directory to store artifac files to check NPO completeness')
     parser.add_argument('--output-dir', dest='output_dir', metavar='OUTPUT_DIR', help='Directory to store the check results')
     parser.add_argument('--species', dest='species', metavar='SPECIES', help='The species of the checked flatmap')
-    parser.add_argument('--clean-connectivity', dest='cleanConnectivity', action='store_true', help='Run mapmaker as a clean connectivity')
+    parser.add_argument('--clean-connectivity', dest='cleanConnectivity', action='store_true', help='Run mapmaker as a clean connectivity (optional)')
 
     try:
         args = parser.parse_args()
