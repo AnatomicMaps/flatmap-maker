@@ -42,3 +42,4 @@ dependencies:
       - cssselect2>=0.6.0,<0.7.0
       - giturlparse>=0.10.0
       - svgelements>=1.9.1
+      - saxonche>=12.3.0
