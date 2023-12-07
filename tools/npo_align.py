@@ -37,7 +37,39 @@ def search_term(query, term_embeddings, term_ids, term_names, k=5):
         results += [(term_ids[idx], term_names[idx], score.item())]
     return results
 
-def align_missing_nodes(manifest_file, missing_file, output_dir):
+def get_candidates(name, term_embeddings, term_ids, term_names, k):
+    candidates = [[st] for st in search_term(name, term_embeddings, term_ids, term_names, k)]
+
+    phrase_candidates = []
+    if len(phrases:=name.split(' IN ')) > 1:
+        term_candidates = [search_term(phrase, term_embeddings, term_ids, term_names, k) for phrase in phrases]
+        phrase_candidates = list(itertools.product(*term_candidates))
+
+    of_candidates = []
+    if len(phrases:= re.split(r' IN | of ',name)) > 1:
+        term_candidates = [search_term(phrase, term_embeddings, term_ids, term_names, k) for phrase in phrases]
+        of_candidates = list(itertools.product(*term_candidates))
+
+    nodes = []
+    for candidate in (candidates+phrase_candidates+of_candidates):
+        node = list(zip(*candidate))
+        node[0] = [key for key, _ in itertools.groupby(node[0])]
+        node[0] = (node[0][0], tuple(node[0][1:] if len(node[0])>1 else []))
+        node[1] = [key for key, _ in itertools.groupby(node[1])]
+        node[2] = sum(node[2])/len(node[2])
+        nodes += [node]
+
+    # return sorted list
+    sorted_nodes = sorted(nodes, key=lambda x: x[2], reverse=True)
+    selected_nodes, tmp = [], set()
+    for node in sorted_nodes:
+        if node[0] not in tmp:
+            selected_nodes += [node]
+            tmp.add(node[0])
+        if len(selected_nodes) == k: break
+    return selected_nodes
+
+def align_missing_nodes(manifest_file, missing_file, output_dir, k):
         
         ### Loading anatomical map
         #anatomical_terms = 
@@ -49,51 +81,50 @@ def align_missing_nodes(manifest_file, missing_file, output_dir):
         manifest_file = Path(manifest_file)
         with open(manifest_file, 'r') as f:
             manifest = json.load(f)
-
-        anatomical_file = manifest_file.parent/manifest.get('anatomicalMap')
-        with open(anatomical_file, 'r') as f:
-            anatomical_terms = json.load(f)
-            
-        ### Loading property and stored in anatomical term
-        # load property
-        property_file = manifest_file.parent/manifest.get('properties')
-        with open(property_file, 'r') as f:
-            properties = json.load(f)
-            
-        # load from features key
-        for key, val in properties['features'].items():
-            if (_model:=val.get('models')) is not None:
-                anatomical_terms[key] = {'term': _model, 'name': val.get('name')}
-            elif (_class:=val.get('class')) is not None:
-                if (_anat:=anatomical_terms.get(_class)) is not None:
-                    anatomical_terms[key] = _anat  
-                else:
-                    pass
-                    # print(key) # probably unused anatomy  -- no model or term
-                    
-        # load from features networks->centrelines for those having models
-        for network in properties['networks'][0]['centrelines']:
-            if (_model:=network.get('models')) is not None:
-                anatomical_terms[network['id']] = {'term':network.get('models')}
-                
-        ### Complete anatomical_terms with no name and check it's concistency
         output_dir = Path(output_dir)
-        prop_path = output_dir/'collected_property.json'
-        anaterms = {}
-        if prop_path.exists():
-            with open(prop_path, 'r') as f:
-                anaterms = json.load(f)
 
-        for term_id in tqdm(set([anaterm['term'] for anaterm in anatomical_terms.values()])):
-            if term_id not in anaterms:
-                anaterms[term_id] = store.label(term_id)
-
-        with open(prop_path, 'w') as f:
-            json.dump(anaterms, f, )
-            
-        ## Select anaterms that available in svg only
-        ### Get all id used in csv file
         if manifest.get('kind', '') != 'functional':
+            anatomical_file = manifest_file.parent/manifest.get('anatomicalMap')
+            with open(anatomical_file, 'r') as f:
+                anatomical_terms = json.load(f)
+                
+            ### Loading property and stored in anatomical term
+            # load property
+            property_file = manifest_file.parent/manifest.get('properties')
+            with open(property_file, 'r') as f:
+                properties = json.load(f)
+            # load from features key
+            for key, val in properties['features'].items():
+                if (_model:=val.get('models')) is not None:
+                    anatomical_terms[key] = {'term': _model, 'name': val.get('name')}
+                elif (_class:=val.get('class')) is not None:
+                    if (_anat:=anatomical_terms.get(_class)) is not None:
+                        anatomical_terms[key] = _anat
+                    else:
+                        pass
+                        # print(key) # probably unused anatomy  -- no model or term
+
+            # load from features networks->centrelines for those having models
+            for network in properties['networks'][0]['centrelines']:
+                if (_model:=network.get('models')) is not None:
+                    anatomical_terms[network['id']] = {'term':network.get('models')}
+
+            ### Complete anatomical_terms with no name and check it's concistency
+            prop_path = output_dir/'collected_property.json'
+            anaterms = {}
+            if prop_path.exists():
+                with open(prop_path, 'r') as f:
+                    anaterms = json.load(f)
+
+            for term_id in tqdm(set([anaterm['term'] for anaterm in anatomical_terms.values()])):
+                if term_id not in anaterms:
+                    anaterms[term_id] = store.label(term_id)
+
+            with open(prop_path, 'w') as f:
+                json.dump(anaterms, f, )
+            
+            ## Select anaterms that available in svg only
+            ### Get all id used in csv file
             svg_file = manifest_file.parent/(manifest.get('sources')[0].get('href'))
             doc = minidom.parse(str(svg_file))  # parseString also exists
             svg_used_ids = [path.firstChild.nodeValue[path.firstChild.nodeValue.index('id(')+3:path.firstChild.nodeValue.index(')')].strip() for path in doc.getElementsByTagName('title') if 'id(' in path.firstChild.nodeValue]
@@ -107,53 +138,33 @@ def align_missing_nodes(manifest_file, missing_file, output_dir):
                 if term_id not in term_ids:
                     term_ids += [term_id]
                     term_names += [anaterms.get(term_id, term_id).lower()]
-            
-            ## generate term embedding
-            term_embeddings = biobert_model.encode(term_names)
-            
-            def get_candidates(name):
-                k = 5
-                candidates = [[st] for st in search_term(name, term_embeddings, term_ids, term_names, k)]
+        else: # handling functional connectivity
+            annotation_file = manifest_file.parent/manifest.get('annotation','')
+            term_ids, term_names = [], []
+            with open(annotation_file, 'r') as f:
+                annotations = json.load(f)
+            for term_type, anatomy_list in annotations.items():
+                if term_type == 'Systems': continue
+                for anatomy in anatomy_list:
+                    term_id = anatomy.get('Model') if term_type=='FTUs' else anatomy.get('Models')
+                    if len(term_id.strip()) > 0:
+                        term_ids += [term_id]
+                        if (label:=anatomy.get('Label')) is None:
+                            label = store.label(term_id)
+                        term_names += [label.lower()]
 
-                phrase_candidates = []
-                if len(phrases:=name.split(' IN ')) > 1:
-                    term_candidates = [search_term(phrase, term_embeddings, term_ids, term_names, k) for phrase in phrases]
-                    phrase_candidates = list(itertools.product(*term_candidates))
-                
-                of_candidates = []
-                if len(phrases:= re.split(r' IN | of ',name)) > 1:
-                    term_candidates = [search_term(phrase, term_embeddings, term_ids, term_names, k) for phrase in phrases]
-                    of_candidates = list(itertools.product(*term_candidates))
-                    
-                nodes = []
-                for candidate in (candidates+phrase_candidates+of_candidates):
-                    node = list(zip(*candidate))
-                    node[0] = [key for key, _ in itertools.groupby(node[0])]
-                    node[0] = (node[0][0], tuple(node[0][1:] if len(node[0])>1 else []))
-                    node[1] = [key for key, _ in itertools.groupby(node[1])]
-                    node[2] = sum(node[2])/len(node[2])
-                    nodes += [node]
+        ## generate term embedding
+        term_embeddings = biobert_model.encode(term_names)
 
-                # return sorted list
-                sorted_nodes = sorted(nodes, key=lambda x: x[2], reverse=True)
-                selected_nodes, tmp = [], set()
-                for node in sorted_nodes:
-                    if node[0] not in tmp:
-                        selected_nodes += [node]
-                        tmp.add(node[0])
-                    if len(selected_nodes) == k: break
-                return selected_nodes            
-
-
-            ### load missing NPO nodes in flatmap
-            missing_file = Path(missing_file)
-            df_missing = pd.read_csv(missing_file)
-            df_missing['Align candidates'] = df_missing['Node Name'].apply(lambda x: get_candidates(x))
-            df_missing = df_missing.explode('Align candidates')
-            df_missing[['Align candidates', 'Candidate name', 'Score']] = df_missing['Align candidates'].apply(pd.Series)
-            df_missing['Selected'] = ''
-            df_missing['Note'] = ''
-            df_missing.to_csv(output_dir/f"{missing_file.name.split('.')[0]}_alignment.csv")
+        ### load missing NPO nodes in flatmap
+        missing_file = Path(missing_file)
+        df_missing = pd.read_csv(missing_file)
+        df_missing['Align candidates'] = df_missing['Node Name'].apply(lambda x: get_candidates(x, term_embeddings, term_ids, term_names, k))
+        df_missing = df_missing.explode('Align candidates')
+        df_missing[['Align candidates', 'Candidate name', 'Score']] = df_missing['Align candidates'].apply(pd.Series)
+        df_missing['Selected'] = ''
+        df_missing['Note'] = ''
+        df_missing.to_csv(output_dir/f"{missing_file.name.split('.')[0]}_alignment.csv")
 
 #===============================================================================
 
@@ -165,11 +176,12 @@ def main():
     parser.add_argument('--manifest', dest='manifest', metavar='MANIFEST', help='Path of flatmap manifest')
     parser.add_argument('--output-dir', dest='output_dir', metavar='OUTPUT_DIR', help='Directory to store the check results')
     parser.add_argument('--missing-file', dest='missing_file', metavar='MISSING_FILE', help='The missing node file generated by npo_check.py')
+    parser.add_argument('--k', dest='k', help='The number of generated candidates for earch missing nodes', default=5)
     
     try:
         args = parser.parse_args()
 
-        align_missing_nodes(args.manifest, args.missing_file, args.output_dir)
+        align_missing_nodes(args.manifest, args.missing_file, args.output_dir, args.k)
     except PathError as error:
         sys.stderr.write(f'{error}\n')
         sys.exit(1)

@@ -13,35 +13,48 @@ class PathError(Exception):
 
 #===============================================================================
 
-def generate_aliase(aligned_file, connectivity_term_file):
+def generate_aliases(aligned_file, connectivity_term_file):
     df_alias = pd.read_csv(aligned_file)
     df_alias = df_alias[df_alias['Selected'].str.len() > 0]
     
-    node_aliases = []
-    for idx in df_alias.index:
-        alias = df_alias.loc[idx]
-        try:
-            if alias['Selected'] == '1':
-                node_aliases += [{
-                    'id': ast.literal_eval(alias['Align candidates']),
-                    'name': alias['Candidate name'],
-                    'aliases': [ast.literal_eval(alias['Node'])]
-                }]
-            elif len(alias['Selected']) > 1:
-                node_aliases += [{
-                    'id': ast.literal_eval(alias['Selected']),
-                    'aliases': [ast.literal_eval(alias['Node'])]
-                }]
-        except:
-            logging.error('Incorrect csv format')
     if os.path.exists(connectivity_term_file):
         with open(connectivity_term_file, 'r') as f:
             connectivity_terms = json.load(f)
     else:
         connectivity_terms = []
-    connectivity_terms = connectivity_terms + node_aliases
+
+    current_alias = {}
+    for term in connectivity_terms:
+        term_id = (term['id'][0], tuple(term['id'][1])) if isinstance(term['id'], list) else term['id']
+        current_alias[term_id] = term
+        current_alias[term_id]['aliases'] = [(alias[0], tuple(alias[1])) if isinstance(alias, list) else alias
+                                             for alias in current_alias[term_id]['aliases']]
+
+    for idx in df_alias.index:
+        alias = df_alias.loc[idx]
+        if len(alias['Selected'].strip()) > 0:
+            alias_id = ast.literal_eval(alias['Align candidates']) if alias['Selected'] == '1' else ast.literal_eval(alias['Selected'])
+            alias_id = (alias_id[0], tuple(alias_id[1]))
+            alias_node = ast.literal_eval(alias['Node'])
+            alias_node = (alias_node[0], tuple(alias_node[1]))
+            alias_name = '/'.join(ast.literal_eval(alias['Candidate name']))  if alias['Selected'] == '1' else None
+            if alias_id in current_alias:
+                if alias_node not in current_alias[alias_id]['aliases']:
+                    current_alias[alias_id]['aliases'] += [alias_node]
+
+            else:
+                current_alias[alias_id] = {
+                    'id': alias_id,
+                    'aliases': [
+                        alias_node
+                    ]
+                }
+
+            if alias_name is not None:
+                current_alias[alias_id]['name'] = alias_name
+
     with open(connectivity_term_file, 'w') as f:
-        json.dump(connectivity_terms, f, indent=4)
+        json.dump(list(current_alias.values()), f, indent=4)
 
 def main():
     import argparse
@@ -53,7 +66,7 @@ def main():
     
     try:
         args = parser.parse_args()
-        generate_aliase(args.aligned_file, args.connectivity_term_file)
+        generate_aliases(args.aligned_file, args.connectivity_term_file)
     except PathError as error:
         sys.stderr.write(f'{error}\n')
         sys.exit(1)
