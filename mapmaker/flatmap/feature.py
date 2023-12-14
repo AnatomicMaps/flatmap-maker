@@ -94,7 +94,7 @@ class Feature(PropertyMixin):
 
 class FeatureAnatomicalNodeMap:
     def __init__(self, terms_alias_file: Optional[str]=None):
-        self.__anatomical_aliases: dict[str, str] = {}
+        self.__anatomical_aliases: dict[str|tuple, str] = {}
         if terms_alias_file is not None:
             equivalences = FilePath(terms_alias_file).get_json()
             for equivalence in equivalences:
