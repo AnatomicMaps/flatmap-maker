@@ -96,8 +96,8 @@ class Annotator:
             if len(terms) == 1:
                 if name not in self.__terms_by_keys:
                     self.__terms_by_keys[name] = terms.pop()
-            elif name in self.__terms_by_keys:
-                del self.__terms_by_keys[name]
+            # elif name in self.__terms_by_keys:
+            #     del self.__terms_by_keys[name]
 
     def __find_shape_by_names(self, shape) -> Optional[str]:
     #=======================================================
