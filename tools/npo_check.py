@@ -180,11 +180,11 @@ def check_npo_in_flatmap(manifest, artefac_dir, output_dir, species, clean_conne
     if log_file.exists():
         log_file.unlink()
     options = {
-        'source': manifest,
-        'output': artefac_dir,
+        'source': str(manifest),
+        'output': str(artefac_dir),
         'ignoreGit': True,
         'debug': True,
-        'logFile': log_file,
+        'logFile': str(log_file),
         'cleanConnectivity': clean_connectivity
     }
     mapmaker = MapMaker(options)

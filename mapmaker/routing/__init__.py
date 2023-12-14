@@ -35,6 +35,9 @@ import math
 import sys
 from typing import TYPE_CHECKING, Any, Optional
 
+from mapmaker.settings import settings
+from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS, FC_KIND
+
 
 #===============================================================================
 
@@ -762,7 +765,7 @@ class Network(object):
                 log.warning(f'{path.id}: {warning}')
 
         # In a case of FC map, we need to remove missing nodes
-        if self.__flatmap.manifest.kind == 'functional':
+        if settings.get('NPO', False):
             missing_nodes = set(self.__missing_identifiers) & set(connectivity_graph.nodes)
             for ms_node in missing_nodes:
                 connectivity_graph.add_edges_from(
@@ -952,7 +955,15 @@ class Network(object):
         def get_node_feature(node_dict) -> Feature:
             if len(node_dict['features']) > 1:
                 log.error(f'{path.id}: Terminal node {node_dict["name"]} has multiple features {sorted(set(f.id for f in node_dict["features"]))}')
-            return list(f for f in node_dict['features'])[0]
+            selected_feature = list(f for f in node_dict['features'])[0]
+            if settings.get('NPO', False):
+                for child in selected_feature.properties.get('children'):
+                    child_feature = self.__flatmap.get_feature_by_geojson_id(child)
+                    print('**', path.id, path.path_type, child_feature.properties.get('path-type'), child_feature.properties.get('fc-kind'))
+                    if child_feature.properties.get('fc-kind') in [FC_KIND.CONNECTOR_NODE, FC_KIND.CONNECTOR_PORT] and path.path_type is not None:
+                       if (path.path_type | child_feature.properties.get('path-type')) == path.path_type:
+                            return child_feature
+            return selected_feature
 
         terminal_graphs: dict[tuple, nx.Graph] = {}
         visited = set()
