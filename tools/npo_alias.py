@@ -26,12 +26,18 @@ def generate_aliases(aligned_file, connectivity_term_file):
     current_alias = {}
     for term in connectivity_terms:
         term_id = (term['id'][0], tuple(term['id'][1])) if isinstance(term['id'], list) else term['id']
+<<<<<<< HEAD
         if term_id not in current_alias:
             current_alias[term_id] = {
                 'id':term_id,
                 'name': term.get('name', ''),
                 'aliases': [(alias[0], tuple(alias[1])) if isinstance(alias, list) else alias for alias in term['aliases']]
             }
+=======
+        current_alias[term_id] = term
+        current_alias[term_id]['aliases'] = [(alias[0], tuple(alias[1])) if isinstance(alias, list) else alias
+                                             for alias in current_alias[term_id]['aliases']]
+>>>>>>> b6e6b6d (update tools for alias and align FC)
 
     for idx in df_alias.index:
         alias = df_alias.loc[idx]
