@@ -761,6 +761,18 @@ class Network(object):
             if (warning := node_dict.pop('warning', None)) is not None:
                 log.warning(f'{path.id}: {warning}')
 
+        # In a case of FC map, we need to remove missing nodes
+        if self.__flatmap.manifest.kind == 'functional':
+            missing_nodes = set(self.__missing_identifiers) & set(connectivity_graph.nodes)
+            for ms_node in missing_nodes:
+                connectivity_graph.add_edges_from(
+                    [
+                        edge for edge in itertools.product(connectivity_graph.neighbors(ms_node), connectivity_graph.neighbors(ms_node))
+                        if (edge[0]!=edge[1])
+                    ]
+                )
+                connectivity_graph.remove_nodes_from([ms_node])
+
         if path.trace:
             for node, node_dict in connectivity_graph.nodes(data=True):
                 node_data = {}

@@ -62,7 +62,7 @@ def smooth_edges(G: nx.Graph, end_nodes: Optional[list | set]=None, edge_nodes_a
         if degree != 2 or node in end_nodes:
             R.add_node(node, **G.nodes[node])
     seen_paths: dict[Hashable, set] = defaultdict(set)
-    for node in R:
+    for node in R.copy():
         for path_node in G[node]:
             if path_node not in seen_paths[node]:
                 edge_nodes = follow_edge_path(node, path_node)
