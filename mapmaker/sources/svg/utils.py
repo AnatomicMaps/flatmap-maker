@@ -186,7 +186,7 @@ def svg_element_from_feature(feature: Feature, inverse_transform: svgelements.Ma
     elif svg.tag == 'rect':
         element = svgelements.Rect(svg.attrib)
     else:
-        raise ValueError(f'Unexpected SVG element, `{svg.tag}`, {svg.atrib} for geometry')
+        raise ValueError(f'Unexpected SVG element, `{svg.tag}`, {svg.attrib} for geometry')
     path = (element * inverse_transform).d()
     element = etree.Element(SVG_TAG('path'), d=path)
     if 'Line' in feature.properties['geometry']:
