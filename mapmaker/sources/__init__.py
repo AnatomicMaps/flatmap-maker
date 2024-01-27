@@ -243,12 +243,12 @@ class MapSource(object):
                        self.error('error', '{}: duplicate id in markup: {}'
                               .format(self.id, properties.get('markup', '')))
 
-    def process(self):
-    #=================
+    def process(self) -> None:
+    #=========================
         raise TypeError('`process()` must be implemented by `MapSource` sub-class')
 
-    def get_raster_source(self):
-    #===========================
+    def get_raster_source(self) -> Optional[RasterSource]:
+    #=====================================================
         return None
 
 #===============================================================================
