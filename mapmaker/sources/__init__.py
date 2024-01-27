@@ -79,8 +79,7 @@ EXCLUDE_SHAPE_TYPES = [
     'region',
     ]
 
-# Shapes/paths in these layers are excluded from image tiling unless the
-# ``--show-centrelines`` option is set
+# Shapes/paths in these layers are excluded from image tiling
 EXCLUDE_TILE_LAYERS = [
     PATHWAYS_TILE_LAYER      # All paths are in vector layers
 ]
