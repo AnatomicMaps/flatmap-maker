@@ -282,8 +282,10 @@ class Manifest:
             return blob_url
         return self.__url
 
-    def __check_and_normalise_path(self, path: str, desc: str='') -> str:
-    #====================================================================
+    def __check_and_normalise_path(self, path: str, desc: str='') -> str|None:
+    #=========================================================================
+        if path.strip() == '':
+            return None
         normalised_path = self.__path.join_url(path)
         if not self.__ignore_git:
             self.__check_committed(normalised_path, desc)
