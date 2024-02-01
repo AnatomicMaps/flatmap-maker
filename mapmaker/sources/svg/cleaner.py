@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 from datetime import datetime, timezone
-from typing import BinaryIO, Optional, TYPE_CHECKING
+from typing import BinaryIO, TYPE_CHECKING
 
 #===============================================================================
 
