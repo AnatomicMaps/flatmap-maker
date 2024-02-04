@@ -18,8 +18,7 @@
 #
 #===============================================================================
 
-from __future__ import annotations
-import math
+from typing import Optional
 
 #===============================================================================
 
@@ -85,7 +84,7 @@ def bezier_to_line_coords(bz, num_points=100, offset=0):
 
 #===============================================================================
 
-def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle: float = None) -> CubicBezier:
+def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle: Optional[float]=None) -> CubicBezier:
     # Connect points ``a`` and ``b`` with a Bezier curve with a slope
     # at ``a`` of ``start_angle`` and a slope at ''b'' of ``pi + end_angle``.
     d = a.distanceFrom(b)
@@ -99,8 +98,8 @@ def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle
 #===============================================================================
 
 def closest_time_distance(bz: 'BezierPath | BezierSegment', pt: BezierPoint, steps: int=100) -> tuple[float, float]:
-    def subdivide_search(t0, t1, steps):
-        closest_d = None
+    def subdivide_search(t0: float, t1: float, steps: int) -> tuple[float, float, float]:
+        closest_d = -1
         closest_t = t0
         delta_t = (t1 - t0)/steps
         for step in range(steps+1):
@@ -110,12 +109,12 @@ def closest_time_distance(bz: 'BezierPath | BezierSegment', pt: BezierPoint, ste
             elif t < 0.0:
                 t = 0.0
             d = bz.pointAtTime(t).distanceFrom(pt)
-            if closest_d is None or d < closest_d:
+            if closest_d < 0 or d < closest_d:
                 closest_t = t
                 closest_d = d
         return (closest_t, delta_t, closest_d)
-    (t, delta_t) = (0.5, 0.5)
-    for n in range(4):
+    (t, delta_t, distance) = (0.5, 0.5, 0.0)
+    for _ in range(4):
         (t, delta_t, distance) = subdivide_search(t - delta_t, t + delta_t, steps)
         if distance == 0:
             break

@@ -170,25 +170,32 @@ def circle_from_bounds(bounds):
 #===============================================================================
 
 def svg_element_from_feature(feature: Feature, inverse_transform: svgelements.Matrix) -> etree.Element:
-    svg = etree.fromstring(feature.geometry.svg())
-    if svg.tag == 'circle':
-        element = svgelements.Circle(svg.attrib)
-    elif svg.tag == 'ellipse':
-        element = svgelements.Ellipse(svg.attrib)
-    elif svg.tag == 'line':
-        element = svgelements.SimpleLine(svg.attrib)
-    elif svg.tag == 'path':
-        element = svgelements.Path(svg.attrib['d'])
-    elif svg.tag == 'polygon':
-        element = svgelements.Polygon(svg.attrib['points'])
-    elif svg.tag == 'polyline':
-        element = svgelements.Polyline(svg.attrib['points'])
-    elif svg.tag == 'rect':
-        element = svgelements.Rect(svg.attrib)
-    else:
-        raise ValueError(f'Unexpected SVG element, `{svg.tag}`, {svg.atrib} for geometry')
-    path = (element * inverse_transform).d()
-    element = etree.Element(SVG_TAG('path'), d=path)
+    def element_from_etree(svg: etree.Element) -> etree.Element:
+        if svg.tag == 'circle':
+            element = svgelements.Circle(svg.attrib)
+        elif svg.tag == 'ellipse':
+            element = svgelements.Ellipse(svg.attrib)
+        elif svg.tag == 'line':
+            element = svgelements.SimpleLine(svg.attrib)
+        elif svg.tag == 'path':
+            element = svgelements.Path(svg.attrib['d'])
+        elif svg.tag == 'polygon':
+            element = svgelements.Polygon(svg.attrib['points'])
+        elif svg.tag == 'polyline':
+            element = svgelements.Polyline(svg.attrib['points'])
+        elif svg.tag == 'rect':
+            element = svgelements.Rect(svg.attrib)
+        elif svg.tag == 'g':
+            element = etree.Element(SVG_TAG('g'))
+            for e in svg:
+                element.append(element_from_etree(e))
+            return element
+        else:
+            raise ValueError(f'Unexpected SVG element, `{svg.tag}`, {svg.attrib} for geometry')
+        path = (element * inverse_transform).d()
+        return etree.Element(SVG_TAG('path'), d=path)
+
+    element = element_from_etree(etree.fromstring(feature.geometry.svg()))
     if 'Line' in feature.properties['geometry']:
         element.attrib['fill'] = 'none'
         if feature.properties['type'] == 'nerve' and 'kind' not in feature.properties:
@@ -207,6 +214,7 @@ def svg_element_from_feature(feature: Feature, inverse_transform: svgelements.Ma
                 element.attrib['stroke-dasharray'] = '4'
     else:
         element.attrib['fill'] = '#DDD'             # FUTURE
+
     return element
 
 #===============================================================================

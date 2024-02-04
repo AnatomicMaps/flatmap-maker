@@ -79,8 +79,7 @@ EXCLUDE_SHAPE_TYPES = [
     'region',
     ]
 
-# Shapes/paths in these layers are excluded from image tiling unless the
-# ``--show-centrelines`` option is set
+# Shapes/paths in these layers are excluded from image tiling
 EXCLUDE_TILE_LAYERS = [
     PATHWAYS_TILE_LAYER      # All paths are in vector layers
 ]
@@ -243,12 +242,12 @@ class MapSource(object):
                        self.error('error', '{}: duplicate id in markup: {}'
                               .format(self.id, properties.get('markup', '')))
 
-    def process(self):
-    #=================
+    def process(self) -> None:
+    #=========================
         raise TypeError('`process()` must be implemented by `MapSource` sub-class')
 
-    def get_raster_source(self):
-    #===========================
+    def get_raster_source(self) -> Optional[RasterSource]:
+    #=====================================================
         return None
 
 #===============================================================================

@@ -244,9 +244,11 @@ class SVGTiler(object):
         self.__svg = etree.fromstring(raster_layer.source_data, parser=etree.XMLParser(huge_tree=True))
         self.__source_path = raster_layer.source_path
         if 'viewBox' in self.__svg.attrib:
-            self.__size = tuple(float(x)
-                for x in self.__svg.attrib['viewBox'].split()[2:])
+            viewbox = [float(x) for x in self.__svg.attrib.get('viewBox').split()]
+            (left, top) = tuple(viewbox[:2])
+            self.__size = tuple(viewbox[2:])
         else:
+            (left, top) = (0, 0)
             self.__size = (length_as_pixels(self.__svg.attrib['width']),
                            length_as_pixels(self.__svg.attrib['height']))
         self.__scaling = (tile_set.pixel_rect.width/self.__size[0],
@@ -258,8 +260,9 @@ class SVGTiler(object):
         # Transform from SVG pixels to tile pixels
         svg_to_tile_transform = Transform([[self.__scaling[0],               0.0, 0.0],
                                            [              0.0, self.__scaling[1], 0.0],
-                                           [              0.0,               0.0, 1.0]])
-
+                                           [              0.0,               0.0, 1.0]])@np.array([[1.0, 0.0, -left],
+                                                                                                   [0.0, 1.0, -top],
+                                                                                                   [0.0, 0.0,  1.0]])
         # Transform from SVG pixels to world coordinates
         self.__image_to_world = (Transform([
             [WORLD_METRES_PER_PIXEL/self.__scaling[0],                                        0, 0],
@@ -268,7 +271,18 @@ class SVGTiler(object):
            @np.array([[1.0,  0.0, -self.__scaling[0]*self.__size[0]/2.0],
                       [0.0, -1.0,  self.__scaling[1]*self.__size[1]/2.0],
                       [0.0,  0.0,                                   1.0]]))
-
+##      ``image_to_world`` is used for rasterising details and may be wrong, esp. if the
+##      SVG's viewport origin is not (0, 0).
+##
+##      The following might be correct, but needs testing...
+##
+##          svg_origin = (left+self.__size[0]/2.0, top+self.__size[1]/2)
+##          @np.array([[1.0,  0.0, -svg_origin[0]],
+##                     [0.0, -1.0,  svg_origin[1]],
+##                     [0.0,  0.0,            1.0]]))
+##
+##     And do we need to multiply by scaling??
+##
         self.__tile_size = tile_set.tile_size
         self.__tile_origin = tile_set.start_coords
         self.__pixel_offset = tuple(tile_set.pixel_rect)[0:2]

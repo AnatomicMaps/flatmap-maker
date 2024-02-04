@@ -50,7 +50,7 @@ class GeoJSONOutput(object):
         self.__save_features(features)
         saved_filenames = {}
         for (geojson_id, features) in self.__geojson_layers.items():
-            filename = os.path.join(self.__output_dir, geojson_id)
+            filename = os.path.join(self.__output_dir, f'{geojson_id}.json')
             saved_filenames[geojson_id] = filename
             with open(filename, 'w') as output_file:
                 if pretty_print:
