@@ -146,11 +146,7 @@ def align_missing_nodes(manifest_file, missing_file, output_dir, k):
             for term_type, anatomy_list in annotations.items():
                 if term_type == 'Systems': continue
                 for anatomy in anatomy_list:
-<<<<<<< HEAD
                     term_id = anatomy.get('Model', anatomy.get('Models', ''))
-=======
-                    term_id = anatomy.get('Model') if term_type=='FTUs' else anatomy.get('Models')
->>>>>>> b6e6b6d (update tools for alias and align FC)
                     if len(term_id.strip()) > 0:
                         term_ids += [term_id]
                         if (label:=anatomy.get('Label')) is None:
