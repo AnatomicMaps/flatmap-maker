@@ -126,6 +126,11 @@ class GeoJSONOutput(object):
                 properties['markerPosition'] = list(list(mercator_geometry.centroid.coords)[0])
             properties['geometry'] = geojson['geometry']['type']
             properties['layer'] = self.__layer.id
+            if mercator_geometry.geom_type == 'LineString':
+                boundary = mercator_geometry.boundary
+                if (len(geoms := boundary.geoms)) == 2:
+                    properties['pathStartPosition'] = shapely.geometry.mapping(geoms[0])['coordinates']
+                    properties['pathEndPosition'] = shapely.geometry.mapping(geoms[1])['coordinates']
 
             # The layer's annotation has property details for each feature.
             # NB. These, and only these, properties are passed to the viewer
