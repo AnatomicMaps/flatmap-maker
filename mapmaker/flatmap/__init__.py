@@ -182,6 +182,7 @@ class FlatMap(object):
         self.__feature_node_map = FeatureAnatomicalNodeMap(self.__manifest.connectivity_terms)
         self.__features_with_id: dict[str, Feature] = {}
         self.__last_geojson_id = 0
+        self.__features_with_geojson_id: dict[int, Feature] = {}
 
         # Used to find annotated features containing a region
         self.__feature_search = None
@@ -233,6 +234,11 @@ class FlatMap(object):
     #===========================================================
         return self.__features_with_id.get(feature_id)
 
+    def get_feature_by_geojson_id(self, geojson_id: int) -> Optional[Feature]:
+    #===========================================================
+        return self.__features_with_geojson_id.get(geojson_id)
+
+
     def new_feature(self, geometry, properties, is_group=False):
     #===========================================================
         self.__last_geojson_id += 1
@@ -243,6 +249,7 @@ class FlatMap(object):
                 pass
             else:
                 self.__features_with_id[feature.id] = feature
+                self.__features_with_geojson_id[self.__last_geojson_id] = feature
         return feature
 
     def feature_exported(self, feature):

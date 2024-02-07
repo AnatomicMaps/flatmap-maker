@@ -34,6 +34,10 @@ import itertools
 import math
 import sys
 from typing import TYPE_CHECKING, Any, Optional
+from mapmaker.knowledgebase.sckan import PATH_TYPE
+
+from mapmaker.settings import settings
+from mapmaker.knowledgebase.celldl import FC_CLASS, FC_KIND
 
 
 #===============================================================================
@@ -762,7 +766,7 @@ class Network(object):
                 log.warning(f'{path.id}: {warning}')
 
         # In a case of FC map, we need to remove missing nodes
-        if self.__flatmap.manifest.kind == 'functional':
+        if settings.get('NPO', False) and self.__flatmap.manifest.kind == 'functional':
             missing_nodes = set(self.__missing_identifiers) & set(connectivity_graph.nodes)
             for ms_node in missing_nodes:
                 connectivity_graph.add_edges_from(
@@ -949,10 +953,33 @@ class Network(object):
             route_graph.add_edge(*edge, **edge_dict)
             path_node_ids.update(node.feature_id for node in edge_dict['network-nodes'])
 
+        def get_ftu_node(feature):
+            # looking for FTU if possible
+            if feature.properties.get('fc-class') != FC_CLASS.FTU:
+                for child in feature.properties.get('children', []):
+                    child_feature = self.__flatmap.get_feature_by_geojson_id(child)
+                    if child_feature.properties.get('fc-class') == FC_CLASS.FTU and child_feature.models == feature.models:
+                        feature = child_feature
+                        break
+            # looking for correct connector or port
+            for child in feature.properties.get('children', []):
+                child_feature = self.__flatmap.get_feature_by_geojson_id(child)
+                if (child_feature.properties.get('fc-kind') in [FC_KIND.CONNECTOR_NODE, FC_KIND.CONNECTOR_PORT, FC_KIND.GANGLION] and \
+                    path.path_type is not None and \
+                    child_feature.properties.get('path-type') != PATH_TYPE.UNKNOWN) and \
+                    (path.path_type == child_feature.properties.get('path-type') or \
+                    PATH_TYPE.PRE_GANGLIONIC|child_feature.properties.get('path-type') == path.path_type or \
+                    PATH_TYPE.POST_GANGLIONIC|child_feature.properties.get('path-type') == path.path_type):
+                        return child_feature
+            return feature
+
         def get_node_feature(node_dict) -> Feature:
             if len(node_dict['features']) > 1:
                 log.error(f'{path.id}: Terminal node {node_dict["name"]} has multiple features {sorted(set(f.id for f in node_dict["features"]))}')
-            return list(f for f in node_dict['features'])[0]
+            selected_feature = list(f for f in node_dict['features'])[0]
+            if settings.get('NPO', False):
+                return get_ftu_node(selected_feature)
+            return selected_feature
 
         terminal_graphs: dict[tuple, nx.Graph] = {}
         visited = set()

@@ -174,23 +174,22 @@ def organised_and_save_map_log(map_log, save_file):
 
 #===============================================================================
 
-def check_npo_in_flatmap(manifest, artefac_dir, output_dir, species, clean_connectivity):
-    manifest = Path(manifest)
-    log_file = Path(artefac_dir)/(f"{species}.{manifest.name.split('.')[0]}.log")
+def check_npo_in_flatmap(manifest, artefact_dir, output_dir, species, clean_connectivity):
+    log_file = Path(artefact_dir)/(f"{species}.{Path(manifest).stem}.log")
     if log_file.exists():
         log_file.unlink()
     options = {
         'source': manifest,
-        'output': artefac_dir,
+        'output': artefact_dir,
         'ignoreGit': True,
         'debug': True,
-        'logFile': log_file,
+        'logFile': log_file.as_posix(),
         'cleanConnectivity': clean_connectivity
     }
     mapmaker = MapMaker(options)
     mapmaker.make()
 
-    npo_connectivities = load_npo_connectivities(artefac_dir, clean_connectivity)
+    npo_connectivities = load_npo_connectivities(artefact_dir, clean_connectivity)
     map_log = load_log_file(log_file=log_file, npo_knowledge=npo_connectivities)
 
     missing_node_file = Path(output_dir)/f'npo_{species}_missing_nodes.csv'
@@ -206,14 +205,14 @@ def main():
 
     parser = argparse.ArgumentParser(description="Checking nodes and edges completeness in the generated flatmap")
     parser.add_argument('--manifest', dest='manifest', metavar='MANIFEST', help='Path of flatmap manifest')
-    parser.add_argument('--artefac-dir', dest='artefac_dir', metavar='ARTEFAC_DIR', help='Directory to store artifac files to check NPO completeness')
+    parser.add_argument('--artefact-dir', dest='artefact_dir', metavar='ARTEFACT_DIR', help='Directory to store artefact files, e.g. generated maps and log file, to check NPO completeness')
     parser.add_argument('--output-dir', dest='output_dir', metavar='OUTPUT_DIR', help='Directory to store the check results')
     parser.add_argument('--species', dest='species', metavar='SPECIES', help='The species of the checked flatmap')
     parser.add_argument('--clean-connectivity', dest='cleanConnectivity', action='store_true', help='Run mapmaker as a clean connectivity (optional)')
 
     try:
         args = parser.parse_args()
-        check_npo_in_flatmap(args.manifest, args.artefac_dir, args.output_dir, args.species, args.cleanConnectivity)
+        check_npo_in_flatmap(args.manifest, args.artefact_dir, args.output_dir, args.species, args.cleanConnectivity)
     except PathError as error:
         sys.stderr.write(f'{error}\n')
         sys.exit(1)
@@ -231,7 +230,7 @@ if __name__ == '__main__':
 
 # Command:
 # python ./npo_check.py --manifest `manifest file` \
-#                       --artefac-dir `any directory to store generated files` \
+#                       --artefact-dir `any directory to store generated files` \
 #                       --output-dir 'a directory to save csv file' 
 #                       --species `such as rat, female, male, etc`
 
