@@ -140,7 +140,7 @@ class FlatMapCheck:
             'output': self.__artefact_dir.as_posix(),
             'ignoreGit': True,
             'debug': True,
-            'logFile': str(log_file),
+            'logFile': log_file.as_posix(),
             'cleanConnectivity': self.__clean_connectivity
         }
         mapmaker = MapMaker(options)
@@ -369,7 +369,6 @@ class FlatMapCheck:
             if parent_node not in current_alias:
                 current_alias[parent_node] = []
             current_alias[parent_node] += [df_missing.loc[idx].Node]
-            print(parent_node, df_missing.loc[idx].Node)
 
         current_alias = [
             {
@@ -444,7 +443,7 @@ class FlatMapCheck:
             for node in v.get('missing_nodes', []):
                 nodes_to_neuron_types[node] = nodes_to_neuron_types.get(node, []) + [k]
 
-        print('This is get missing nodes')
+        print('Organising missing nodes')
         df = pd.DataFrame(columns=['Node', 'Node Name', 'Appear in'])
         for node, k_types in tqdm(nodes_to_neuron_types.items()):
             name = self.__get_node_name(node)
@@ -518,7 +517,7 @@ class FlatMapCheck:
             'missing_segments',
             'rendered_edges'
         ]
-        print('This is organised map log')
+        print('Organising map log')
         for neuron, value in tqdm(self.__map_log.items()):
             info = {}
             for key in keys:
@@ -609,7 +608,7 @@ if __name__ == '__main__':
 # Running:
 # python ./npo_check.py --manifest `manifest file` \
 #                       --artefact-dir `any directory to store generated files` \
-#                       --output-dir 'a directory to save csv file' \
+#                       --output-dir 'a directory to save csv file'
 
 # Options:
 # --manifest `manifest file`
