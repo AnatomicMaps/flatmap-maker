@@ -846,6 +846,7 @@ class Network(object):
 
         # Add directly identified centreline segments to the route, noting path nodes and
         # nerve cuff identifiers
+        no_sub_segment_nodes = []
         for node, node_dict in connectivity_graph.nodes(data=True):
             node_type = node_dict['type']
             if node_type == 'segment':
@@ -867,6 +868,18 @@ class Network(object):
                 else:
                     log.warning(f'{path.id}: Cannot find any sub-segments of centreline for `{node_dict["name"]}`')
                     node_dict['type'] = 'no-segment'
+                    # draw direct line, skip the centerline if sub-segments cannot be find
+                    connectivity_graph.add_edges_from(
+                        [
+                            edge for edge in
+                            itertools.product(connectivity_graph.neighbors(node), connectivity_graph.neighbors(node))
+                            if (edge[0]!=edge[1])
+                        ],
+                        completeness = False,
+                        missing_nodes = [node]
+                    )
+                    no_sub_segment_nodes += [node]
+        connectivity_graph.remove_nodes_from(no_sub_segment_nodes)
 
         # Find centrelines where adjacent connectivity nodes are centreline end nodes
         seen_pairs = set()
