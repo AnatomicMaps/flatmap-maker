@@ -765,20 +765,33 @@ class Network(object):
             if (warning := node_dict.pop('warning', None)) is not None:
                 log.warning(f'{path.id}: {warning}')
 
+        def bypass_missing_node(ms_node):
+            if len(neighbours:=list(connectivity_graph.neighbors(ms_node))) > 1:
+                predecessors, successors = [], []
+                for neighbour in neighbours:
+                    if neighbour == connectivity_graph.edges[(ms_node, neighbour)]['predecessor']:
+                        predecessors += [neighbour]
+                    elif neighbour == connectivity_graph.edges[(ms_node, neighbour)]['successor']:
+                        successors += [neighbour]
+                if len(predecessors) > 0 and len(successors) > 0:
+                    ms_nodes = list(connectivity_graph[ms_node].values())[0].get('missing_nodes', [])
+                    for e in [edge for edge in itertools.product(predecessors,successors) if (edge[0]!=edge[1])]:
+                        ms_nodes = list(set([ms_node] + connectivity_graph.edges[(e[0], ms_node)].get('missing_nodes', []) + \
+                                            connectivity_graph.edges[(ms_node, e[1])].get('missing_nodes', [])))
+                        connectivity_graph.add_edges_from(
+                            [e],
+                            completeness = False,
+                            missing_nodes = ms_nodes,
+                            predecessor = e[0],
+                            successor = e[1],
+                        )
+            connectivity_graph.remove_nodes_from([ms_node])
+
         # In a case of FC map, we need to remove missing nodes
         if settings.get('NPO', False) and self.__flatmap.manifest.kind == 'functional':
-            missing_nodes = set(self.__missing_identifiers) & set(connectivity_graph.nodes)
+            missing_nodes = [c for c in connectivity_graph.nodes if c in self.__missing_identifiers]
             for ms_node in missing_nodes:
-                ms_nodes = list(connectivity_graph[ms_node].values())[0].get('missing_nodes', [])
-                connectivity_graph.add_edges_from(
-                    [
-                        edge for edge in itertools.product(connectivity_graph.neighbors(ms_node), connectivity_graph.neighbors(ms_node))
-                        if (edge[0]!=edge[1])
-                    ],
-                    completeness = False,
-                    missing_nodes = [ms_node] + ms_nodes
-                )
-                connectivity_graph.remove_nodes_from([ms_node])
+                bypass_missing_node(ms_node)
 
         if path.trace:
             for node, node_dict in connectivity_graph.nodes(data=True):
@@ -868,18 +881,11 @@ class Network(object):
                 else:
                     log.warning(f'{path.id}: Cannot find any sub-segments of centreline for `{node_dict["name"]}`')
                     node_dict['type'] = 'no-segment'
-                    # draw direct line, skip the centerline if sub-segments cannot be find
-                    connectivity_graph.add_edges_from(
-                        [
-                            edge for edge in
-                            itertools.product(connectivity_graph.neighbors(node), connectivity_graph.neighbors(node))
-                            if (edge[0]!=edge[1])
-                        ],
-                        completeness = False,
-                        missing_nodes = [node]
-                    )
-                    no_sub_segment_nodes += [node]
-        connectivity_graph.remove_nodes_from(no_sub_segment_nodes)
+                    no_sub_segment_nodes += [node] # store node with undecided sub-segments
+
+        # draw direct line, skip the centerline if sub-segments cannot be find
+        for no_sub_segment_node in no_sub_segment_nodes:
+            bypass_missing_node(no_sub_segment_node)
 
         # Find centrelines where adjacent connectivity nodes are centreline end nodes
         seen_pairs = set()
