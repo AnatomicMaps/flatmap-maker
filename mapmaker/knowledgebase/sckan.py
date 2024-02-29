@@ -25,6 +25,7 @@ from typing import Optional
 #===============================================================================
 
 import networkx as nx
+from networkx import predecessor
 
 #===============================================================================
 
@@ -168,7 +169,7 @@ def connectivity_graph_from_knowledge(knowledge: dict) -> Optional[nx.Graph]:
         for node in knowledge.get('connectivity', []):
             node_0 = kb.AnatomicalNode(node[0])
             node_1 = kb.AnatomicalNode(node[1])
-            G.add_edge(node_0, node_1)
+            G.add_edge(node_0, node_1, predecessor=node_0, successor=node_1)
         return G
 
 #===============================================================================
