@@ -59,5 +59,6 @@ EXPORTED_FEATURE_PROPERTIES = [
     'type',
     'warning',
     'completeness',
-    'missing-nodes'
+    'missing-nodes',
+    'alert',
 ]

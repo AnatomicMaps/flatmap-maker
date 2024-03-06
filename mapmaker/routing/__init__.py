@@ -34,6 +34,8 @@ import itertools
 import math
 import sys
 from typing import TYPE_CHECKING, Any, Optional
+
+from networkx import neighbors, nodes
 from mapmaker.knowledgebase.sckan import PATH_TYPE
 
 from mapmaker.settings import settings
@@ -787,8 +789,8 @@ class Network(object):
                         )
             connectivity_graph.remove_nodes_from([ms_node])
 
-        # In a case of FC map, we need to remove missing nodes
-        if settings.get('NPO', False) and self.__flatmap.manifest.kind == 'functional':
+        # Removing missing nodes (in FC and AC)
+        if settings.get('NPO', False):
             missing_nodes = [c for c in connectivity_graph.nodes if c in self.__missing_identifiers]
             for ms_node in missing_nodes:
                 bypass_missing_node(ms_node)
@@ -1159,6 +1161,8 @@ class Network(object):
         route_graph.graph['traced'] = path.trace
         route_graph.graph['nerve-features'] = set(feature_id for feature_id in path_nerve_ids if self.__map_feature(feature_id) is not None)
         route_graph.graph['node-features'] = set(feature_id for feature_id in path_node_ids if self.__map_feature(feature_id) is not None)
+        if 'alert' in connectivity_graph.graph:
+            route_graph.graph['alert'] = connectivity_graph.graph['alert']
 
         if path.trace:
             log.info(f'{path.id}: Route graph: {route_graph.graph}')
