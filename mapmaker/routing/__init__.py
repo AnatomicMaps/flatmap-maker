@@ -776,7 +776,6 @@ class Network(object):
                     elif neighbour == connectivity_graph.edges[(ms_node, neighbour)]['successor']:
                         successors += [neighbour]
                 if len(predecessors) > 0 and len(successors) > 0:
-                    ms_nodes = list(connectivity_graph[ms_node].values())[0].get('missing_nodes', [])
                     for e in [edge for edge in itertools.product(predecessors,successors) if (edge[0]!=edge[1])]:
                         ms_nodes = list(set([ms_node] + connectivity_graph.edges[(e[0], ms_node)].get('missing_nodes', []) + \
                                             connectivity_graph.edges[(ms_node, e[1])].get('missing_nodes', [])))
@@ -885,9 +884,52 @@ class Network(object):
                     node_dict['type'] = 'no-segment'
                     no_sub_segment_nodes += [node] # store node with undecided sub-segments
 
-        # draw direct line, skip the centerline if sub-segments cannot be find
-        for no_sub_segment_node in no_sub_segment_nodes:
-            bypass_missing_node(no_sub_segment_node)
+        # try to connect node with undecided sub-segments
+        for ms_node in no_sub_segment_nodes:
+            if len(neighbours:=list(connectivity_graph.neighbors(ms_node))) > 1:
+                # get predecessor and successor
+                predecessors, successors = [], []
+                for neighbour in neighbours:
+                    if neighbour == connectivity_graph.edges[(ms_node, neighbour)]['predecessor']:
+                        predecessors += [neighbour]
+                    elif neighbour == connectivity_graph.edges[(ms_node, neighbour)]['successor']:
+                        successors += [neighbour]
+                no_segmen_features = set(connectivity_graph.nodes(data=True)[ms_node].get('subgraph').nodes)
+                unused_predecessors = set()
+                # check predecessor which is the part of the nerve segment
+                for predecessor in predecessors:
+                    neighbour_features = {feature.id for feature in connectivity_graph.nodes(data=True)[predecessor].get('features',[])}
+                    if len(no_segmen_features & neighbour_features) > 0:
+                        for e in [edge for edge in itertools.product([predecessor],successors) if (edge[0]!=edge[1])]:
+                            ms_nodes = list(set([ms_node] + connectivity_graph.edges[(e[0], ms_node)].get('missing_nodes', []) + \
+                                            connectivity_graph.edges[(ms_node, e[1])].get('missing_nodes', [])))
+                            connectivity_graph.add_edges_from(
+                                [e],
+                                completeness = False,
+                                missing_nodes = ms_nodes,
+                                predecessor = e[0],
+                                successor = e[1],
+                            )
+                        connectivity_graph.remove_edge(predecessor, ms_node)
+                    else:
+                        unused_predecessors.add(predecessor)
+                if len(unused_predecessors) == 0 and len(predecessors) > 0:
+                    connectivity_graph.remove_nodes_from([ms_node])
+                    continue
+                # if there are unused predecessors, select one feature in node with unidentified segment
+                # then connect to all unused predecessors and successors
+                segment_graph = connectivity_graph.nodes(data=True)[ms_node].get('subgraph')
+                segments = sorted(list(segment_graph.nodes))
+                selected_ms_node_feature = segments[int(len(segments)/2)]
+                ms_node_dict = connectivity_graph.nodes(data=True)[ms_node]
+                ms_node_dict['type'] = 'feature'
+                ms_node_dict['features'] = {segment_graph.nodes(data=True)[selected_ms_node_feature]['network_node'].map_feature}
+                for e in itertools.product(unused_predecessors,[ms_node]):
+                    connectivity_graph[e[0]][e[1]]['completeness'] = False
+                    connectivity_graph[e[0]][e[1]]['missing_nodes'] = [ms_node]
+                for e in itertools.product([ms_node], successors):
+                    connectivity_graph[e[0]][e[1]]['completeness'] = False
+                    connectivity_graph[e[0]][e[1]]['missing_nodes'] = [ms_node]
 
         # Find centrelines where adjacent connectivity nodes are centreline end nodes
         seen_pairs = set()
@@ -1008,7 +1050,7 @@ class Network(object):
         terminal_graphs: dict[tuple, nx.Graph] = {}
         visited = set()
         for node, node_dict in connectivity_graph.nodes(data=True):
-            if node not in visited and connectivity_graph.degree(node) == 1:
+            if node not in visited : #and connectivity_graph.degree(node) == 1: # sparc-nlp/mmset4/7 and sparc-nlp/mmset4/8 have no-path with one degree
                 if node_dict['type'] == 'feature':
                     # First check node isn't already the end of a centreline
                     if len(node_dict['used']) == 0:
@@ -1042,12 +1084,14 @@ class Network(object):
                                 neighbour_dict = connectivity_graph.nodes[neighbour]
                                 degree = connectivity_graph.degree(neighbour)
                                 node_feature_centre = node_feature.geometry.centroid
+                                if (debug_properties:=connectivity_graph.get_edge_data(node, neighbour)) is None:
+                                    debug_properties = {}
                                 if neighbour_dict['type'] == 'feature':
                                     terminal_graph.add_node(node_feature.id, feature=node_feature)
                                     if len(used_ids := neighbour_dict.get('used', set())):
                                         closest_feature_id = self.__closest_feature_id_to_point(node_feature_centre, used_ids)
                                         terminal_graph.add_edge(node_feature.id, closest_feature_id,
-                                            upstream=True)
+                                            upstream=True, **debug_properties)
                                         segments = set()
                                         for connected_edges in route_graph[closest_feature_id].values():
                                             for edge_dict in connected_edges.values():
@@ -1056,8 +1100,6 @@ class Network(object):
                                         terminal_graph.nodes[closest_feature_id]['upstream'] = True
                                         terminal_graph.nodes[closest_feature_id]['segments'] = segments
                                     else:
-                                        if (debug_properties:=connectivity_graph.get_edge_data(node, neighbour_dict.get('node'))) is None:
-                                            debug_properties = {}
                                         neighbour_feature = get_node_feature(neighbour_dict)
                                         terminal_graph.add_node(neighbour_feature.id, feature=neighbour_feature)
                                         terminal_graph.add_edge(node_feature.id, neighbour_feature.id, **debug_properties)
@@ -1074,7 +1116,7 @@ class Network(object):
                                             closest_distance = distance
                                             last_segment = segment_id
                                     if closest_feature_id is not None:
-                                        terminal_graph.add_edge(node_feature.id, closest_feature_id, upstream=True)
+                                        terminal_graph.add_edge(node_feature.id, closest_feature_id, upstream=True, **debug_properties)
                                         terminal_graph.nodes[node_feature.id]['feature'] = node_feature
                                         terminal_graph.nodes[closest_feature_id]['upstream'] = True
                                         terminal_graph.nodes[closest_feature_id]['segments'] = set([last_segment])
