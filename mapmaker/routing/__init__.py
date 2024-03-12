@@ -41,6 +41,9 @@ from mapmaker.knowledgebase.sckan import PATH_TYPE
 from mapmaker.settings import settings
 from mapmaker.knowledgebase.celldl import FC_CLASS, FC_KIND
 
+from shapely.geometry.point import Point
+from statistics import mean
+
 
 #===============================================================================
 
@@ -885,6 +888,21 @@ class Network(object):
                     no_sub_segment_nodes += [node] # store node with undecided sub-segments
 
         # try to connect node with undecided sub-segments
+        def get_missing_node_center(predecessors, successors):
+            def get_center(ps_nodes):
+                ps_points = []
+                for ps_node in ps_nodes:
+                    ps_points += [f.geometry.centroid for f in connectivity_graph.nodes(data=True)[ps_node].get('features', [])]
+                if len(ps_points) > 0:
+                    return Point(mean([point.x for point in ps_points]), mean([point.y for point in ps_points]))
+                return None
+
+            p_center = get_center(predecessors)
+            s_center = get_center(successors)
+            if s_center is not None:
+                return Point(mean([p_center.x, p_center.x]), mean([s_center.y, s_center.y]))
+            return p_center
+
         for ms_node in no_sub_segment_nodes:
             if len(neighbours:=list(connectivity_graph.neighbors(ms_node))) > 1:
                 # get predecessor and successor
@@ -894,12 +912,12 @@ class Network(object):
                         predecessors += [neighbour]
                     elif neighbour == connectivity_graph.edges[(ms_node, neighbour)]['successor']:
                         successors += [neighbour]
-                no_segmen_features = set(connectivity_graph.nodes(data=True)[ms_node].get('subgraph').nodes)
+                no_segmen_features = connectivity_graph.nodes(data=True)[ms_node].get('subgraph').nodes
                 unused_predecessors = set()
                 # check predecessor which is the part of the nerve segment
                 for predecessor in predecessors:
                     neighbour_features = {feature.id for feature in connectivity_graph.nodes(data=True)[predecessor].get('features',[])}
-                    if len(no_segmen_features & neighbour_features) > 0:
+                    if len(set(no_segmen_features) & neighbour_features) > 0:
                         for e in [edge for edge in itertools.product([predecessor],successors) if (edge[0]!=edge[1])]:
                             ms_nodes = list(set([ms_node] + connectivity_graph.edges[(e[0], ms_node)].get('missing_nodes', []) + \
                                             connectivity_graph.edges[(ms_node, e[1])].get('missing_nodes', [])))
@@ -918,12 +936,11 @@ class Network(object):
                     continue
                 # if there are unused predecessors, select one feature in node with unidentified segment
                 # then connect to all unused predecessors and successors
-                segment_graph = connectivity_graph.nodes(data=True)[ms_node].get('subgraph')
-                segments = sorted(list(segment_graph.nodes))
-                selected_ms_node_feature = segments[int(len(segments)/2)]
+                nodes_center = get_missing_node_center(unused_predecessors, successors)
+                selected_ms_node_feature = self.__closest_feature_id_to_point(nodes_center, no_segmen_features)
                 ms_node_dict = connectivity_graph.nodes(data=True)[ms_node]
                 ms_node_dict['type'] = 'feature'
-                ms_node_dict['features'] = {segment_graph.nodes(data=True)[selected_ms_node_feature]['network_node'].map_feature}
+                ms_node_dict['features'] = {no_segmen_features(data=True)[selected_ms_node_feature]['network_node'].map_feature}
                 for e in itertools.product(unused_predecessors,[ms_node]):
                     connectivity_graph[e[0]][e[1]]['completeness'] = False
                     connectivity_graph[e[0]][e[1]]['missing_nodes'] = [ms_node]
