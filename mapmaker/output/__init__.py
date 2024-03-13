@@ -61,4 +61,5 @@ EXPORTED_FEATURE_PROPERTIES = [
     'completeness',
     'missing-nodes',
     'alert',
+    'biological-sex',
 ]

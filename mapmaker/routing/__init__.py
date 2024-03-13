@@ -1222,6 +1222,8 @@ class Network(object):
         route_graph.graph['node-features'] = set(feature_id for feature_id in path_node_ids if self.__map_feature(feature_id) is not None)
         if 'alert' in connectivity_graph.graph:
             route_graph.graph['alert'] = connectivity_graph.graph['alert']
+        if 'biological-sex' in connectivity_graph.graph:
+            route_graph.graph['biological-sex'] = connectivity_graph.graph['biological-sex']
 
         if path.trace:
             log.info(f'{path.id}: Route graph: {route_graph.graph}')

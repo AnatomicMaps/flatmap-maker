@@ -377,6 +377,8 @@ class RoutedPath(object):
                 added_properties['missing-nodes'] = missing_nodes
             if (alert:=self.__graph.graph.get('alert')) is not None:
                 added_properties['alert'] = alert
+            if (biological_sex:=self.__graph.graph.get('biological-sex')) is not None:
+                added_properties['biological-sex'] = biological_sex
             if ((edge_type := edge_dict.get('type')) == 'terminal'
              or (edge_type == 'upstream'
               and 'upstream' not in [self.__graph.nodes[node_0].get('type'),

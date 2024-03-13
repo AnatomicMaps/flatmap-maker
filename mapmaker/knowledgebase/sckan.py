@@ -172,6 +172,8 @@ def connectivity_graph_from_knowledge(knowledge: dict) -> Optional[nx.Graph]:
             G.add_edge(node_0, node_1, predecessor=node_0, successor=node_1)
         if (alert:=knowledge.get('alert')) is not None:
             G.graph['alert'] = alert
+        if (sex:=knowledge.get('biologicalSex')) is not None:
+            G.graph['biological-sex'] = sex
         return G
 
 #===============================================================================
