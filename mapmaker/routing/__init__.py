@@ -35,15 +35,10 @@ import math
 import sys
 from typing import TYPE_CHECKING, Any, Optional
 
-from networkx import neighbors, nodes
 from mapmaker.knowledgebase.sckan import PATH_TYPE
 
 from mapmaker.settings import settings
 from mapmaker.knowledgebase.celldl import FC_CLASS, FC_KIND
-
-from shapely.geometry.point import Point
-from statistics import mean
-
 
 #===============================================================================
 
@@ -888,20 +883,22 @@ class Network(object):
                     no_sub_segment_nodes += [node] # store node with undecided sub-segments
 
         # try to connect node with undecided sub-segments
-        def get_missing_node_center(predecessors, successors):
+        def get_missing_node_center(predecessors, successors, no_segmen_features):
             def get_center(ps_nodes):
-                ps_points = []
+                candidate_features = []
                 for ps_node in ps_nodes:
-                    ps_points += [f.geometry.centroid for f in connectivity_graph.nodes(data=True)[ps_node].get('features', [])]
-                if len(ps_points) > 0:
-                    return Point(mean([point.x for point in ps_points]), mean([point.y for point in ps_points]))
-                return None
+                    data_dict = connectivity_graph.nodes(data=True)[ps_node]
+                    if data_dict['type'] == 'feature':
+                        candidate_features += [self.__closest_feature_id_to_point(f.geometry.centroid, no_segmen_features)
+                                      for f in data_dict.get('features', [])]
+                    elif (key_points:=data_dict.get('subgraph')) is not None:
+                        for key_point, key_point_data_dict in key_points.nodes(data=True):
+                            candidate_features += [self.__closest_feature_id_to_point(f.geometry.centroid, no_segmen_features)
+                                      for f in key_point_data_dict.get('features', [])]
+                return candidate_features
+            candidate_features = get_center(predecessors) + get_center(successors)
+            return max(candidate_features, key=candidate_features.count)
 
-            p_center = get_center(predecessors)
-            s_center = get_center(successors)
-            if s_center is not None:
-                return Point(mean([p_center.x, p_center.x]), mean([s_center.y, s_center.y]))
-            return p_center
 
         for ms_node in no_sub_segment_nodes:
             if len(neighbours:=list(connectivity_graph.neighbors(ms_node))) > 1:
@@ -934,10 +931,7 @@ class Network(object):
                 if len(unused_predecessors) == 0 and len(predecessors) > 0:
                     connectivity_graph.remove_nodes_from([ms_node])
                     continue
-                # if there are unused predecessors, select one feature in node with unidentified segment
-                # then connect to all unused predecessors and successors
-                nodes_center = get_missing_node_center(unused_predecessors, successors)
-                selected_ms_node_feature = self.__closest_feature_id_to_point(nodes_center, no_segmen_features)
+                selected_ms_node_feature= get_missing_node_center(unused_predecessors, successors, no_segmen_features)
                 ms_node_dict = connectivity_graph.nodes(data=True)[ms_node]
                 ms_node_dict['type'] = 'feature'
                 ms_node_dict['features'] = {no_segmen_features(data=True)[selected_ms_node_feature]['network_node'].map_feature}
@@ -1059,7 +1053,8 @@ class Network(object):
         def get_node_feature(node_dict) -> Feature:
             if len(node_dict['features']) > 1:
                 log.error(f'{path.id}: Terminal node {node_dict["name"]} has multiple features {sorted(set(f.id for f in node_dict["features"]))}')
-            selected_feature = list(f for f in node_dict['features'])[0]
+            (features:=list(f for f in node_dict['features'])).sort(key=lambda f: f.id)
+            selected_feature = features[0]
             if settings.get('NPO', False):
                 return get_ftu_node(selected_feature)
             return selected_feature
