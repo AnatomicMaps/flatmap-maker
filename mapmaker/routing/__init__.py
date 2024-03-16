@@ -1062,7 +1062,7 @@ class Network(object):
         terminal_graphs: dict[tuple, nx.Graph] = {}
         visited = set()
         for node, node_dict in connectivity_graph.nodes(data=True):
-            if node not in visited : #and connectivity_graph.degree(node) == 1: # sparc-nlp/mmset4/7 and sparc-nlp/mmset4/8 have no-path with one degree
+            if node not in visited and connectivity_graph.degree(node) == 1:
                 if node_dict['type'] == 'feature':
                     # First check node isn't already the end of a centreline
                     if len(node_dict['used']) == 0:
