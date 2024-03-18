@@ -656,6 +656,7 @@ class Pathways:
                         'layout': 'auto',
                         'sckan': True,          #   Auto layout connectivity originates in SCKAN
                         'tile-layer': PATHWAYS_TILE_LAYER,
+                        'completeness': True,   #   Auto layout path completeness
                     }
                     properties.update(geometric_shape.properties)
                     if properties.get('type') in ['arrow', 'junction']:

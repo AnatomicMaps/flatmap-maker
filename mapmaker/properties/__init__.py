@@ -96,8 +96,11 @@ class PropertiesStore(object):
                     seen_npo = True
                     settings['NPO'] = True
                     for connectivity_path in knowledgebase.npo_connectivity_paths().keys():
-                        self.__pathways.add_connectivity_path(connectivity_path,
-                            self, path_filter=path_filter, traced_paths=traced_paths)
+                        phenotype_sex = knowledgebase.get_knowledge(connectivity_path).get('biologicalSex')
+                        if manifest.biological_sex is None or phenotype_sex is None or (manifest.biological_sex == phenotype_sex):
+                            self.__pathways.add_connectivity_path(connectivity_path,
+                                self, path_filter=path_filter, traced_paths=traced_paths)
+
         # Load network centreline definitions
         self.__networks = { network.get('id'): Network(flatmap, network, self)
                                 for network in properties_dict.get('networks', []) }

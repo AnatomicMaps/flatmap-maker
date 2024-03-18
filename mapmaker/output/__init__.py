@@ -58,4 +58,8 @@ EXPORTED_FEATURE_PROPERTIES = [
     'tile-layer',
     'type',
     'warning',
+    'completeness',
+    'missing-nodes',
+    'alert',
+    'biological-sex',
 ]

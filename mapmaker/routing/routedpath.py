@@ -303,7 +303,7 @@ class RoutedPath(object):
             properties = {
                 'nerve': edge_dict.get('nerve'),
                 'path-id': path_id,
-                'source': path_source
+                'source': path_source,
             }
             path_components = edge_dict.get('path-components')
             if path_components is None:
@@ -372,6 +372,13 @@ class RoutedPath(object):
         for node_0, node_1, edge_dict in self.__graph.edges(data=True):    ## This assumes node_1 is the terminal...
             path_id = edge_dict.get('path-id')
             path_source = edge_dict.get('source')
+            added_properties = {'completeness': edge_dict.get('completeness', True)}
+            if (missing_nodes:=edge_dict.get('missing_nodes')) is not None:
+                added_properties['missing-nodes'] = missing_nodes
+            if (alert:=self.__graph.graph.get('alert')) is not None:
+                added_properties['alert'] = alert
+            if (biological_sex:=self.__graph.graph.get('biological-sex')) is not None:
+                added_properties['biological-sex'] = biological_sex
             if ((edge_type := edge_dict.get('type')) == 'terminal'
              or (edge_type == 'upstream'
               and 'upstream' not in [self.__graph.nodes[node_0].get('type'),
@@ -382,8 +389,8 @@ class RoutedPath(object):
                 end_coords = self.__graph.nodes[node_1]['geometry'].centroid.coords[0]
                 path_geometry[path_id].append(GeometricShape.line(start_coords, end_coords, properties={
                     'path-id': path_id,
-                    'source': path_source
-                }))
+                    'source': path_source,
+                } | added_properties))
                 if self.__graph.degree(node_0) == 1:
                     draw_arrow(coords_to_point(end_coords), coords_to_point(start_coords),
                                path_id, path_source)
@@ -414,8 +421,8 @@ class RoutedPath(object):
                     path_geometry[path_id].append(GeometricShape(
                         bezier_to_linestring(bz), {
                             'path-id': path_id,
-                            'source': path_source
-                        }))
+                            'source': path_source,
+                        } | added_properties))
                     if self.__trace:
                         path_geometry[path_id].extend(bezier_control_points(bz, label=f'{self.__path_id}-T'))
                     # Draw arrow iff degree(node_1) == 1
@@ -424,15 +431,15 @@ class RoutedPath(object):
                             'type': 'arrow',
                             'path-id': path_id,
                             'source': path_source
-                        }))
+                        } | added_properties))
                 else:
                     # This is when the upstream node doesn't have an ongoing centreline
                     start_coords = self.__graph.nodes[upstream_node]['geometry'].centroid.coords[0]
                     end_coords = self.__graph.nodes[terminal_node]['geometry'].centroid.coords[0]
                     path_geometry[path_id].append(GeometricShape.line(start_coords, end_coords, properties={
                         'path-id': path_id,
-                        'source': path_source
-                    }))
+                        'source': path_source,
+                    } | added_properties))
                     if self.__graph.degree(upstream_node) == 1:
                         draw_arrow(coords_to_point(end_coords), coords_to_point(start_coords),
                                    path_id, path_source)
