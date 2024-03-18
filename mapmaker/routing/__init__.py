@@ -34,11 +34,6 @@ import itertools
 import math
 import sys
 from typing import TYPE_CHECKING, Any, Optional
-from mapmaker.knowledgebase.sckan import PATH_TYPE
-
-from mapmaker.settings import settings
-from mapmaker.knowledgebase.celldl import FC_CLASS, FC_KIND
-
 
 #===============================================================================
 
@@ -71,8 +66,13 @@ from mapmaker.geometry.beziers import bezier_to_linestring, closest_time_distanc
 from mapmaker.geometry.beziers import coords_to_point
 from mapmaker.geometry.beziers import split_bezier_path_at_point
 from mapmaker.knowledgebase import AnatomicalNode
+from mapmaker.knowledgebase.celldl import FC_CLASS, FC_KIND
+from mapmaker.knowledgebase.sckan import PATH_TYPE
+from mapmaker.settings import settings
 from mapmaker.utils import log
 import mapmaker.utils.graph as graph_utils
+
+#===============================================================================
 
 from .options import MIN_EDGE_JOIN_RADIUS
 from .routedpath import IntermediateNode, PathRouter, RoutedPath
