@@ -224,7 +224,7 @@ class PropertiesStore(object):
                      label += '\n' + feature_properties.get('name', '')
                 feature_properties['label'] = label
             if (taxon := knowledge.get('taxon')) is not None:
-                feature_properties['taxons'] = [taxon]
+                feature_properties['taxons'] = taxon if isinstance(taxon, list) else [taxon]
         elif 'label' not in feature_properties and 'name' in feature_properties:
             feature_properties['label'] = feature_properties['name']
             name_used = True
