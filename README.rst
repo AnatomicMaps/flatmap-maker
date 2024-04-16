@@ -7,7 +7,7 @@ Mapmaker
 Overview
 --------
 
-Mapmaker is a Python application for generating `Mapbox <https://www.mapbox.com/>`_ compatible tilesets from
+Mapmaker is a Python application for generating `MapLibre <https://maplibre.org>`_ compatible tilesets from
 a range of sources, currently Powerpoint slides, SVG diagrams, and segmented image files from MBF Biosciences.
 
 Documentation
