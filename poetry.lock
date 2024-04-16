@@ -273,20 +273,20 @@ typing = ["typing-extensions (>=4.8)"]
 
 [[package]]
 name = "flatmapknowledge"
-version = "1.6.6"
+version = "1.6.8"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "flatmapknowledge-1.6.6-py3-none-any.whl", hash = "sha256:c9733c230a1daa9086cf08ae6c2b27736104992508606ff27b54b4f21be10be5"},
+    {file = "flatmapknowledge-1.6.8-py3-none-any.whl", hash = "sha256:49de41ab10b18892da21e79e6990e52096d94338f6fddd43a7ac06807b1f8d84"},
 ]
 
 [package.dependencies]
-mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.6/mapknowledge-0.16.6-py3-none-any.whl"}
+mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.8/mapknowledge-0.16.8-py3-none-any.whl"}
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.6.6/flatmapknowledge-1.6.6-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.6.8/flatmapknowledge-1.6.8-py3-none-any.whl"
 
 [[package]]
 name = "fsspec"
@@ -574,12 +574,12 @@ source = ["Cython (==0.29.37)"]
 
 [[package]]
 name = "mapknowledge"
-version = "0.16.6"
+version = "0.16.8"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "mapknowledge-0.16.6-py3-none-any.whl", hash = "sha256:848d37378d6991fbc978db9ac8a5afe5189b25f3db0273d006187df2a8b33ab6"},
+    {file = "mapknowledge-0.16.8-py3-none-any.whl", hash = "sha256:72a9aa80714e9d4dd643186c5ab66aff197986c4cf6d8b1681681de0b6c15611"},
 ]
 
 [package.dependencies]
@@ -590,7 +590,7 @@ sparqlwrapper = ">=2.0.0,<3.0.0"
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.6/mapknowledge-0.16.6-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.8/mapknowledge-0.16.8-py3-none-any.whl"
 
 [[package]]
 name = "markupsafe"
