@@ -35,7 +35,7 @@ from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import normalised_coords
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
-from mapmaker.knowledgebase import AnatomicalNode, get_knowledge, sckan_build
+from mapmaker.knowledgebase import AnatomicalNode, get_knowledge
 from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
 from mapmaker.properties import ConnectionSet, PropertiesStore
 from mapmaker.settings import settings
@@ -63,7 +63,7 @@ class FlatMap(object):
         self.__annotations = {}
         self.__annotator = annotator
         self.__connection_set = ConnectionSet('connections')
-        self.__sckan_version = maker.sckan_version
+        self.__sckan_provenance = maker.sckan_provenance
         self.__sckan_neuron_populations = SckanNeuronPopulations(self)
 
     def __len__(self):
@@ -157,8 +157,8 @@ class FlatMap(object):
             'source': self.__manifest.url,
             'version': FLATMAP_VERSION
         }
-        if self.__sckan_version is not None:
-            self.__metadata['sckan'] = self.__sckan_version
+        if len(self.__sckan_provenance):
+            self.__metadata['connectivity'] = self.__sckan_provenance
         if self.__uuid is not None:
             self.__metadata['uuid'] = self.__uuid
         if self.__models is not None:

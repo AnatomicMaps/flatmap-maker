@@ -159,21 +159,18 @@ class MapMaker(object):
                                          log_build=True)
         settings['KNOWLEDGE_STORE'] = knowledge_store
 
-        if (sckan_build := knowledgebase.sckan_build()) is not None:
-            self.__sckan_version = sckan_build['created']
-        else:
-            self.__sckan_version = None
+        self.__sckan_provenance = knowledgebase.sckan_provenance()
 
         # Our ``uuid`` depends on the source Git repository commit,
         # the contents of the map's manifest, mapmaker's version,
         # and the version of SCKAN we use for connectivity.
-        if (self.__sckan_version is not None
+        if ('sckan' in self.__sckan_provenance
         and (repo := self.__manifest.git_repository) is not None):
             self.__uuid = str(uuid.uuid5(uuid.NAMESPACE_URL,
                               repo.sha
                             + json.dumps(self.__manifest.manifest)
                             + __version__
-                            + self.__sckan_version))
+                            + self.__sckan_provenance['sckan']['date']))
         else:
             self.__uuid = None
 
@@ -213,8 +210,8 @@ class MapMaker(object):
         return self.__map_dir
 
     @property
-    def sckan_version(self):
-        return self.__sckan_version
+    def sckan_provenance(self):
+        return self.__sckan_provenance
 
     @property
     def uuid(self):
@@ -512,8 +509,8 @@ class MapMaker(object):
             map_index['style'] = 'anatomical'
         if git_status is not None:
             map_index['git-status'] = git_status
-        if self.__sckan_version is not None:
-            map_index['sckan'] = self.__sckan_version
+        if len(self.__sckan_provenance):
+            map_index['connectivity'] = self.__sckan_provenance
 
         # Create `index.json` for building a map in the viewer
         with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:

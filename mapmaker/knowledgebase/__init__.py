@@ -67,9 +67,8 @@ def get_knowledge(entity: str) -> dict[str, Any]:
 def npo_connectivity_paths() -> dict[str, dict[str, str]]:
     return settings['KNOWLEDGE_STORE'].npo.connectivity_paths()
 
-def sckan_build() -> Optional[dict]:
-    if (scicrunch := settings['KNOWLEDGE_STORE'].scicrunch) is not None:
-        return scicrunch.build()
+def sckan_provenance() -> dict:
+    return settings['KNOWLEDGE_STORE'].sckan_provenance
 
 #===============================================================================
 
