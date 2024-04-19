@@ -273,20 +273,20 @@ typing = ["typing-extensions (>=4.8)"]
 
 [[package]]
 name = "flatmapknowledge"
-version = "1.6.4.2"
+version = "1.6.4.3"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "flatmapknowledge-1.6.4.2-py3-none-any.whl", hash = "sha256:3ec5c33d5ebac6dadc46f60ed61a1078b702870f10e934f86e694cf5a54537da"},
+    {file = "flatmapknowledge-1.6.4.3-py3-none-any.whl", hash = "sha256:6c73cb2c3e3dc35eb96af5b581dddf8e670601dc4face14fad307f5dfa9eb913"},
 ]
 
 [package.dependencies]
-mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.4.2/mapknowledge-0.16.4.2-py3-none-any.whl"}
+mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.4.3/mapknowledge-0.16.4.3-py3-none-any.whl"}
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.6.4.2/flatmapknowledge-1.6.4.2-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.6.4.3/flatmapknowledge-1.6.4.3-py3-none-any.whl"
 
 [[package]]
 name = "fsspec"
@@ -574,12 +574,12 @@ source = ["Cython (==0.29.37)"]
 
 [[package]]
 name = "mapknowledge"
-version = "0.16.4.2"
+version = "0.16.4.3"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "mapknowledge-0.16.4.2-py3-none-any.whl", hash = "sha256:565e0eb8c183a6f39d44673d7017032dc308333eb36928488565756c0be7aee6"},
+    {file = "mapknowledge-0.16.4.3-py3-none-any.whl", hash = "sha256:a0f6f8f78bbc77f91da8b01abe700c7834cbfe92edb7596dd313c2045bc51fff"},
 ]
 
 [package.dependencies]
@@ -590,7 +590,7 @@ sparqlwrapper = ">=2.0.0,<3.0.0"
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.4.2/mapknowledge-0.16.4.2-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.4.3/mapknowledge-0.16.4.3-py3-none-any.whl"
 
 [[package]]
 name = "markupsafe"
@@ -2691,4 +2691,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "934c3ae96a09b9f5e76ffc80aa9b38d0be5a9ea03f2b0eb8266c32115c6fb951"
+content-hash = "5533de001714d91793889a6efeae72848cd4caa0fe111574246c4c1e92fce7ed"
