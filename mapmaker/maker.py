@@ -152,11 +152,21 @@ class MapMaker(object):
 
         # Our source of knowledge, updated with information about maps we've made, held in a global place
         sckan_version = settings.get('sckanVersion', self.__manifest.sckan_version)
-        knowledge_store = knowledgebase.KnowledgeStore(map_base,
-                                         clean_connectivity=settings.get('cleanConnectivity', False),
-                                         sckan_version=sckan_version,
-                                         npo=True,
-                                         log_build=True)
+        if sckan_version in ['production', 'staging']:
+            knowledge_store = knowledgebase.KnowledgeStore(map_base,
+                                            clean_connectivity=settings.get('cleanConnectivity', False),
+                                            sckan_version=sckan_version,
+                                            npo=True,
+                                            log_build=True,
+                                            )
+        else:
+            knowledge_store = knowledgebase.KnowledgeStore(map_base,
+                                            clean_connectivity=settings.get('cleanConnectivity', False),
+                                            npo=True,
+                                            log_build=True,
+                                            scicrunch_api=None,
+                                            npo_release=sckan_version
+                                            )
         settings['KNOWLEDGE_STORE'] = knowledge_store
 
         self.__sckan_provenance = knowledgebase.sckan_provenance()
@@ -173,6 +183,10 @@ class MapMaker(object):
                             + json.dumps(self.__sckan_provenance, sort_keys=True)))
         else:
             self.__uuid = None
+
+        # Checking sckan-version
+        if sckan_version not in ['production', 'staging', self.__sckan_provenance.get('npo', {}).get('release', '')]:
+            raise ValueError("'sckan-version' in manifest must be `production', 'staging', or any valid tag release")
 
         # Where the generated map is saved
         self.__map_dir = os.path.join(map_base, self.__uuid if self.__uuid is not None else self.__id)
