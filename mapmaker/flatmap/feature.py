@@ -118,13 +118,11 @@ class FeatureAnatomicalNodeMap:
         def features_from_anatomical_id(term: str) -> set[Feature]:
             return set(self.__model_to_features.get(self.__anatomical_aliases.get(term, term), []))
 
+        if anatomical_node in self.__anatomical_aliases:
+            anatomical_node = AnatomicalNode(self.__anatomical_aliases[anatomical_node])
+
         anatomical_id = anatomical_node[0]
-        if len(features:=features_from_anatomical_id(anatomical_id)) == 0:
-            # check availability of anatomical_node as an alias, if no features found
-            if anatomical_node in self.__anatomical_aliases:
-                anatomical_node = AnatomicalNode(self.__anatomical_aliases[anatomical_node])
-                anatomical_id = anatomical_node[0]
-                features = features_from_anatomical_id(anatomical_id)
+        features = features_from_anatomical_id(anatomical_id)
         layers = list(anatomical_node[1])
         if len(layers) == 0:
             return (anatomical_node, features)
