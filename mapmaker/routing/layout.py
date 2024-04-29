@@ -196,7 +196,8 @@ class TransitMap:
     def solve(self, tee=False):
     #==========================
         # Solve the model using CBC
-        SolverFactory('cbc').solve(self.__model, tee=tee)
+        options = {'sec': 600, 'threads': 10, 'ratio': 0.02}
+        SolverFactory('cbc').solve(self.__model, options = options, tee=tee)
 
     def results(self):
     #=================
