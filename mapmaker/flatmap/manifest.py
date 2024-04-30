@@ -19,6 +19,7 @@
 #===============================================================================
 
 from collections import namedtuple
+from copy import deepcopy
 from datetime import datetime
 from enum import Enum
 import os
@@ -161,11 +162,14 @@ class Manifest:
                     }
                 ]
             }
+            self.__raw_manifest = deepcopy(self.__manifest)
         else:
             # Check the manifest itself is committed into the repository
             self.__check_committed(self.__url, 'Flatmap source manifest')
 
             self.__manifest = self.__path.get_json()
+            self.__raw_manifest = deepcopy(self.__manifest)
+
             if id is not None:
                 if ignore_git:
                     self.__manifest['id'] = id
@@ -252,8 +256,8 @@ class Manifest:
         return self.__manifest.get('kind', 'anatomical')
 
     @property
-    def manifest(self):
-        return self.__manifest
+    def raw_manifest(self):
+        return self.__raw_manifest
 
     @property
     def models(self):

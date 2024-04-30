@@ -176,11 +176,11 @@ class MapMaker(object):
         # and the version of SCKAN we use for connectivity.
         if (len(self.__sckan_provenance)
         and (repo := self.__manifest.git_repository) is not None):
-            self.__uuid = str(uuid.uuid5(uuid.NAMESPACE_URL,
-                              repo.sha
-                            + json.dumps(self.__manifest.manifest, sort_keys=True)
-                            + __version__
-                            + json.dumps(self.__sckan_provenance, sort_keys=True)))
+            uuid_source = (repo.sha
+                        + json.dumps(self.__manifest.raw_manifest, sort_keys=True)
+                        + __version__
+                        + json.dumps(self.__sckan_provenance, sort_keys=True))
+            self.__uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, uuid_source))
         else:
             self.__uuid = None
 
