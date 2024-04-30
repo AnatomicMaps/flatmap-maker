@@ -85,12 +85,16 @@ def arg_parser():
                         help='Minimum zoom level (defaults to 2)')
 
     misc_options = parser.add_argument_group('Miscellaneous')
+    misc_options.add_argument('--commit', metavar='GIT_COMMIT',
+                        help='The branch/tag/commit to use when the source is a Git repository')
     misc_options.add_argument('--export-identifiers', dest='exportIdentifiers', metavar='EXPORT_FILE',
                         help='Export identifiers and anatomical terms of features as JSON')
     misc_options.add_argument('--export-neurons', dest='exportNeurons', metavar='EXPORT_FILE',
                         help='Export details of functional connectivity neurons as JSON')
     misc_options.add_argument('--export-svg', dest='exportSVG', metavar='EXPORT_FILE',
                         help='Export Powerpoint sources as SVG')
+    misc_options.add_argument('--manifest', metavar='MANIFEST_PATH',
+                        help='The relative path of the manifest when the source is a Git repository')
     misc_options.add_argument('--single-file', dest='singleFile', choices=['celldl', 'svg'],
                         help='Source is a single file of the designated type, not a flatmap manifest')
 
@@ -98,7 +102,9 @@ def arg_parser():
     required.add_argument('--output', required=True,
                         help='Base directory for generated flatmaps')
     required.add_argument('--source', required=True,
-                        help='URL or path of a flatmap manifest')
+                        help='''Path of a flatmap manifest or the URL of a Git repository
+ containing a manifest. The `--manifest` option is required if the source is a Git repository''')
+
     return parser
 
 #===============================================================================

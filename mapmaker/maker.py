@@ -129,9 +129,12 @@ class MapMaker(object):
 
         # Check we have been given a map source and get our manifest
         if 'source' in options:
-            self.__manifest = Manifest(options['source'], single_file=options.get('singleFile'), id=options.get('id'),
+            self.__manifest = Manifest(options['source'], single_file=options.get('singleFile'),
+                                                          id=options.get('id'),
                                                           ignore_git=settings.get('authoring', False)
-                                                                  or settings.get('ignoreGit', False))
+                                                                  or settings.get('ignoreGit', False),
+                                                          manifest=options.get('manifest'),
+                                                          commit=options.get('commit'))
         else:
             raise ValueError('No source manifest specified')
         self.__id = self.__manifest.id
@@ -317,6 +320,9 @@ class MapMaker(object):
                 print(filename)
             else:
                 os.remove(filename)
+
+        # Remove any temporary directory created for the map's sources
+        self.__manifest.clean_up()
 
     def __process_sources(self):
     #===========================

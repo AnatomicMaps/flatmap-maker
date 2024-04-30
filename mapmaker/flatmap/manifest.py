@@ -24,6 +24,8 @@ from datetime import datetime
 from enum import Enum
 import os
 import pathlib
+import shutil
+import tempfile
 from typing import Optional
 from urllib.parse import urljoin
 
@@ -57,9 +59,12 @@ ManifestFile = namedtuple('ManifestFile', ['path', 'description'])
 #===============================================================================
 
 class MapRepository:
-    def __init__(self, working_dir: pathlib.Path):
+    def __init__(self, working_dir: pathlib.Path, repo: Optional[git.Repo]=None):
         try:
-            self.__repo = git.Repo(working_dir, search_parent_directories=True)     # type:ignore
+            if repo is None:
+                self.__repo = git.Repo(working_dir, search_parent_directories=True) # type:ignore
+            else:
+                self.__repo = repo
             self.__repo_path = pathlib.Path(self.__repo.working_dir).absolute()     # type:ignore
             self.__changed_items = [ item.a_path for item in self.__repo.index.diff(None) ]
             self.__staged_items = [ item.a_path for item in self.__repo.index.diff('HEAD') ]
@@ -132,14 +137,26 @@ class MapRepository:
 #===============================================================================
 
 class Manifest:
-    def __init__(self, manifest_path, single_file=None, id=None, ignore_git=False):
-        self.__path = FilePath(manifest_path)
+    def __init__(self, manifest_path, single_file=None, id=None, ignore_git=False, manifest:Optional[str]=None, commit=None):
+        self.__temp_directory = None
         if single_file is not None:
             ignore_git = True
         if ignore_git:
             self.__repo = None
+        elif ((manifest_path.startswith('http:') or manifest_path.startswith('https:'))
+          and manifest is not None):
+            #temp_directory = tempfile.TemporaryDirectory()  ## This results in ``Reference at 'HEAD' does not exist``
+            #working_directory = temp_directory.name         ##
+            self.__temp_directory = tempfile.mkdtemp()       ## But not auto deleted...
+            working_directory = self.__temp_directory
+            repo = git.Repo.clone_from(manifest_path, working_directory)
+            if commit is not None:
+                repo.git.checkout(commit)
+            manifest_path = os.path.join(working_directory, manifest)   # type:ignore
+            self.__repo = MapRepository(pathlib.Path(working_directory), repo)
         else:
             self.__repo = MapRepository(pathlib.Path(manifest_path).parent)
+        self.__path = FilePath(manifest_path)
         self.__ignore_git = ignore_git
         self.__url = self.__path.url
         self.__connections = {}
@@ -285,6 +302,11 @@ class Manifest:
         and (blob_url := self.__repo.path_blob_url(self.__url)) is not None):
             return blob_url
         return self.__url
+
+    def clean_up(self):
+    #==================
+        if self.__temp_directory is not None:
+            shutil.rmtree(self.__temp_directory)
 
     def __check_and_normalise_path(self, path: str, desc: str='') -> str|None:
     #=========================================================================
