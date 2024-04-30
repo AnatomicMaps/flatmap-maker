@@ -28,8 +28,8 @@ import uuid
 
 #===============================================================================
 
-from mapmaker import FLATMAP_VERSION, __version__
-from mapmaker.utils import configure_logging, log, set_as_list
+from . import FLATMAP_VERSION, __version__
+from .utils import configure_logging, log, set_as_list
 
 #===============================================================================
 
