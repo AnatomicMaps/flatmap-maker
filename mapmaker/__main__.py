@@ -110,6 +110,7 @@ def arg_parser():
 #===============================================================================
 
 def main():
+    import sys
     parser = arg_parser()
     args = parser.parse_args()
     try:
@@ -118,6 +119,7 @@ def main():
     except Exception as error:
         msg = str(error)
         log.exception(msg)
+        sys.exit(1)
 
 #===============================================================================
 
