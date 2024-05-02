@@ -892,6 +892,7 @@ class Network(object):
             if segment_graph.number_of_edges() > 1:
                 neighbouring_ids = set()
                 updated_neighbouring_ids = set()
+                closest_feature_dict = {}  # .geometry.centroid.distance sometime is inconsistent
                 for neighbour in connectivity_graph.neighbors(node):
                     neighbour_dict = connectivity_graph.nodes[neighbour]
                     edge_dict = connectivity_graph.edges[(node, neighbour)]
@@ -902,13 +903,14 @@ class Network(object):
                         f = features[0]
                         neighbouring_ids.update([f.id])
                         closest_feature_id = self.__closest_feature_id_to_point(f.geometry.centroid, segment_graph.nodes)
+                        closest_feature_dict[f.id] = closest_feature_id
                         tmp_edge_dicts[(f.id, closest_feature_id)] = edge_dict
                     elif neighbour_dict['type'] in ['segment', 'no-segment']: # should check this limitation
                         candidates= {}
                         for n, s in itertools.product(neighbour_dict['subgraph'].nodes, segment_graph.nodes):
                             if (nf:=self.__map_feature(n)) is not None and (sf:=self.__map_feature(s)) is not None:
                                 candidates[(n,s)] = nf.geometry.centroid.distance(sf.geometry.centroid)
-                                tmp_edge_dicts[(n,s)] = edge_dict
+                            tmp_edge_dicts[(n,s)] = edge_dict
                         if len(candidates) > 0:
                             neighbouring_ids.update([min(candidates, key=candidates.get)[0]])
                 for n_id in neighbouring_ids:
@@ -916,8 +918,7 @@ class Network(object):
                         updated_neighbouring_ids.update([n_id])
                     else:
                         if (f:=self.__map_feature(n_id)) is not None:
-                            closest_feature_id = self.__closest_feature_id_to_point(f.geometry.centroid, segment_graph.nodes)
-                            if closest_feature_id is not None:
+                            if (closest_feature_id:=closest_feature_dict.get(n_id)) is not None:
                                 updated_neighbouring_ids.update([closest_feature_id])
                                 new_direct_edges.update([(n_id, closest_feature_id)])
                 segment_graph = graph_utils.get_connected_subgraph(segment_graph, updated_neighbouring_ids)
@@ -1216,11 +1217,12 @@ class Network(object):
                 route_graph.add_node(node_0, type='terminal')
             if node_1 not in route_graph:
                 route_graph.add_node(node_1, type='terminal')
-            route_graph.add_edge(node_0, node_1, type='terminal', **tmp_edge_dicts[(node_0, node_1)])
-            route_graph.nodes[node_0].update(set_properties_from_feature_id(node_0))
-            route_graph.nodes[node_1].update(set_properties_from_feature_id(node_1))
-            upstream_node = node_0
-            route_graph.nodes[upstream_node]['type'] = 'upstream'
+            if (node_0, node_1) in tmp_edge_dicts:
+                route_graph.add_edge(node_0, node_1, type='terminal', **tmp_edge_dicts[(node_0, node_1)])
+                route_graph.nodes[node_0].update(set_properties_from_feature_id(node_0))
+                route_graph.nodes[node_1].update(set_properties_from_feature_id(node_1))
+                upstream_node = node_0
+                route_graph.nodes[upstream_node]['type'] = 'upstream'
 
         # need to delete edges that is already covered by centerline
         for edge in new_edge_dicts:
