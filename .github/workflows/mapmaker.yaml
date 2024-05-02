@@ -21,29 +21,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Poetry
-        run: |
-          pipx install poetry
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Create environment with mamba
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: '3.10'
-          cache: poetry
-          cache-dependency-path: poetry.lock
-
-      - name: Set Poetry environment
-        run: |
-          poetry env use 3.10
-
-      - name: Install dependencies
-        run: |
-          poetry lock --no-update
-          poetry install --no-root
+          mamba-version: "*"
+          channels: conda-forge,defaults
+          auto-activate-base: false
+          activate-environment: mapmaker
+          environment-file: envs/mapmaker.yaml
 
       - name: Run mapmaker
         run: |
-          poetry run python runmaker.py \
+          python runmaker.py \
             --output ./flatmaps \
             --source https://github.com/AnatomicMaps/rat-flatmap.git \
             --manifest manifest.json \
