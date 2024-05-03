@@ -21,6 +21,7 @@
 import base64
 import contextlib
 import math
+from typing import Optional
 
 #===============================================================================
 
@@ -101,17 +102,17 @@ class GradientStops(object):
 #===============================================================================
 
 class CanvasDrawingObject(object):
-    def __init__(self, paint, bounds, parent_transform, transform_attribute, clip_path,
-                    bbox=None, root_object=False, scale=1.0):
+    def __init__(self, paint, bounds, parent_transform: Transform,
+                       local_transform: Optional[Transform],
+                       clip_path, bbox=None, root_object=False, scale=1.0):
         if root_object:
-            T = parent_transform@SVGTransform(transform_attribute)
+            T = parent_transform if local_transform is None else parent_transform@local_transform
             self.__matrix = skia.Matrix(list(T.flatten()))
         else:
             T = parent_transform
-            if transform_attribute is None:
+            if local_transform is None:
                 self.__matrix = None
             else:
-                local_transform = SVGTransform(transform_attribute)
                 self.__matrix = skia.Matrix(list(local_transform.flatten()))
                 T = T@local_transform
         if scale != 1.0:
@@ -158,8 +159,9 @@ class CanvasDrawingObject(object):
 #===============================================================================
 
 class CanvasPath(CanvasDrawingObject):
-    def __init__(self, path, paint, parent_transform, transform_attribute, clip_path):
-        super().__init__(paint, path.getBounds(), parent_transform, transform_attribute, clip_path)
+    def __init__(self, path, paint, parent_transform: Transform,
+                       local_transform: Optional[Transform], clip_path):
+        super().__init__(paint, path.getBounds(), parent_transform, local_transform, clip_path)
         self.__path = path
 
     def draw_element(self, canvas, tile_bbox):
@@ -171,8 +173,9 @@ class CanvasPath(CanvasDrawingObject):
 #===============================================================================
 
 class CanvasImage(CanvasDrawingObject):
-    def __init__(self, image, paint, parent_transform, transform_attribute, clip_path, scale=1.0):
-        super().__init__(paint, image.bounds(), parent_transform, transform_attribute, clip_path, scale=scale)
+    def __init__(self, image, paint, parent_transform: Transform,
+                       local_transform: Optional[Transform], clip_path, scale=1.0):
+        super().__init__(paint, image.bounds(), parent_transform, local_transform, clip_path, scale=scale)
         self.__image = image
 
     def draw_element(self, canvas, tile_bbox):
@@ -184,11 +187,14 @@ class CanvasImage(CanvasDrawingObject):
 #===============================================================================
 
 class CanvasText(CanvasDrawingObject):
-    def __init__(self, text, attribs, parent_transform, transform_attribute, clip_path):
+    def __init__(self, text, attribs, parent_transform: Transform,
+                       local_transform: Optional[Transform], clip_path):
         self.__text = text
-        style_rules = dict([rule.split(':', 1) for rule in [rule.strip() for rule in attribs.get('style', '')[:-1].split(';')]])
+        style_rules = dict([rule.split(':', 1) for rule in [rule.strip()
+                                                for rule in attribs.get('style', '')[:-1].split(';')]])
         self.__font = skia.Font(skia.Typeface(style_rules.get('font-family', 'Calibri'),
-                                              skia.FontStyle(int(style_rules.get('font-weight', skia.FontStyle.kNormal_Weight)),
+                                              skia.FontStyle(int(style_rules.get('font-weight',
+                                                                                 skia.FontStyle.kNormal_Weight)),
                                                              skia.FontStyle.kNormal_Width,
                                                              skia.FontStyle.kUpright_Slant)),
                                 length_as_points(style_rules.get('font-size', 10)))
@@ -206,7 +212,7 @@ class CanvasText(CanvasDrawingObject):
         bounds = skia.Rect(self.__pos[0], self.__pos[1] - text_height,
                            self.__pos[0] + text_width, self.__pos[1])
         self.__paint = skia.Paint(AntiAlias=True, Color=skia.ColorBLACK)
-        super().__init__(None, bounds, parent_transform, transform_attribute, clip_path)
+        super().__init__(None, bounds, parent_transform, local_transform, clip_path)
 
     def draw_element(self, canvas, tile_bbox):
     #=========================================
@@ -217,11 +223,12 @@ class CanvasText(CanvasDrawingObject):
 #===============================================================================
 
 class CanvasGroup(CanvasDrawingObject):
-    def __init__(self, drawing_objects, parent_transform, transform_attribute, clip_path, outermost=False):
+    def __init__(self, drawing_objects, parent_transform: Transform,
+                       local_transform: Optional[Transform], clip_path, outermost=False):
         bbox = (shapely.box(*shapely.total_bounds([element.bbox for element in drawing_objects]))
                     if len(drawing_objects) > 0 else
                 None)
-        super().__init__(None, None, parent_transform, transform_attribute, clip_path, bbox=bbox, root_object=outermost)
+        super().__init__(None, None, parent_transform, local_transform, clip_path, bbox=bbox, root_object=outermost)
         self.__drawing_objects = drawing_objects
 
     @property
@@ -332,29 +339,41 @@ class SVGTiler(object):
         image = surface.makeImageSnapshot()
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
+    def __get_transform(self, wrapped_element) -> Optional[Transform]:
+    #=================================================================
+        element_style = self.__style_matcher.element_style(wrapped_element)
+        transform = element_style.get(
+            'transform', wrapped_element.etree_element.attrib.get('transform'))
+        if transform is not None:
+            T = SVGTransform(transform)
+            transform_origin = element_style.get(
+                'transform-origin', wrapped_element.etree_element.attrib.get('transform-origin'))
+            if transform_origin is None:
+                return T
+            translation = [length_as_pixels(l) for l in transform_origin.split()]
+            return (SVGTransform(f'translate({translation[0]}, {translation[1]})')
+                   @T
+                   @SVGTransform(f'translate({-translation[0]}, {-translation[1]})'))
+
     def __draw_svg(self, svg_to_tile_transform, show_progress=False):
     #================================================================
         wrapped_svg = wrap_element(self.__svg)
+        transform = self.__get_transform(wrapped_svg)
         drawing_objects = self.__draw_element_list(wrapped_svg,
-            svg_to_tile_transform@SVGTransform(wrapped_svg.etree_element.attrib.get('transform')),
+            svg_to_tile_transform if transform is None else svg_to_tile_transform@transform,
             None,
             show_progress=show_progress)
-        attributes = wrapped_svg.etree_element.attrib
-        return CanvasGroup(drawing_objects, svg_to_tile_transform,
-                    attributes.get('transform'),
-                    None,
-                    outermost=True)
+        return CanvasGroup(drawing_objects, svg_to_tile_transform, transform, None, outermost=True)
 
     def __draw_group(self, group, parent_transform, parent_style):
     #=============================================================
         group_style = self.__style_matcher.element_style(group, parent_style)
         group_clip_path = group_style.pop('clip-path', None)
+        transform = self.__get_transform(group)
         drawing_objects = self.__draw_element_list(group,
-            parent_transform@SVGTransform(group.etree_element.attrib.get('transform')),
+            parent_transform if transform is None else parent_transform@transform,
             group_style)
-        return CanvasGroup(drawing_objects, parent_transform,
-                    group.etree_element.attrib.get('transform'),
-                    self.__clip_paths.get_by_url(group_clip_path))
+        return CanvasGroup(drawing_objects, parent_transform, transform, self.__clip_paths.get_by_url(group_clip_path))
 
     def __draw_element_list(self, elements, parent_transform, parent_style, show_progress=False):
     #============================================================================================
@@ -428,6 +447,7 @@ class SVGTiler(object):
         drawing_objects = []
         element = wrapped_element.etree_element
         element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
+        transform = self.__get_transform(wrapped_element)
 
         if element.tag == SVG_TAG('g'):
             canvas_group = self.__draw_group(wrapped_element, parent_transform, parent_style)
@@ -492,8 +512,7 @@ class SVGTiler(object):
                 else:
                     paint.setColor(make_colour(fill, opacity))
 
-                drawing_objects.append(CanvasPath(path, paint, parent_transform,
-                    element.attrib.get('transform'),
+                drawing_objects.append(CanvasPath(path, paint, parent_transform, transform,
                     self.__clip_paths.get_by_url(element_style.get('clip-path'))
                     ))
 
@@ -539,8 +558,7 @@ class SVGTiler(object):
                 stroke_miterlimit = element_style.get('stroke-miterlimit')
                 if stroke_miterlimit is not None:
                     paint.setStrokeMiter(float(stroke_miterlimit))
-                drawing_objects.append(CanvasPath(path, paint, parent_transform,
-                    element.attrib.get('transform'),
+                drawing_objects.append(CanvasPath(path, paint, parent_transform, transform,
                     self.__clip_paths.get_by_url(element.attrib.get('clip-path'))
                     ))
 
@@ -580,12 +598,10 @@ class SVGTiler(object):
                     if ((clip_path := self.__clip_paths.get_by_url(clip_path_url)) is None
                     and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
                         clip_path = self.__get_clip_path(clip_path_element)
-                    drawing_objects.append(CanvasImage(image, paint, parent_transform,
-                        element.attrib.get('transform'), clip_path, scale=scale))
+                    drawing_objects.append(CanvasImage(image, paint, parent_transform, transform, clip_path, scale=scale))
 
         elif element.tag == SVG_TAG('text'):
-            drawing_objects.append(CanvasText(element.text, element.attrib, parent_transform,
-                element.attrib.get('transform'),
+            drawing_objects.append(CanvasText(element.text, element.attrib, parent_transform, transform,
                 self.__clip_paths.get_by_url(element_style.get('clip-path'))
             ))
 

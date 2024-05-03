@@ -150,6 +150,20 @@ class SVGLayer(MapLayer):
              or (properties.get('type') == 'nerve'
                  and properties.get('kind') != 'centreline'))
 
+    def __get_transform(self, wrapped_element) -> Transform:
+    #=======================================================
+        element_style = self.__style_matcher.element_style(wrapped_element)
+        T = SVGTransform(element_style.get(
+            'transform', wrapped_element.etree_element.attrib.get('transform')))
+        transform_origin = element_style.get(
+            'transform-origin', wrapped_element.etree_element.attrib.get('transform-origin'))
+        if transform_origin is None:
+            return T
+        translation = [length_as_pixels(l) for l in transform_origin.split()]
+        return (SVGTransform(f'translate({translation[0]}, {translation[1]})')
+               @T
+               @SVGTransform(f'translate({-translation[0]}, {-translation[1]})'))
+
     def __process_group(self, wrapped_group, properties, transform, parent_style):
     #=============================================================================
         group = wrapped_group.etree_element
@@ -172,8 +186,9 @@ class SVGLayer(MapLayer):
             # Replace any features inside a clipped group with just the clipped outline
             group_feature = self.flatmap.new_feature(clipped, properties)
         else:
+            group_transform = self.__get_transform(wrapped_group)
             features = self.__process_element_list(wrapped_group,
-                transform@SVGTransform(group.attrib.get('transform')),
+                transform@group_transform,
                 properties,
                 group_style)
             properties.pop('tile-layer', None)  # Don't set ``tile-layer``
@@ -273,7 +288,7 @@ class SVGLayer(MapLayer):
             clip_path_url = element_style.pop('clip-path', None)
             if ((geometry := self.__clip_geometries.get_by_url(clip_path_url)) is None
             and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
-                T = transform@SVGTransform(element.attrib.get('transform'))
+                T = transform@self.__get_transform(wrapped_element)
                 geometry = self.__get_clip_geometry(clip_path_element, T)
             if geometry is not None:
                 return self.flatmap.new_feature(geometry, properties)
@@ -388,7 +403,9 @@ class SVGLayer(MapLayer):
         else:
             must_close = properties.get('closed', None)
         try:
-            geometry, bezier_segments = geometry_from_svg_path(path_tokens, transform@SVGTransform(element.attrib.get('transform')), must_close)
+            wrapped_element = wrap_element(element)
+            geometry, bezier_segments = geometry_from_svg_path(path_tokens,
+                transform@self.__get_transform(wrapped_element), must_close)
             if properties.get('node', False):
                 # All centeline nodes become circles
                 geometry = circle_from_bounds(geometry.bounds)
