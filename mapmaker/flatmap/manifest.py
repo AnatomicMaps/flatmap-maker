@@ -195,10 +195,7 @@ class Manifest:
             elif 'id' not in self.__manifest:
                 raise ValueError('No `id` specified in manifest')
 
-            if self.__manifest.get('sckan-version', '') in ['production', 'staging']:
-                self.__neuron_connectivity = self.__manifest.get('neuronConnectivity', [])
-            else :
-                self.__neuron_connectivity = ['NPO']
+            self.__neuron_connectivity = self.__manifest.get('neuronConnectivity', [])
 
             if 'sources' not in self.__manifest:
                 raise ValueError('No sources given for manifest')
