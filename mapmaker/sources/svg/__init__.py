@@ -194,7 +194,8 @@ class SVGLayer(MapLayer):
             properties.pop('tile-layer', None)  # Don't set ``tile-layer``
             if len(group_features := [f for f in features if f.geometry.is_valid and not self.__excluded_group_feature(f.properties)]):
                 # If the group element has markup and contains geometry then add it as a feature
-                group_feature = self.flatmap.new_feature(shapely.ops.unary_union([f.geometry for f in group_features]), properties)
+                group_geometry = shapely.ops.unary_union([f.geometry for f in group_features])
+                group_feature = self.flatmap.new_feature(group_geometry, properties)
                 # And don't output interior features with no markup
                 for feature in group_features:
                     if not feature.has_property('markup'):
@@ -228,7 +229,7 @@ class SVGLayer(MapLayer):
             elif element.tag == SVG_TAG('use'):
                 element = self.__definitions.use(element)
                 wrapped_element = wrap_element(element)
-            if element.tag == SVG_TAG('clipPath'):
+            if element is not None and element.tag == SVG_TAG('clipPath'):
                 self.__add_clip_geometry(element, transform)
             elif (feature := self.__process_element(wrapped_element, transform, parent_properties, parent_style)) is not None:
                 features.append(feature)
