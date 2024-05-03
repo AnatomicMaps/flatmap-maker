@@ -19,6 +19,7 @@
 #===============================================================================
 
 from math import sin, cos, tan, radians
+from typing import Optional
 
 #===============================================================================
 
@@ -31,7 +32,7 @@ from mapmaker.geometry import Transform
 #===============================================================================
 
 class SVGTransform(Transform):
-    def __init__(self, transform):
+    def __init__(self, transform: Optional[str]):
         T = np.identity(3)
         if transform is not None:
             # A simple parser, assuming well-formed SVG
