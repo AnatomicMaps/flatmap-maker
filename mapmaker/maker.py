@@ -156,7 +156,7 @@ class MapMaker(object):
         # All set to go
         log('Making map: {}'.format(self.__id))
 
-        # Make sure our output directories exist
+        # Make sure our top-level directory exists
         map_base = options.get('output')
         if not os.path.exists(map_base):
             os.makedirs(map_base)
@@ -166,6 +166,7 @@ class MapMaker(object):
 
         # Our source of knowledge, updated with information about maps we've made, held in a global place
         sckan_version = settings.get('sckanVersion', self.__manifest.sckan_version)
+
         if sckan_version in ['production', 'staging']:
             knowledge_store = knowledgebase.KnowledgeStore(map_base,
                                             clean_connectivity=settings.get('cleanConnectivity', False),
@@ -185,6 +186,10 @@ class MapMaker(object):
 
         self.__sckan_provenance = knowledgebase.sckan_provenance()
 
+        # Check sckan-version now that we have provenance
+        if sckan_version not in ['production', 'staging', self.__sckan_provenance.get('npo', {}).get('release', '')]:
+            raise ValueError("'sckan-version' in manifest must be `production', 'staging', or any valid tag release")
+
         # Our ``uuid`` depends on the source Git repository commit,
         # the contents of the map's manifest, mapmaker's version,
         # and the version of SCKAN we use for connectivity.
@@ -197,10 +202,6 @@ class MapMaker(object):
             self.__uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, uuid_source))
         else:
             self.__uuid = None
-
-        # Checking sckan-version
-        if sckan_version not in ['production', 'staging', self.__sckan_provenance.get('npo', {}).get('release', '')]:
-            raise ValueError("'sckan-version' in manifest must be `production', 'staging', or any valid tag release")
 
         # Where the generated map is saved
         self.__map_dir = os.path.join(map_base, self.__uuid if self.__uuid is not None else self.__id)
