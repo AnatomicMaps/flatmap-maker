@@ -42,6 +42,7 @@ import svgelements
 
 #===============================================================================
 
+from mapmaker.exceptions import MakerException
 from mapmaker.flatmap import Feature
 from mapmaker.geometry import Transform, reflect_point
 from mapmaker.geometry.beziers import bezier_sample
@@ -92,7 +93,7 @@ def length_as_pixels(length: str | float) -> float:
     else:
         scaling = __unit_scaling[match.group(2)]
         if scaling is None:
-            raise ValueError('Unsupported units: {}'.format(length))
+            raise MakerException('Unsupported SVG units: {}'.format(length))
         return scaling*float(match.group(1))
 
 def length_as_points(length: str | float) -> float:

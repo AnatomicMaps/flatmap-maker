@@ -23,3 +23,8 @@ class GroupValueError(ValueError):
         super().__init__('\n    '.join([msg] + [str(f) for f in features]))
 
 #===============================================================================
+
+class MakerException(Exception):
+    pass
+
+#===============================================================================
