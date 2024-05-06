@@ -22,6 +22,7 @@ from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum
+import multiprocessing
 import os
 import pathlib
 import shutil
@@ -33,6 +34,28 @@ from urllib.parse import urljoin
 
 import git
 import giturlparse
+
+#===============================================================================
+
+# A clone from GitHub can wait asking for password input, esp. if we try to clone
+# an unknown repository. Hence we run the clone in a separate process and abort after
+# GIT_CLONE_TIMEOUT seconds.
+
+GIT_CLONE_TIMEOUT = 300     # 5 minutes
+
+def __clone_repo(repo_path: str, working_directory: str, output_queue: multiprocessing.Queue):
+    repo = git.Repo.clone_from(repo_path, working_directory)
+    output_queue.put(repo)
+
+def clone_from_with_timeout(repo_path: str, working_directory: str) -> git.Repo:
+    repo_queue: multiprocessing.Queue[git.Repo] = multiprocessing.Queue()
+    clone_process = multiprocessing.Process(target=__clone_repo, args=(repo_path, working_directory, repo_queue))
+    clone_process.start()
+    if clone_process.join(GIT_CLONE_TIMEOUT) is None:
+        if clone_process.exitcode is None:
+            clone_process.kill()    # still running so kill clone
+            raise TimeoutError(f'Git clone of {repo_path} timed out, aborting')
+    return repo_queue.get()
 
 #===============================================================================
 
@@ -145,11 +168,12 @@ class Manifest:
             self.__repo = None
         elif ((manifest_path.startswith('http:') or manifest_path.startswith('https:'))
           and manifest is not None):
-            #temp_directory = tempfile.TemporaryDirectory()  ## This results in ``Reference at 'HEAD' does not exist``
-            #working_directory = temp_directory.name         ##
-            self.__temp_directory = tempfile.mkdtemp()       ## But not auto deleted...
+            # Create a temporary directory in which to clone the map's source
+            self.__temp_directory = tempfile.mkdtemp()
             working_directory = self.__temp_directory
-            repo = git.Repo.clone_from(manifest_path, working_directory)
+            # An unknown GitHub repo prompts for password and doesn't timeout so we
+            # run the clone in it's own process with a timeout
+            repo = clone_from_with_timeout(manifest_path, working_directory)
             if commit is not None:
                 repo.git.checkout(commit)
             manifest_path = os.path.join(working_directory, manifest)   # type:ignore
