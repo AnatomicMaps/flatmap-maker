@@ -34,6 +34,7 @@ from .utils import configure_logging, log, set_as_list
 #===============================================================================
 
 from .annotation import Annotator
+from .exceptions import MakerException
 from .flatmap import FlatMap, Manifest
 from . import knowledgebase
 
@@ -214,7 +215,7 @@ class MapMaker(object):
         if os.path.exists(self.__map_dir):
             if os.path.exists(self.__maker_sentinel):
                 self.__clean_up(remove_sentinel=False)
-                raise ValueError('Last making of map failed -- use `--force` to re-make')
+                raise MakerException('Last making of map failed -- use `--force` to re-make')
             log(f'Map: {self.id}, uuid: {self.uuid}, path: {self.__map_dir} already exists -- use `--force` to re-make')
             self.__clean_up()
             exit(0)
