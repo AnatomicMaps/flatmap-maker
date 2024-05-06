@@ -35,5 +35,7 @@ jobs:
           python runmaker.py \
             --output ./flatmaps \
             --source https://github.com/AnatomicMaps/rat-flatmap.git \
+            --commit curation \
             --manifest manifest.json \
+            --force \
             --background-tiles
