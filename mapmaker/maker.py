@@ -214,8 +214,8 @@ class MapMaker(object):
         if os.path.exists(self.__map_dir):
             if os.path.exists(self.__maker_sentinel):
                 self.__clean_up(remove_sentinel=False)
-                raise ValueError('Previous making of map failed; use `--force` option when re-making')
-            log(f'Map already exists: id: {self.id}, uuid: {self.uuid}, path: {self.__map_dir}; use `--force` to re-make')
+                raise ValueError('Last making of map failed -- use `--force` to re-make')
+            log(f'Map: {self.id}, uuid: {self.uuid}, path: {self.__map_dir} already exists -- use `--force` to re-make')
             self.__clean_up()
             exit(0)
         else:
