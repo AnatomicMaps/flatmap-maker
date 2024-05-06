@@ -193,7 +193,8 @@ class MapMaker(object):
 
         # Where the generated map is saved
         self.__map_dir = os.path.join(map_base, self.__uuid if self.__uuid is not None else self.__id)
-        if options.get('clean', False):
+
+        if options.get('force', False):
             shutil.rmtree(self.__map_dir, True)
         if not os.path.exists(self.__map_dir):
             os.makedirs(self.__map_dir)

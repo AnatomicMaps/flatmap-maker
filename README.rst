@@ -96,7 +96,7 @@ Command line help
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
-                    [--clean] [--clean-connectivity] [--background-tiles] [--id ID]
+                    [--clean-connectivity] [--background-tiles] [--force] [--id ID]
                     [--ignore-git] [--ignore-sckan] [--invalid-neurons] [--publish SPARC_DATASET]
                     [--sckan-version {production,staging}]
                     [--authoring] [--debug] [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
@@ -118,11 +118,10 @@ Command line help
       --verbose             Show progress bars
 
     Map generation:
-      --clean               Remove all files from generated map's directory before
-                            generating the new map
       --clean-connectivity  Refresh local connectivity knowledge from SciCrunch
       --background-tiles    Generate image tiles of map's layers (may take a
                             while...)
+      --force               Generate the map even if it already exists
       --id ID               Set explicit ID for flatmap, overriding manifest
       --ignore-git          Don't check that sources are committed into git
       --ignore-sckan        Don't check if functional connectivity neurons are known

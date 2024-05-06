@@ -43,12 +43,12 @@ def arg_parser():
                         help="Show progress bars")
 
     generation_options = parser.add_argument_group('Map generation')
-    generation_options.add_argument('--clean', action='store_true',
-                        help="Remove all files from generated map's directory before generating the new map")
     generation_options.add_argument('--clean-connectivity', dest='cleanConnectivity', action='store_true',
                         help='Refresh local connectivity knowledge from SciCrunch')
     generation_options.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
                         help="Generate image tiles of map's layers (may take a while...)")
+    generation_options.add_argument('--force', action='store_true',
+                        help="Generate the map even if it already exists")
     generation_options.add_argument('--id', metavar='ID',
                         help='Set explicit ID for flatmap, overriding manifest')
     generation_options.add_argument('--ignore-git', dest='ignoreGit', action='store_true',
