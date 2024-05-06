@@ -50,6 +50,14 @@ from .sources.shapefilter import ShapeFilter
 
 #===============================================================================
 
+"""
+If a file with this name exists in the map's output directory then the map
+is in the process of being made
+"""
+MAKER_SENTINEL = '.map_making'
+
+#===============================================================================
+
 INVALID_PUBLISHING_OPTIONS = [
     'authoring',
     'id',
@@ -199,14 +207,24 @@ class MapMaker(object):
 
         if options.get('force', False):
             shutil.rmtree(self.__map_dir, True)
+
+        self.__maker_sentinel = os.path.join(self.__map_dir, MAKER_SENTINEL)
+
         if os.path.exists(self.__map_dir):
+            if os.path.exists(self.__maker_sentinel):
+                self.__clean_up(remove_sentinel=False)
+                raise ValueError('Previous making of map failed; use `--force` option when re-making')
             log(f'Map already exists: id: {self.id}, uuid: {self.uuid}, path: {self.__map_dir}; use `--force` to re-make')
             self.__clean_up()
             exit(0)
         else:
             os.makedirs(self.__map_dir)
 
-        # The vector tiles' database that is created by `tippecanoe`
+        # Create an empty sentinel
+        with open(self.__maker_sentinel, 'a'):
+            pass
+
+        # The vector tiles' database that is created by ``tippecanoe``
         self.__mbtiles_file = os.path.join(self.__map_dir, 'index.mbtiles')
         self.__tippe_inputs = []
 
@@ -331,6 +349,10 @@ class MapMaker(object):
 
         # Remove any temporary directory created for the map's sources
         self.__manifest.clean_up()
+
+        # All done, remove our sentinel
+        if remove_sentinel and os.path.exists(self.__maker_sentinel):
+            os.remove(self.__maker_sentinel)
 
     def __process_sources(self):
     #===========================
