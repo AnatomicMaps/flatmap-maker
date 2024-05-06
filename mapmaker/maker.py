@@ -153,6 +153,9 @@ class MapMaker(object):
         if not os.path.exists(map_base):
             os.makedirs(map_base)
 
+        # This is set here in case we have to clean up early
+        self.__geojson_files = []
+
         # Our source of knowledge, updated with information about maps we've made, held in a global place
         sckan_version = settings.get('sckanVersion', self.__manifest.sckan_version)
         if sckan_version in ['production', 'staging']:
@@ -196,12 +199,15 @@ class MapMaker(object):
 
         if options.get('force', False):
             shutil.rmtree(self.__map_dir, True)
-        if not os.path.exists(self.__map_dir):
+        if os.path.exists(self.__map_dir):
+            log(f'Map already exists: id: {self.id}, uuid: {self.uuid}, path: {self.__map_dir}; use `--force` to re-make')
+            self.__clean_up()
+            exit(0)
+        else:
             os.makedirs(self.__map_dir)
 
         # The vector tiles' database that is created by `tippecanoe`
         self.__mbtiles_file = os.path.join(self.__map_dir, 'index.mbtiles')
-        self.__geojson_files = []
         self.__tippe_inputs = []
 
         # Raster tile layers
@@ -273,23 +279,6 @@ class MapMaker(object):
         # Save the flatmap's metadata
         self.__save_metadata()
 
-        # All done so clean up
-        self.__finish_make()
-
-    def __begin_make(self):
-    #======================
-        # Initialise flatmap
-        self.__flatmap.initialise()
-
-        # Reinitialise lists we use
-        self.__geojson_files = []
-        self.__tippe_inputs = []
-
-    def __finish_make(self):
-    #=======================
-        # We are finished with the knowledge base
-        settings['KNOWLEDGE_STORE'].close()
-
         # Write out details of FC neurons if option set
         if (export_file := settings.get('exportNeurons')) is not None:
             with open(export_file, 'w') as fp:
@@ -316,6 +305,24 @@ class MapMaker(object):
         else:
             log(f'Generated map: id: {self.id}, uuid: {self.uuid}, output: {self.__map_dir}')
 
+        # Tidy up
+        self.__clean_up()
+
+    def __begin_make(self):
+    #======================
+        # Initialise flatmap
+        self.__flatmap.initialise()
+
+        # Reinitialise lists we use
+        self.__geojson_files = []
+        self.__tippe_inputs = []
+
+    def __clean_up(self, remove_sentinel=True):
+    #==========================================
+        # We are finished with the knowledge base
+        settings['KNOWLEDGE_STORE'].close()
+
+        # Remove any GeoJSON files (unless ``--save-geojson)
         for filename in self.__geojson_files:
             if settings.get('saveGeoJSON', False):
                 print(filename)
