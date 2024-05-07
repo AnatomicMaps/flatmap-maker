@@ -397,20 +397,20 @@ typing = ["typing-extensions (>=4.8)"]
 
 [[package]]
 name = "flatmapknowledge"
-version = "1.6.9"
+version = "1.7.0"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "flatmapknowledge-1.6.9-py3-none-any.whl", hash = "sha256:e88b8b3930da7a2e4c5540a803d9dbcdf5650fd3f91b32d5e3de11867446f0b7"},
+    {file = "flatmapknowledge-1.7.0-py3-none-any.whl", hash = "sha256:530e6ac971a7bd76c10c3fa2029a25707d53c4abecde54768346cba566a5af49"},
 ]
 
 [package.dependencies]
-mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.9/mapknowledge-0.16.9-py3-none-any.whl"}
+mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.17.0/mapknowledge-0.17.0-py3-none-any.whl"}
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.6.9/flatmapknowledge-1.6.9-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.7.0/flatmapknowledge-1.7.0-py3-none-any.whl"
 
 [[package]]
 name = "frozendict"
@@ -752,13 +752,13 @@ zdesk = ["pyyaml", "zdesk"]
 
 [[package]]
 name = "idlib"
-version = "0.0.1.dev19"
+version = "0.0.1.dev20"
 description = "A library for working with identifiers of all kinds."
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "idlib-0.0.1.dev19-py2.py3-none-any.whl", hash = "sha256:7d1bdec4a4f5df9906b57c22f4ed7530ceb119e6854ca254e205c50d2f3add89"},
-    {file = "idlib-0.0.1.dev19.tar.gz", hash = "sha256:3eae54eaad11069ff64e4c21be9598c8b7260ac8ee0085bd59868d46044ca0c5"},
+    {file = "idlib-0.0.1.dev20-py2.py3-none-any.whl", hash = "sha256:309b8adb6993d9fa4abe1952da069c61f9d06a78a2770c247e6f873be8b36f1f"},
+    {file = "idlib-0.0.1.dev20.tar.gz", hash = "sha256:8844396fe044ea6c16be39fc9d12d6b50556e5f055519cfd8625fe86a9ae57e3"},
 ]
 
 [package.dependencies]
@@ -970,12 +970,12 @@ source = ["Cython (==0.29.37)"]
 
 [[package]]
 name = "mapknowledge"
-version = "0.16.9"
+version = "0.17.0"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "mapknowledge-0.16.9-py3-none-any.whl", hash = "sha256:092188186033a1f52db0e83d438dd18dac724b04322bcc514d28cde5fdedfbc9"},
+    {file = "mapknowledge-0.17.0-py3-none-any.whl", hash = "sha256:67ba8e4566f29fa64de90d07c94fede2d6d6edd5ccf125d520d6066973ac05e7"},
 ]
 
 [package.dependencies]
@@ -987,7 +987,7 @@ sparqlwrapper = ">=2.0.0,<3.0.0"
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.16.9/mapknowledge-0.16.9-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.17.0/mapknowledge-0.17.0-py3-none-any.whl"
 
 [[package]]
 name = "markupsafe"
@@ -3599,4 +3599,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "6c9ef29051b991b4654e541407ff1e1d18155cf1e34a78fb2539569940a015f8"
+content-hash = "4cc2d7d727d2c3e92f8dd985ab6f49a2fb68790d3fc0a769dae2db49b0e8bff8"

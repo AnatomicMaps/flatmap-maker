@@ -173,15 +173,17 @@ class MapMaker(object):
                                             clean_connectivity=settings.get('cleanConnectivity', False),
                                             sckan_version=sckan_version,
                                             npo=True,
-                                            log_build=True,
+                                            sckan_provenance=True,
+                                            log_provenance=True
                                             )
         else:
             knowledge_store = knowledgebase.KnowledgeStore(map_base,
                                             clean_connectivity=settings.get('cleanConnectivity', False),
                                             npo=True,
-                                            log_build=True,
                                             scicrunch_api=None,
-                                            npo_release=sckan_version
+                                            npo_release=sckan_version,
+                                            sckan_provenance=True,
+                                            log_provenance=True
                                             )
         settings['KNOWLEDGE_STORE'] = knowledge_store
 
