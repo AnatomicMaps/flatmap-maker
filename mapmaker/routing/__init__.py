@@ -725,7 +725,6 @@ class Network(object):
                 properties['features'] = features
             elif connectivity_node not in self.__missing_identifiers:
                 properties['warning'] = f'Cannot find feature for connectivity node {connectivity_node} ({connectivity_node.full_name})'
-                log.warning(f'{connectivity_node} {matched} {features}')
                 self.__missing_identifiers.add(connectivity_node)
         return properties
 
@@ -912,7 +911,9 @@ class Network(object):
                                 candidates[(n,s)] = nf.geometry.centroid.distance(sf.geometry.centroid)
                             tmp_edge_dicts[(n,s)] = edge_dict
                         if len(candidates) > 0:
-                            neighbouring_ids.update([min(candidates, key=candidates.get)[0]])
+                            selected_c = min(candidates, key=candidates.get)
+                            neighbouring_ids.update([selected_c[0]])
+                            closest_feature_dict[selected_c[0]] = selected_c[1]
                 for n_id in neighbouring_ids:
                     if n_id in segment_graph:
                         updated_neighbouring_ids.update([n_id])
