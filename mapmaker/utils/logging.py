@@ -55,28 +55,32 @@ def configure_logging(log_file, verbose=False, silent=False, debug=False):
 #===============================================================================
 
 class log(object):
-    def __init__(self, *args):
-        logger.info(''.join(args))
+    def __init__(self, msg, *args, **kwds):
+        logger.info(msg, *args, **kwds)
 
     @staticmethod
-    def debug(*args):
-        logger.debug(''.join(args))
+    def critical(msg, *args, **kwds):
+        logger.critical(msg, *args, **kwds)
 
     @staticmethod
-    def error(*args):
-        logger.error(''.join(args))
+    def debug(msg, *args, **kwds):
+        logger.debug(msg, *args, **kwds)
 
     @staticmethod
-    def exception(*args):
-        logger.exception(''.join(args))
+    def error(msg, *args, **kwds):
+        logger.error(msg, *args, **kwds)
 
     @staticmethod
-    def info(*args):
-        logger.info(''.join(args))
+    def exception(msg, *args, **kwds):
+        logger.exception(msg, *args, **kwds)
 
     @staticmethod
-    def warning(*args):
-        logger.warn(''.join(args))
+    def info(msg, *args, **kwds):
+        logger.info(msg, *args, **kwds)
+
+    @staticmethod
+    def warning(msg, *args, **kwds):
+        logger.warn(msg, *args, **kwds)
 
 #===============================================================================
 

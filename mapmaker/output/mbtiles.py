@@ -43,7 +43,6 @@ class MBTiles(object):
             os.remove(filepath)
         self._connnection = mb.mbtiles_connect(filepath, self._silent)
         self._cursor = self._connnection.cursor()
-        mb.optimize_connection(self._cursor)
         if create:
             mb.mbtiles_setup(self._cursor)
 

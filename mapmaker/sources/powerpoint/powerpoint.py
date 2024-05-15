@@ -63,6 +63,10 @@ from .omml2latex import openmath2latex
 
 #===============================================================================
 
+STROKE_WIDTH_SCALE_FACTOR = 1270.0
+
+#===============================================================================
+
 # (colour, opacity)
 ColourPair = tuple[Optional[str], float]
 
@@ -357,6 +361,7 @@ class Slide:
                         shape_properties['head-end'] = pptx_shape.line.headEnd.get('type', 'none')  # type: ignore
                         shape_properties['tail-end'] = pptx_shape.line.tailEnd.get('type', 'none')  # type: ignore
                         shape_properties['stroke-width'] = abs(transform.scale_length((int(pptx_shape.line.width.emu), 0))[0])  # type: ignore
+                        shape_properties['stroke-width'] /= STROKE_WIDTH_SCALE_FACTOR
                     else:
                         shape_type = SHAPE_TYPE.FEATURE
                         name = self.__text_content(pptx_shape)
