@@ -118,7 +118,7 @@ def main():
         mapmaker.make()
     except Exception as error:
         msg = str(error)
-        log.exception(msg)
+        log.exception(msg, exc_info=True)
         sys.exit(1)
 
 #===============================================================================
