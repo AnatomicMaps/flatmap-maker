@@ -141,7 +141,7 @@ class FCSlide(Slide):
 
         geometry_to_shape = {}
         geometries = []
-        def add_shape_geometry(fc_shape):
+        def add_shape_geometry(geometry, fc_shape):
             geometry_to_shape[id(geometry)] = fc_shape
             geometries.append(geometry)
 
@@ -167,11 +167,11 @@ class FCSlide(Slide):
                             fc_shape = make_connector(shape)
                         if fc_shape is not None:
                             self.__shapes_by_id[shape.id] = fc_shape
-                            add_shape_geometry(fc_shape)
+                            add_shape_geometry(geometry, fc_shape)
                     else:
                         fc_shape = make_component(shape)
                         self.__shapes_by_id[shape.id] = fc_shape
-                        add_shape_geometry(fc_shape)
+                        add_shape_geometry(geometry, fc_shape)
             elif shape.type == SHAPE_TYPE.CONNECTION:
                 self.__connections.append(make_connection(shape))
 
@@ -199,9 +199,9 @@ class FCSlide(Slide):
                     nervous_system = fc_shape
             else:       # Component, Connector, or Annotation (Hyperlink)
                 # STRtree query returns geometries whose bounding box intersects the shape's bounding box
-                bigger_intersecting_geometries: list[int] = [id for id in idx.query(fc_shape.geometry)
-                                                        if geometries[id].area > fc_shape.geometry.area
-                                                        and geometries[id].intersection(fc_shape.geometry).area  # type: ignore
+                bigger_intersecting_geometries: list[int] = [geo_id for geo_id in idx.query(fc_shape.geometry)
+                                                        if geometries[geo_id].area > fc_shape.geometry.area
+                                                        and geometries[geo_id].intersection(fc_shape.geometry).area  # type: ignore
                                                             >= MIN_OVERLAP_FRACTION*fc_shape.geometry.area]
                 # Set the shape's parents, ordered by the area of its overlapping geometries,
                 # with the smallest (immediate) parent first
