@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - default
 dependencies:
-  - python>=3.10,<4.0
+  - python>=3.12,<4.0
   - python-pptx>=0.6.21,<0.7.0
   - conda-forge::numpy>=1.24
   - beziers>=0.4.0,<0.6.0
@@ -37,7 +37,7 @@ dependencies:
   - pip:
       - https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.7.0/flatmapknowledge-1.7.0-py3-none-any.whl
       - opencv-python-headless>=4.6.0.66,<4.7.0.0
-      - skia-python>=87.5,<88.0
+      - skia-python==124.0b7
       - cssselect2>=0.6.0,<0.7.0
       - giturlparse>=0.10.0
       - svgelements>=1.9.1

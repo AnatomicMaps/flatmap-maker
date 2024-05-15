@@ -182,7 +182,7 @@ class CanvasImage(CanvasDrawingObject):
     #=========================================
         if self.intersects(tile_bbox):
             with self.transformed_clipped_canvas(canvas):
-                canvas.drawImage(self.__image, 0, 0, self.paint)
+                canvas.drawImage(self.__image, 0, 0, skia.SamplingOptions(), self.paint)
 
 #===============================================================================
 
@@ -590,7 +590,7 @@ class SVGTiler(object):
                             height *= scale
                             break
                     if round(width) != image.width() or round(height) != image.height():
-                        image = image.resize(round(width), round(height), skia.FilterQuality.kHigh_FilterQuality)
+                        image = image.resize(round(width), round(height), skia.SamplingOptions(skia.CubicResampler.Mitchell()))
                     paint = skia.Paint()
                     opacity = float(element_style.get('opacity', 1.0))
                     paint.setAlpha(round(opacity * 255))
