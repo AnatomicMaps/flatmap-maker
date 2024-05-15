@@ -4,6 +4,7 @@ dist/
 docs/_build/
 docs/_source/
 docs/ECMA*
+log/
 map_sources/
 mapmaker.egg-info/
 maps/
