@@ -43,10 +43,6 @@ from .components import MAX_CONNECTION_GAP
 
 #===============================================================================
 
-STROKE_WIDTH_SCALE_FACTOR = 1270.0
-
-#===============================================================================
-
 def direction(coords):
     dx = coords[1][0] - coords[0][0]
     dy = coords[1][1] - coords[0][1]
@@ -314,8 +310,7 @@ class ConnectionClassifier:
                 connection_logger(f"Connection colour doesn't match connector's {connection.colour} != {connector.colour}")
             connection.set_property('kind', connection.description)
             connection.set_property('type', 'line')
-            connection.set_property('stroke-width', connection.get_property('stroke-width',
-                                                                            STROKE_WIDTH_SCALE_FACTOR)/STROKE_WIDTH_SCALE_FACTOR)
+            connection.set_property('stroke-width', connection.get_property('stroke-width', 1.0))
         if connection.fc_class == FC_CLASS.NEURAL:
             # Attempt to join neuron segments
             for connector_id in connected_end_ids:
