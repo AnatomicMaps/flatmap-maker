@@ -93,7 +93,7 @@ class MapMaker(object):
             verbose=options.get('verbose', False),
             silent=options.get('silent', False),
             debug=options.get('debug', False))
-        log('Mapmaker {}'.format(__version__))
+        log.info('Mapmaker {}'.format(__version__))
 
         # Default base output directory to ``./flatmaps``.
         if 'output' not in options:
@@ -155,7 +155,7 @@ class MapMaker(object):
             raise ValueError('The manifest must specify a JSON `description` file if publishing')
 
         # All set to go
-        log('Making map: {}'.format(self.__id))
+        log.info('Making map: {}'.format(self.__id))
 
         # Make sure our top-level directory exists
         map_base = options.get('output')
@@ -218,7 +218,7 @@ class MapMaker(object):
             if os.path.exists(self.__maker_sentinel):
                 self.__clean_up(remove_sentinel=False)
                 raise MakerException('Last making of map failed -- use `--force` to re-make')
-            log(f'Map: {self.id}, uuid: {self.uuid}, path: {self.__map_dir} already exists -- use `--force` to re-make')
+            log.info(f'Map: {self.id}, uuid: {self.uuid}, path: {self.__map_dir} already exists -- use `--force` to re-make')
             self.__clean_up()
             exit(0)
         else:
@@ -316,16 +316,16 @@ class MapMaker(object):
 
         # Create a Sparc dataset if publishing
         if (sds_output := settings.get('publish')) is not None:
-            log(f'Generating SPARC dataset {sds_output}...')
+            log.info(f'Generating SPARC dataset {sds_output}...')
             sparc_dataset = SparcDataset(self.__flatmap)
             sparc_dataset.generate()
             sparc_dataset.save(sds_output)
 
         # Show what the map is about
         if self.__flatmap.models is not None:
-            log(f'Generated map: id: {self.id}, uuid: {self.uuid}, models: {self.__flatmap.models}, output: {self.__map_dir}')
+            log.info(f'Generated map: id: {self.id}, uuid: {self.uuid}, models: {self.__flatmap.models}, output: {self.__map_dir}')
         else:
-            log(f'Generated map: id: {self.id}, uuid: {self.uuid}, output: {self.__map_dir}')
+            log.info(f'Generated map: id: {self.id}, uuid: {self.uuid}, output: {self.__map_dir}')
 
         # Tidy up
         self.__clean_up()
@@ -418,7 +418,7 @@ class MapMaker(object):
 
     def __check_raster_tiles(self):
     #==============================
-        log('Checking and making background tiles (may take a while...)')
+        log.info('Checking and making background tiles (may take a while...)')
         maker_processes = {}
         tilemakers = []
         for layer in self.__flatmap.layers:
@@ -439,7 +439,7 @@ class MapMaker(object):
 
     def __create_preview(self, source):
     #==================================
-        log('Creating preview...')
+        log.info('Creating preview...')
         source.create_preview()
 
     def __make_vector_tiles(self, compressed=True):
@@ -448,7 +448,7 @@ class MapMaker(object):
         if len(self.__tippe_inputs) == 0:
             raise ValueError('No selectable layers found...')
 
-        log('Running tippecanoe...')
+        log.info('Running tippecanoe...')
         tippe_command = ['tippecanoe',
                             '--force',
                             '--projection=EPSG:4326',
@@ -480,12 +480,12 @@ class MapMaker(object):
 
     def __output_features(self):
     #===========================
-        log('Outputting features...')
+        log.info('Outputting features...')
         exported_features = []
         identifier_export = settings.get('exportIdentifiers', '')
         for layer in self.__flatmap.layers:
             if layer.exported:
-                log('Layer: {}'.format(layer.id))
+                log.info('Layer: {}'.format(layer.id))
                 if identifier_export != '':
                     for feature in layer.features:
                         if (feature.id is not None
@@ -514,7 +514,7 @@ class MapMaker(object):
 
     def __save_metadata(self):
     #=========================
-        log('Creating index and style files...')
+        log.info('Creating index and style files...')
         tile_db = MBTiles(self.__mbtiles_file)
 
         # Save flatmap's metadata, including settings used to generate map

@@ -323,7 +323,7 @@ class SVGTiler(object):
         canvas = surface.getCanvas()
         canvas.clear(skia.Color4f(0xFFFFFFFF))
         self.__svg_drawing.draw_element(canvas, self.__bbox)
-        log('Making image snapshot...')
+        log.info('Making image snapshot...')
         image = surface.makeImageSnapshot()
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
