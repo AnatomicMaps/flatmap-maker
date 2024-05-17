@@ -32,7 +32,7 @@ from mapmaker.settings import settings
 
 logger = logging.getLogger(__name__)
 
-def configure_logging(log_file, verbose=False, silent=False, debug=False):
+def configure_logging(log_file=None, verbose=False, silent=False, debug=False):
     log_format = '%(asctime)s %(levelname)s: %(message)s'
     log_level = logging.DEBUG if debug else logging.INFO
     if silent:
@@ -54,9 +54,7 @@ def configure_logging(log_file, verbose=False, silent=False, debug=False):
 
 #===============================================================================
 
-class log(object):
-    def __init__(self, msg, *args, **kwds):
-        logger.info(msg, *args, **kwds)
+class log:
 
     @staticmethod
     def critical(msg, *args, **kwds):

@@ -330,7 +330,7 @@ class FlatMap(object):
         ## set layer.__image from slide when first making??
         ## Also want image layers scaled and with minzoom set...
 
-        log('Adding details...')
+        log.info('Adding details...')
         detail_layers = []
         for layer in self.__layer_dict.values():
             if layer.exported and layer.detail_features:

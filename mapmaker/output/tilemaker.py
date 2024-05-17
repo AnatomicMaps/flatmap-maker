@@ -411,7 +411,7 @@ class RasterTileMaker(object):
         mbtiles = MBTiles(self.__database_path, True, True)
         mbtiles.add_metadata(id=self.__id)
         zoom = self.__max_zoom
-        log('Tiling zoom level {} for {}'.format(zoom, self.__id))
+        log.info('Tiling zoom level {} for {}'.format(zoom, self.__id))
         progress_bar = ProgressBar(total=len(self.__tile_set),
             unit='tiles', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
@@ -430,7 +430,7 @@ class RasterTileMaker(object):
     #========================================================================
         if zoom > self.__min_zoom:
             zoom -= 1
-            log('Tiling zoom level {} for {}'.format(zoom, self.__id))
+            log.info('Tiling zoom level {} for {}'.format(zoom, self.__id))
             HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
             half_start = (start_coords[0]//2, start_coords[1]//2)
             half_end = (end_coords[0]//2, end_coords[1]//2)
@@ -461,7 +461,7 @@ class RasterTileMaker(object):
 
     def make_tiles(self):
     #====================
-        log('Tiling {}...'.format(self.__id))
+        log.info('Tiling {}...'.format(self.__id))
         kind = self.__raster_layer.source_kind
         if kind == 'image':
             tile_extractor = ImageTiler(self.__raster_layer, self.__tile_set)
