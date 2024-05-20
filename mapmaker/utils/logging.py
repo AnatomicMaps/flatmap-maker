@@ -37,6 +37,7 @@ def configure_logging(log_file=None, verbose=False, silent=False, debug=False):
     log_level = logging.DEBUG if debug else logging.INFO
     if silent:
         logging.lastResort = None
+        logger.propagate = False
         if log_file is not None:
             logger.setLevel(log_level)
     else:
