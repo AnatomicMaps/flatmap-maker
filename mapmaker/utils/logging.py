@@ -71,7 +71,10 @@ class log:
 
     @staticmethod
     def exception(msg, *args, **kwds):
+        saved_propagation = logger.propagate
+        logger.propagate = True
         logger.exception(msg, *args, **kwds)
+        logger.propagate = saved_propagation
 
     @staticmethod
     def info(msg, *args, **kwds):
