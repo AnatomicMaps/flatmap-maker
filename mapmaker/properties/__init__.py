@@ -68,7 +68,7 @@ class PropertiesStore(object):
             self.__pathways.add_connectivity(connectivity)
 
         # ApiNATOMY connectivity models from SciCrunch
-        apinatomy_models = knowledgebase.connectivity_models('APINATOMY')
+        connectivity_models = knowledgebase.connectivity_models()
         seen_npo = False
         for connectivity_source in manifest.neuron_connectivity:
             path_filter = None
@@ -85,7 +85,7 @@ class PropertiesStore(object):
                                                and (exclude_ids is None or exclude_ids is not None and path_id not in exclude_ids))
             else:
                 model_source = connectivity_source
-            if model_source in apinatomy_models:
+            if model_source in connectivity_models:
                 self.__pathways.add_connectivity_model(model_source, self,
                     path_filter=path_filter, traced_paths=traced_paths)
             elif model_source == 'NPO':
@@ -95,7 +95,7 @@ class PropertiesStore(object):
                 else:
                     seen_npo = True
                     settings['NPO'] = True
-                    for connectivity_path in knowledgebase.npo_connectivity_paths().keys():
+                    for connectivity_path in knowledgebase.connectivity_paths():
                         phenotype_sex = knowledgebase.get_knowledge(connectivity_path).get('biologicalSex')
                         if manifest.biological_sex is None or phenotype_sex is None or (manifest.biological_sex == phenotype_sex):
                             self.__pathways.add_connectivity_path(connectivity_path,

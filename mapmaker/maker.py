@@ -167,31 +167,14 @@ class MapMaker(object):
 
         # Our source of knowledge, updated with information about maps we've made, held in a global place
         sckan_version = settings.get('sckanVersion', self.__manifest.sckan_version)
-
-        if sckan_version in ['production', 'staging']:
-            knowledge_store = knowledgebase.KnowledgeStore(map_base,
-                                            clean_connectivity=settings.get('cleanConnectivity', False),
-                                            sckan_version=sckan_version,
-                                            npo=True,
-                                            sckan_provenance=True,
-                                            log_provenance=True
-                                            )
-        else:
-            knowledge_store = knowledgebase.KnowledgeStore(map_base,
-                                            clean_connectivity=settings.get('cleanConnectivity', False),
-                                            npo=True,
-                                            scicrunch_api=None,
-                                            npo_release=sckan_version,
-                                            sckan_provenance=True,
-                                            log_provenance=True
-                                            )
-        settings['KNOWLEDGE_STORE'] = knowledge_store
-
+        store_params = {
+            'clean_connectivity': settings.get('cleanConnectivity', False),
+            'sckan_version': sckan_version,
+            'sckan_provenance': True,
+            'log_provenance': True
+        }
+        settings['KNOWLEDGE_STORE'] = knowledgebase.KnowledgeStore(map_base, **store_params)
         self.__sckan_provenance = knowledgebase.sckan_provenance()
-
-        # Check sckan-version now that we have provenance
-        if sckan_version not in ['production', 'staging', self.__sckan_provenance.get('npo', {}).get('release', '')]:
-            raise ValueError("'sckan-version' in manifest must be `production', 'staging', or any valid tag release")
 
         # Our ``uuid`` depends on the source Git repository commit,
         # the contents of the map's manifest, mapmaker's version,

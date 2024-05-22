@@ -397,20 +397,20 @@ typing = ["typing-extensions (>=4.8)"]
 
 [[package]]
 name = "flatmapknowledge"
-version = "1.7.1"
+version = "1.8.0"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "flatmapknowledge-1.7.1-py3-none-any.whl", hash = "sha256:13565963b281dc51296b752785eb255945c2c564b8b56e6f6abc196dd63d8446"},
+    {file = "flatmapknowledge-1.8.0-py3-none-any.whl", hash = "sha256:a0bdf695b687d24be7a0c03f2b967a353176098844af85ac423868c18a15c6c7"},
 ]
 
 [package.dependencies]
-mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.17.1/mapknowledge-0.17.1-py3-none-any.whl"}
+mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.18.0/mapknowledge-0.18.0-py3-none-any.whl"}
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.7.1/flatmapknowledge-1.7.1-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.8.0/flatmapknowledge-1.8.0-py3-none-any.whl"
 
 [[package]]
 name = "frozendict"
@@ -577,13 +577,13 @@ grpcio-gcp = ["grpcio-gcp (>=0.2.2,<1.0.dev0)"]
 
 [[package]]
 name = "google-api-python-client"
-version = "2.129.0"
+version = "2.130.0"
 description = "Google API Client Library for Python"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-api-python-client-2.129.0.tar.gz", hash = "sha256:984cc8cc8eb4923468b1926d2b8effc5b459a4dda3c845896eb87c153b28ef84"},
-    {file = "google_api_python_client-2.129.0-py2.py3-none-any.whl", hash = "sha256:d50f7e2dfdbb7fc2732f6a0cba1c54d7bb676390679526c6bb628c901e43ec86"},
+    {file = "google-api-python-client-2.130.0.tar.gz", hash = "sha256:2bba3122b82a649c677b8a694b8e2bbf2a5fbf3420265caf3343bb88e2e9f0ae"},
+    {file = "google_api_python_client-2.130.0-py2.py3-none-any.whl", hash = "sha256:7d45a28d738628715944a9c9d73e8696e7e03ac50b7de87f5e3035cefa94ed3a"},
 ]
 
 [package.dependencies]
@@ -1019,12 +1019,12 @@ source = ["Cython (>=3.0.10)"]
 
 [[package]]
 name = "mapknowledge"
-version = "0.17.1"
+version = "0.18.0"
 description = ""
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "mapknowledge-0.17.1-py3-none-any.whl", hash = "sha256:68a156b41aa720e2262dad6ea5756e8fa70ad3496caa90c986b268d9f38e90f7"},
+    {file = "mapknowledge-0.18.0-py3-none-any.whl", hash = "sha256:54b2f02bfe9a1f9cd54f78efb7eb668290cf76a6f9124d040305d4bedd64e002"},
 ]
 
 [package.dependencies]
@@ -1036,7 +1036,7 @@ sparqlwrapper = ">=2.0.0,<3.0.0"
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.17.1/mapknowledge-0.17.1-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.18.0/mapknowledge-0.18.0-py3-none-any.whl"
 
 [[package]]
 name = "markupsafe"
@@ -3349,13 +3349,13 @@ telegram = ["requests"]
 
 [[package]]
 name = "transformers"
-version = "4.41.0"
+version = "4.41.1"
 description = "State-of-the-art Machine Learning for JAX, PyTorch and TensorFlow"
 optional = false
 python-versions = ">=3.8.0"
 files = [
-    {file = "transformers-4.41.0-py3-none-any.whl", hash = "sha256:edcbc48fc7ec26b23c86a7b17a516c0c882b289df0a260f61af6d9c11bfbc3f3"},
-    {file = "transformers-4.41.0.tar.gz", hash = "sha256:5971737e7c2e4d5ae1495f9d48af0351c0fb7c7c650b96508ac5996cd7f44f49"},
+    {file = "transformers-4.41.1-py3-none-any.whl", hash = "sha256:f0680e0b1a01067eccd11f62f0522409422c7d6f91d532fe0f50b136a406129d"},
+    {file = "transformers-4.41.1.tar.gz", hash = "sha256:fa859e4c66f0896633a3bf534e0d9a29a9a88478a49f94c5d8270537dc61cc42"},
 ]
 
 [package.dependencies]
@@ -3638,4 +3638,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<4.0"
-content-hash = "337ab6bd8b6746b8ec0be9d5c3fcb201eff8c13731b8d2f314b14b5281b75029"
+content-hash = "76eff56de0b799378171280febf963bffd7196031019c3c1906202e6278ee845"

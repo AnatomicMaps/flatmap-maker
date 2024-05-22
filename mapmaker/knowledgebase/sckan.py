@@ -241,10 +241,10 @@ class SckanNeuronChecker:
         if settings.get('ignoreSckan', False):
             return
         connectivity_paths = set()
-        for model in kb.connectivity_models('APINATOMY'):
+        for model in kb.connectivity_models():
             model_knowledege = kb.get_knowledge(model)
             connectivity_paths.update([path['id'] for path in model_knowledege.get('paths', [])])
-        connectivity_paths.update(kb.npo_connectivity_paths().keys())
+        connectivity_paths.update(kb.connectivity_paths())
         for path_id in connectivity_paths:
             path_knowledge = kb.get_knowledge(path_id)
             self.__paths_by_id[path_id] = path_knowledge
