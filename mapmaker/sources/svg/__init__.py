@@ -28,6 +28,7 @@ import shapely.ops
 
 #===============================================================================
 
+from mapmaker.exceptions import MakerException
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.properties import not_in_group_properties
@@ -157,12 +158,19 @@ class SVGLayer(MapLayer):
             'transform', wrapped_element.etree_element.attrib.get('transform')))
         transform_origin = element_style.get(
             'transform-origin', wrapped_element.etree_element.attrib.get('transform-origin'))
+        transform_box = element_style.get(
+            'transform-box', wrapped_element.etree_element.attrib.get('transform-box'))
+        if transform_box is not None:
+            raise MakerException('Unsupported `transform-box` attribute -- please normalise SVG source')
         if transform_origin is None:
             return T
-        translation = [length_as_pixels(l) for l in transform_origin.split()]
-        return (SVGTransform(f'translate({translation[0]}, {translation[1]})')
-               @T
-               @SVGTransform(f'translate({-translation[0]}, {-translation[1]})'))
+        try:
+            translation = [length_as_pixels(l) for l in transform_origin.split()]
+            return (SVGTransform(f'translate({translation[0]}, {translation[1]})')
+                   @T
+                   @SVGTransform(f'translate({-translation[0]}, {-translation[1]})'))
+        except MakerException:
+            raise MakerException('Unsupported `transform-origin` units -- please normalise SVG source')
 
     def __process_group(self, wrapped_group, properties, transform, parent_style):
     #=============================================================================
