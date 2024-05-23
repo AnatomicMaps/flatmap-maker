@@ -37,6 +37,17 @@ and if they are not, install them by running::
 
     $ xcode-select --install
 
+Linux
+^^^^^
+
+Debian/Ubuntu::
+
+  $ apt-get install libfontconfig1 libgl1-mesa-glx libgl1-mesa-dri
+
+RHEL/Fedora::
+
+  $ yum install fontconfig mesa-libGL mesa-dri-drivers
+
 
 Installation
 ~~~~~~~~~~~~
