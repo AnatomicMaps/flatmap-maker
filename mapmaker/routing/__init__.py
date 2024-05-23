@@ -859,6 +859,7 @@ class Network(object):
         # Add directly identified centreline segments to the route, noting path nodes and
         # nerve cuff identifiers
         no_sub_segment_nodes = []
+        node_with_segments = {}
         for node, node_dict in connectivity_graph.nodes(data=True):
             node_type = node_dict['type']
             if node_type == 'segment':
@@ -877,6 +878,7 @@ class Network(object):
                 if segment_graph.number_of_edges():
                     # Add segment edges used by our path to the route
                     add_route_edges_from_graph(segment_graph, {node})
+                    node_with_segments[node] = segment_graph
                 else:
                     log.warning(f'{path.id}: Cannot find any sub-segments of centreline for `{node_dict["name"]}`')
                     node_dict['type'] = 'no-segment'
@@ -901,9 +903,16 @@ class Network(object):
                         (features := list(f for f in neighbour_dict['features'])).sort(key=lambda f: f.id)
                         f = features[0]
                         neighbouring_ids.update([f.id])
-                        closest_feature_id = self.__closest_feature_id_to_point(f.geometry.centroid, segment_graph.nodes)
-                        closest_feature_dict[f.id] = closest_feature_id
-                        tmp_edge_dicts[(f.id, closest_feature_id)] = edge_dict
+                        closest_feature_id = None
+                        for n, s in itertools.product([f.id], segment_graph.nodes):
+                            if (edge_dicts := self.__centreline_graph.get_edge_data(n, s)) is not None:
+                                closest_feature_dict[n] = s
+                                tmp_edge_dicts[(n, s)] = edge_dicts[0]
+                                break
+                        if f.id not in closest_feature_dict:
+                            closest_feature_id = self.__closest_feature_id_to_point(f.geometry.centroid, segment_graph.nodes)
+                            closest_feature_dict[f.id] = closest_feature_id
+                            tmp_edge_dicts[(f.id, closest_feature_id)] = edge_dict
                     elif neighbour_dict['type'] in ['segment', 'no-segment']: # should check this limitation
                         candidates= {}
                         for n, s in itertools.product(neighbour_dict['subgraph'].nodes, segment_graph.nodes):
@@ -988,6 +997,7 @@ class Network(object):
             feature_ids = set()
             used_nodes = set()
             start_dict = connectivity_graph.nodes[ends[0]]
+            prev_node = None
             for node in path_nodes:
                 node_dict = connectivity_graph.nodes[node]
                 if len(node_dict['used']):
@@ -999,6 +1009,20 @@ class Network(object):
                 elif node_dict['type'] == 'feature':
                     feature_ids.update(f.id for f in node_dict['features'])
                     used_nodes.add(node)
+
+                # two centerline nodes that do not have a sharing feature must be connected.
+                if prev_node is not None:
+                    if len(pn_used:=connectivity_graph.nodes[prev_node]['used']) and len(n_used:=node_dict['used']):
+                        if len(pn_used - n_used) == len(pn_used):
+                            edge_dict = connectivity_graph.edges[(prev_node, node)]
+                            candidates= {}
+                            for n, s in itertools.product(pn_used, n_used):
+                                if (nf:=self.__map_feature(n)) is not None and (sf:=self.__map_feature(s)) is not None:
+                                    candidates[(n,s)] = nf.geometry.centroid.distance(sf.geometry.centroid)
+                                tmp_edge_dicts[(n,s)] = edge_dict
+                            new_direct_edges.update([min(candidates, key=candidates.get)])
+                prev_node = node
+
             if len(feature_ids):
                 get_centreline_from_containing_features(start_dict, connectivity_graph.nodes[ends[1]], feature_ids, used_nodes)
 
@@ -1150,9 +1174,15 @@ class Network(object):
                     log.warning(f'{path.id}: Feature {feature.id} has no geometry')
             return node_dict
 
+        tmp_route_graph = nx.Graph(route_graph)
         # Now add edges from the terminal graphs to the path's route graph
         for terminal_graph in terminal_graphs.values():
             for node_0, node_1, upstream in terminal_graph.edges(data='upstream'):
+                if node_0 in route_graph.nodes and node_1 in route_graph.nodes:
+                    # no need to add an edge that is already contained in centreline
+                    if node_0 in tmp_route_graph.nodes and node_1 in tmp_route_graph.nodes:
+                        if node_0 == node_1 or len(list(nx.all_simple_paths(tmp_route_graph, node_0, node_1))) > 0:
+                            continue
                 debug_properties = terminal_graph.get_edge_data(node_0, node_1)
                 if not upstream:
                     upstream_node = None
@@ -1211,19 +1241,62 @@ class Network(object):
                 log.info(f'{path.id}: Edge {n_0} -> {n_1}: {ed.get("centreline")}')
 
         # Adds direct edges to graph routes for nodes connected to unidentified segments
+        def set_direction(upstream_node):
+            if 'direction' in route_graph.nodes[upstream_node]:
+                return
+            segment_ids = route_graph.nodes[upstream_node].get('segments', set())
+            if len(segment_ids:=route_graph.nodes[upstream_node].get('segments', set())) > 0:
+                # We want the path direction we were going when we reached the upstream node
+                direction = 0.0
+                for segment_id in segment_ids:
+                    direction += route_graph.nodes[upstream_node]['edge-direction'][segment_id]
+                route_graph.nodes[upstream_node]['direction'] = direction/len(segment_ids)
+            elif 'edge-direction' in route_graph.nodes[upstream_node]:
+                route_graph.nodes[upstream_node]['direction'] = list(route_graph.nodes[upstream_node]['edge-direction'].items())[0][1]
+            else:
+                route_graph.nodes[upstream_node]['direction'] = 0.0
+
         tmp_route_graph = nx.Graph(route_graph)
         tmp_route_graph.add_edges_from(new_direct_edges)
         for node_0, node_1 in new_direct_edges:
+            if (node_0, node_1) in route_graph.edges:
+                continue
             if node_0 not in route_graph:
                 route_graph.add_node(node_0, type='terminal')
             if node_1 not in route_graph:
                 route_graph.add_node(node_1, type='terminal')
             if (node_0, node_1) in tmp_edge_dicts:
-                route_graph.add_edge(node_0, node_1, type='terminal', **tmp_edge_dicts[(node_0, node_1)])
-                route_graph.nodes[node_0].update(set_properties_from_feature_id(node_0))
-                route_graph.nodes[node_1].update(set_properties_from_feature_id(node_1))
-                upstream_node = node_0
-                route_graph.nodes[upstream_node]['type'] = 'upstream'
+                node_0_prop = set_properties_from_feature_id(node_0)
+                node_1_prop = set_properties_from_feature_id(node_1)
+                if 'centreline' in tmp_edge_dicts[(node_0, node_1)]:
+                    route_graph.add_edge(node_0, node_1 , **tmp_edge_dicts[(node_0, node_1)])
+                    route_graph.nodes[node_0].update({'network_node':tmp_edge_dicts[(node_0, node_1)]['network-nodes'][0]})
+                elif 'network_node' not in route_graph.nodes[node_0] and 'network_node' not in route_graph.nodes[node_1]:
+                    route_graph.add_edge(node_0, node_1, type='terminal', **tmp_edge_dicts[(node_0, node_1)])
+                else:
+                    route_graph.add_edge(node_0, node_1, type='upstream', upstream=True , **tmp_edge_dicts[(node_0, node_1)])
+                    upstream_node = node_0
+                    route_graph.nodes[upstream_node]['type'] = 'upstream'
+                    set_direction(upstream_node)
+                route_graph.nodes[node_0].update(node_0_prop)
+                route_graph.nodes[node_1].update(node_1_prop)
+
+        # connects the remaining centerlines that have edges to terminal nodes but are not yet connected
+        for node, segment_graph in node_with_segments.items():
+            if len(neighbours:=list(connectivity_graph.neighbors(node))) > 0:
+                if len(end_nodes:=[n for n in segment_graph.nodes if route_graph.degree(n) < 2]) > 1:
+                    for neighbour in neighbours:
+                        if 'features' in connectivity_graph.nodes[neighbour]:
+                            n_features = list(connectivity_graph.nodes[neighbour]['features'])
+                            if connectivity_graph.nodes[neighbour]['type'] == 'feature' and len(n_features) > 0:
+                                if n_features[0].id not in route_graph.nodes:
+                                    route_graph.add_node(n_features[0].id, type='terminal')
+                                closest_feature_id = self.__closest_feature_id_to_point(n_features[0].geometry.centroid, end_nodes)
+                                if (closest_feature_id, n_features[0].id) in route_graph.edges: continue
+                                route_graph.add_edge(closest_feature_id, n_features[0].id, type='terminal',
+                                                    **connectivity_graph.edges[(node, neighbour)])
+                                route_graph.nodes[closest_feature_id]['type'] = 'terminal'
+                                route_graph.nodes[n_features[0].id].update(set_properties_from_feature_id(n_features[0].id))
 
         # need to delete edges that is already covered by centerline
         for edge in new_edge_dicts:
