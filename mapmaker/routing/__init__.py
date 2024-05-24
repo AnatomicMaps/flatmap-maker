@@ -1306,6 +1306,11 @@ class Network(object):
                         if (p[i], p[i+1]) in route_graph.edges:
                             route_graph.remove_edge(p[i], p[i+1])
 
+        # removing self loop due to generalisation
+        for edge in nx.Graph(route_graph).edges:
+            if edge[0] == edge[1] and route_graph.has_edge(edge[0], edge[1]):
+                route_graph.remove_edge(edge[0], edge[1])
+
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
         else:
