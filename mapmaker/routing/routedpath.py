@@ -425,7 +425,6 @@ class RoutedPath(object):
                 return
             angle = (end_point - start_point).angle + tolerance * (end_point - start_point).angle
             heading = angle
-            # end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
             bz = bezier_connect(start_point, end_point, angle, heading)
             path_geometry[path_id].append(GeometricShape(
                         bezier_to_linestring(bz, offset=path_offset), {
@@ -455,7 +454,7 @@ class RoutedPath(object):
              or (edge_type == 'upstream'
               and 'upstream' not in [self.__graph.nodes[node_0].get('type'),
                                      self.__graph.nodes[node_1].get('type')])):
-                # Draw straight lines...
+                # Draw lines...
                 terminal_nodes.update([node_0, node_1])
                 draw_line(node_0, node_1, added_properties)
             elif edge_type == 'upstream':
