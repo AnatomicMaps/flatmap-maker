@@ -405,7 +405,9 @@ class RoutedPath(object):
                     connect_gap(edge_dict['end-node'], [end_point], iscentreline=True)
 
         # Draw paths to terminal nodes
-        def draw_arrow(end_point, heading, path_id, path_source, added_properties):
+        def draw_arrow(start_point, end_point, path_id, path_source, added_properties):
+            heading = (end_point - start_point).angle
+            end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
             path_geometry[path_id].append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
                 'type': 'arrow',
                 'path-id': path_id,
@@ -419,9 +421,10 @@ class RoutedPath(object):
             path_offset = separation * offset
             start_point = coords_to_point(start_coords)
             end_point = coords_to_point(end_coords)
+            if end_point.distanceFrom(start_point) == 0:
+                return
             angle = (end_point - start_point).angle + tolerance * (end_point - start_point).angle
             heading = angle
-            end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
             bz = bezier_connect(start_point, end_point, angle, heading)
             path_geometry[path_id].append(GeometricShape(
                         bezier_to_linestring(bz, offset=path_offset), {
@@ -430,10 +433,9 @@ class RoutedPath(object):
                         } | added_properties))
             bz_line_coord = bezier_to_line_coords(bz, offset=path_offset)
             if self.__graph.degree(node_0) == 1:
-                arrow_heading = (start_point - end_point).angle - tolerance * (start_point - end_point).angle
-                draw_arrow(coords_to_point(bz_line_coord[0]), arrow_heading, path_id, path_source, added_properties)
+                draw_arrow(coords_to_point(bz_line_coord[-1]), coords_to_point(bz_line_coord[0]), path_id, path_source, added_properties)
             if self.__graph.degree(node_1) == 1:
-                draw_arrow(coords_to_point(bz_line_coord[-1]), angle, path_id, path_source, added_properties)
+                draw_arrow(coords_to_point(bz_line_coord[0]), coords_to_point(bz_line_coord[-1]), path_id, path_source, added_properties)
             connect_gap(node_0, [coords_to_point(bz_line_coord[0])], added_properties)
             connect_gap(node_1, [coords_to_point(bz_line_coord[-1])], added_properties)
 
@@ -452,7 +454,7 @@ class RoutedPath(object):
              or (edge_type == 'upstream'
               and 'upstream' not in [self.__graph.nodes[node_0].get('type'),
                                      self.__graph.nodes[node_1].get('type')])):
-                # Draw straight lines...
+                # Draw lines...
                 terminal_nodes.update([node_0, node_1])
                 draw_line(node_0, node_1, added_properties)
             elif edge_type == 'upstream':
@@ -480,8 +482,8 @@ class RoutedPath(object):
                             'source': path_source,
                         } | added_properties))
                     bz_line_coord = bezier_to_line_coords(bz)
-                    connect_gap(node_0, [coords_to_point(bz_line_coord[0])], added_properties)
-                    connect_gap(node_1, [coords_to_point(bz_line_coord[-1])], added_properties)
+                    connect_gap(upstream_node, [coords_to_point(bz_line_coord[0])], added_properties)
+                    connect_gap(terminal_node, [coords_to_point(bz_line_coord[-1])], added_properties)
                     if self.__trace:
                         path_geometry[path_id].extend(bezier_control_points(bz, label=f'{self.__path_id}-T'))
                     # Draw arrow iff degree(node_1) == 1
