@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mapmaker"
-version = "1.10.5"
+version = "1.10.6"
 description = ""
 authors = ["David Brooks <d.brooks@auckland.ac.nz>"]
 include = ["mapmaker/output/data_mapping.json", "resources/*"]
@@ -31,6 +31,7 @@ cssselect2 = "^0.6.0"
 webcolors = "^1.12"
 xmltodict = "^0.12.0"
 flatmapknowledge = {url="https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.8.1/flatmapknowledge-1.8.1-py3-none-any.whl"}
+#flatmapknowledge = { path = "../flatmap-knowledge", develop = true }
 Pyomo = "^6.2"
 svgwrite = "^1.4.3"
 XlsxWriter = "^3.0.3"
@@ -57,6 +58,14 @@ optional = true
 [tool.poetry.group.alignments.dependencies]
 torch = "^2.1.1"
 sentence-transformers = "^2.2.2"
+
+[tool.poetry.group.dev.dependencies]
+attribution = "^1.7.1"
+
+[tool.attribution]
+name = "mapmaker"
+package = "mapmaker"
+version_file = true
 
 [tool.poetry.scripts]
 mapmaker = 'mapmaker.__main__:main'
