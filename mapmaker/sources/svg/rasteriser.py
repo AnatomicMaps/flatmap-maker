@@ -190,13 +190,22 @@ class CanvasText(CanvasDrawingObject):
     def __init__(self, text, attribs, parent_transform: Transform,
                        local_transform: Optional[Transform], clip_path):
         self.__text = text
-        style_rules = dict([rule.split(':', 1) for rule in [rule.strip()
-                                                for rule in attribs.get('style', '')[:-1].split(';')]])
-        self.__font = skia.Font(skia.Typeface(style_rules.get('font-family', 'Calibri'),
-                                              skia.FontStyle(int(style_rules.get('font-weight',
-                                                                                 skia.FontStyle.kNormal_Weight)),
-                                                             skia.FontStyle.kNormal_Width,
-                                                             skia.FontStyle.kUpright_Slant)),
+        style_rules = dict(attribs)
+        if 'style' in attribs:
+            styling = attribs.pop('style')
+            style_rules.update(dict([rule.split(':', 1) for rule in [rule.strip()
+                                                for rule in styling[:-1].split(';')]]))
+        font_style = skia.FontStyle(int(style_rules.get('font-weight', skia.FontStyle.kNormal_Weight)),
+                                    skia.FontStyle.kNormal_Width,
+                                    skia.FontStyle.kUpright_Slant)
+        type_face = None
+        for font_family in style_rules.get('font-family', 'Calibri').split(','):
+            type_face = skia.Typeface(font_family, font_style)
+            if font_family == type_face.getFamilyName():
+                break
+        if type_face is None:
+            type_face = skia.Typeface('Calibri', font_style)
+        self.__font = skia.Font(type_face,
                                 length_as_points(style_rules.get('font-size', 10)))
         self.__pos = [float(attribs['x']), float(attribs['y'])]
         text_width = self.__font.measureText(text)
