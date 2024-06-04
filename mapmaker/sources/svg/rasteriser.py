@@ -207,7 +207,7 @@ class CanvasText(CanvasDrawingObject):
             type_face = skia.Typeface('Calibri', font_style)
         self.__font = skia.Font(type_face,
                                 length_as_points(style_rules.get('font-size', 10)))
-        self.__pos = [float(attribs['x']), float(attribs['y'])]
+        self.__pos = [float(attribs.get('x', 0)), float(attribs.get('y', 0))]
         text_width = self.__font.measureText(text)
         text_height = self.__font.getSpacing()
         halign = attribs.get('text-anchor')  # end, middle, start
