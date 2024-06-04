@@ -311,7 +311,7 @@ class Manifest:
 
     @property
     def sckan_version(self):
-        return self.__manifest.get('sckan-version', 'production')
+        return self.__manifest.get('sckan-version')
 
     @property
     def sources(self):
