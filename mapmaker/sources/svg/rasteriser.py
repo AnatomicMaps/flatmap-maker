@@ -199,12 +199,13 @@ class CanvasText(CanvasDrawingObject):
                                     skia.FontStyle.kNormal_Width,
                                     skia.FontStyle.kUpright_Slant)
         type_face = None
+        font_manager = skia.FontMgr()
         for font_family in style_rules.get('font-family', 'Calibri').split(','):
-            type_face = skia.Typeface(font_family, font_style)
-            if font_family == type_face.getFamilyName():
+            type_face = font_manager.matchFamilyStyle(font_family, font_style)
+            if type_face is not None:
                 break
         if type_face is None:
-            type_face = skia.Typeface('Calibri', font_style)
+            type_face = font_manager.matchFamilyStyle(None, font_style)
         self.__font = skia.Font(type_face,
                                 length_as_points(style_rules.get('font-size', 10)))
         self.__pos = [float(attribs.get('x', 0)), float(attribs.get('y', 0))]
