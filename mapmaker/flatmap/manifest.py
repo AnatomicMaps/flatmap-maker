@@ -159,6 +159,49 @@ class MapRepository:
 
 #===============================================================================
 
+class ManifestSource:
+    def __init__(self, description: dict, manifest: 'Manifest'):
+        self.__id = description['id']
+        self.__href = manifest.check_and_normalise_path(description['href'], 'Flatmap source file')
+        self.__kind = description.get('kind', '')
+        self.__boundary = description.get('boundary')
+        self.__feature = description.get('feature')
+        self.__source_range = (([int(n) for n in source_range] if isinstance(source_range, list)
+                                                               else [int(source_range)])
+                                    if (source_range := description.get('slides')) is not None
+                                    else None)
+        self.__zoom = description['zoom'] if self.__feature is not None else 0
+
+    @property
+    def boundary(self) -> Optional[str]:
+        return self.__boundary
+
+    @property
+    def feature(self) -> Optional[str]:
+        return self.__feature
+
+    @property
+    def href(self) -> Optional[str]:
+        return self.__href
+
+    @property
+    def id(self) -> str:
+        return self.__id
+
+    @property
+    def kind(self) -> str:
+        return self.__kind
+
+    @property
+    def source_range(self) -> Optional[list[int]]:
+        return self.__source_range
+
+    @property
+    def zoom(self) -> int:
+        return self.__zoom
+
+#===============================================================================
+
 class Manifest:
     def __init__(self, manifest_path, single_file=None, id=None, ignore_git=False, manifest:Optional[str]=None, commit=None):
         self.__temp_directory = None
@@ -204,6 +247,7 @@ class Manifest:
                 ]
             }
             self.__raw_manifest = deepcopy(self.__manifest)
+            self.__sources = [ManifestSource(self.__manifest['sources'], self)]
         else:
             # Check the manifest itself is committed into the repository
             self.__check_committed(self.__url, 'Flatmap source manifest')
@@ -223,20 +267,20 @@ class Manifest:
 
             if 'sources' not in self.__manifest:
                 raise ValueError('No sources given for manifest')
-            for source in self.__manifest['sources']:
-                source['href'] = self.__check_and_normalise_path(source['href'], 'Flatmap source file')
+            self.__sources = [ManifestSource(source, self) for source in self.__manifest['sources']]
+
             if 'anatomicalMap' in self.__manifest:
-                self.__manifest['anatomicalMap'] = self.__check_and_normalise_path(self.__manifest['anatomicalMap'], 'Flatmap anatomical map')
+                self.__manifest['anatomicalMap'] = self.check_and_normalise_path(self.__manifest['anatomicalMap'], 'Flatmap anatomical map')
             if 'annotation' in self.__manifest:
-                self.__manifest['annotation'] = self.__check_and_normalise_path(self.__manifest['annotation'], 'Flatmap annotation')
+                self.__manifest['annotation'] = self.check_and_normalise_path(self.__manifest['annotation'], 'Flatmap annotation')
             if 'description' in self.__manifest:
-                self.__manifest['description'] = self.__check_and_normalise_path(self.__manifest['description'], 'Flatmap description')
+                self.__manifest['description'] = self.check_and_normalise_path(self.__manifest['description'], 'Flatmap description')
             if 'connectivityTerms' in self.__manifest:
-                self.__manifest['connectivityTerms'] = self.__check_and_normalise_path(self.__manifest['connectivityTerms'], 'Flatmap connectivity terms')
+                self.__manifest['connectivityTerms'] = self.check_and_normalise_path(self.__manifest['connectivityTerms'], 'Flatmap connectivity terms')
             if 'properties' in self.__manifest:
-                self.__manifest['properties'] = self.__check_and_normalise_path(self.__manifest['properties'], 'Flatmap properties')
+                self.__manifest['properties'] = self.check_and_normalise_path(self.__manifest['properties'], 'Flatmap properties')
             for path in self.__manifest.get('connectivity', []):
-                self.__connectivity.append(self.__check_and_normalise_path(path, 'Flatmap connectivity'))
+                self.__connectivity.append(self.check_and_normalise_path(path, 'Flatmap connectivity'))
             if not ignore_git and self.__uncommitted:
                 raise TypeError("Not all sources are commited into git -- was the '--authoring' or '--ignore-git' option intended?")
 
@@ -290,7 +334,7 @@ class Manifest:
         return self.__manifest['id']
 
     @property
-    def kind(self):
+    def kind(self):                 #! Either ``anatomical`` or ``functional``
         return self.__manifest.get('kind', 'anatomical')
 
     @property
@@ -314,8 +358,8 @@ class Manifest:
         return self.__manifest.get('sckan-version')
 
     @property
-    def sources(self):
-        return self.__manifest['sources']
+    def sources(self) -> list[ManifestSource]:
+        return self.__sources
 
     @property
     def url(self):
@@ -329,8 +373,8 @@ class Manifest:
         if self.__temp_directory is not None:
             shutil.rmtree(self.__temp_directory)
 
-    def __check_and_normalise_path(self, path: str, desc: str='') -> str|None:
-    #=========================================================================
+    def check_and_normalise_path(self, path: str, desc: str='') -> str|None:
+    #=======================================================================
         if path.strip() == '':
             return None
         normalised_path = self.__path.join_url(path)

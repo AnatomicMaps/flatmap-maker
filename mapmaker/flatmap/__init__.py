@@ -45,7 +45,7 @@ from .feature import Feature, FeatureAnatomicalNodeMap
 from .layers import MapLayer
 
 # Exports
-from .manifest import Manifest
+from .manifest import Manifest, ManifestSource
 
 #===============================================================================
 

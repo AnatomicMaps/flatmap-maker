@@ -343,18 +343,6 @@ class MapMaker(object):
 
     def __process_sources(self):
     #===========================
-        # Make sure ``base`` and ``slides`` source kinds are processed first
-        def kind_order(source):
-            kind = source.get('kind', '')
-            return ('0' if kind in ['base', 'slides'] else '1') + kind
-        # Make sure any source range is a list of int
-        def get_range(source_range):
-            if source_range is not None:
-                if isinstance(source_range, list):
-                    return [int(n) for n in source_range]
-                else:
-                    return [int(source_range)]
-
         if self.__manifest.kind == 'functional':
             settings['functionalConnectivity'] = True
             self.__shape_filter = ShapeFilter()
@@ -362,27 +350,29 @@ class MapMaker(object):
             settings['functionalConnectivity'] = False
         self.__processing_store = {}
         base_source = None
-        for layer_number, manifest_source in enumerate(sorted(self.__manifest.sources, key=kind_order)):
-            id = manifest_source.get('id')
-            kind = manifest_source.get('kind')
-            href = manifest_source['href']
+        for layer_number, manifest_source in enumerate(sorted(self.__manifest.sources,
+                                                       # Make sure ``base`` and ``slides`` source kinds are processed first
+                                                       key=lambda s: ('0' if s.kind in ['base', 'slides'] else '1') + s.kind)):
+            id = manifest_source.id
+            kind = manifest_source.kind
+            href = manifest_source.href
             if settings['functionalConnectivity']:
                 if kind in ['base', 'layer']:
                     source = FCPowerpointSource(self.__flatmap, id, href,
                                                 kind=kind,
-                                                source_range=get_range(manifest_source.get('slides')),
+                                                source_range=manifest_source.source_range,
                                                 shape_filter=self.__shape_filter,
                                                 process_store=self.__processing_store)
                 else:
                     raise ValueError('Unsupported FC kind: {}'.format(kind))
             elif kind == 'slides':
                 source = PowerpointSource(self.__flatmap, id, href,
-                                    source_range=get_range(manifest_source.get('slides')))
+                                          source_range=manifest_source.source_range)
             elif kind == 'image':
-                if layer_number > 0 and 'boundary' not in manifest_source:
+                if layer_number > 0 and manifest_source.boundary is None:
                     raise ValueError('An image source must specify a boundary')
                 source = MBFSource(self.__flatmap, id, href,
-                                   boundary_id=manifest_source.get('boundary'),
+                                   boundary_id=manifest_source.boundary,
                                    exported=(layer_number==0))
             elif kind in ['base', 'details']:
                 source = SVGSource(self.__flatmap, id, href, kind)
