@@ -22,7 +22,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from datetime import datetime, timezone
 import os
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 #===============================================================================
 
@@ -46,6 +46,9 @@ from .layers import MapLayer
 
 # Exports
 from .manifest import Manifest, ManifestSource
+
+if TYPE_CHECKING:
+    from mapmaker.sources import MapSource
 
 #===============================================================================
 
@@ -274,8 +277,8 @@ class FlatMap(object):
                                               feature.geojson_id,
                                               [])
 
-    def add_source_layers(self, layer_number, source):
-    #=================================================
+    def add_source_layers(self, layer_number: int, source: MapSource):
+    #=================================================================
         for layer in source.layers:
             self.add_layer(layer)
             if layer.exported:

@@ -48,7 +48,7 @@ PATHWAYS_TILE_LAYER = 'pathways'
 #===============================================================================
 
 class FeatureLayer(object):
-    def __init__(self, id, flatmap, exported=False):
+    def __init__(self, id: str, flatmap, exported=False):
         self.__id = id
         self.__flatmap = flatmap
         self.__annotations = {}
@@ -81,7 +81,7 @@ class FeatureLayer(object):
         return self.__flatmap
 
     @property
-    def id(self):
+    def id(self) -> str:
         return self.__id
 
     @property
@@ -168,10 +168,10 @@ class MapLayer(FeatureLayer):
         if feature.has_property('details'):
             self.__detail_features.append(feature)
 
-    def add_raster_layer(self, id, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):
-    #===============================================================================================
+    def add_raster_layer(self, layer_id: str, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):
+    #==========================================================================================================
         if map_source.raster_source is not None:
-            self.__raster_layers.append(RasterLayer(id.replace('/', '_'), extent, map_source, min_zoom, local_world_to_base))
+            self.__raster_layers.append(RasterLayer(layer_id.replace('/', '_'), extent, map_source, min_zoom, local_world_to_base))
 
     def add_features(self, group_name, features, tile_layer=FEATURES_TILE_LAYER, outermost=False):
     #=============================================================================================
