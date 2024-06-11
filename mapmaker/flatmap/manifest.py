@@ -162,7 +162,10 @@ class MapRepository:
 class ManifestSource:
     def __init__(self, description: dict, manifest: 'Manifest'):
         self.__id = description['id']
-        self.__href = manifest.check_and_normalise_path(description['href'], 'Flatmap source file')
+        href = manifest.check_and_normalise_path(description['href'], 'Flatmap source file')
+        if href is None:
+            raise ValueError('Source in manifest has no `href`')
+        self.__href = href
         self.__kind = description.get('kind', '')
         self.__boundary = description.get('boundary')
         self.__feature = description.get('feature')
@@ -181,7 +184,7 @@ class ManifestSource:
         return self.__feature
 
     @property
-    def href(self) -> Optional[str]:
+    def href(self) -> str:
         return self.__href
 
     @property
