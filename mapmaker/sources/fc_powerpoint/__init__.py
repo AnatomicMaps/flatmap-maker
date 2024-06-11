@@ -37,7 +37,7 @@ from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
 from mapmaker.settings import settings
 from mapmaker.sources.shape import Shape, SHAPE_TYPE
 from mapmaker.sources import MapBounds
-from mapmaker.utils import log, TreeList
+from mapmaker.utils import log
 
 from ..powerpoint import PowerpointSource, Slide
 from ..shapefilter import ShapeFilter
