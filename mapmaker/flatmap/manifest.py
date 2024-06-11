@@ -285,7 +285,7 @@ class Manifest:
             for path in self.__manifest.get('connectivity', []):
                 self.__connectivity.append(self.check_and_normalise_path(path, 'Flatmap connectivity'))
             if not ignore_git and self.__uncommitted:
-                raise TypeError("Not all sources are commited into git -- was the '--authoring' or '--ignore-git' option intended?")
+                raise ValueError("Not all sources are commited into git -- was the '--authoring' or '--ignore-git' option intended?")
 
     @property
     def anatomical_map(self):
