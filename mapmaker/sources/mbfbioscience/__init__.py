@@ -32,6 +32,7 @@ import shapely.geometry
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_UM
 
+from mapmaker.flatmap import ManifestSource
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.sources import mask_image
@@ -51,17 +52,16 @@ def sparc_dataset(url):
 #===============================================================================
 
 class MBFSource(MapSource):
-    def __init__(self, flatmap, id, href, boundary_id=None, exported=False):
-        super().__init__(flatmap, id, href, 'image')
-        self.__sparc_dataset = sparc_dataset(href)
-
-        self.__boundary_id = boundary_id
+    def __init__(self, flatmap, manifest_source: ManifestSource, exported=False):
+        super().__init__(flatmap, manifest_source)
+        self.__sparc_dataset = sparc_dataset(self.href)
+        self.__boundary_id = manifest_source.boundary
         self.__boundary_geometry = None
 
-        self.__layer = MapLayer(id, self, exported=exported)
+        self.__layer = MapLayer(self.id, self, exported=exported)
         self.add_layer(self.__layer)
 
-        self.__mbf = etree.parse(FilePath(href).get_fp()).getroot()
+        self.__mbf = etree.parse(FilePath(self.href).get_fp()).getroot()
         self.__ns = self.__mbf.nsmap[None]
 
         sparcdata = self.__mbf.find(self.ns_tag('sparcdata'))
@@ -75,7 +75,7 @@ class MBFSource(MapSource):
         offset = (float(coord_element.get('x', 0.0)), float(coord_element.get('y', 0.0)))
 
         filename = image_element.find(self.ns_tag('filename')).text
-        image_file = FilePath(urljoin(href, filename.split('\\')[-1]))
+        image_file = FilePath(urljoin(self.href, filename.split('\\')[-1]))
         image_array = np.frombuffer(image_file.get_data(), dtype=np.uint8)
         self.__image = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
         if self.__image.shape[2] == 3:

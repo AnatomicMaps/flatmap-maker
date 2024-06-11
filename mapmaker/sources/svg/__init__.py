@@ -29,6 +29,7 @@ import shapely.ops
 #===============================================================================
 
 from mapmaker.exceptions import MakerException
+from mapmaker.flatmap import ManifestSource
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.properties import not_in_group_properties
@@ -60,10 +61,10 @@ IGNORED_SVG_TAGS = [
 #===============================================================================
 
 class SVGSource(MapSource):
-    def __init__(self, flatmap, id, href, kind):  # maker v's flatmap (esp. id)
-        super().__init__(flatmap, id, href, kind)
-        self.__source_file = FilePath(href)
-        self.__exported = (kind=='base')
+    def __init__(self, flatmap, manifest_source: ManifestSource):  # maker v's flatmap (esp. id)
+        super().__init__(flatmap, manifest_source)
+        self.__source_file = FilePath(manifest_source.href)
+        self.__exported = (self.kind=='base')
         svg = etree.parse(self.__source_file.get_fp()).getroot()
         if 'viewBox' in svg.attrib:
             viewbox = [float(x) for x in svg.attrib.get('viewBox').split()]
@@ -83,7 +84,7 @@ class SVGSource(MapSource):
         bottom_right = self.__transform.transform_point((left+width, top+height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-        self.__layer = SVGLayer(id, self, svg, exported=self.__exported)
+        self.__layer = SVGLayer(self.id, self, svg, exported=self.__exported)
         self.add_layer(self.__layer)
         self.__boundary_geometry = None
 

@@ -30,6 +30,7 @@ import numpy as np
 #===============================================================================
 
 from mapmaker.geometry import bounds_to_extent
+from mapmaker.flatmap import ManifestSource
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.properties.markup import parse_markup
 from mapmaker.utils import FilePath
@@ -130,12 +131,12 @@ def not_empty(image):
 #===============================================================================
 
 class MapSource(object):
-    def __init__(self, flatmap: FlatMap, id: str, href: str, kind: str, source_range: Optional[tuple[int, int]]=None):
+    def __init__(self, flatmap: FlatMap, manifest_source: ManifestSource):
         self.__flatmap = flatmap
-        self.__id = id
-        self.__href = href
-        self.__kind = kind
-        self.__source_range = source_range
+        self.__id = manifest_source.id
+        self.__href = manifest_source.href
+        self.__kind = manifest_source.kind
+        self.__source_range = manifest_source.source_range
         self.__errors: list[tuple[str, str]] = []
         self.__layers: list[MapLayer] = []
         self.__bounds: MapBounds = (0, 0, 0, 0)
@@ -196,7 +197,7 @@ class MapSource(object):
         return self.__href
 
     @property
-    def source_range(self) -> Optional[tuple[int, int]]:
+    def source_range(self) -> Optional[list[int]]:
         return self.__source_range
 
     def add_layer(self, layer: MapLayer):

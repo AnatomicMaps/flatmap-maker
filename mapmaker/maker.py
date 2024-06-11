@@ -358,24 +358,19 @@ class MapMaker(object):
             href = manifest_source.href
             if settings['functionalConnectivity']:
                 if kind in ['base', 'layer']:
-                    source = FCPowerpointSource(self.__flatmap, id, href,
-                                                kind=kind,
-                                                source_range=manifest_source.source_range,
+                    source = FCPowerpointSource(self.__flatmap, manifest_source,
                                                 shape_filter=self.__shape_filter,
                                                 process_store=self.__processing_store)
                 else:
                     raise ValueError('Unsupported FC kind: {}'.format(kind))
             elif kind == 'slides':
-                source = PowerpointSource(self.__flatmap, id, href,
-                                          source_range=manifest_source.source_range)
+                source = PowerpointSource(self.__flatmap, manifest_source)
             elif kind == 'image':
                 if layer_number > 0 and manifest_source.boundary is None:
                     raise ValueError('An image source must specify a boundary')
-                source = MBFSource(self.__flatmap, id, href,
-                                   boundary_id=manifest_source.boundary,
-                                   exported=(layer_number==0))
-            elif kind in ['base', 'details']:
-                source = SVGSource(self.__flatmap, id, href, kind)
+                source = MBFSource(self.__flatmap, manifest_source, exported=(layer_number==0))
+            elif kind in ['base', 'detail', 'details']:
+                source = SVGSource(self.__flatmap, manifest_source)
             else:
                 raise ValueError('Unsupported source kind: {}'.format(kind))
             source.process()
