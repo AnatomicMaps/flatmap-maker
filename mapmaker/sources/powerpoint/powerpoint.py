@@ -23,7 +23,7 @@ from typing import Optional
 
 #===============================================================================
 
-from lxml import etree
+import lxml.etree as etree
 import numpy as np
 import shapely.geometry
 from shapely.geometry.base import BaseGeometry

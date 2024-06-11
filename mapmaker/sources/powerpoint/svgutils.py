@@ -25,7 +25,7 @@ import xml.etree.ElementTree as ET
 
 #===============================================================================
 
-from lxml import etree
+import lxml.etree as etree
 import numpy as np
 
 import svgelements

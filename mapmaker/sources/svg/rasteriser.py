@@ -26,7 +26,7 @@ from typing import Optional
 #===============================================================================
 
 import cv2
-from lxml import etree
+import lxml.etree as etree
 import numpy as np
 import mercantile
 import shapely.geometry

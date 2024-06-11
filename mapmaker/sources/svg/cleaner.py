@@ -24,7 +24,7 @@ from typing import BinaryIO, TYPE_CHECKING
 
 #===============================================================================
 
-from lxml import etree
+import lxml.etree as etree
 import svgelements
 
 #===============================================================================

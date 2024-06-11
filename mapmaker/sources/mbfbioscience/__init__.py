@@ -23,7 +23,7 @@ from urllib.parse import urljoin
 #===============================================================================
 
 import cv2
-from lxml import etree
+import lxml.etree as etree
 import numpy as np
 import shapely.geometry
 

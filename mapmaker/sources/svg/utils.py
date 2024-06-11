@@ -37,7 +37,7 @@ from beziers.segment import Segment as BezierSegment
 import shapely.geometry
 from shapely.geometry.base import BaseGeometry
 
-from lxml import etree
+import lxml.etree as etree
 import svgelements
 
 #===============================================================================
