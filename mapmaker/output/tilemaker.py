@@ -19,6 +19,7 @@
 #===============================================================================
 
 import os
+from typing import TYPE_CHECKING
 
 #===============================================================================
 
@@ -38,6 +39,9 @@ from mapmaker.sources import add_alpha, blank_image, mask_image, not_empty
 from mapmaker.sources.svg.rasteriser import SVGTiler
 from mapmaker.utils import log, ProgressBar
 from mapmaker.utils.image import *
+
+if TYPE_CHECKING:
+    from mapmaker.flatmap.layers import RasterLayer
 
 #===============================================================================
 
@@ -394,7 +398,7 @@ class RasterTileMaker(object):
                      Optional, defaults to ``MAX_ZOOM``
     :type max_zoom: int
     """
-    def __init__(self, raster_layer, output_dir, max_zoom=MAX_ZOOM):
+    def __init__(self, raster_layer: 'RasterLayer', output_dir: str, max_zoom=MAX_ZOOM):
         self.__raster_layer = raster_layer
         self.__max_zoom = max_zoom
         self.__id = raster_layer.id

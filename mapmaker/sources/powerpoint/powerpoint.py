@@ -19,7 +19,7 @@
 #===============================================================================
 
 import base64
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 #===============================================================================
 
@@ -60,6 +60,9 @@ from .presets import CT_TextMath, DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_
 from .transform import DrawMLTransform
 
 from .omml2latex import openmath2latex
+
+if TYPE_CHECKING:
+    from mapmaker.annotation import Annotator
 
 #===============================================================================
 

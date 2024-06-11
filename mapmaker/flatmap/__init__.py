@@ -48,12 +48,14 @@ from .layers import MapLayer
 from .manifest import Manifest, ManifestSource
 
 if TYPE_CHECKING:
+    from mapmaker.annotation import Annotator
+    from mapmaker.maker import MapMaker
     from mapmaker.sources import MapSource
 
 #===============================================================================
 
 class FlatMap(object):
-    def __init__(self, manifest: Manifest, maker, annotator=None):
+    def __init__(self, manifest: Manifest, maker: MapMaker, annotator: Optional[Annotator]=None):
         self.__id = maker.id
         self.__uuid = maker.uuid
         self.__map_dir = maker.map_dir
@@ -206,8 +208,8 @@ class FlatMap(object):
         self.__created = datetime.now(tz=timezone.utc)
         self.__metadata['created'] = self.__created.isoformat(timespec='seconds')
 
-    def full_filename(self, localname):
-    #==================================
+    def full_filename(self, localname) -> str:
+    #=========================================
         return os.path.join(self.__map_dir, localname)
 
     def save_feature_for_node_lookup(self, feature: Feature):
@@ -241,8 +243,8 @@ class FlatMap(object):
     #=========================================================================
         return self.__features_by_geojson_id.get(geojson_id)
 
-    def new_feature(self, geometry, properties, is_group=False):
-    #===========================================================
+    def new_feature(self, geometry, properties, is_group=False) -> Feature:
+    #======================================================================
         self.__last_geojson_id += 1
         self.properties_store.update_properties(properties)   # Update from JSON properties file
         feature = Feature(self.__last_geojson_id, geometry, properties, is_group=is_group)
@@ -259,8 +261,8 @@ class FlatMap(object):
         return (not settings.get('onlyNetworks', False)
              or self.__properties_store.network_feature(feature))
 
-    def add_layer(self, layer):
-    #==========================
+    def add_layer(self, layer: MapLayer):
+    #====================================
         if layer.id in self.__layer_dict:
             raise KeyError('Duplicate layer id: {}'.format(layer.id))
         self.__layer_dict[layer.id] = layer

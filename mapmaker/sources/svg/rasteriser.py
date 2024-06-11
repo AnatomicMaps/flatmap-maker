@@ -21,7 +21,7 @@
 import base64
 import contextlib
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 #===============================================================================
 
@@ -46,6 +46,10 @@ from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import svg_markup, length_as_pixels, length_as_points, parse_svg_path, SVG_TAG, XLINK_HREF
+
+if TYPE_CHECKING:
+    from mapmaker.flatmap.layers import RasterLayer
+    from mapmaker.output.tilemaker import TileSet
 
 #===============================================================================
 
@@ -256,7 +260,7 @@ class CanvasGroup(CanvasDrawingObject):
 #===============================================================================
 
 class SVGTiler(object):
-    def __init__(self, raster_layer, tile_set):
+    def __init__(self, raster_layer: 'RasterLayer', tile_set: 'TileSet'):
         self.__bbox = shapely.geometry.box(*extent_to_bounds(raster_layer.extent))
         self.__svg = etree.fromstring(raster_layer.source_data, parser=etree.XMLParser(huge_tree=True))
         self.__source_path = raster_layer.source_path

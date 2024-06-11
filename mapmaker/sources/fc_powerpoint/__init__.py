@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 #===============================================================================
 
@@ -30,7 +30,7 @@ import shapely.strtree
 
 #===============================================================================
 
-from mapmaker.flatmap import ManifestSource
+from mapmaker.flatmap import FlatMap, ManifestSource
 from mapmaker.geometry import Transform
 from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS, FC_KIND
 from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
@@ -53,6 +53,9 @@ from .components import NERVE_FEATURE_KINDS, NEURON_PATH_TYPES
 from .components import ORGAN_COLOUR, ORGAN_KINDS
 from .components import VASCULAR_KINDS, VASCULAR_REGION_COLOUR, VASCULAR_VESSEL_KINDS
 from .connections import ConnectionClassifier
+
+if TYPE_CHECKING:
+    from mapmaker.annotation import Annotator
 
 #===============================================================================
 
@@ -94,7 +97,7 @@ SLIDE_LAYER_ID = 'SLIDE-LAYER-ID'
 #===============================================================================
 
 class FCSlide(Slide):
-    def __init__(self, flatmap: 'FlatMap', source: PowerpointSource, index: int, pptx_slide: PptxSlide,   # type: ignore
+    def __init__(self, flatmap: FlatMap, source: PowerpointSource, index: int, pptx_slide: PptxSlide,   # type: ignore
                  theme: ColourTheme, bounds: MapBounds, transform: Transform,
                  shape_filter: Optional[ShapeFilter]=None,
                  sckan_neurons: Optional[SckanNeuronPopulations]=None):
@@ -111,7 +114,7 @@ class FCSlide(Slide):
         self.__system_ids: set[str] = set()
 
     def process(self, annotator: Optional['Annotator']=None):
-    #======================================================
+    #========================================================
         super().process(annotator)
 
         self.__classify_shapes()
@@ -362,7 +365,7 @@ class FCSlide(Slide):
                 self.__connection_classifier.add_connector(connector)
 
     def __add_annotation(self, annotator: 'Annotator'):
-    #================================================
+    #==================================================
         # Called after shapes have been extracted
         for fc_shape in self.__shapes_by_id.values():
             if (is_component(fc_shape)

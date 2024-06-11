@@ -25,6 +25,9 @@ from typing import TYPE_CHECKING, Optional
 #===============================================================================
 
 import shapely.geometry
+from shapely.geometry.base import BaseGeometry
+import shapely.ops
+import shapely.prepared
 
 #===============================================================================
 
@@ -37,6 +40,7 @@ from mapmaker.utils import log
 
 if TYPE_CHECKING:
     from mapmaker.sources import MapSource
+    from . import FlatMap
 
 from .feature import Feature
 
@@ -48,7 +52,7 @@ PATHWAYS_TILE_LAYER = 'pathways'
 #===============================================================================
 
 class FeatureLayer(object):
-    def __init__(self, id: str, flatmap, exported=False):
+    def __init__(self, id: str, flatmap: FlatMap, exported: bool=False):
         self.__id = id
         self.__flatmap = flatmap
         self.__annotations = {}
@@ -57,27 +61,27 @@ class FeatureLayer(object):
         self.__features: list[Feature] = []
 
     @property
-    def annotations(self):
+    def annotations(self) -> dict:
         return self.__annotations
 
     @property
-    def exported(self):
+    def exported(self) -> bool:
         return self.__exported
 
     @property
-    def description(self):
+    def description(self) -> str:
         return self.__description
 
     @description.setter
-    def description(self, value):
+    def description(self, value: str):
         self.__description = value
 
     @property
-    def features(self):
+    def features(self) -> list[Feature]:
         return self.__features
 
     @property
-    def flatmap(self):
+    def flatmap(self) -> FlatMap:
         return self.__flatmap
 
     @property
@@ -85,11 +89,11 @@ class FeatureLayer(object):
         return self.__id
 
     @property
-    def raster_layers(self):
+    def raster_layers(self) -> list[RasterLayer]:
         return []
 
-    def add_feature(self, feature: Feature):
-    #=======================================
+    def add_feature(self, feature: Feature, map_layer: Optional[MapLayer]=None):
+    #===========================================================================
         if self.__flatmap.feature_exported(feature):
             self.__features.append(feature)
 
@@ -135,23 +139,23 @@ class MapLayer(FeatureLayer):
         self.__boundary_feature = value
 
     @property
-    def bounds(self):
+    def bounds(self) -> tuple[float, float, float, float]:
         return self.__bounds
 
     @property
-    def detail_features(self):
+    def detail_features(self) -> list[Feature]:
         return self.__detail_features
 
     @property
-    def outer_geometry(self):
+    def outer_geometry(self) -> BaseGeometry:
         return self.__outer_geometry
 
     @property
-    def raster_layers(self):
+    def raster_layers(self) -> list[RasterLayer]:
         return self.__raster_layers
 
     @property
-    def source(self):
+    def source(self) -> MapSource:
         return self.__source
 
     @property
@@ -383,7 +387,7 @@ class RasterLayer(object):
                                 the :class:`~mapmaker.geometry.Transform.Identity()` transform
     :type local_world_to_base: :class:`~mapmaker.geometry.Transform`
     """
-    def __init__(self, id, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):
+    def __init__(self, id, extent, map_source: MapSource, min_zoom=MIN_ZOOM, local_world_to_base=None):
         self.__id = '{}_image'.format(id)
         self.__extent = extent
         self.__map_source = map_source

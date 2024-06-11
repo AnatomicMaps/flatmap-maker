@@ -29,7 +29,7 @@ import shapely.ops
 #===============================================================================
 
 from mapmaker.exceptions import MakerException
-from mapmaker.flatmap import ManifestSource
+from mapmaker.flatmap import FlatMap, ManifestSource
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.properties import not_in_group_properties
@@ -61,7 +61,7 @@ IGNORED_SVG_TAGS = [
 #===============================================================================
 
 class SVGSource(MapSource):
-    def __init__(self, flatmap, manifest_source: ManifestSource):  # maker v's flatmap (esp. id)
+    def __init__(self, flatmap: FlatMap, manifest_source: ManifestSource):  # maker v's flatmap (esp. id)
         super().__init__(flatmap, manifest_source)
         self.__source_file = FilePath(manifest_source.href)
         self.__exported = (self.kind=='base')
