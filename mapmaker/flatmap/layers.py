@@ -248,16 +248,15 @@ class MapLayer(FeatureLayer):
 
         if boundary_polygon is not None and len(boundary_lines):
             raise GroupValueError("{} can't be bounded by both a closed shape and lines:".format(group_name), features)
+        elif len(boundary_lines):
+            if debug_group:
+                save_geometry(shapely.geometry.MultiLineString(boundary_lines), 'boundary_lines.wkt')
+            try:
+                boundary_polygon = make_boundary(boundary_lines)
+            except ValueError as err:
+                raise GroupValueError('{}: {}'.format(group_name, str(err)), features) from None
 
-        elif boundary_polygon is not None or len(boundary_lines):
-            if len(boundary_lines):
-                if debug_group:
-                    save_geometry(shapely.geometry.MultiLineString(boundary_lines), 'boundary_lines.wkt')
-                try:
-                    boundary_polygon = make_boundary(boundary_lines)
-                except ValueError as err:
-                    raise GroupValueError('{}: {}'.format(group_name, str(err)), features) from None
-
+        if boundary_polygon is not None:
             layer_features.append(
                 self.flatmap.new_feature(
                     boundary_polygon,
