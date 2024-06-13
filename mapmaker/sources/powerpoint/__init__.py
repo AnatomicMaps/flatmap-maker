@@ -117,7 +117,7 @@ class PowerpointLayer(MapLayer):
                 if grouped_feature is not None:
                     features.append(grouped_feature)
             else:
-                properties = shape.properties
+                properties = dict(shape.properties)
                 self.source.check_markup_errors(properties)
                 if 'tile-layer' not in properties:
                     properties['tile-layer'] = FEATURES_TILE_LAYER   # Passed through to map viewer
@@ -126,6 +126,8 @@ class PowerpointLayer(MapLayer):
                 elif 'path' in properties:
                     pass
                 elif not properties.get('exclude', False):
+                    if (name := properties.get('name', '')) != '':
+                        properties['id'] = f'{self.id}/{name.replace(" ", "_")}'
                     feature = self.flatmap.new_feature(shape.geometry, properties)
                     features.append(feature)
                     shape.geojson_id = feature.geojson_id
