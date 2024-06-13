@@ -373,7 +373,7 @@ class RasterLayer(object):
 
     :param id: the ``id`` of the source layer to rasterise
     :type id: str
-    :param extent: the extent of the base map in which the layer is to be reasterised
+    :param extent: the extent of the base map in which the layer is to be rasterised
                    as decimal latitude and longitude coordinates.
     :type extent: tuple(south, west, north, east)
     :param map_source: the source of the layer's data

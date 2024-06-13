@@ -290,14 +290,14 @@ class FCSlide(Slide):
                     fc_shape.fc_kind = FC_KIND.VASCULAR_REGION
                 else:
                     fc_shape.fc_class = FC_CLASS.FTU
-            # Check vascular  regions and FTUs are only in a single organ
+            # Check vascular regions and FTUs are only in a single organ
             if fc_shape.fc_class in [FC_CLASS.FTU, FC_CLASS.VASCULAR]:
                 for parent in fc_shape.parents[1:]:
                     if parent.id in self.__organ_ids:
                         fc_shape.log_error(f'FTUs and regions can only be in a single organ: {fc_shape}')
                         break
 
-        # Remaining named components should be either neural or vascular
+        # Remaining components should be either neural or vascular
         for fc_shape in non_system_components:
             if fc_shape.fc_class == FC_CLASS.UNKNOWN:
                 if ((kind := NERVE_FEATURE_KINDS.lookup(fc_shape.colour)) is not None

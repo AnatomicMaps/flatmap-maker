@@ -416,7 +416,7 @@ class MapMaker(object):
     #==============================================
         # Generate Mapbox vector tiles
         if len(self.__tippe_inputs) == 0:
-            raise ValueError('No selectable layers found...')
+            raise ValueError('No vector tile layers found...')
 
         log.info('Running tippecanoe...')
         tippe_command = ['tippecanoe',
@@ -455,7 +455,7 @@ class MapMaker(object):
         identifier_export = settings.get('exportIdentifiers', '')
         for layer in self.__flatmap.layers:
             if layer.exported:
-                log.info('Layer: {}'.format(layer.id))
+                log.info(f'Layer: {layer.id}: {len(layer.features)} features')
                 if identifier_export != '':
                     for feature in layer.features:
                         if (feature.id is not None
