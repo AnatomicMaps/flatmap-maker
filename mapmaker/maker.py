@@ -47,7 +47,7 @@ from .output.tilemaker import RasterTileMaker
 from .settings import settings
 
 from .sources import FCPowerpointSource, MBFSource, PowerpointSource, SVGSource
-from .sources.shapefilter import ShapeFilter
+from .shapes.shapefilter import ShapeFilter
 
 #===============================================================================
 

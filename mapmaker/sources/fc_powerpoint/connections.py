@@ -34,7 +34,7 @@ import svgelements
 from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS, FC_KIND
 from mapmaker.knowledgebase.sckan import PATH_TYPE
 from mapmaker.settings import settings
-from mapmaker.sources.shape import Shape, SHAPE_TYPE
+from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
 from .components import is_component, is_connector, make_connector, system_ids

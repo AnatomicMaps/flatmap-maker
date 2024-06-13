@@ -29,7 +29,7 @@ import shapely.strtree
 
 from mapmaker.utils import log
 
-from .shape import Shape
+from . import Shape
 
 #===============================================================================
 

@@ -20,7 +20,7 @@
 
 from mapmaker.knowledgebase.sckan import PATH_TYPE
 from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS, FC_KIND
-from mapmaker.sources.shape import SHAPE_TYPE
+from mapmaker.shapes import SHAPE_TYPE
 
 from .colours import ColourMatcher, ColourMatcherDict
 

@@ -25,7 +25,7 @@ from typing import Optional
 
 from mapmaker.knowledgebase.celldl import FC_CLASS
 from mapmaker.knowledgebase.sckan import PATH_TYPE
-from mapmaker.sources.shape import Shape
+from mapmaker.shapes import Shape
 from mapmaker.sources.fc_powerpoint.components import is_connector
 from mapmaker.utils import log
 
