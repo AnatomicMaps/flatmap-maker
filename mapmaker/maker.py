@@ -393,7 +393,7 @@ class MapMaker(object):
         tilemakers = []
         for layer in self.__flatmap.layers:
             for raster_layer in layer.raster_layers:
-                tilemaker = RasterTileMaker(raster_layer, self.__map_dir, self.__zoom[1])
+                tilemaker = RasterTileMaker(raster_layer, self.__map_dir, max_zoom=self.__zoom[1])
                 tilemakers.append(tilemaker)
                 if settings.get('backgroundTiles', False):
                     tilemaker_process = tilemaker.make_tiles()
