@@ -256,10 +256,9 @@ class FlatMap(object):
                 self.__features_with_id[feature.id] = feature
         return feature
 
-    def feature_exported(self, feature):
-    #===================================
-        return (not settings.get('onlyNetworks', False)
-             or self.__properties_store.network_feature(feature))
+    def network_feature(self, feature: Feature) -> bool:
+    #===================================================
+        return self.__properties_store.network_feature(feature)
 
     def add_layer(self, layer: MapLayer):
     #====================================

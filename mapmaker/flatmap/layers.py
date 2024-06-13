@@ -94,7 +94,7 @@ class FeatureLayer(object):
 
     def add_feature(self, feature: Feature, map_layer: Optional[MapLayer]=None):
     #===========================================================================
-        if self.__flatmap.feature_exported(feature):
+        if (not settings.get('onlyNetworks', False) or self.__flatmap.network_feature(feature)):
             self.__features.append(feature)
 
     def annotate(self, feature: Feature, properties: dict):
