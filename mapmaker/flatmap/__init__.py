@@ -268,7 +268,8 @@ class FlatMap(object):
         if layer.exported:
             self.__visible_layer_count += 1
             for feature in layer.features:
-                if (feature.properties.get('centreline', False)
+                if (feature.id is not None
+                  and feature.properties.get('centreline', False)
                   and not feature.properties.get('excluded', False)):
                     feature.set_property('kind', 'centreline')
                     feature.set_property('type', 'line')
