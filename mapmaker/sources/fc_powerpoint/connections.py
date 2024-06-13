@@ -237,8 +237,9 @@ class ConnectionClassifier:
             else:
                 ## Add a JOIN connector if the end point has no connector
                 connector_id = f'{connection.id}/{coord_index+1}'
-                connector = make_connector(Shape(SHAPE_TYPE.FEATURE, connector_id,
+                connector = make_connector(Shape(connector_id,
                                                  end_point.buffer(MAX_CONNECTION_GAP), {
+                                                    'type': SHAPE_TYPE.FEATURE,
                                                     'colour': connection.colour,
                                                     'fc-class': connection.fc_class,
                                                     'fc-kind':FC_KIND.CONNECTOR_FREE_END

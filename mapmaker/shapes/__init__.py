@@ -30,6 +30,7 @@ from mapmaker.utils import log, PropertyMixin
 #===============================================================================
 
 class SHAPE_TYPE(Enum):
+    UNKNOWN    = 0
     CONNECTION = 1      #! A path between FEATUREs
     FEATURE    = 2
     GROUP      = 3
@@ -40,11 +41,10 @@ class SHAPE_TYPE(Enum):
 PropertiesInString = ['name', 'cd-class', 'fc-class', 'fc-kind']
 
 class Shape(PropertyMixin):
-    __attributes = ['type', 'id', 'geometry', 'parents', 'children']
-    def __init__(self, type: SHAPE_TYPE, id: str, geometry: BaseGeometry, properties=None):
+    __attributes = ['id', 'geometry', 'parents', 'children']
+    def __init__(self, id: str, geometry: BaseGeometry, properties=None):
         self.__initialising = True
         super().__init__(properties)
-        self.type = type
         self.id = id
         self.geometry = geometry
         self.children = []
@@ -101,6 +101,10 @@ class Shape(PropertyMixin):
     @property
     def shape_name(self) -> str:                    # The name of the shape in the source: e.g. ``Text Box 3086``
         return self.get_property('shape-name', '')
+
+    @property
+    def type(self) -> SHAPE_TYPE:
+        return self.get_property('type', SHAPE_TYPE.UNKNOWN)
 
     def add_parent(self, parent):
         self.parents.append(parent)

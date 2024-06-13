@@ -147,18 +147,17 @@ class Slide:
     #==============================
         return f'{self.__source.id}/{self.__id}/{id}'
 
-    def __new_shape(self, type, id: str, geometry, properties=None) -> Shape:
-    #========================================================================
+    def __new_shape(self, id: str, geometry, properties) -> Shape:
+    #=============================================================
         shape_id = self.__shape_id(id)
-        shape = (Shape(type, shape_id, geometry, properties) if properties is not None
-            else Shape(type, shape_id, geometry))
+        shape = Shape(shape_id, geometry, properties)
         self.__shapes_by_id[shape_id] = shape
         return shape
 
     def process(self, annotator: Optional['Annotator']=None) -> TreeList:
     #==================================================================
         # Return the slide's group structure as a nested list of Shapes
-        self.__shapes = TreeList([self.__new_shape(SHAPE_TYPE.GROUP, 'root', self.__geometry)])
+        self.__shapes = TreeList([self.__new_shape('root', self.__geometry, {'type': SHAPE_TYPE.GROUP})])
         self.__shapes.extend(self.__process_pptx_shapes(self.__pptx_slide.shapes,      # type: ignore
                                                         self.__transform, show_progress=True))
         return self.__shapes
@@ -252,7 +251,8 @@ class Slide:
         if len(svg_elements) == 0:
             return shapes
 
-        return self.__new_shape(SHAPE_TYPE.FEATURE, group.shape_id, geometry, {
+        return self.__new_shape(group.shape_id, geometry, {
+                                'type': SHAPE_TYPE.FEATURE,
                                 'colour': colour.rgb_colour,
                                 'name': name,
                                 'shape-name': group.name,
@@ -291,7 +291,8 @@ class Slide:
                                 group_colour=colour))
         if isinstance(group_shapes, Shape):
             return group_shapes
-        shapes = TreeList([self.__new_shape(SHAPE_TYPE.GROUP, group.shape_id, None, {
+        shapes = TreeList([self.__new_shape(group.shape_id, None, {
+            'type': SHAPE_TYPE.GROUP,
             'colour': colour[0],
             'opacity': colour[1],
             'pptx-shape': group
@@ -352,7 +353,7 @@ class Slide:
                             break
                     if pptx_shape.shape_type == MSO_SHAPE_TYPE.LINE:            # type: ignore
                         ## cf. pptx2svg for stroke colour
-                        shape_type = SHAPE_TYPE.CONNECTION
+                        shape_properties['type'] = SHAPE_TYPE.CONNECTION
                         if (connection := shape_xml.find('.//p:nvCxnSpPr/p:cNvCxnSpPr',
                                                         namespaces=PPTX_NAMESPACE)) is not None:
                             for c in connection.getchildren():
@@ -366,12 +367,12 @@ class Slide:
                         shape_properties['stroke-width'] = abs(transform.scale_length((int(pptx_shape.line.width.emu), 0))[0])  # type: ignore
                         shape_properties['stroke-width'] /= STROKE_WIDTH_SCALE_FACTOR
                     else:
-                        shape_type = SHAPE_TYPE.FEATURE
                         name = self.__text_content(pptx_shape)
+                        shape_properties['type'] = SHAPE_TYPE.FEATURE
                         if name != '':
                             shape_properties['name'] = name
                             shape_properties['align'] = text_alignment(pptx_shape)
-                    shape = self.__new_shape(shape_type, pptx_shape.shape_id, geometry, shape_properties)
+                    shape = self.__new_shape(pptx_shape.shape_id, geometry, shape_properties)
                     shapes.append(shape)
                 elif geometry is None:
                     log.warning(f'Shape "{shape_name}" {pptx_shape.shape_type}/{shape_properties.get("shape-kind")} not processed -- cannot get geometry')
@@ -380,9 +381,9 @@ class Slide:
             elif pptx_shape.shape_type == MSO_SHAPE_TYPE.GROUP:             # type: ignore
                 shapes.append(self.__process_group(pptx_shape, transform))  # type: ignore
             elif pptx_shape.shape_type == MSO_SHAPE_TYPE.PICTURE:           # type: ignore
-                shape_type = SHAPE_TYPE.FEATURE
+                shape_properties['type'] = SHAPE_TYPE.FEATURE
                 if good_geometry(geometry := get_shape_geometry(pptx_shape, transform, shape_properties)):
-                    shape = self.__new_shape(shape_type, pptx_shape.shape_id, geometry, shape_properties)
+                    shape = self.__new_shape(pptx_shape.shape_id, geometry, shape_properties)
                     bbox = geometry.bounds                      # type: ignore
                     image_pos = (bbox[0], bbox[1])
                     image_size = (bbox[2]-bbox[0], bbox[3]-bbox[1])

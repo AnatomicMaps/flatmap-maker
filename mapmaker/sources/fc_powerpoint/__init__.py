@@ -105,8 +105,11 @@ class FCSlide(Slide):
         self.__shape_filter = shape_filter
         self.__sckan_neurons = sckan_neurons
         self.__shapes_by_id: dict[str, Shape] = {
-            SLIDE_LAYER_ID: make_component(Shape(SHAPE_TYPE.LAYER, SLIDE_LAYER_ID, self.geometry,
-                                            {'name': f'{source.id.capitalize()} Layer'}))
+            SLIDE_LAYER_ID: make_component(Shape(SLIDE_LAYER_ID, self.geometry, {
+                                                    'type': SHAPE_TYPE.LAYER,
+                                                    'name': f'{source.id.capitalize()} Layer'
+                                                })
+                                          )
         }
         self.__connection_classifier = ConnectionClassifier()
         self.__connections = []
