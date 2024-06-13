@@ -64,7 +64,7 @@ class SVGSource(MapSource):
     def __init__(self, flatmap: FlatMap, manifest_source: ManifestSource):  # maker v's flatmap (esp. id)
         super().__init__(flatmap, manifest_source)
         self.__source_file = FilePath(manifest_source.href)
-        self.__exported = (self.kind=='base')
+        self.__exported = (self.kind in ['base', 'detail'])
         svg = etree.parse(self.__source_file.get_fp()).getroot()
         if 'viewBox' in svg.attrib:
             viewbox = [float(x) for x in svg.attrib.get('viewBox').split()]
@@ -74,17 +74,33 @@ class SVGSource(MapSource):
             (left, top) = (0, 0)
             width = length_as_pixels(svg.attrib.get('width'))
             height = length_as_pixels(svg.attrib.get('height'))
-        # Transform from SVG pixels to world coordinates
-        self.__transform = Transform([[WORLD_METRES_PER_PIXEL,                      0, 0],
-                                      [                     0, WORLD_METRES_PER_PIXEL, 0],
-                                      [                     0,                      0, 1]])@np.array([[1.0,  0.0, -left-width/2.0],
-                                                                                                      [0.0, -1.0,  top+height/2.0],
-                                                                                                      [0.0,  0.0,             1.0]])
+        if self.base_feature is not None:
+            bounds = self.base_feature.bounds
+            (scale_x, scale_y) = ((bounds[2]-bounds[0])/width, (bounds[3]-bounds[1])/height)
+            scale = min(scale_x, scale_y)
+            self.__transform = (Transform([[1,  0, bounds[0]+(bounds[2]-bounds[0])/2],
+                                           [0,  1, bounds[1]+(bounds[3]-bounds[1])/2],
+                                           [0,  0,         1]])
+                               @np.array([[scale,     0,  0],
+                                          [    0, scale,  0],
+                                          [    0,     0,  1]])
+                               @np.array([[1.0,  0.0, -left-width/2],
+                                          [0.0, -1.0,   top+height/2],
+                                          [0.0,  0.0,            1.0]]))
+        else:
+            # Transform from SVG pixels to world coordinates
+            self.__transform = (Transform([[WORLD_METRES_PER_PIXEL,                      0, 0],
+                                           [                     0, WORLD_METRES_PER_PIXEL, 0],
+                                           [                     0,                      0, 1]])
+                               @np.array([[1.0,  0.0, -left-width/2.0],
+                                          [0.0, -1.0,  top+height/2.0],
+                                          [0.0,  0.0,             1.0]]))
+
         top_left = self.__transform.transform_point((left, top))
         bottom_right = self.__transform.transform_point((left+width, top+height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-        self.__layer = SVGLayer(self.id, self, svg, exported=self.__exported)
+        self.__layer = SVGLayer(self.id, self, svg, exported=self.__exported, min_zoom=self.min_zoom)
         self.add_layer(self.__layer)
         self.__boundary_geometry = None
 
@@ -128,8 +144,8 @@ class SVGSource(MapSource):
 #===============================================================================
 
 class SVGLayer(MapLayer):
-    def __init__(self, id, source, svg, exported=True):
-        super().__init__(id, source, exported=exported)
+    def __init__(self, id: str, source: SVGSource, svg: etree.Element, exported=True, min_zoom=None):
+        super().__init__(id, source, exported=exported, min_zoom=min_zoom)
         self.__svg = svg
         self.__style_matcher = StyleMatcher(svg.find(SVG_TAG('style')))
         self.__transform = source.transform

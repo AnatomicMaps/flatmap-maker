@@ -361,6 +361,8 @@ class MapMaker(object):
                     source = FCPowerpointSource(self.__flatmap, manifest_source,
                                                 shape_filter=self.__shape_filter,
                                                 process_store=self.__processing_store)
+                elif kind == 'detail':
+                    source = SVGSource(self.__flatmap, manifest_source)
                 else:
                     raise ValueError('Unsupported FC kind: {}'.format(kind))
             elif kind == 'slides':

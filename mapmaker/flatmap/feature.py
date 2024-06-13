@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 from collections import defaultdict
-from typing import Any, NewType, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from shapely.geometry.base import BaseGeometry
 
@@ -28,6 +28,9 @@ from shapely.geometry.base import BaseGeometry
 
 from mapmaker.knowledgebase import AnatomicalNode, entity_name
 from mapmaker.utils import log, FilePath, PropertyMixin
+
+if TYPE_CHECKING:
+    from .layers import MapLayer
 
 #===============================================================================
 
@@ -48,6 +51,7 @@ class Feature(PropertyMixin):
         self.properties['featureId'] = geojson_id   # Used by flatmap viewer
         self.properties['geometry'] = geometry.geom_type
         self.__is_group = is_group
+        self.__layer = None
 
     def __eq__(self, other):
         return isinstance(other, Feature) and self.__geojson_id == other.__geojson_id
@@ -58,6 +62,10 @@ class Feature(PropertyMixin):
     def __str__(self):
         return 'Feature {}: {}, {}'.format(self.__geojson_id, self.__geometry.geom_type,
             { k:v for k, v in self.properties.items() if k not in EXCLUDE_PROPERTIES_FROM_STR })
+
+    @property
+    def bounds(self) -> tuple[float, float, float, float]:
+        return self.__geometry.bounds
 
     @property
     def geojson_id(self) -> int:
@@ -82,6 +90,14 @@ class Feature(PropertyMixin):
     @property
     def is_group(self) -> bool:
         return self.__is_group
+
+    @property
+    def layer(self) -> Optional[MapLayer]:
+        return self.__layer
+
+    @layer.setter
+    def layer(self, layer: Optional[MapLayer]):
+        self.__layer = layer
 
     @property
     def models(self) -> Optional[str]:

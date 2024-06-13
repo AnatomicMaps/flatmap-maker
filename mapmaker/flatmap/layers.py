@@ -94,6 +94,7 @@ class FeatureLayer(object):
 
     def add_feature(self, feature: Feature, map_layer: Optional[MapLayer]=None):
     #===========================================================================
+        feature.layer = map_layer
         if (not settings.get('onlyNetworks', False) or self.__flatmap.network_feature(feature)):
             self.__features.append(feature)
 
@@ -119,7 +120,7 @@ class FeatureLayer(object):
 #===============================================================================
 
 class MapLayer(FeatureLayer):
-    def __init__(self, id: str, source: MapSource, exported=False):
+    def __init__(self, id: str, source: MapSource, exported=False, min_zoom=None):
         super().__init__(id, source.flatmap, exported)
         self.__source = source
         self.__boundary_feature = None
@@ -128,7 +129,7 @@ class MapLayer(FeatureLayer):
         self.__detail_features: list[Feature] = []
 #*        self.__ontology_data = self.options.ontology_data
         self.__raster_layers: list[RasterLayer] = []
-        self.__zoom = None
+        self.__min_zoom = min_zoom
 
     @property
     def boundary_feature(self):
@@ -147,6 +148,10 @@ class MapLayer(FeatureLayer):
         return self.__detail_features
 
     @property
+    def min_zoom(self) -> int:
+        return self.__min_zoom if self.__min_zoom is not None else self.__source.flatmap.min_zoom
+
+    @property
     def outer_geometry(self) -> BaseGeometry:
         return self.__outer_geometry
 
@@ -158,24 +163,20 @@ class MapLayer(FeatureLayer):
     def source(self) -> MapSource:
         return self.__source
 
-    @property
-    def zoom(self):
-        return self.__zoom
-
-    @zoom.setter
-    def zoom(self, value):
-        self.__zoom = value
-
-    def add_feature(self, feature: Feature):
+    def add_feature(self, feature: Feature):    # type: ignore
     #=======================================
-        super().add_feature(feature)
+        if self.__min_zoom is not None and not feature.has_property('minzoom'):
+            feature.set_property('minzoom', self.__min_zoom)
+        super().add_feature(feature, map_layer=self)
         if feature.has_property('details'):
             self.__detail_features.append(feature)
 
-    def add_raster_layer(self, layer_id: str, extent, map_source, min_zoom=MIN_ZOOM, local_world_to_base=None):
-    #==========================================================================================================
+    def add_raster_layer(self, layer_id: str, extent, map_source: MapSource, min_zoom: Optional[int]=None, local_world_to_base=None):
+    #================================================================================================================================
         if map_source.raster_source is not None:
-            self.__raster_layers.append(RasterLayer(layer_id.replace('/', '_'), extent, map_source, min_zoom, local_world_to_base))
+            self.__raster_layers.append(RasterLayer(layer_id.replace('/', '_'), extent, map_source,
+                                                    (min_zoom+1) if min_zoom is not None else self.min_zoom,
+                                                    local_world_to_base))
 
     def add_features(self, group_name, features, tile_layer=FEATURES_TILE_LAYER, outermost=False):
     #=============================================================================================

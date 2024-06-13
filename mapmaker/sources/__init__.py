@@ -29,7 +29,7 @@ import numpy as np
 
 #===============================================================================
 
-from mapmaker.geometry import bounds_to_extent
+from mapmaker.geometry import bounds_to_extent, Transform
 from mapmaker.flatmap import ManifestSource
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.properties.markup import parse_markup
@@ -141,10 +141,27 @@ class MapSource(object):
         self.__layers: list[MapLayer] = []
         self.__bounds: MapBounds = (0, 0, 0, 0)
         self.__raster_source = None
+        if self.__kind == 'detail':
+            if manifest_source.feature is None:
+                raise ValueError('A `detail` source must specify an existing `feature`')
+            if manifest_source.zoom < 1:
+                raise ValueError('A `detail` source must specify `zoom`')
+            if (feature := flatmap.get_feature(manifest_source.feature)) is None:
+                raise ValueError(f'Unknown source feature: {manifest_source.feature}')
+            feature.set_property('maxzoom', manifest_source.zoom-1)
+            self.__min_zoom = manifest_source.zoom
+            self.__base_feature = feature
+        else:
+            self.__min_zoom = None
+            self.__base_feature = None
 
     @property
     def annotator(self):
         return None
+
+    @property
+    def base_feature(self):
+        return self.__base_feature
 
     @property
     def bounds(self) -> MapBounds:
@@ -187,6 +204,10 @@ class MapSource(object):
         return self.__layers
 
     @property
+    def min_zoom(self):
+        return self.__min_zoom
+
+    @property
     def raster_source(self):
         if self.__raster_source is None:
             self.__raster_source = self.get_raster_source()
@@ -199,6 +220,10 @@ class MapSource(object):
     @property
     def source_range(self) -> Optional[list[int]]:
         return self.__source_range
+
+    @property
+    def transform(self) -> Optional[Transform]:
+        return None
 
     def add_layer(self, layer: MapLayer):
     #====================================

@@ -131,6 +131,10 @@ class FlatMap(object):
         return self.__manifest
 
     @property
+    def min_zoom(self):
+        return self.__min_zoom
+
+    @property
     def properties_store(self):
         return self.__properties_store
 
@@ -279,12 +283,16 @@ class FlatMap(object):
                                               feature.geojson_id,
                                               [])
 
+    def get_layer(self, layer_id: str) -> Optional[MapLayer]:
+    #========================================================
+        return self.__layer_dict.get(layer_id)
+
     def add_source_layers(self, layer_number: int, source: MapSource):
     #=================================================================
         for layer in source.layers:
             self.add_layer(layer)
             if layer.exported:
-                layer.add_raster_layer(layer.id, source.extent, source, self.__min_zoom)
+                layer.add_raster_layer(layer.id, source.extent, source)
         # The first layer is used as the base map
         if layer_number == 0:
             if source.kind == 'details':
@@ -293,7 +301,7 @@ class FlatMap(object):
             self.__centre = ((self.__extent[0] + self.__extent[2])/2,
                              (self.__extent[1] + self.__extent[3])/2)
             self.__area = source.map_area()
-        elif source.kind not in ['details', 'image', 'layer']:
+        elif source.kind not in ['detail', 'details', 'image', 'layer']:
             raise ValueError('Can only have a single base map')
 
     def layer_metadata(self):
