@@ -122,10 +122,6 @@ class MapMaker(object):
                 raise ValueError('Invalid parameters for dataset publishing ')
             options['backgroundTiles'] = True
 
-        # Ignore SCKAN implies accepting invalid neurons
-        if options.get('ignoreSckan', False):
-            options['invalidNeurons'] = True
-
         # Authoring implies to clean output directory, report deprecated markup, and don't tile background
         if options.get('authoring', False):
             options['showDeprecated'] = True
@@ -173,6 +169,15 @@ class MapMaker(object):
             'sckan_provenance': True,
             'log_provenance': True
         }
+
+        # Ignoring SCKAN implies accepting invalid neurons
+        if options.get('ignoreSckan', False):
+            options['invalidNeurons'] = True
+            store_params.update({
+                'use_scicrunch': False,
+                'use_npo': False
+            })
+
         settings['KNOWLEDGE_STORE'] = knowledgebase.KnowledgeStore(map_base, **store_params)
         self.__sckan_provenance = knowledgebase.sckan_provenance()
 
