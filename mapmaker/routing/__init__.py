@@ -666,12 +666,12 @@ class Network(object):
 
         self.__expanded_centreline_graph = expand_centreline_graph(self.__centreline_graph)
 
-    def route_graph_from_path(self, path: 'Path') -> tuple[nx.Graph, nx.Graph]:
-    #==========================================================================
+    def route_graph_from_path(self, path: 'Path') -> nx.Graph:
+    #=========================================================
         return self.__route_graph_from_connectivity(path)
 
-    def layout(self, route_graphs: nx.Graph) -> dict[int, RoutedPath]:
-    #=================================================================
+    def layout(self, route_graphs: dict[str, nx.Graph]) -> dict[int, RoutedPath]:
+    #============================================================================
         path_router = PathRouter()
         for path_id, route_graph in route_graphs.items():
             path_router.add_path(path_id, route_graph)
@@ -754,8 +754,8 @@ class Network(object):
                 closest_node = node_id
         return (closest_node, closest_distance)
 
-    def __route_graph_from_connectivity(self, path: 'Path', debug=False) -> tuple[nx.Graph, nx.Graph]:
-    #=================================================================================================
+    def __route_graph_from_connectivity(self, path: 'Path', debug=False) -> nx.Graph:
+    #================================================================================
         connectivity_graph = path.connectivity
 
         # Map connectivity nodes to map features and centrelines, storing the result

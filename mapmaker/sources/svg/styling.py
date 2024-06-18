@@ -88,8 +88,8 @@ class StyleMatcher(cssselect2.Matcher):
 
 #===============================================================================
 
-def wrap_element(element):
-#=========================
+def wrap_element(element) -> cssselect2.ElementWrapper:
+#======================================================
     return cssselect2.ElementWrapper.from_xml_root(element)
 
 #===============================================================================

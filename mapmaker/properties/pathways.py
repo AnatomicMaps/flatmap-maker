@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 from collections import defaultdict
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, TYPE_CHECKING
 
 #===============================================================================
 
@@ -40,6 +40,9 @@ from mapmaker.settings import settings
 from mapmaker.utils import log
 
 from .markup import ID_TEXT
+
+if TYPE_CHECKING:
+    from mapmaker.flatmap import FlatMap
 
 #===============================================================================
 
@@ -631,7 +634,7 @@ class Pathways:
 
         active_nerve_features: set[Feature] = set()
         paths_by_id = {}
-        route_graphs = {}
+        route_graphs: dict[str, nx.Graph] = {}
         network.create_geometry()
 
         # Find route graphs for each path in each connectivity model

@@ -18,12 +18,17 @@
 #
 #===============================================================================
 
+from typing import TypeVar
 
-class TreeList(list):
+T = TypeVar('T')
+
+#===============================================================================
+
+class TreeList(list[T]):
     """
     A ``tree`` structure implemented as a list with branches (sub-trees) being embedded lists.
     """
-    def flatten(self, skip=0):
+    def flatten(self, skip=0) -> list[T]:
         """
         Return leaves of the tree as a ``list`` in depth-first order.
         """

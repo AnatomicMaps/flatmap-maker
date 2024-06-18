@@ -28,6 +28,7 @@ from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.knowledgebase.celldl import CD_CLASS
 from mapmaker.settings import settings, MAP_KIND
+from mapmaker.shapes import Shape
 from mapmaker.utils import log, TreeList
 
 from .. import MapSource, RasterSource, PATHWAYS_TILE_LAYER
@@ -107,9 +108,9 @@ class PowerpointLayer(MapLayer):
                     set_relationship_property(feature, 'children', shape.children)
                     set_relationship_property(feature, 'parents', shape.parents)
 
-    def __process_shape_list(self, shapes: TreeList) -> list[Feature]:
-    #=================================================================
-        features = []
+    def __process_shape_list(self, shapes: TreeList[Shape]) -> list[Feature]:
+    #========================================================================
+        features: list[Feature] = []
         for shape in shapes[1:]:
             if isinstance(shape, TreeList):
                 group_features = self.__process_shape_list(shape)

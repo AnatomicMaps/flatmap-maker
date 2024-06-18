@@ -19,17 +19,21 @@
 #===============================================================================
 
 import tempfile
+from typing import Optional
 
 #===============================================================================
 
+from cssselect2 import ElementWrapper
 import lxml.etree as etree
 import numpy as np
+
+from shapely.geometry.base import BaseGeometry
 import shapely.ops
 
 #===============================================================================
 
 from mapmaker.exceptions import MakerException
-from mapmaker.flatmap import FlatMap, ManifestSource
+from mapmaker.flatmap import Feature, FlatMap, ManifestSource
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.properties import not_in_group_properties
@@ -162,7 +166,8 @@ class SVGLayer(MapLayer):
         self.add_features('SVG', features, outermost=True)
 
     @staticmethod
-    def __excluded_group_feature(properties):
+    def __excluded_group_feature(properties) -> bool:
+    #================================================
         return (not_in_group_properties(properties)
              or 'auto-hide' in properties.get('class', '')
              or (properties.get('type') == 'nerve'
@@ -189,8 +194,8 @@ class SVGLayer(MapLayer):
         except MakerException:
             raise MakerException('Unsupported `transform-origin` units -- please normalise SVG source')
 
-    def __process_group(self, wrapped_group, properties, transform, parent_style):
-    #=============================================================================
+    def __process_group(self, wrapped_group: ElementWrapper, properties, transform, parent_style) -> Optional[Feature]:
+    #==================================================================================================================
         group = wrapped_group.etree_element
         if len(group) == 0:
             return None
@@ -235,8 +240,8 @@ class SVGLayer(MapLayer):
                     log.warning(f'SVG group `{group_name}` with id cannot also contain a `.group` marker')
         return group_feature
 
-    def __process_element_list(self, elements, transform, parent_properties, parent_style, show_progress=False):
-    #===========================================================================================================
+    def __process_element_list(self, elements: ElementWrapper, transform, parent_properties, parent_style, show_progress=False) -> list[Feature]:
+    #============================================================================================================================================
         children = list(elements.iter_children())
         progress_bar = ProgressBar(show=show_progress,
             total=len(children),
@@ -267,8 +272,8 @@ class SVGLayer(MapLayer):
         and (geometry := self.__get_clip_geometry(clip_path_element, transform)) is not None):
             self.__clip_geometries.add(clip_id, geometry)
 
-    def __get_clip_geometry(self, clip_path_element, transform):
-    #===========================================================
+    def __get_clip_geometry(self, clip_path_element, transform) -> Optional[BaseGeometry]:
+    #====================================================================================
         geometries = []
         for element in clip_path_element:
             if element.tag == SVG_TAG('use'):
@@ -283,8 +288,8 @@ class SVGLayer(MapLayer):
                     geometries.append(geometry)
         return shapely.ops.unary_union(geometries) if len(geometries) else None
 
-    def __process_element(self, wrapped_element, transform, parent_properties, parent_style):
-    #========================================================================================
+    def __process_element(self, wrapped_element: ElementWrapper, transform, parent_properties, parent_style) -> Optional[Feature]:
+    #=============================================================================================================================
         element = wrapped_element.etree_element
         element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
         markup = svg_markup(element)
@@ -326,8 +331,8 @@ class SVGLayer(MapLayer):
             log.warning(f'SVG element {element.tag} "{markup}" not processed...')
         return None
 
-    def __get_geometry(self, element, properties, transform):
-    #=======================================================
+    def __get_geometry(self, element, properties, transform) -> Optional[BaseGeometry]:
+    #==================================================================================
     ##
     ## Returns path element as a `shapely` object.
     ##

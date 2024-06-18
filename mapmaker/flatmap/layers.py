@@ -18,8 +18,6 @@
 #
 #===============================================================================
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Optional
 
 #===============================================================================
@@ -52,7 +50,7 @@ PATHWAYS_TILE_LAYER = 'pathways'
 #===============================================================================
 
 class FeatureLayer(object):
-    def __init__(self, id: str, flatmap: FlatMap, exported: bool=False):
+    def __init__(self, id: str, flatmap: 'FlatMap', exported: bool=False):
         self.__id = id
         self.__flatmap = flatmap
         self.__annotations = {}
@@ -81,7 +79,7 @@ class FeatureLayer(object):
         return self.__features
 
     @property
-    def flatmap(self) -> FlatMap:
+    def flatmap(self) -> 'FlatMap':
         return self.__flatmap
 
     @property
@@ -89,11 +87,11 @@ class FeatureLayer(object):
         return self.__id
 
     @property
-    def raster_layers(self) -> list[RasterLayer]:
+    def raster_layers(self) -> list['RasterLayer']:
         return []
 
-    def add_feature(self, feature: Feature, map_layer: Optional[MapLayer]=None):
-    #===========================================================================
+    def add_feature(self, feature: Feature, map_layer: Optional['MapLayer']=None):
+    #=============================================================================
         feature.layer = map_layer
         if (not settings.get('onlyNetworks', False) or self.__flatmap.network_feature(feature)):
             self.__features.append(feature)
@@ -120,7 +118,7 @@ class FeatureLayer(object):
 #===============================================================================
 
 class MapLayer(FeatureLayer):
-    def __init__(self, id: str, source: MapSource, exported=False, min_zoom=None):
+    def __init__(self, id: str, source: 'MapSource', exported=False, min_zoom=None):
         super().__init__(id, source.flatmap, exported)
         self.__source = source
         self.__boundary_feature = None
@@ -156,11 +154,11 @@ class MapLayer(FeatureLayer):
         return self.__outer_geometry
 
     @property
-    def raster_layers(self) -> list[RasterLayer]:
+    def raster_layers(self) -> list['RasterLayer']:
         return self.__raster_layers
 
     @property
-    def source(self) -> MapSource:
+    def source(self) -> 'MapSource':
         return self.__source
 
     def add_feature(self, feature: Feature):    # type: ignore
@@ -171,8 +169,8 @@ class MapLayer(FeatureLayer):
         if feature.has_property('details'):
             self.__detail_features.append(feature)
 
-    def add_raster_layer(self, layer_id: str, extent, map_source: MapSource, min_zoom: Optional[int]=None, local_world_to_base=None):
-    #================================================================================================================================
+    def add_raster_layer(self, layer_id: str, extent, map_source: 'MapSource', min_zoom: Optional[int]=None, local_world_to_base=None):
+    #==================================================================================================================================
         if map_source.raster_source is not None:
             self.__raster_layers.append(RasterLayer(layer_id.replace('/', '_'), extent, map_source,
                                                     (min_zoom+1) if min_zoom is not None else self.min_zoom,
@@ -390,7 +388,7 @@ class RasterLayer(object):
                                 the :class:`~mapmaker.geometry.Transform.Identity()` transform
     :type local_world_to_base: :class:`~mapmaker.geometry.Transform`
     """
-    def __init__(self, id, extent, map_source: MapSource, min_zoom=MIN_ZOOM, local_world_to_base=None):
+    def __init__(self, id, extent, map_source: 'MapSource', min_zoom=MIN_ZOOM, local_world_to_base=None):
         self.__id = '{}_image'.format(id)
         self.__extent = extent
         self.__map_source = map_source

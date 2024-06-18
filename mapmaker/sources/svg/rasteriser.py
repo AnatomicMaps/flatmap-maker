@@ -75,7 +75,7 @@ def make_colour(colour_string, opacity=1.0):
     elif colour_string.startswith('rgb('):
         rgb = colour_string[4:-1].split(',')
         if '%' in colour_string:
-            colour = webcolors.rgb_percent_to_rgb(rgb)
+            colour = webcolors.rgb_percent_to_rgb(rgb) # type: ignore
         else:
             colour = [int(c) for c in rgb]
     else:

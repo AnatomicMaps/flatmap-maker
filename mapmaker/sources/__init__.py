@@ -208,10 +208,10 @@ class MapSource(object):
         return self.__min_zoom
 
     @property
-    def raster_source(self):
+    def raster_source(self) -> RasterSource:
         if self.__raster_source is None:
             self.__raster_source = self.get_raster_source()
-        return self.__raster_source
+        return self.__raster_source     # type: ignore
 
     @property
     def href(self):
