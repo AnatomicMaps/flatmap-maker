@@ -230,7 +230,7 @@ class MapLayer(FeatureLayer):
                 child_class = feature.pop_property('children')
                 grouped_properties.update(feature.properties)
             elif feature.get_property('region'):
-                regions.append(self.flatmap.new_feature(feature.geometry.representative_point(), feature.properties))
+                regions.append(self.flatmap.new_feature(self.id, feature.geometry.representative_point(), feature.properties))
             elif feature.get_property('divider'):
                 if feature.geom_type == 'LineString':
                     dividers.append(feature.geometry)
@@ -259,6 +259,7 @@ class MapLayer(FeatureLayer):
         if boundary_polygon is not None:
             layer_features.append(
                 self.flatmap.new_feature(
+                    self.id,
                     boundary_polygon,
                     base_properties))
 
@@ -291,7 +292,7 @@ class MapLayer(FeatureLayer):
                     region_properties = base_properties.copy()
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_properties.update(region.properties)
-                        layer_features.append(self.flatmap.new_feature(polygon, region_properties))
+                        layer_features.append(self.flatmap.new_feature(self.id, polygon, region_properties))
                         break
         else:
             for feature in features:
@@ -329,6 +330,7 @@ class MapLayer(FeatureLayer):
                     grouped_polygons.extend(list(feature.geometry.geoms))
             if len(grouped_polygons):
                 feature_group = self.flatmap.new_feature(
+                        self.id,
                         shapely.geometry.MultiPolygon(grouped_polygons).buffer(0),
                         grouped_properties, is_group=True)
                 layer_features.append(feature_group)
@@ -345,6 +347,7 @@ class MapLayer(FeatureLayer):
             if len(grouped_lines):  ## should polygons take precedence over lines???
                                     ## at least for assigning ID...
                 feature_group = self.flatmap.new_feature(
+                      self.id,
                       shapely.geometry.MultiLineString(grouped_lines),
                       grouped_properties, True)
                 layer_features.append(feature_group)

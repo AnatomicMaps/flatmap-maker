@@ -350,7 +350,7 @@ class SckanNeuronPopulations:
                     for n, sckan_path_id in enumerate(sckan_path_ids[1:]):
                         properties['id'] = f'connection.id/{n}'
                         properties['models'] = sckan_path_id
-                        self.__flatmap.new_feature(connection.geometry, properties)
+                        self.__flatmap.new_feature('neuron', connection.geometry, properties)
 
     def add_connection(self, feature_properties_lookup, connection):
     #===============================================================

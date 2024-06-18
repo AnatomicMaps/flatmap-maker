@@ -209,7 +209,7 @@ class SVGLayer(MapLayer):
         clipped = self.__clip_geometries.get_by_url(group_clip_path)
         if clipped is not None:
             # Replace any features inside a clipped group with just the clipped outline
-            group_feature = self.flatmap.new_feature(clipped, properties)
+            group_feature = self.flatmap.new_feature(self.id, clipped, properties)
         else:
             group_transform = self.__get_transform(wrapped_group)
             features = self.__process_element_list(wrapped_group,
@@ -220,7 +220,7 @@ class SVGLayer(MapLayer):
             if len(group_features := [f for f in features if f.geometry.is_valid and not self.__excluded_group_feature(f.properties)]):
                 # If the group element has markup and contains geometry then add it as a feature
                 group_geometry = shapely.ops.unary_union([f.geometry for f in group_features])
-                group_feature = self.flatmap.new_feature(group_geometry, properties)
+                group_feature = self.flatmap.new_feature(self.id, group_geometry, properties)
                 # And don't output interior features with no markup
                 for feature in group_features:
                     if not feature.has_property('markup'):
@@ -309,7 +309,7 @@ class SVGLayer(MapLayer):
             and 'id' not in properties):
                 return None
             else:
-                return self.flatmap.new_feature(geometry, properties)
+                return self.flatmap.new_feature(self.id, geometry, properties)
         elif element.tag == SVG_TAG('image'):
             clip_path_url = element_style.pop('clip-path', None)
             if ((geometry := self.__clip_geometries.get_by_url(clip_path_url)) is None
@@ -317,7 +317,7 @@ class SVGLayer(MapLayer):
                 T = transform@self.__get_transform(wrapped_element)
                 geometry = self.__get_clip_geometry(clip_path_element, T)
             if geometry is not None:
-                return self.flatmap.new_feature(geometry, properties)
+                return self.flatmap.new_feature(self.id, geometry, properties)
         elif element.tag == SVG_TAG('g'):
             return self.__process_group(wrapped_element, properties, transform, parent_style)
         elif element.tag in IGNORED_SVG_TAGS:

@@ -145,7 +145,7 @@ class MBFSource(MapSource):
                 properties['label'] = label
             if anatomical_id is not None:
                 properties['models'] = anatomical_id
-            feature = self.flatmap.new_feature(geometry, properties)
+            feature = self.flatmap.new_feature(self.id, geometry, properties)
             feature.set_property('dataset', self.__sparc_dataset)
             feature.set_property('source', self.href)
             self.__layer.add_feature(feature)

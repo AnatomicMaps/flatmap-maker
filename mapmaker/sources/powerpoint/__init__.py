@@ -126,9 +126,7 @@ class PowerpointLayer(MapLayer):
                 elif 'path' in properties:
                     pass
                 elif not properties.get('exclude', False):
-                    if (name := properties.get('name', '')) != '':
-                        properties['id'] = f'{self.id}/{name.replace(" ", "_")}'
-                    feature = self.flatmap.new_feature(shape.geometry, properties)
+                    feature = self.flatmap.new_feature(self.id, shape.geometry, properties)
                     features.append(feature)
                     shape.geojson_id = feature.geojson_id
                     shape.set_property('feature', feature)

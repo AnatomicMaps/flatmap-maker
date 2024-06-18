@@ -146,7 +146,7 @@ class MapSource(object):
                 raise ValueError('A `detail` source must specify an existing `feature`')
             if manifest_source.zoom < 1:
                 raise ValueError('A `detail` source must specify `zoom`')
-            if (feature := flatmap.get_feature(manifest_source.feature)) is None:
+            if (feature := flatmap.get_feature_by_name(manifest_source.feature)) is None:
                 raise ValueError(f'Unknown source feature: {manifest_source.feature}')
             feature.set_property('maxzoom', manifest_source.zoom-1)
             self.__min_zoom = manifest_source.zoom

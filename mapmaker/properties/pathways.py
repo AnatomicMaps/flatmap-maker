@@ -675,7 +675,7 @@ class Pathways:
                             properties['label'] = path.label
                         if 'id' not in properties and path_model is not None:
                             properties['id'] = path_model.replace(':', '_').replace('/', '_')
-                    feature = self.__flatmap.new_feature(geometric_shape.geometry, properties)
+                    feature = self.__flatmap.new_feature('pathways', geometric_shape.geometry, properties)
                     feature_geojson_ids.append(feature.geojson_id)
                     layer.add_feature(feature)
                 nerve_feature_ids = routed_path.nerve_feature_ids
@@ -696,6 +696,7 @@ class Pathways:
                 properties = feature.properties.copy()
                 properties.pop('id', None)   # Otherwise we will have a duplicate id...
                 nerve_polygon_feature = self.__flatmap.new_feature(
+                    'pathways',
                     shapely.geometry.Polygon(feature.geometry.coords).buffer(0), properties)
                 layer.features.append(nerve_polygon_feature)
 
