@@ -19,6 +19,7 @@
 #===============================================================================
 
 from __future__ import annotations
+from enum import Enum
 from typing import Any
 
 #===============================================================================
@@ -26,5 +27,12 @@ from typing import Any
 # Updated by flatmap maker to contain settings and options for map generation
 
 settings: dict[str, Any] = {}
+
+#===============================================================================
+
+class MAP_KIND(Enum):
+    UNKNOWN    = 0
+    ANATOMICAL = 1
+    FUNCTIONAL = 2
 
 #===============================================================================

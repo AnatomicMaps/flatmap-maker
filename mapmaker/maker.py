@@ -44,7 +44,7 @@ from .output.sparc_dataset import SparcDataset
 from .output.styling import MapStyle
 from .output.tilemaker import RasterTileMaker
 
-from .settings import settings
+from .settings import settings, MAP_KIND
 
 from .sources import FCPowerpointSource, MBFSource, PowerpointSource, SVGSource
 from .shapes.shapefilter import ShapeFilter
@@ -348,11 +348,8 @@ class MapMaker(object):
 
     def __process_sources(self):
     #===========================
-        if self.__manifest.kind == 'functional':
-            settings['functionalConnectivity'] = True
+        if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             self.__shape_filter = ShapeFilter()
-        else:
-            settings['functionalConnectivity'] = False
         self.__processing_store = {}
         base_source = None
         for layer_number, manifest_source in enumerate(sorted(self.__manifest.sources,
@@ -361,7 +358,7 @@ class MapMaker(object):
             id = manifest_source.id
             kind = manifest_source.kind
             href = manifest_source.href
-            if settings['functionalConnectivity']:
+            if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL:
                 if kind in ['base', 'layer']:
                     source = FCPowerpointSource(self.__flatmap, manifest_source,
                                                 shape_filter=self.__shape_filter,
@@ -532,7 +529,7 @@ class MapMaker(object):
         if self.__manifest.biological_sex is not None:
             map_index['biologicalSex'] = self.__manifest.biological_sex
         map_index['authoring'] = settings.get('authoring', False)
-        if settings.get('functionalConnectivity', False):
+        if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             map_index['style'] = 'functional'
         else:
             map_index['style'] = 'anatomical'

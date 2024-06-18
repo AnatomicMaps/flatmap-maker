@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING
 
 import mapmaker.knowledgebase as knowledgebase
 from mapmaker.routing import Network
-from mapmaker.settings import settings
+from mapmaker.settings import settings, MAP_KIND
 from mapmaker.utils import FilePath, log
 
 from .anatomicalmap import AnatomicalMap
@@ -47,6 +47,7 @@ def not_in_group_properties(properties: dict) -> bool:
 
 class PropertiesStore(object):
     def __init__(self, flatmap: "FlatMap", manifest: "Manifest"):
+        self.__flatmap = flatmap
         self.__anatomical_map = AnatomicalMap(manifest.anatomical_map)
         self.__properties_by_class = defaultdict(dict)
         self.__properties_by_id = defaultdict(dict)
@@ -206,7 +207,7 @@ class PropertiesStore(object):
             elif 'simulations' in feature_properties:
                 feature_properties['kind'] = 'simulation'
         # Only separately show name when authoring FC map
-        name_used = not settings.get('functionalConnectivity', False)
+        name_used = self.__flatmap.map_kind != MAP_KIND.FUNCTIONAL
         if (entity := feature_properties.get('models')) is not None and entity.strip() != '':
             # Make sure our knowledgebase knows about the anatomical object
             knowledge = knowledgebase.get_knowledge(entity)

@@ -27,7 +27,7 @@ from mapmaker.flatmap import FlatMap, ManifestSource
 from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.knowledgebase.celldl import CD_CLASS
-from mapmaker.settings import settings
+from mapmaker.settings import settings, MAP_KIND
 from mapmaker.utils import log, TreeList
 
 from .. import MapSource, RasterSource, PATHWAYS_TILE_LAYER
@@ -74,7 +74,7 @@ class PowerpointLayer(MapLayer):
         features = self.__process_shape_list(shapes)
         self.add_features('Slide', features, outermost=True)
 
-        if settings.get('functionalConnectivity', False):
+        if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             for feature in self.features:
                 if feature.get_property('cd-class') == CD_CLASS.CONNECTION:
                     # Map neuron path class to viewer path kind/type

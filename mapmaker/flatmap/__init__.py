@@ -38,7 +38,7 @@ from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.knowledgebase import AnatomicalNode, get_knowledge
 from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
 from mapmaker.properties import ConnectionSet, PropertiesStore
-from mapmaker.settings import settings
+from mapmaker.settings import MAP_KIND
 from mapmaker.utils import log
 
 from .feature import Feature, FeatureAnatomicalNodeMap
@@ -59,6 +59,8 @@ class FlatMap(object):
         self.__id = maker.id
         self.__uuid = maker.uuid
         self.__map_dir = maker.map_dir
+        self.__map_kind = (MAP_KIND.FUNCTIONAL if manifest.kind == 'functional'
+                      else MAP_KIND.ANATOMICAL)
         self.__manifest = manifest
         self.__local_id = manifest.id
         self.__models = manifest.models
@@ -123,12 +125,16 @@ class FlatMap(object):
         return self.__local_id
 
     @property
+    def manifest(self):
+        return self.__manifest
+
+    @property
     def map_dir(self):
         return self.__map_dir
 
     @property
-    def manifest(self):
-        return self.__manifest
+    def map_kind(self) -> MAP_KIND:
+        return self.__map_kind
 
     @property
     def min_zoom(self):
