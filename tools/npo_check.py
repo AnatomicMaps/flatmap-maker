@@ -1,6 +1,5 @@
 #===============================================================================
 
-from genericpath import exists
 from pathlib import Path
 from tqdm import tqdm
 import json
@@ -9,7 +8,7 @@ import ast
 
 #===============================================================================
 
-from operator import index, itemgetter
+from operator import itemgetter
 import torch
 from sentence_transformers import SentenceTransformer, util
 from SPARQLWrapper import SPARQLWrapper2
