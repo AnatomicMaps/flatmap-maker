@@ -1311,6 +1311,10 @@ class Network(object):
             if edge[0] == edge[1] and route_graph.has_edge(edge[0], edge[1]):
                 route_graph.remove_edge(edge[0], edge[1])
 
+        # log a warning if no path is rendered
+        if len(route_graph.edges) == 0 and len(connectivity_graph.edges) > 0:
+            log.warning(f'{path.id} is not rendered at all.')
+
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
         else:
