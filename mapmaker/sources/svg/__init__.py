@@ -18,8 +18,10 @@
 #
 #===============================================================================
 
+import math
 import tempfile
 from typing import Optional
+import unicodedata
 
 #===============================================================================
 
@@ -30,6 +32,8 @@ import numpy as np
 from shapely.geometry.base import BaseGeometry
 import shapely.ops
 
+import skia
+
 #===============================================================================
 
 from mapmaker.exceptions import MakerException
@@ -37,7 +41,10 @@ from mapmaker.flatmap import Feature, FlatMap, ManifestSource
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.properties import not_in_group_properties
-from mapmaker.utils import FilePath, ProgressBar, log
+from mapmaker.settings import MAP_KIND
+from mapmaker.shapes import Shape, SHAPE_TYPE
+from mapmaker.shapes.classify import ShapeClassifier
+from mapmaker.utils import FilePath, ProgressBar, log, TreeList
 
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_PIXEL
@@ -47,7 +54,7 @@ from .definitions import DefinitionStore, ObjectStore
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import circle_from_bounds, geometry_from_svg_path, length_as_pixels
-from .utils import svg_markup, parse_svg_path, SVG_TAG
+from .utils import length_as_points, svg_markup, parse_svg_path, SVG_TAG
 
 #===============================================================================
 
@@ -58,7 +65,6 @@ IGNORED_SVG_TAGS = [
     SVG_TAG('linearGradient'),
     SVG_TAG('radialGradient'),
     SVG_TAG('style'),
-    SVG_TAG('text'),
     SVG_TAG('title'),
 ]
 
@@ -159,15 +165,37 @@ class SVGLayer(MapLayer):
     def process(self):
     #=================
         properties = {'tile-layer': FEATURES_TILE_LAYER}   # Passed through to map viewer
-        features = self.__process_element_list(wrap_element(self.__svg),
-                                               self.__transform,
-                                               properties,
-                                               None, show_progress=True)
+        shapes = self.__process_element_list(wrap_element(self.__svg),
+                                             self.__transform,
+                                             properties,
+                                             None, show_progress=True)
+        features = self.__process_shape_list(shapes)
         self.add_features('SVG', features, outermost=True)
 
+    def __process_shape_list(self, shapes: TreeList[Shape]) -> list[Feature]:
+    #====================================================================
+        if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+            # CellDL conversion mode...
+            sc = ShapeClassifier(shapes.flatten(), self.source.map_area())
+            shapes = TreeList(sc.classify())
+
+        if self.source.base_feature is not None:
+            bounds = self.source.bounds
+            margin = 0.01*(abs(bounds[2]-bounds[0])
+                         + abs(bounds[3]-bounds[1]))
+            bbox = shapely.geometry.box(*bounds).buffer(margin)
+            shapes.insert(0, Shape('background', bbox, {
+                'tooltip': False,
+                'colour': 'white',
+                'models': 'UBERON:0013702'   ## will create a ``BodyLayer``
+            }))
+
+        return [self.flatmap.new_feature(self.id, shape.geometry, shape.properties)
+                  for shape in shapes.flatten() if not shape.properties.get('exclude', False)]
+
     @staticmethod
-    def __excluded_group_feature(properties) -> bool:
-    #================================================
+    def __excluded_group_shape(properties) -> bool:
+    #==============================================
         return (not_in_group_properties(properties)
              or 'auto-hide' in properties.get('class', '')
              or (properties.get('type') == 'nerve'
@@ -194,12 +222,12 @@ class SVGLayer(MapLayer):
         except MakerException:
             raise MakerException('Unsupported `transform-origin` units -- please normalise SVG source')
 
-    def __process_group(self, wrapped_group: ElementWrapper, properties, transform, parent_style) -> Optional[Feature]:
-    #==================================================================================================================
+    def __process_group(self, wrapped_group: ElementWrapper, properties, transform, parent_style) -> Optional[Shape|TreeList[Shape]]:
+    #================================================================================================================================
         group = wrapped_group.etree_element
         if len(group) == 0:
             return None
-        children = wrapped_group.etree_children
+        children: list[etree.Element] = wrapped_group.etree_children    # type: ignore
         while (len(children) == 1
           and children[0].tag == SVG_TAG('g')
           and len(children[0].attrib) == 0):
@@ -208,50 +236,50 @@ class SVGLayer(MapLayer):
                 children[0].set(k, v)
             group = children[0]
             wrapped_group = wrap_element(group)
-            children = wrapped_group.etree_children
+            children = wrapped_group.etree_children                     # type: ignore
         group_style = self.__style_matcher.element_style(wrapped_group, parent_style)
         group_clip_path = group_style.pop('clip-path', None)
+        group_id = properties.get('id')
         clipped = self.__clip_geometries.get_by_url(group_clip_path)
         if clipped is not None:
-            # Replace any features inside a clipped group with just the clipped outline
-            group_feature = self.flatmap.new_feature(self.id, clipped, properties)
+            # Replace any shapes inside a clipped group with just the clipped outline
+            group_shape = Shape(group_id, clipped, properties, svg_element=group)
         else:
             group_transform = self.__get_transform(wrapped_group)
-            features = self.__process_element_list(wrapped_group,
+            shapes = self.__process_element_list(wrapped_group,
                 transform@group_transform,
                 properties,
                 group_style)
             properties.pop('tile-layer', None)  # Don't set ``tile-layer``
-            if len(group_features := [f for f in features if f.geometry.is_valid and not self.__excluded_group_feature(f.properties)]):
-                # If the group element has markup and contains geometry then add it as a feature
-                group_geometry = shapely.ops.unary_union([f.geometry for f in group_features])
-                group_feature = self.flatmap.new_feature(self.id, group_geometry, properties)
-                # And don't output interior features with no markup
-                for feature in group_features:
-                    if not feature.has_property('markup'):
-                        feature.set_property('exclude', True)
+            if group_id and len(group_shapes := TreeList([s for s in shapes.flatten() if s.geometry.is_valid and not self.__excluded_group_shape(s.properties)])):
+                # If the group element has markup and contains geometry then add it as a shape
+                group_geometry = shapely.ops.unary_union([s.geometry for s in group_shapes.flatten()])
+                group_shape = Shape(group_id, group_geometry, properties)
+                # And don't output interior shapes with no markup
+                for shape in group_shapes.flatten():
+                    if not shape.has_property('markup'):
+                        shape.set_property('exclude', True)
+                group_markup = svg_markup(group)
+                if 'id' in properties:
+                    log.warning(f'SVG group `{group_markup}` with id cannot also contain a `.group` marker')
             else:
-                group_feature = None
-            group_name = svg_markup(group)
-            if (feature_group := self.add_features(group_name, features)) is not None:
-                if 'id' not in properties:
-                    group_feature = feature_group
-                else:
-                    log.warning(f'SVG group `{group_name}` with id cannot also contain a `.group` marker')
-        return group_feature
+                group_shape = shapes
+        return group_shape
 
-    def __process_element_list(self, elements: ElementWrapper, transform, parent_properties, parent_style, show_progress=False) -> list[Feature]:
-    #============================================================================================================================================
+    def __process_element_list(self, elements: ElementWrapper, transform, parent_properties, parent_style, show_progress=False) -> TreeList[Shape]:
+    #==============================================================================================================================================
         children = list(elements.iter_children())
         progress_bar = ProgressBar(show=show_progress,
             total=len(children),
             unit='shp', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
-        features = []
+        shapes: TreeList[Shape] = TreeList()
         for wrapped_element in children:
             progress_bar.update(1)
             element = wrapped_element.etree_element
-            if element.tag is etree.Comment or element.tag is etree.PI:
+            if (element.tag is etree.Comment
+             or element.tag is etree.PI
+             or element.tag in IGNORED_SVG_TAGS):
                 continue
             elif element.tag == SVG_TAG('defs'):
                 self.__definitions.add_definitions(element)
@@ -261,10 +289,10 @@ class SVGLayer(MapLayer):
                 wrapped_element = wrap_element(element)
             if element is not None and element.tag == SVG_TAG('clipPath'):
                 self.__add_clip_geometry(element, transform)
-            elif (feature := self.__process_element(wrapped_element, transform, parent_properties, parent_style)) is not None:
-                features.append(feature)
+            elif (shape := self.__process_element(wrapped_element, transform, parent_properties, parent_style)) is not None:
+                shapes.append(shape)
         progress_bar.close()
-        return features
+        return shapes
 
     def __add_clip_geometry(self, clip_path_element, transform):
     #===========================================================
@@ -288,8 +316,8 @@ class SVGLayer(MapLayer):
                     geometries.append(geometry)
         return shapely.ops.unary_union(geometries) if len(geometries) else None
 
-    def __process_element(self, wrapped_element: ElementWrapper, transform, parent_properties, parent_style) -> Optional[Feature]:
-    #=============================================================================================================================
+    def __process_element(self, wrapped_element: ElementWrapper, transform, parent_properties, parent_style) -> Optional[Shape|TreeList[Shape]]:
+    #===========================================================================================================================================
         element = wrapped_element.etree_element
         element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
         markup = svg_markup(element)
@@ -298,6 +326,7 @@ class SVGLayer(MapLayer):
         properties.pop('id', None)       # We don't inherit `id`
         properties.pop('markup', None)   # nor `markup`
         properties.update(properties_from_markup)
+        shape_id = properties.get('id')  ## versus element.attrib.get('id')
         if 'path' in properties:
             pass
         elif 'styling' in properties:
@@ -314,7 +343,7 @@ class SVGLayer(MapLayer):
             and 'id' not in properties):
                 return None
             else:
-                return self.flatmap.new_feature(self.id, geometry, properties)
+                return Shape(shape_id, geometry, properties, svg_element=element)
         elif element.tag == SVG_TAG('image'):
             clip_path_url = element_style.pop('clip-path', None)
             if ((geometry := self.__clip_geometries.get_by_url(clip_path_url)) is None
@@ -322,11 +351,14 @@ class SVGLayer(MapLayer):
                 T = transform@self.__get_transform(wrapped_element)
                 geometry = self.__get_clip_geometry(clip_path_element, T)
             if geometry is not None:
-                return self.flatmap.new_feature(self.id, geometry, properties)
+                return Shape(shape_id, geometry, properties, shape_type=SHAPE_TYPE.IMAGE, svg_element=element)
         elif element.tag == SVG_TAG('g'):
             return self.__process_group(wrapped_element, properties, transform, parent_style)
-        elif element.tag in IGNORED_SVG_TAGS:
-            pass
+        elif element.tag == SVG_TAG('text'):
+            geometry = self.__process_text(element, properties, transform)
+
+            if geometry is not None:
+                return Shape(shape_id, geometry, properties, shape_type=SHAPE_TYPE.TEXT, svg_element=element)
         else:
             log.warning(f'SVG element {element.tag} "{markup}" not processed...')
         return None
@@ -444,5 +476,63 @@ class SVGLayer(MapLayer):
             return geometry
         except ValueError as err:
             log.warning(f"{err}: {properties.get('markup')}")
+
+    def __process_text(self, element, properties, transform: Transform) -> Optional[BaseGeometry]:
+    #=============================================================================================
+        attribs = element.attrib
+        style_rules = dict(attribs)
+        if 'style' in attribs:
+            styling = attribs.pop('style')
+            style_rules.update(dict([rule.split(':', 1) for rule in [rule.strip()
+                                                for rule in styling[:-1].split(';')]]))
+        font_style = skia.FontStyle(int(style_rules.get('font-weight', skia.FontStyle.kNormal_Weight)),
+                                    skia.FontStyle.kNormal_Width,
+                                    skia.FontStyle.kUpright_Slant)
+        type_face = None
+        element_text = ' '.join(' '.join([t.replace('\u200b', '') for t in element.itertext()]).split())
+        if element_text == '':
+            element_text = ' '
+        font_manager = skia.FontMgr()
+        for font_family in style_rules.get('font-family', 'Calibri').split(','):
+            type_face = font_manager.matchFamilyStyle(font_family, font_style)
+            if type_face is not None:
+                break
+        if type_face is None:
+            type_face = font_manager.matchFamilyStyle(None, font_style)
+        font = skia.Font(type_face, length_as_points(style_rules.get('font-size', 10)))
+        bounds = skia.Rect()
+        width = font.measureText(element_text, skia.TextEncoding.kUTF8, bounds)
+        height = font.getSpacing()
+        halign = attribs.get('text-anchor')  # end, middle, start
+        [x, y] = [float(attribs.get('x', 0)), float(attribs.get('y', 0))]
+        if halign == 'middle':
+            x -= width/2
+        elif halign == 'end':
+            x -= width
+        valign = attribs.get('dominant-baseline')  # auto, middle
+        if valign == 'middle':
+            y += height/2
+        metrics = font.getMetrics()
+        bds = bounds.asScalars()
+        if (top := bds[1]) == 0:
+            top = metrics.fXHeight
+        if (right := bds[2]) == 0:
+            right = width
+        path_tokens = ['M', x+bds[0], y+top,
+                       'H', x+right,
+                       'V', y+bds[3],
+                       'H', x+bds[0],
+                       'V', y+top,
+                       'Z']
+        wrapped_element = wrap_element(element)
+        geometry, _ = geometry_from_svg_path(path_tokens,
+            transform@self.__get_transform(wrapped_element), True)
+
+        properties['text'] = unicodedata.normalize('NFKD', element_text)
+        properties['left'] = x+bds[0]
+        properties['right'] = x+right
+        properties['baseline'] = y
+
+        return geometry             # type: ignore
 
 #===============================================================================
