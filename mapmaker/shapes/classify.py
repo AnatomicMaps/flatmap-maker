@@ -207,7 +207,6 @@ class TextClassifier:
                 shape_type=SHAPE_TYPE.TEXT,
                 text=text_row[0]
             ))
-            print('------>', self.__text_shapes[-1].properties)
             pos = self.__shape_pos(pos + 1)
 
     @property
