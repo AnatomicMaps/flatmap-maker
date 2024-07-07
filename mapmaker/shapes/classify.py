@@ -53,8 +53,8 @@ Shape types from size (area and aspect ratio) and geometry:
 """
 
 # SVG pixel space scaled to world metres
-MAX_CHAR_SPACING    = 20000
-MAX_VERTICAL_OFFSET = 20000
+MAX_CHAR_SPACING    = 40000
+MAX_VERTICAL_OFFSET = 50000
 
 #===============================================================================
 
@@ -131,30 +131,56 @@ class ShapeClassifier:
                 child.add_parent(parent)
                 last_child_id = child.id
 
-        text_classifier = TextClassifier(self.__shapes_by_type[SHAPE_TYPE.TEXT])
-        for shape in self.__shapes_by_type[SHAPE_TYPE.TEXT]:
-            shape.properties['exclude'] = True
-        self.__shapes.extend(text_classifier.text_shapes)
+        text_blocks = self.__block_text()
+        for block in text_blocks.values():
+            shape = self.__text_block_to_shape(block)
+            print(shape.text)
+            self.__shapes.append(shape)
 
-        # Set a shape's name by concatenating the text of its children
-        for shape in self.__shapes_by_type[SHAPE_TYPE.CONTAINER]:
-            names = []
-            for child in shape.children:
-                if child.shape_type == SHAPE_TYPE.TEXT:
-                    text = child.get_property('text')
-                    if 'SYSTEM' in text:
-                        names = [text]
-                        break
-                    names.append(text)
-            name = ' '.join(names).strip()
-            if name:
-                shape.set_property('name', name)
 
         for shape in self.__shapes_by_type[SHAPE_TYPE.CONNECTION]:
             # Exclude connection interactivity -- lines will show in rasteriesed layer
             shape.properties['exclude'] = True
 
         return self.__shapes
+
+
+    def __block_text(self) -> DefaultDict[int, list[Shape]]:
+    #=======================================================
+        block_number = 0
+        text_blocks: DefaultDict[int, list[Shape]] = defaultdict(list[Shape])
+        text_shapes = self.__shapes_by_type[SHAPE_TYPE.TEXT]
+        text_shape_count = len(text_shapes)
+        start_pos = 0
+        while start_pos < text_shape_count:
+            shape = text_shapes[start_pos]
+            left_side = shape.left
+            right_side = shape.right
+            baseline = shape.baseline
+            text_blocks[block_number].append(shape)
+            pos = start_pos + 1
+            while pos < text_shape_count:
+                shape = text_shapes[pos]
+                if (abs(baseline-shape.baseline) < MAX_VERTICAL_OFFSET
+                 and shape.left < (right_side + MAX_CHAR_SPACING)
+                 and shape.right > left_side):
+                    left_side = shape.left
+                    right_side = shape.right
+                    text_blocks[block_number].append(shape)
+                    pos += 1
+                else:
+                    block_number += 1
+                    break
+            start_pos = pos
+        return text_blocks
+
+    def __text_block_to_shape(self, text_block: list[Shape]) -> Shape:
+    #=================================================================
+        return Shape(None, shapely.unary_union([s.geometry for s in text_block]),
+            shape_type = SHAPE_TYPE.TEXT,
+            text=''.join([s.text for s in text_block]),
+            label=f'${''.join([s.text for s in text_block])}$'.replace(' ', '\\ ')
+        )
 
     def __cluster_text(self) -> DefaultDict[int, list[Shape]]:
     #=========================================================
