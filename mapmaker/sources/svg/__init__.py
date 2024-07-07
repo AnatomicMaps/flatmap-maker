@@ -532,6 +532,7 @@ class SVGLayer(MapLayer):
         properties['right'] = bounds[2]
         properties['baseline'] = T.transform_point((x, y))[1]
         properties['text'] = unicodedata.normalize('NFKD', element_text)
+        properties['font-family'] = font.getTypeface().getFamilyName()
 
         return geometry             # type: ignore
 
