@@ -525,13 +525,13 @@ class SVGLayer(MapLayer):
                        'V', y+top,
                        'Z']
         wrapped_element = wrap_element(element)
-        geometry, _ = geometry_from_svg_path(path_tokens,
-            transform@self.__get_transform(wrapped_element), True)
-
+        T = transform@self.__get_transform(wrapped_element)
+        geometry, _ = geometry_from_svg_path(path_tokens, T, True)
+        bounds = shapely.bounds(geometry)
+        properties['left'] = bounds[0]
+        properties['right'] = bounds[2]
+        properties['baseline'] = T.transform_point((x, y))[1]
         properties['text'] = unicodedata.normalize('NFKD', element_text)
-        properties['left'] = x+bds[0]
-        properties['right'] = x+right
-        properties['baseline'] = y
 
         return geometry             # type: ignore
 

@@ -52,8 +52,11 @@ Shape types from size (area and aspect ratio) and geometry:
 
 """
 
-MAX_CHAR_SPACING = 40
-MAX_VERTICAL_OFFSET = 30
+# SVG pixel space scaled to world metres
+MAX_CHAR_SPACING    = 20000
+MAX_VERTICAL_OFFSET = 20000
+
+#===============================================================================
 
 class ShapeClassifier:
     def __init__(self, shapes: list[Shape], map_area: float):
@@ -271,12 +274,12 @@ class TextClassifier:
              or abs(parent_baseline - shape.baseline) <= 0.1*MAX_VERTICAL_OFFSET
              or (shape.left - right_side) > MAX_CHAR_SPACING):
                 break
-            if shape.baseline < (baseline - 0.1*MAX_VERTICAL_OFFSET):
+            if shape.baseline > (baseline - 0.1*MAX_VERTICAL_OFFSET):
                 if (superscript := self.__text_row(pos, level+1, baseline)) is not None:
                     text.append(f'^{{{superscript[0]}}}')
                     geometry.append(superscript[1])
                     right_side = superscript[2]
-            elif shape.baseline > (baseline + 0.1*MAX_VERTICAL_OFFSET):
+            elif shape.baseline < (baseline + 0.1*MAX_VERTICAL_OFFSET):
                 if (subscript := self.__text_row(pos, level+1, baseline)) is not None:
                     text.append(f'_{{{subscript[0]}}}')
                     geometry.append(subscript[1])
