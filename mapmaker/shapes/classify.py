@@ -234,17 +234,21 @@ class TextClassifier:
         pos = self.__shape_pos(start_pos)
         if pos is not None:
             row_baseline = self.__ordered_text[pos].baseline
+            shape = self.__ordered_text[pos]
             while pos is not None:
-                shape_baseline = self.__ordered_text[pos].baseline
-                if (abs(row_baseline - shape_baseline) <= 0.1*MAX_VERTICAL_OFFSET
-                and (block := self.__text_block(pos, level, parent_baseline)) is not None):
-                    text.append(block[0])
-                    geometry.append(block[1])
-                    right_side = block[2]
-                    if not block[0].endswith(')'):
-                        pos = self.__shape_pos(start_pos + 1)
-                        continue
-                break
+                if abs(row_baseline - shape.baseline) <= 0.1*MAX_VERTICAL_OFFSET:
+                    if (block := self.__text_block(pos, level, parent_baseline)) is not None:
+                        text.append(block[0])
+                        geometry.append(block[1])
+                        right_side = block[2]
+                        if block[0].endswith(')'):
+                            break
+                pos = self.__shape_pos(pos+1)
+                if pos is not None:
+                    shape = self.__ordered_text[pos]
+                    if (shape.left - right_side) > MAX_CHAR_SPACING:
+                        break
+
         if len(text):
             return (''.join(text), shapely.unary_union(geometry), right_side)
 
