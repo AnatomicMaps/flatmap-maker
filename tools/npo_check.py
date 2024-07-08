@@ -511,7 +511,9 @@ class FlatMapCheck:
             name = ' IN '.join(name)
             notes = ''
             if node in self.__connectivity_terms:
-                notes = 'The node is available in `connextivity_terms.json`. Probably by adding a pink dot in the `svg` file will solve the problem'
+                notes = 'The node is available in `connextivity_terms.json`. Possible problems:\
+                    \n - missing a pink dot in the svg file\
+                    \n - incorrect alias mapping'
             df.loc[len(df)] = [
                 node,
                 name,
