@@ -1313,7 +1313,7 @@ class Network(object):
 
         # log a warning if no path is rendered
         if len(route_graph.edges) == 0 and len(connectivity_graph.edges) > 0:
-            log.warning(f'{path.id} is not rendered at all.')
+            log.warning(f'{path.id}: Path is not rendered at all.')
 
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
