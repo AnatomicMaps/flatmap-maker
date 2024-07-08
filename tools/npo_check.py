@@ -701,8 +701,10 @@ if __name__ == '__main__':
 
 
 # Results are stored in --output-dir/--species/ directory
-#   - npo_{species}_completeness.xlsx
-#   - npo_{species}_rendered.csv
+#   - npo_{species}_completeness.xlsx, There are 3 sheets inside:
+#       - missing
+#        - align
+#       - rendered
 #   - connectivity_terms.json,
 #       - combines the existing connectivity_terms.json with the general terms found
 #       - later this file can be used as a new connectivity_terms.json in AC and FC
