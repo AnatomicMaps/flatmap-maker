@@ -511,7 +511,7 @@ class FlatMapCheck:
             name = ' IN '.join(name)
             notes = ''
             if node in self.__connectivity_terms:
-                notes = 'The node is available in `connextivity_terms.json`. Possible problems:\
+                notes = f'The node is available in `connextivity_terms.json` as the aliases of {self.__connectivity_terms[node]['aliases']}. Possible problems:\
                     \n - missing a pink dot in the svg file\
                     \n - incorrect alias mapping'
             elif node in self.__flatmap_aliases:
