@@ -514,6 +514,9 @@ class FlatMapCheck:
                 notes = 'The node is available in `connextivity_terms.json`. Possible problems:\
                     \n - missing a pink dot in the svg file\
                     \n - incorrect alias mapping'
+            elif node in self.__flatmap_aliases:
+                notes = f'The node is mapped to `{self.__flatmap_aliases[node]}` in `connextivity_terms.json`. Possible problem:\
+                    \n - other nodes on the same path are generalised to the same node.'
             df.loc[len(df)] = [
                 node,
                 name,
@@ -527,11 +530,13 @@ class FlatMapCheck:
         # a function to load log file
         missing_nodes = {} # node:label
         missing_segments = {} # neuron_path:segment
+        missing_paths = [] # a mlist of missing path
         map_log = {}
         with open(log_file, 'r') as f:
             while line := f.readline():
                 tag_feature = 'Cannot find feature for connectivity node '
                 tag_segment = 'Cannot find any sub-segments of centreline for '
+                tag_path = 'Path is not rendered at all.'
                 if tag_feature in line:
                     feature = line.split(tag_feature)[-1].split(') (')
                     missing_nodes[ast.literal_eval(f'{feature[0]})')] = f'({feature[1]}'.strip()
@@ -539,6 +544,8 @@ class FlatMapCheck:
                     path_id = line[33:].split(': ')[0]
                     if path_id not in missing_segments: missing_segments[path_id] = []
                     missing_segments[path_id] += [line.split(tag_segment)[-1][1:-2]]
+                elif tag_path in line:
+                    missing_paths += [(path_id:=line[33:].split(': ')[0])]
         for path_id, connectivities in self.__npo_connectivities.items():
             map_log[path_id] = {}
             nodes, edges = set(), set()
@@ -562,6 +569,14 @@ class FlatMapCheck:
             r_nodes = mapped_nodes - set(missing_nodes.keys())
             r_edges = edges - m_edges
             complete = 'Complete' if len(m_nodes)==0 and len(m_edges)==0 else 'Partial'
+            notes = ''
+            if path_id in missing_paths:
+                m_nodes = [n for n in nodes if n in self.__flatmap_aliases]
+                r_nodes = []
+                m_edges = edges
+                r_edges = []
+                complete = 'None'
+                notes = f'All nodes are generalised to the same term, so this path is not rendered.\nNodes: {nodes}'
             map_log[path_id] = {
                 'original_nodes': nodes,
                 'missing_nodes': m_nodes,
@@ -570,7 +585,8 @@ class FlatMapCheck:
                 'missing_edges': m_edges,
                 'rendered_edges': r_edges,
                 'completeness': complete,
-                'missing_segment': missing_segments.get(path_id, [])
+                'missing_segment': missing_segments.get(path_id, []),
+                'notes': notes
             }
 
         return map_log
@@ -604,10 +620,10 @@ class FlatMapCheck:
                 else:
                     names = ''
                 info[key+'_name'] = '\n'.join([str(mnn) for mnn in names])
-            info['Notes'] = ''
+            info['Notes'] = value['notes']
             df.loc[len(df)] = [neuron, value['completeness']] + list(info.values())
 
-        df = df.sort_values('Completeness')
+        df = df.sort_values('Completeness', ascending=False)
         return df
 
     def check_npo_in_flatmap(self):
@@ -622,7 +638,7 @@ class FlatMapCheck:
         df_missing = self.__merge_connectivity_terms(df_missing)
 
         # save missing_nodes to a file
-        df_missing = df_missing[df_missing.parents.isna()].drop('parents', axis=1)
+        df_missing = df_missing[df_missing.parents.isna() | df_missing.Node.isin(self.__flatmap_aliases)].drop('parents', axis=1)
         
         # align missing_nodes and safe to file
         df_align = self.__align_missing_nodes(df_missing, self.__k)
