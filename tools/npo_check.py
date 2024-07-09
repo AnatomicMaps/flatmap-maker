@@ -654,7 +654,7 @@ class FlatMapCheck:
                 col_idx = df.columns.get_loc(column)
                 writer.sheets[sheet_name].set_column(col_idx, col_idx, 25, wrap_format)
 
-        excel_file = self.__output_dir/f'npo_{self.__species}_completeness.xlsx'
+        excel_file = self.__output_dir/'npo_completeness.xlsx'
         with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
             df_missing.to_excel(writer, sheet_name='missing', index=False)
             set_format(writer, df_missing, 'missing')
