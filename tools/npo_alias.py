@@ -57,7 +57,7 @@ def generate_aliases(completeness_file, connectivity_term_file):
             if alias_name is not None:
                 current_alias[alias_id]['name'] = alias_name
 
-    with open(dest:=connectivity_term_file.parent/f"generated-{connectivity_term_file.name}", 'w') as f:
+    with open(dest:=Path(completeness_file).parent/connectivity_term_file.name, 'w') as f:
         json.dump(list(current_alias.values()), f, indent=4)
 
     print(f'The generated connectivity_terms is available at: {dest}')
