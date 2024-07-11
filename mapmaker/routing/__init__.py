@@ -1282,7 +1282,6 @@ class Network(object):
                     set_direction(upstream_node)
                 route_graph.nodes[node_0].update(node_0_prop)
                 route_graph.nodes[node_1].update(node_1_prop)
-        print('  ---', route_graph.edges)
 
         # connects the remaining centerlines that have edges to terminal nodes but are not yet connected
         for node, segment_graph in node_with_segments.items():
