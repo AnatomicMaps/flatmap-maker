@@ -896,6 +896,8 @@ class Network(object):
                 closest_feature_dict = {}  # .geometry.centroid.distance sometime is inconsistent
                 for neighbour in connectivity_graph.neighbors(node):
                     neighbour_dict = connectivity_graph.nodes[neighbour]
+                    if len(neighbour_dict.get('contains', set())) > 0:
+                        neighbour_dict = connectivity_graph.nodes[next(iter(neighbour_dict['contains']))]
                     edge_dict = connectivity_graph.edges[(node, neighbour)]
                     if neighbour_dict['type'] == 'feature':
                         # selecting one the first neighbour feature to be connected with the closest no-segment node
@@ -1280,6 +1282,7 @@ class Network(object):
                     set_direction(upstream_node)
                 route_graph.nodes[node_0].update(node_0_prop)
                 route_graph.nodes[node_1].update(node_1_prop)
+        print('  ---', route_graph.edges)
 
         # connects the remaining centerlines that have edges to terminal nodes but are not yet connected
         for node, segment_graph in node_with_segments.items():
