@@ -1,6 +1,5 @@
 #===============================================================================
 
-import os
 from pathlib import Path
 from tqdm import tqdm
 import json
@@ -19,6 +18,7 @@ from SPARQLWrapper import SPARQLWrapper2
 from xml.dom import minidom
 import re
 import itertools
+import rdflib
 
 #===============================================================================
 
@@ -41,11 +41,10 @@ biobert_model = SentenceTransformer(BIOBERT)
 ### General terms identification
 
 tqdm.pandas()
-NPO_SPARQL_ENDPOINT = 'https://blazegraph.scicrunch.io/blazegraph/sparql'
-sparql_wrapper = SPARQLWrapper2(NPO_SPARQL_ENDPOINT)
 namespaces = {
     'UBERON': 'http://purl.obolibrary.org/obo/UBERON_',
     'ILX': 'http://uri.interlex.org/base/ilx_',
+    'FMA': 'http://purl.org/sig/ont/fma/fma'
 }
 
 def get_curie(url: str):
@@ -53,6 +52,7 @@ def get_curie(url: str):
         if url.startswith(preff):
             return url.replace(preff, namespace + ':')
     return url
+
 
 #===============================================================================
 
@@ -75,8 +75,14 @@ class FlatMapCheck:
         if args.sckan_version is not None:
             self.__sckan_version = args.sckan_version
         else:
-            self.__sckan_version = self.__manifest.get('sckan_version')
-        self.__store = KnowledgeStore(sckan_version=args.sckan_version, use_npo=True, sckan_provenance=True,store_directory=self.__artefact_dir)
+            self.__sckan_version = self.__manifest.get('sckan-version')
+        self.__store = KnowledgeStore(sckan_version=self.__sckan_version, use_npo=True, sckan_provenance=True,store_directory=self.__artefact_dir)
+
+        # setup npo_graph to check term ancestor
+        NPO_TURTLE = f'https://raw.githubusercontent.com/SciCrunch/NIF-Ontology/{self.__sckan_version}/ttl/npo.ttl'
+        self.__npo_graph = rdflib.Graph()
+        self.__npo_graph.parse(NPO_TURTLE, format='turtle')
+
 
         # delete artefact files when clean_connectivity
         if self.__clean_connectivity:
@@ -299,6 +305,32 @@ class FlatMapCheck:
         self.__map_node_name[node] = (name[0], tuple(name[1:] if len(name)>1 else ()))
         return name
 
+    def __get_ancestor(self, term):
+        if 'http' in term: return []
+        prefix = """
+            PREFIX ILX: <http://uri.interlex.org/base/ilx_>
+            PREFIX UBERON: <http://purl.obolibrary.org/obo/UBERON_>
+            """
+        sparql = f"""
+            {prefix}
+            SELECT ?object
+                WHERE {{
+                {term} rdfs:subClassOf ?restriction .
+                ?restriction a owl:Restriction ;
+                                owl:someValuesFrom ?object .
+                }}
+            """
+        if len(results:=self.__npo_graph.query(sparql)) > 0:
+            return [get_curie(str(row.object)) for row in results]
+        sparql = f"""
+            {prefix}
+            SELECT ?object
+                WHERE {{
+                {term} rdfs:subClassOf ?object .
+                }}
+            """
+        return [get_curie(str(row.object)) for row in self.__npo_graph.query(sparql)]
+
     def __load_ancestors(self):
         map_ancestor_file = self.__artefact_dir/'map_ancestor.json'
         map_ancestor = {}
@@ -309,41 +341,11 @@ class FlatMapCheck:
             for edge in conn['connectivity']:
                 for term in [edge[0][0]] + list(edge[0][1]) + [edge[1][0]] + list(edge[1][1]):
                     if term not in map_ancestor:
-                        sparql = f"""
-                            SELECT DISTINCT ?parent ?label ?level
-                            {{
-                                VALUES ?term {{{term}}}
-                                {{
-                                    ?term ilxtr:isPartOf ?parent .
-                                                ?parent rdfs:label ?label .
-                                    BIND (1 as ?level)
-                                }}
-                                UNION
-                                {{
-                                    ?term ilxtr:isPartOf/ilxtr:isPartOf ?parent .
-                                    ?parent rdfs:label ?label .
-                                    BIND (2 as ?level)
-                                }}
-                                UNION
-                                {{
-                                    ?term ilxtr:isPartOf/ilxtr:isPartOf/ilxtr:isPartOf ?parent .
-                                    ?parent rdfs:label ?label .
-                                    BIND (3 as ?level)
-                                }}
-                                UNION
-                                {{
-                                    ?term ilxtr:isPartOf/ilxtr:isPartOf/ilxtr:isPartOf/ilxtr:isPartOf ?parent .
-                                    ?parent rdfs:label ?label .
-                                    BIND (4 as ?level)
-                                }}
-                            }}
-                        """
-                        sparql_wrapper.setQuery(sparql)
-                        results = {}
-                        for rs in sparql_wrapper.query().bindings:
-                            if get_curie(rs['parent'].value) not in results:
-                                results[get_curie(rs['parent'].value)] = int(rs['level'].value)
-                        map_ancestor[term] = results
+                        level_1_results = {p:1 for p in self.__get_ancestor(term)}
+                        level_2_results = {}
+                        for p_term in level_1_results.keys():
+                            level_2_results = {**level_2_results, **{p:2 for p in self.__get_ancestor(p_term)}}
+                        map_ancestor[term] = {**level_1_results, **level_2_results}
         with open(map_ancestor_file, 'w') as f:
             json.dump(map_ancestor, f)
         return map_ancestor
