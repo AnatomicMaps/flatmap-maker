@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from lxml import etree
+import lxml.etree as etree
 
 from mapmaker.properties.markup import parse_markup
 
