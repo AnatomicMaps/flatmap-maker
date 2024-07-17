@@ -162,19 +162,16 @@ class FlatMapCheck:
             ('ilxtr:ParasympatheticPhenotype', 'ilxtr:PreGanglionicPhenotype'): 'pre-ganglionic parasympathetic',
             ('ilxtr:PreGanglionicPhenotype', 'ilxtr:SympatheticPhenotype'): 'pre-ganglionic sympathetic',
         }
-        knowledge_file = self.__artefact_dir/'npo_knowledge.json'
-        if knowledge_file.exists() and not self.__clean_connectivity:
-            with open(knowledge_file, 'r') as f:
-                npo_connectivities = json.load(f)
-        else:
-            npo_connectivities = {}
-            for conn in self.__store.connectivity_paths():
-                npo_connectivities[conn] = self.__store.entity_knowledge(conn)
+        biological_sex = self.__manifest.get('biological-sex','')
+
+        npo_connectivities = {}
+        for conn in self.__store.connectivity_paths():
+            conn_data = self.__store.entity_knowledge(conn)
+            if biological_sex=='' or biological_sex==conn_data.get('biologicalSex', ''):
+                npo_connectivities[conn] = conn_data
                 if len(conn_phenotype := tuple(sorted(npo_connectivities[conn].get('phenotypes', [])))) > 0:
                     npo_connectivities[conn]['phenotypes'] = phenotypes.get(conn_phenotype, str(conn_phenotype))
-            with open(knowledge_file, 'w') as f:
-                json.dump(npo_connectivities, f, indent=4)
-        return npo_connectivities
+        return {k:v for k, v in npo_connectivities.items() if biological_sex=='' or biological_sex==v.get('biologicalSex', '')}
 
     def __generate_flatmap(self):
         log_file = self.__artefact_dir/(f"{self.__species}.log")
@@ -513,11 +510,12 @@ class FlatMapCheck:
             name = ' IN '.join(name)
             notes = ''
             if node in self.__connectivity_terms:
-                notes = f'The node is available in `connextivity_terms.json` as the aliases of {self.__connectivity_terms[node]['aliases']}. Possible problems:\
+                aliases = ', '.join([f'{str(alias)}-{self.__get_node_name(alias)}' for alias in self.__connectivity_terms[node]['aliases']])
+                notes = f'The node is available in `connextivity_terms.json` as the aliases of {aliases}. Possible problems:\
                     \n - missing a pink dot in the svg file\
                     \n - incorrect alias mapping'
             elif node in self.__flatmap_aliases:
-                notes = f'The node is mapped to `{self.__flatmap_aliases[node]}` in `connextivity_terms.json`. Possible problem:\
+                notes = f'The node is mapped to `{self.__flatmap_aliases[node]}-{self.__connectivity_terms[self.__flatmap_aliases[node]].get('name','')}` in `connextivity_terms.json`. Possible problem:\
                     \n - other nodes on the same path are generalised to the same node.'
             df.loc[len(df)] = [
                 node,
