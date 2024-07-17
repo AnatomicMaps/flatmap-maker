@@ -48,7 +48,8 @@ KnownProperties = ['name', 'cd-class', 'fc-class', 'fc-kind']
 class Shape(PropertyMixin):
     __attributes = ['id', 'geometry', 'parents', 'children']
 
-    __last_shape_id = 0
+    __shape_id_prefix: str = ''
+    __last_shape_id: int = 0
 
     def __init__(self, id: Optional[str], geometry: BaseGeometry, properties=None, **kwds):
         self.__initialising = True
@@ -62,7 +63,7 @@ class Shape(PropertyMixin):
                 self.__id = id
             else:
                 Shape.__last_shape_id += 1
-                self.__id = f'SHAPE_{Shape.__last_shape_id}'
+                self.__id = f'{Shape.__shape_id_prefix}SHAPE_{Shape.__last_shape_id}'
             self.set_property('id', self.__id)
         self.__geometry = geometry
         if geometry is not None:
@@ -90,6 +91,12 @@ class Shape(PropertyMixin):
         properties = {key: value for key, value in self.properties.items()
                                     if key in KnownProperties}
         return f'Shape {self.id}: {properties}'
+
+    @staticmethod
+    def reset_shape_id(last_id: int=0, prefix: str=''):
+        Shape.__shape_id_prefix = prefix
+        if last_id >= 0:
+            Shape.__last_shape_id = last_id
 
     @property
     def area(self) -> float:
