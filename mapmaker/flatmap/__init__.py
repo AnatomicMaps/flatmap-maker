@@ -67,6 +67,7 @@ class FlatMap(object):
         self.__extent = None
         self.__centre = None
         self.__min_zoom = maker.zoom[0]
+        self.__max_zoom = maker.zoom[1]
         self.__annotations = {}
         self.__annotator = annotator
         self.__connection_set = ConnectionSet('connections')
@@ -135,6 +136,10 @@ class FlatMap(object):
     @property
     def map_kind(self) -> MAP_KIND:
         return self.__map_kind
+
+    @property
+    def max_zoom(self):
+        return self.__max_zoom
 
     @property
     def min_zoom(self):
@@ -328,6 +333,10 @@ class FlatMap(object):
                     'description': layer.description,
                     'image-layers': [source.id for source in layer.raster_layers]
                 }
+                if layer.min_zoom is not None:
+                    map_layer['min-zoom'] = layer.min_zoom
+                if layer.max_zoom is not None:
+                    map_layer['max-zoom'] = layer.max_zoom
                 metadata.append(map_layer)
         return metadata
 

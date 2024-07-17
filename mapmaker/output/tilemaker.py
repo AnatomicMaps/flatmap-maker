@@ -32,7 +32,6 @@ from svglib.svglib import svg2rlg
 
 #===============================================================================
 
-from mapmaker import MAX_ZOOM
 from mapmaker.geometry import extent_to_bounds, Transform as GeometryTransform
 from mapmaker.output.mbtiles import MBTiles, ExtractionError
 from mapmaker.sources import add_alpha, blank_image, mask_image, not_empty
@@ -395,16 +394,15 @@ class RasterTileMaker(object):
     :param output_dir: The directory in which to store image tiles
     :type output_dir: str
     :param max_zoom: The range of zoom levels to generate tiles.
-                     Optional, defaults to ``MAX_ZOOM``
     :type max_zoom: int
     """
-    def __init__(self, raster_layer: 'RasterLayer', output_dir: str, max_zoom=MAX_ZOOM):
+    def __init__(self, raster_layer: 'RasterLayer', output_dir: str, max_zoom: int):
         self.__raster_layer = raster_layer
         self.__max_zoom = max_zoom
         self.__id = raster_layer.id
         self.__database_path = os.path.join(output_dir, f'{raster_layer.id}.mbtiles')
         self.__min_zoom = raster_layer.min_zoom
-        self.__tile_set = TileSet(raster_layer.extent, max_zoom)
+        self.__tile_set = TileSet(raster_layer.extent, self.__max_zoom)
 
     @property
     def raster_layer(self):

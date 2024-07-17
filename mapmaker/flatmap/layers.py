@@ -87,6 +87,14 @@ class FeatureLayer(object):
         return self.__id
 
     @property
+    def max_zoom(self) -> Optional[int]:
+        return None
+
+    @property
+    def min_zoom(self) -> Optional[int]:
+        return None
+
+    @property
     def raster_layers(self) -> list['RasterLayer']:
         return []
 
@@ -127,7 +135,8 @@ class MapLayer(FeatureLayer):
         self.__detail_features: list[Feature] = []
 #*        self.__ontology_data = self.options.ontology_data
         self.__raster_layers: list[RasterLayer] = []
-        self.__min_zoom = min_zoom
+        self.__min_zoom = min_zoom if min_zoom is not None else source.min_zoom
+        self.__max_zoom = source.max_zoom
 
     @property
     def boundary_feature(self):
@@ -146,8 +155,15 @@ class MapLayer(FeatureLayer):
         return self.__detail_features
 
     @property
-    def min_zoom(self) -> int:
-        return self.__min_zoom if self.__min_zoom is not None else self.__source.flatmap.min_zoom
+    def max_zoom(self) -> Optional[int]:
+        return self.__max_zoom
+    @max_zoom.setter
+    def max_zoom(self, zoom):
+        self.__max_zoom = zoom
+
+    @property
+    def min_zoom(self) -> Optional[int]:
+        return self.__min_zoom
 
     @property
     def outer_geometry(self) -> BaseGeometry:
@@ -380,7 +396,7 @@ class RasterLayer(object):
     :param map_source: the source of the layer's data
     :type map_source: :class:`~mapmaker.sources.MapSource`
     :param min_zoom: The minimum zoom level to generate tiles for.
-                     Optional, defaults to ``MIN_ZOOM``
+                     Optional, defaults to ``min_zoom`` of ``map_source``.
     :type map_zoom: int
     :param local_world_to_base: an optional transform from the raster layer's
                                 local world coordinates to the base map's
@@ -388,11 +404,11 @@ class RasterLayer(object):
                                 the :class:`~mapmaker.geometry.Transform.Identity()` transform
     :type local_world_to_base: :class:`~mapmaker.geometry.Transform`
     """
-    def __init__(self, id, extent, map_source: 'MapSource', min_zoom=MIN_ZOOM, local_world_to_base=None):
+    def __init__(self, id: str, extent, map_source: 'MapSource', min_zoom:Optional[int]=None, local_world_to_base=None):
         self.__id = '{}_image'.format(id)
         self.__extent = extent
         self.__map_source = map_source
-        self.__min_zoom = min_zoom
+        self.__min_zoom = min_zoom if min_zoom is not None else map_source.min_zoom
         self.__local_world_to_base = local_world_to_base
 
     @property

@@ -152,7 +152,7 @@ class MapSource(object):
             self.__min_zoom = manifest_source.zoom
             self.__base_feature = feature
         else:
-            self.__min_zoom = None
+            self.__min_zoom = flatmap.min_zoom
             self.__base_feature = None
 
     @property
@@ -202,6 +202,10 @@ class MapSource(object):
     @property
     def layers(self) -> list[MapLayer]:
         return self.__layers
+
+    @property
+    def max_zoom(self):
+        return self.__flatmap.max_zoom
 
     @property
     def min_zoom(self):
