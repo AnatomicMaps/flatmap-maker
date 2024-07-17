@@ -18,13 +18,13 @@
 #
 #===============================================================================
 
-from typing import TypeVar
+from typing import Self, TypeVar
 
 T = TypeVar('T')
 
 #===============================================================================
 
-class TreeList(list[T]):
+class TreeList(list[T|'TreeList[T]']):
     """
     A ``tree`` structure implemented as a list with branches (sub-trees) being embedded lists.
     """

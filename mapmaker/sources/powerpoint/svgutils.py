@@ -76,8 +76,8 @@ TEXT_MARGINS = (6, 0)   # pixels
 
 #===============================================================================
 
-def text_alignment(shape):
-#=========================
+def text_alignment(shape: PptxShape):
+#====================================
     para = shape.text_frame.paragraphs[0].alignment
     vertical = shape.text_frame.vertical_anchor
     return ('left' if para in [PP_ALIGN.LEFT, PP_ALIGN.DISTRIBUTE, PP_ALIGN.JUSTIFY, PP_ALIGN.JUSTIFY_LOW] else  # type: ignore
@@ -87,8 +87,8 @@ def text_alignment(shape):
             'bottom' if vertical == MSO_ANCHOR.BOTTOM else      # type: ignore
             'top')
 
-def text_content(shape):
-#=======================
+def text_content(shape: PptxShape):
+#==================================
     text = shape.text.replace('\n', ' ').replace('\xA0', ' ').replace('\v', ' ').strip() # Newline, non-breaking space, vertical-tab
     return text if text not in ['', '.'] else None
 

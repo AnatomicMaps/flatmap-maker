@@ -27,6 +27,7 @@ import rdflib                                                   # type: ignore
 
 #===============================================================================
 
+from mapmaker.shapes import Shape
 from mapmaker.utils.svg import svg_id
 
 #===============================================================================
@@ -139,8 +140,8 @@ class CellDLGraph:
         self.__graph.add((this, CELLDL.schema, rdflib.Literal(CELLDL_SCHEMA_VERSION)))
         self.__graph.add((this, RDF.type, FC.Diagram))
 
-    def add_metadata(self, shape):
-    #=============================
+    def add_metadata(self, shape: Shape):
+    #====================================
         if shape.exclude or shape.cd_class not in CELLDL_CLASS_TO_RDF:
             return
         this = FLATMAP[svg_id(shape.id)]
