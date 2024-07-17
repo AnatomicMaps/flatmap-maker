@@ -161,6 +161,9 @@ class SVGLayer(MapLayer):
         self.__transform = source.transform
         self.__definitions = DefinitionStore()
         self.__clip_geometries = ObjectStore()
+        if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+            # Include layer id with shape id when setting feature id
+            Shape.reset_shape_id(prefix=f'{id}/')
 
     def process(self):
     #=================
