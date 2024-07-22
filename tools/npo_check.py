@@ -92,7 +92,7 @@ class FlatMapCheck:
 
         # loading all npo connectivities
         print('Load NPO connectivities ...')
-        self.__npo_connectivities = self.__load_npo_connectivities()
+        self.__load_npo_connectivities()
 
         # loading already identified nodes
         self.__map_node_name_file = self.__artefact_dir/'map_node_name.json'
@@ -167,11 +167,11 @@ class FlatMapCheck:
         npo_connectivities = {}
         for conn in self.__store.connectivity_paths():
             conn_data = self.__store.entity_knowledge(conn)
-            if biological_sex=='' or biological_sex==conn_data.get('biologicalSex', ''):
+            if biological_sex=='' or biological_sex==conn_data.get('biologicalSex', '') or conn_data.get('biologicalSex', '')=='':
                 npo_connectivities[conn] = conn_data
                 if len(conn_phenotype := tuple(sorted(npo_connectivities[conn].get('phenotypes', [])))) > 0:
                     npo_connectivities[conn]['phenotypes'] = phenotypes.get(conn_phenotype, str(conn_phenotype))
-        return {k:v for k, v in npo_connectivities.items() if biological_sex=='' or biological_sex==v.get('biologicalSex', '')}
+        self.__npo_connectivities = npo_connectivities
 
     def __generate_flatmap(self):
         log_file = self.__artefact_dir/(f"{self.__species}.log")
