@@ -20,6 +20,8 @@
 
 import os.path
 
+import lxml.etree as etree
+
 import pptx.oxml as oxml
 import pptx.oxml.ns as ns
 
@@ -115,7 +117,8 @@ class PresetShapes(object):
 
     with open(os.path.join(os.path.dirname(__file__), 'presetShapeDefinitions.xml'), 'rb') as defs:
         for defn in PresetShapeDefinition.new(defs.read()):
-            definitions_[defn.name] = defn
+            if not isinstance(defn, etree._Comment):
+                definitions_[defn.name] = defn
 
     @staticmethod
     def lookup(name):
