@@ -139,7 +139,7 @@ class NetworkNode:
     def __eq__(self, other):
         return self.feature_id == other.feature_id
 
-    def __hash__(self, other):
+    def __hash__(self):
         return hash(self.feature_id)
 
     @property

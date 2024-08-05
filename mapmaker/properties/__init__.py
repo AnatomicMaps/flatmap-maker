@@ -206,6 +206,7 @@ class PropertiesStore(object):
                 feature_properties['kind'] = 'scaffold'
             elif 'simulations' in feature_properties:
                 feature_properties['kind'] = 'simulation'
+
         # Only separately show name when authoring FC map
         name_used = self.__flatmap.map_kind != MAP_KIND.FUNCTIONAL
         if (entity := feature_properties.get('models')) is not None and entity.strip() != '':

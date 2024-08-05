@@ -221,7 +221,7 @@ def svg_element_from_feature(feature: Feature, inverse_transform: svgelements.Ma
 #===============================================================================
 
 def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
-                           must_close: Optional[bool]=None) -> tuple[BaseGeometry, list[BezierSegment]]:
+                           must_close: Optional[bool]=None) -> tuple[Optional[BaseGeometry], list[BezierSegment]]:
     coordinates = []
     bezier_segments = []
     closed = False

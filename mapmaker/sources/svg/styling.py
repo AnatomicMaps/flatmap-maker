@@ -64,8 +64,8 @@ class StyleMatcher(cssselect2.Matcher):
             for selector in selectors:
                 self.add_selector(selector, declarations)
 
-    def match(self, element):
-    #========================
+    def __match(self, element):
+    #==========================
         styling = {}
         matches = super().match(element)
         if matches:
@@ -79,7 +79,7 @@ class StyleMatcher(cssselect2.Matcher):
     #===========================================================
         if parent_style is None:
             parent_style = {}
-        for key, value in self.match(wrapped_element).items():
+        for key, value in self.__match(wrapped_element).items():
             if key in UNIMPLEMENTED_STYLES:
                 log.warning("'{}: {}' not implemented".format(key, value))
             else:

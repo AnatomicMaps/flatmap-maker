@@ -78,7 +78,7 @@ class PowerpointLayer(MapLayer):
         if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             for feature in self.features:
                 if feature.get_property('cd-class') == CD_CLASS.CONNECTION:
-                    # Map neuron path class to viewer path kind/type
+                    # Map connection path class to viewer path kind/type
                     feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
                     for system_id in feature.get_property('system-ids', []):
                         if (system_feature := self.flatmap.get_feature(system_id)) is not None:
@@ -129,7 +129,7 @@ class PowerpointLayer(MapLayer):
                 elif not properties.get('exclude', False):
                     feature = self.flatmap.new_feature(self.id, shape.geometry, properties)
                     features.append(feature)
-                    shape.geojson_id = feature.geojson_id
+                    shape.set_property('geojson_id', feature.geojson_id)
                     shape.set_property('feature', feature)
         return features
 

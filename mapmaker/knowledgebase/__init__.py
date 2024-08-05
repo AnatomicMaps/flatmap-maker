@@ -32,7 +32,7 @@ from mapmaker.settings import settings
 #===============================================================================
 
 class AnatomicalNode(tuple):
-    def __new__ (cls, termlist: list):
+    def __new__ (cls, termlist: list|tuple):
         return super().__new__(cls, (termlist[0], tuple(termlist[1])))
 
     @property

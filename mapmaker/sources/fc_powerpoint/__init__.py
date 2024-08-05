@@ -62,7 +62,7 @@ if TYPE_CHECKING:
 # Shapes smaller than this are assumed to be connectors or hyperlinks
 MAX_CONNECTOR_AREA = 120000000      # metres**2
 
-MIN_OVERLAP_FRACTION = 0.2  # Smaller geometry and >= 20% common area ==> containment
+MIN_OVERLAP_FRACTION = 0.2  # Smaller geometry and >= 90% common area ==> containment
                             # e.g. `cochlear nuclei` and `pons`
 
 MAX_FTU_OUTSIDE = 0.1       # An FTU should mainly be inside its organ

@@ -127,7 +127,7 @@ class FeatureLayer(object):
 
 class MapLayer(FeatureLayer):
     def __init__(self, id: str, source: 'MapSource', exported=False, min_zoom=None):
-        super().__init__(id, source.flatmap, exported)
+        super().__init__(id, source.flatmap, exported=exported)
         self.__source = source
         self.__boundary_feature = None
         self.__bounds = source.bounds
