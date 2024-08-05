@@ -33,7 +33,7 @@ from mapmaker.geometry import mercator_transform
 from mapmaker.settings import settings
 from mapmaker.utils import log, ProgressBar, set_as_list
 
-from . import EXPORTED_FEATURE_PROPERTIES
+from . import ENCODED_FEATURE_PROPERTIES, EXPORTED_FEATURE_PROPERTIES
 
 #===============================================================================
 
@@ -87,6 +87,10 @@ class GeoJSONOutput(object):
                     if (value := feature.get_property(name)) is not None
                     and value != ''
             }
+            properties.update({
+                name: json.dumps(value) for (name, value) in properties.items()
+                    if name in ENCODED_FEATURE_PROPERTIES
+            })
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)

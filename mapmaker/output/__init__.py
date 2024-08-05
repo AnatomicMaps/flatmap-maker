@@ -63,3 +63,11 @@ EXPORTED_FEATURE_PROPERTIES = [
     'alert',
     'biological-sex',
 ]
+
+#===============================================================================
+
+ENCODED_FEATURE_PROPERTIES = [
+    'hyperlinks',       # Optional[list[dict[str, str]]]    # id, url
+]
+
+#===============================================================================
