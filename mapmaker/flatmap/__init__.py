@@ -256,8 +256,8 @@ class FlatMap(object):
         return self.__features_with_id.get(feature_id)
 
     def get_feature_by_name(self, full_name: str) -> Optional[Feature]:
-    #===========================================================
-        return self.__features_with_name.get(full_name)
+    #==================================================================
+        return self.__features_with_name.get(full_name.replace(" ", "_"))
 
     def get_feature_by_geojson_id(self, geojson_id: int) -> Optional[Feature]:
     #=========================================================================
