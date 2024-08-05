@@ -110,7 +110,7 @@ class Feature(PropertyMixin):
 
 class FeatureAnatomicalNodeMap:
     def __init__(self, terms_alias_file: Optional[str]=None):
-        self.__anatomical_aliases: dict[str|tuple, str] = {}
+        self.__anatomical_aliases: dict[str|tuple, tuple] = {}
         if terms_alias_file is not None:
             equivalences = FilePath(terms_alias_file).get_json()
             for equivalence in equivalences:
@@ -122,7 +122,7 @@ class FeatureAnatomicalNodeMap:
                         log.error(f'Alias {alias} cannot map to both {self.__anatomical_aliases[alias]} and {term}')
                     else:
                         self.__anatomical_aliases[alias] = term
-        self.__model_to_features: dict[str, set[Feature]] = defaultdict(set)
+        self.__model_to_features: dict[str|tuple, set[Feature]] = defaultdict(set)
 
     def add_feature(self, feature: Feature):
     #=======================================
@@ -131,7 +131,7 @@ class FeatureAnatomicalNodeMap:
 
     def features_for_anatomical_node(self, anatomical_node: AnatomicalNode, warn: bool=True) -> tuple[AnatomicalNode, set[Feature]]:
     #===============================================================================================================================
-        def features_from_anatomical_id(term: str) -> set[Feature]:
+        def features_from_anatomical_id(term: str|tuple) -> set[Feature]:
             return set(self.__model_to_features.get(self.__anatomical_aliases.get(term, term), []))
 
         if anatomical_node in self.__anatomical_aliases:
