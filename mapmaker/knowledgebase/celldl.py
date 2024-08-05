@@ -117,7 +117,7 @@ FLATMAP = rdflib.Namespace('#')
 
 #===============================================================================
 
-CELLDL_CLASS_TO_RDF = {
+CELLDL_TYPE = {
     CD_CLASS.CONDUIT: CELLDL.Conduit,
     CD_CLASS.CONNECTION: CELLDL.Connection,
     CD_CLASS.CONNECTOR: CELLDL.Connector,
@@ -142,10 +142,10 @@ class CellDLGraph:
 
     def add_metadata(self, shape: Shape):
     #====================================
-        if shape.exclude or shape.cd_class not in CELLDL_CLASS_TO_RDF:
+        if shape.exclude or shape.cd_class not in CELLDL_TYPE:
             return
         this = FLATMAP[svg_id(shape.id)]
-        self.__graph.add((this, RDF.type, CELLDL_CLASS_TO_RDF[shape.cd_class]))
+        self.__graph.add((this, RDF.type, CELLDL_TYPE[shape.cd_class]))
         self.__graph.add((this, RDF.type, FC[shape.fc_class.split(':')[-1]]))
         if shape.label:
             self.__graph.add((this, RDFS.label, rdflib.Literal(shape.label))) ## add port/node in XXX ??
