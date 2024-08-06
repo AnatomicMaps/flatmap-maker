@@ -535,7 +535,7 @@ class SVGLayer(MapLayer):
         properties['left'] = bounds[0]
         properties['right'] = bounds[2]
         properties['baseline'] = T.transform_point((x, y))[1]
-        properties['text'] = unicodedata.normalize('NFKD', element_text)
+        properties['text'] = unicodedata.normalize('NFKD', element_text).replace('\u2212', '-')  ## minus-sign --> minus
         properties['font-family'] = font.getTypeface().getFamilyName()
 
         return geometry             # type: ignore
