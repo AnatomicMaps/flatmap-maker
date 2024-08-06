@@ -5,7 +5,7 @@ channels:
 dependencies:
   - python>=3.12,<4.0
   - python-pptx>=0.6.21,<0.7.0
-  - conda-forge::numpy>=2.0.1
+  - conda-forge::numpy>=1.24,<2.0
   - beziers>=0.4.0,<0.6.0
   - requests>=2.31.0,<3.0.0
   - pyparsing>=3.0.9,<4.0.0
