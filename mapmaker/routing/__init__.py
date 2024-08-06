@@ -896,6 +896,8 @@ class Network(object):
                 closest_feature_dict = {}  # .geometry.centroid.distance sometime is inconsistent
                 for neighbour in connectivity_graph.neighbors(node):
                     neighbour_dict = connectivity_graph.nodes[neighbour]
+                    if len(neighbour_dict.get('contains', set())) > 0:
+                        neighbour_dict = connectivity_graph.nodes[next(iter(neighbour_dict['contains']))]
                     edge_dict = connectivity_graph.edges[(node, neighbour)]
                     if neighbour_dict['type'] == 'feature':
                         # selecting one the first neighbour feature to be connected with the closest no-segment node
@@ -1097,6 +1099,11 @@ class Network(object):
                                     downstream = set(connectivity_graph[neighbour]) - children
                                     neighbours.remove(neighbour)
                                     neighbours.update(downstream)
+                                elif (neighbour_dict['type'] == 'feature'
+                                    and len(neighbour_dict.get('used', set())) == 0
+                                    and len(children:=neighbour_dict.get('contains', set()))) > 0:
+                                    if len(set(children) - set(visited)) == 0:
+                                        neighbours.remove(neighbour)
                             # Connect to each neighbour of interest, noting those that will
                             # then need connecting
                             neighbours_neighbours = []
@@ -1310,6 +1317,10 @@ class Network(object):
         for edge in nx.Graph(route_graph).edges:
             if edge[0] == edge[1] and route_graph.has_edge(edge[0], edge[1]):
                 route_graph.remove_edge(edge[0], edge[1])
+
+        # log a warning if no path is rendered
+        if len(route_graph.edges) == 0 and len(connectivity_graph.edges) > 0:
+            log.warning(f'{path.id}: Path is not rendered at all.')
 
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
