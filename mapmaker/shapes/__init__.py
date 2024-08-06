@@ -67,7 +67,7 @@ class Shape(PropertyMixin):
             self.set_property('id', self.__id)
         self.__geometry = geometry
         if geometry is not None:
-            self.set_property('geom-type', geometry.geom_type)
+            self.set_property('geometry', geometry.geom_type)
         self.__children: list[Shape] = []
         self.__parents: list[Shape] = []
         self.__metadata: dict[str, str] = {}  # kw_only=True field for Python 3.10
