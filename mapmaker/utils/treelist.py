@@ -28,6 +28,13 @@ class TreeList(list[T|'TreeList[T]']):
     """
     A ``tree`` structure implemented as a list with branches (sub-trees) being embedded lists.
     """
+
+    def __getitem__(self, key):
+        return super().__getitem__(key)
+
+    def append(self, element: T|'TreeList[T]'):
+        super().append(element)
+
     def flatten(self, skip=0) -> list[T]:
         """
         Return leaves of the tree as a ``list`` in depth-first order.
