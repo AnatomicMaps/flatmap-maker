@@ -18,7 +18,6 @@
 #
 #===============================================================================
 
-from __future__ import annotations
 from collections import OrderedDict
 from datetime import datetime, timezone
 import os

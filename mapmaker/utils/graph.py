@@ -18,7 +18,6 @@
 #
 #===============================================================================
 
-from __future__ import annotations
 from collections import defaultdict, OrderedDict
 import itertools
 from typing import Any, Hashable, Optional

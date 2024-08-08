@@ -18,7 +18,6 @@
 #
 #===============================================================================
 
-from __future__ import annotations
 from io import BytesIO
 from typing import Callable, Optional, TYPE_CHECKING
 
