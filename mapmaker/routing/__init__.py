@@ -1306,10 +1306,15 @@ class Network(object):
                         if (p[i], p[i+1]) in route_graph.edges:
                             route_graph.remove_edge(p[i], p[i+1])
 
-        # removing self loop due to generalisation
-        for edge in nx.Graph(route_graph).edges:
-            if edge[0] == edge[1] and route_graph.has_edge(edge[0], edge[1]):
-                route_graph.remove_edge(edge[0], edge[1])
+        centreline_ids = set()
+        for node_0, node_1, edge_dict in nx.Graph(route_graph).edges(data=True):
+            # remove self loops due to generalisation
+            if node_0 == node_1 and route_graph.has_edge(node_0, node_1):
+                route_graph.remove_edge(node_0, node_1)
+            elif (centreline_id := edge_dict.get('centreline')) is not None:
+                centreline_ids.add(centreline_id)
+        # The centrelines used by the path
+        route_graph.graph['centrelines'] = list(centreline_ids)
 
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
