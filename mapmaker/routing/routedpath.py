@@ -24,7 +24,6 @@ File doc...
 
 #===============================================================================
 
-from __future__ import annotations
 from collections import defaultdict
 import itertools
 import math
@@ -64,8 +63,8 @@ class PathRouter(object):
     #=======================================================
         self.__route_graphs[path_id] = route_graph
 
-    def layout(self) -> dict[int, RoutedPath]:
-    #=========================================
+    def layout(self) -> dict[int, 'RoutedPath']:
+    #===========================================
         for path_id, route_graph in self.__route_graphs.items():
             nx.set_edge_attributes(route_graph, path_id, 'path-id')
             nx.set_edge_attributes(route_graph, route_graph.graph['source'], 'source')

@@ -91,11 +91,11 @@ class Feature(PropertyMixin):
         return self.__is_group
 
     @property
-    def layer(self) -> Optional[MapLayer]:
+    def layer(self) -> Optional['MapLayer']:
         return self.__layer
 
     @layer.setter
-    def layer(self, layer: Optional[MapLayer]):
+    def layer(self, layer: Optional['MapLayer']):
         self.__layer = layer
 
     @property

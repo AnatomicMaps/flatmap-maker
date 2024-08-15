@@ -130,14 +130,14 @@ def not_empty(image):
 #===============================================================================
 
 class MapSource(object):
-    def __init__(self, flatmap: FlatMap, manifest_source: ManifestSource):
+    def __init__(self, flatmap: 'FlatMap', manifest_source: ManifestSource):
         self.__flatmap = flatmap
         self.__id = manifest_source.id
         self.__href = manifest_source.href
         self.__kind = manifest_source.kind
         self.__source_range = manifest_source.source_range
         self.__errors: list[tuple[str, str]] = []
-        self.__layers: list[MapLayer] = []
+        self.__layers: list['MapLayer'] = []
         self.__bounds: MapBounds = (0, 0, 0, 0)
         self.__raster_source = None
         if self.__kind == 'detail':
@@ -187,7 +187,7 @@ class MapSource(object):
         return bounds_to_extent(self.__bounds)
 
     @property
-    def flatmap(self) -> FlatMap:
+    def flatmap(self) -> 'FlatMap':
         return self.__flatmap
 
     @property
@@ -199,7 +199,7 @@ class MapSource(object):
         return self.__kind
 
     @property
-    def layers(self) -> list[MapLayer]:
+    def layers(self) -> list['MapLayer']:
         return self.__layers
 
     @property
@@ -211,7 +211,7 @@ class MapSource(object):
         return self.__min_zoom
 
     @property
-    def raster_source(self) -> RasterSource:
+    def raster_source(self) -> 'RasterSource':
         if self.__raster_source is None:
             self.__raster_source = self.get_raster_source()
         return self.__raster_source     # type: ignore
@@ -228,8 +228,8 @@ class MapSource(object):
     def transform(self) -> Optional[Transform]:
         return None
 
-    def add_layer(self, layer: MapLayer):
-    #====================================
+    def add_layer(self, layer: 'MapLayer'):
+    #======================================
         self.__layers.append(layer)
 
     def create_preview(self):

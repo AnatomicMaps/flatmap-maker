@@ -44,13 +44,13 @@ if TYPE_CHECKING:
 #===============================================================================
 
 class SVGCleaner(object):
-    def __init__(self, svg_file: FilePath, properties_store: PropertiesStore, all_layers: bool=True):
+    def __init__(self, svg_file: FilePath, properties_store: 'PropertiesStore', all_layers: bool=True):
         self.__svg = etree.parse(svg_file.get_fp())
         self.__properties_store = properties_store
         self.__all_layers = all_layers
 
-    def add_connectivity_group(self, flatmap: FlatMap, transform: Transform):
-    #========================================================================
+    def add_connectivity_group(self, flatmap: 'FlatMap', transform: Transform):
+    #==========================================================================
         # add tile-layer features that don't have an 'svg-element'
         # need to add a <g> element
         if self.__all_layers:

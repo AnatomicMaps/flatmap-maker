@@ -54,7 +54,7 @@ if TYPE_CHECKING:
 #===============================================================================
 
 class FlatMap(object):
-    def __init__(self, manifest: Manifest, maker: MapMaker, annotator: Optional[Annotator]=None):
+    def __init__(self, manifest: Manifest, maker: 'MapMaker', annotator: Optional['Annotator']=None):
         self.__id = maker.id
         self.__uuid = maker.uuid
         self.__map_dir = maker.map_dir
@@ -306,8 +306,8 @@ class FlatMap(object):
     #========================================================
         return self.__layer_dict.get(layer_id)
 
-    def add_source_layers(self, layer_number: int, source: MapSource):
-    #=================================================================
+    def add_source_layers(self, layer_number: int, source: 'MapSource'):
+    #===================================================================
         for layer in source.layers:
             self.add_layer(layer)
             if layer.exported:

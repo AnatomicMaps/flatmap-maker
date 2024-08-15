@@ -80,8 +80,8 @@ from .routedpath import IntermediateNode, PathRouter, RoutedPath
 #===============================================================================
 
 if TYPE_CHECKING:
-#   from mapmaker.flatmap import FlatMap
-#   from mapmaker.properties import PropertiesStore
+    from mapmaker.flatmap import FlatMap
+    from mapmaker.properties import PropertiesStore
     from mapmaker.properties.pathways import Path
 
 #===============================================================================
