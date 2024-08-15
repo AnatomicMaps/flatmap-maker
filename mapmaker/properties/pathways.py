@@ -109,18 +109,25 @@ class ResolvedPath:
         self.__nerves = set()
         self.__nodes = set()
         self.__models = None
+        self.__centrelines = set()
 
     @property
     def as_dict(self) -> dict[str, Any] :
         """
         The numeric feature ids that make up a path.
         """
-        return {
+        result = {
             'lines': list(self.__lines),
             'nerves': list(self.__nerves),
             'nodes': list(self.__nodes),
             'models': self.__models
         }
+        if len(self.__centrelines):
+            result['centrelines'] = list(self.__centrelines)
+        return result
+
+    def add_centrelines(self, centrelines: list[str]):
+        self.__centrelines.update(centrelines)
 
     def extend_lines(self, geojson_ids: list[int]):
         """
@@ -241,7 +248,8 @@ class ResolvedPathways:
 
     def add_connectivity(self, path_id: str, line_geojson_ids: list[int],
                          model: str, path_type: PATH_TYPE,
-                         node_feature_ids: set[str], nerve_features: list[Feature]):
+                         node_feature_ids: set[str], nerve_features: list[Feature],
+                         centrelines: Optional[list[str]]=None):
         resolved_path = self.__paths[path_id]
         if model is not None:
             resolved_path.set_model_id(model)
@@ -249,6 +257,8 @@ class ResolvedPathways:
         resolved_path.extend_nodes(self.__resolve_nodes_for_path(path_id, node_feature_ids))
         resolved_path.extend_lines(line_geojson_ids)
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
+        if centrelines is not None:
+            resolved_path.add_centrelines(centrelines)
 
     def add_pathway(self, path_id: str, model: Optional[str], path_type: PATH_TYPE,
                     route: Route, lines: list[str], nerves: list[str]):
@@ -688,7 +698,8 @@ class Pathways:
                                                           path.models,
                                                           path.path_type,
                                                           routed_path.node_feature_ids,
-                                                          nerve_features)
+                                                          nerve_features,
+                                                          routed_path.centrelines)
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
                 feature.pop_property('exclude')

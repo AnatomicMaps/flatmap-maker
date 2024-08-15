@@ -28,6 +28,7 @@ from __future__ import annotations
 from collections import defaultdict
 import itertools
 import math
+from typing import Optional
 
 #===============================================================================
 
@@ -293,6 +294,10 @@ class RoutedPath(object):
         self.__graph = route_graph
         self.__trace = route_graph.graph.get('traced', False)
         self.__number = number
+
+    @property
+    def centrelines(self) -> Optional[list[str]]:
+        return self.__graph.graph.get('centrelines')
 
     @property
     def nerve_feature_ids(self) -> set[str]:
