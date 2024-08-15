@@ -1,28 +1,29 @@
 #===============================================================================
 
-from genericpath import exists
 from pathlib import Path
 from tqdm import tqdm
 import json
 import pandas as pd
 import ast
+import logging as log
+from pptx import Presentation
+from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 #===============================================================================
 
-from operator import index, itemgetter
+from operator import itemgetter
 import torch
 from sentence_transformers import SentenceTransformer, util
 from SPARQLWrapper import SPARQLWrapper2
 from xml.dom import minidom
 import re
 import itertools
+import rdflib
 
 #===============================================================================
 
 from mapmaker import MapMaker
 from mapknowledge import KnowledgeStore
-store_npo = KnowledgeStore(npo=True)
-store_sckan = KnowledgeStore()
 
 #===============================================================================
 
@@ -40,11 +41,10 @@ biobert_model = SentenceTransformer(BIOBERT)
 ### General terms identification
 
 tqdm.pandas()
-NPO_SPARQL_ENDPOINT = 'https://blazegraph.scicrunch.io/blazegraph/sparql'
-sparql_wrapper = SPARQLWrapper2(NPO_SPARQL_ENDPOINT)
 namespaces = {
     'UBERON': 'http://purl.obolibrary.org/obo/UBERON_',
     'ILX': 'http://uri.interlex.org/base/ilx_',
+    'FMA': 'http://purl.org/sig/ont/fma/fma'
 }
 
 def get_curie(url: str):
@@ -52,6 +52,7 @@ def get_curie(url: str):
         if url.startswith(preff):
             return url.replace(preff, namespace + ':')
     return url
+
 
 #===============================================================================
 
@@ -71,6 +72,17 @@ class FlatMapCheck:
         self.__clean_connectivity = args.clean_connectivity
         self.__align_general = args.align_general
         self.__k = args.k
+        if args.sckan_version is not None:
+            self.__sckan_version = args.sckan_version
+        else:
+            self.__sckan_version = self.__manifest.get('sckan-version')
+        self.__store = KnowledgeStore(sckan_version=self.__sckan_version, use_npo=True, sckan_provenance=True,store_directory=self.__artefact_dir)
+
+        # setup npo_graph to check term ancestor
+        NPO_TURTLE = f'https://raw.githubusercontent.com/SciCrunch/NIF-Ontology/{self.__sckan_version}/ttl/npo.ttl'
+        self.__npo_graph = rdflib.Graph()
+        self.__npo_graph.parse(NPO_TURTLE, format='turtle')
+
 
         # delete artefact files when clean_connectivity
         if self.__clean_connectivity:
@@ -79,7 +91,8 @@ class FlatMapCheck:
                     item.unlink()
 
         # loading all npo connectivities
-        self.__npo_connectivities = self.__load_npo_connectivities()
+        print('Load NPO connectivities ...')
+        self.__load_npo_connectivities()
 
         # loading already identified nodes
         self.__map_node_name_file = self.__artefact_dir/'map_node_name.json'
@@ -95,14 +108,48 @@ class FlatMapCheck:
             with open(self.__knowledge_file, 'r') as f:
                 self.__knowledge = json.load(f)
 
+        # load existing connectivity_terms
+        self.__load_connectivity_terms()
+
         # get map_log of a particular AC/FC
+        print('Generate flatmap ...')
         self.__map_log = self.__generate_flatmap()
 
         # load terms and embeddings of a particular AC/FC
+        print('Load terms and embeddings of flatmap ...')
         self.__terms, self.__term_embeddings = self.__load_flatmap_terms()
 
         # load already identified ancestors
+        print('Load ancestors ...')
         self.__map_ancestor = self.__load_ancestors()
+
+        # load connectivity_terms
+        print('Load connectivity_terms ...')
+
+    def __load_connectivity_terms(self):
+        self.__connectivity_terms = {}
+        self.__flatmap_aliases = {}
+        if (connectivity_terms_file:=self.__manifest_file.parent/self.__manifest.get('connectivityTerms','None')).exists():
+            with open(connectivity_terms_file, 'r') as f:
+                conn_terms = json.load(f)
+                for ct in conn_terms:
+                    ct_id = ct['id']
+                    if isinstance(ct['id'], list):
+                        ct_id = tuple([ct_id[0], tuple(ct_id[1])])
+                    ct_aliases = list(set([tuple([alias[0], tuple(alias[1])]) if isinstance(alias, list) else alias for alias in ct['aliases']]))
+                    if ct_id not in self.__connectivity_terms:
+                        self.__connectivity_terms[ct_id] = {
+                            'id': ct_id,
+                            'name': ct.get('name', ''),
+                            'aliases': ct_aliases
+                        }
+                    else:
+                        self.__connectivity_terms[ct_id]['aliases'] = list(set(self.__connectivity_terms[ct_id]['aliases']+ct_aliases))
+                    for ct_alias in ct_aliases:
+                        if ct_alias in self.__flatmap_aliases:
+                            if self.__flatmap_aliases[ct_alias] != ct_id:
+                                log.error(f"{ct_alias} id mapped multiple nodes to [{self.__flatmap_aliases[ct_alias]}, {ct_id}]")
+                        self.__flatmap_aliases[ct_alias] = ct_id
 
     def __load_npo_connectivities(self):
         # load all connectivities from npo
@@ -115,21 +162,16 @@ class FlatMapCheck:
             ('ilxtr:ParasympatheticPhenotype', 'ilxtr:PreGanglionicPhenotype'): 'pre-ganglionic parasympathetic',
             ('ilxtr:PreGanglionicPhenotype', 'ilxtr:SympatheticPhenotype'): 'pre-ganglionic sympathetic',
         }
-        knowledge_file = self.__artefact_dir/'npo_knowledge.json'
-        if knowledge_file.exists() and not self.__clean_connectivity:
-            with open(knowledge_file, 'r') as f:
-                npo_connectivities = json.load(f)
-        else:
-            npo_connectivities = {}
-            for model in store_npo.connectivity_models('NPO'):
-                conns = store_npo.entity_knowledge(model)
-                for conn in tqdm(conns['paths']):
-                    npo_connectivities[conn['id']] = store_npo.entity_knowledge(conn['id'])
-                    conn_phenotype = tuple(sorted(npo_connectivities[conn['id']]['phenotypes']))
-                    npo_connectivities[conn['id']]['phenotypes'] = phenotypes.get(conn_phenotype, str(conn_phenotype))
-            with open(knowledge_file, 'w') as f:
-                json.dump(npo_connectivities, f, indent=4)
-        return npo_connectivities
+        biological_sex = self.__manifest.get('biological-sex','')
+
+        npo_connectivities = {}
+        for conn in self.__store.connectivity_paths():
+            conn_data = self.__store.entity_knowledge(conn)
+            if biological_sex=='' or biological_sex==conn_data.get('biologicalSex', '') or conn_data.get('biologicalSex', '')=='':
+                npo_connectivities[conn] = conn_data
+                if len(conn_phenotype := tuple(sorted(npo_connectivities[conn].get('phenotypes', [])))) > 0:
+                    npo_connectivities[conn]['phenotypes'] = phenotypes.get(conn_phenotype, str(conn_phenotype))
+        self.__npo_connectivities = npo_connectivities
 
     def __generate_flatmap(self):
         log_file = self.__artefact_dir/(f"{self.__species}.log")
@@ -141,7 +183,9 @@ class FlatMapCheck:
             'ignoreGit': True,
             'debug': True,
             'logFile': log_file.as_posix(),
-            'cleanConnectivity': self.__clean_connectivity
+            'cleanConnectivity': self.__clean_connectivity,
+            'force': True,
+            'sckanVersion': self.__sckan_version
         }
         mapmaker = MapMaker(options)
         mapmaker.make()
@@ -158,6 +202,7 @@ class FlatMapCheck:
 
         terms = {}
         if self.__manifest.get('kind', '') != 'functional':
+            ### Loading antomicalMap
             anatomical_file = self.__manifest_file.parent/self.__manifest.get('anatomicalMap')
             with open(anatomical_file, 'r') as f:
                 anatomical_terms = json.load(f)
@@ -203,14 +248,34 @@ class FlatMapCheck:
                 if term_id not in terms:
                     terms[term_id] = anaterms.get(term_id, term_id).lower()
         else: # handling functional connectivity
+            ### Load term in pptx:
+            def get_pptx_group_text(shapes):
+                text = []
+                for shape in shapes:
+                    if shape.has_text_frame:
+                        if len(term_id:=shape.text.strip().lower()) > 0:
+                            text += [term_id]
+                    elif shape.shape_type == MSO_SHAPE_TYPE.GROUP:
+                        text += get_pptx_group_text(shape.shapes)
+                return text
+
+            pptx_text = []
+            for file_dict in self.__manifest.get('sources', []):
+                pptx_file = self.__manifest_file.parent/file_dict.get('href')
+                prs = Presentation(pptx_file)
+                for slide in prs.slides:
+                    pptx_text += get_pptx_group_text(slide.shapes)
+
+            ### Load annotation
             annotation_file = self.__manifest_file.parent/self.__manifest.get('annotation','')
             with open(annotation_file, 'r') as f:
                 annotations = json.load(f)
-            for term_type, anatomy_list in annotations.items():
+            for _, anatomy_list in annotations.items():
                 # if term_type == 'Systems': continue
                 for anatomy in anatomy_list:
                     term_id = anatomy.get('Model', anatomy.get('Models', ''))
-                    if len(term_id.strip()) > 0:
+                    annotation_name = anatomy.get('FTU Name', anatomy.get('Nerve Name', anatomy.get('Organ Name', anatomy.get('System Name', anatomy.get('Vessel Name','')))))
+                    if len(term_id.strip()) > 0 and annotation_name.lower() in pptx_text:
                         if (label:=anatomy.get('Label')) is None:
                             label = self.__get_term_label(term_id)
                         terms[term_id] = label.lower()
@@ -222,22 +287,46 @@ class FlatMapCheck:
     def __get_term_label(self, term_id):
         if term_id in self.__knowledge:
             return self.__knowledge[term_id]
-        label = store_npo.label(term_id) # prioritise to npo
-        self.__knowledge[term_id] = store_sckan.label(term_id) if label == term_id else label
+        self.__knowledge[term_id] = self.__store.label(term_id) # prioritise to npo
         return self.__knowledge[term_id]
 
     def __get_node_name(self, node):
-        name = [node[0]]
+        name = []
         if node[0] is not None:
-            name = [self.__get_term_label(node[0])]
+            name += [self.__get_term_label(node[0])]
 
         for n in node[1]:
-            loc = n
             if n is not None:
                 loc = self.__get_term_label(n)
-            name += [loc]
+                name += [loc]
         self.__map_node_name[node] = (name[0], tuple(name[1:] if len(name)>1 else ()))
         return name
+
+    def __get_ancestor(self, term):
+        if 'http' in term: return []
+        prefix = """
+            PREFIX ILX: <http://uri.interlex.org/base/ilx_>
+            PREFIX UBERON: <http://purl.obolibrary.org/obo/UBERON_>
+            """
+        sparql = f"""
+            {prefix}
+            SELECT ?object
+                WHERE {{
+                {term} rdfs:subClassOf ?restriction .
+                ?restriction a owl:Restriction ;
+                                owl:someValuesFrom ?object .
+                }}
+            """
+        if len(results:=self.__npo_graph.query(sparql)) > 0:
+            return [get_curie(str(row.object)) for row in results]
+        sparql = f"""
+            {prefix}
+            SELECT ?object
+                WHERE {{
+                {term} rdfs:subClassOf ?object .
+                }}
+            """
+        return [get_curie(str(row.object)) for row in self.__npo_graph.query(sparql)]
 
     def __load_ancestors(self):
         map_ancestor_file = self.__artefact_dir/'map_ancestor.json'
@@ -247,43 +336,13 @@ class FlatMapCheck:
                 map_ancestor = json.load(f)
         for conn in self.__npo_connectivities.values():
             for edge in conn['connectivity']:
-                for term in [edge[0][0]] + edge[0][1] + [edge[1][0]] + edge[1][1]:
+                for term in [edge[0][0]] + list(edge[0][1]) + [edge[1][0]] + list(edge[1][1]):
                     if term not in map_ancestor:
-                        sparql = f"""
-                            SELECT DISTINCT ?parent ?label ?level
-                            {{
-                                VALUES ?term {{{term}}}
-                                {{
-                                    ?term ilxtr:isPartOf ?parent .
-                                                ?parent rdfs:label ?label .
-                                    BIND (1 as ?level)
-                                }}
-                                UNION
-                                {{
-                                    ?term ilxtr:isPartOf/ilxtr:isPartOf ?parent .
-                                    ?parent rdfs:label ?label .
-                                    BIND (2 as ?level)
-                                }}
-                                UNION
-                                {{
-                                    ?term ilxtr:isPartOf/ilxtr:isPartOf/ilxtr:isPartOf ?parent .
-                                    ?parent rdfs:label ?label .
-                                    BIND (3 as ?level)
-                                }}
-                                UNION
-                                {{
-                                    ?term ilxtr:isPartOf/ilxtr:isPartOf/ilxtr:isPartOf/ilxtr:isPartOf ?parent .
-                                    ?parent rdfs:label ?label .
-                                    BIND (4 as ?level)
-                                }}
-                            }}
-                        """
-                        sparql_wrapper.setQuery(sparql)
-                        results = {}
-                        for rs in sparql_wrapper.query().bindings:
-                            if get_curie(rs['parent'].value) not in results:
-                                results[get_curie(rs['parent'].value)] = int(rs['level'].value)
-                        map_ancestor[term] = results
+                        level_1_results = {p:1 for p in self.__get_ancestor(term)}
+                        level_2_results = {}
+                        for p_term in level_1_results.keys():
+                            level_2_results = {**level_2_results, **{p:2 for p in self.__get_ancestor(p_term)}}
+                        map_ancestor[term] = {**level_1_results, **level_2_results}
         with open(map_ancestor_file, 'w') as f:
             json.dump(map_ancestor, f)
         return map_ancestor
@@ -346,17 +405,9 @@ class FlatMapCheck:
 
     def __merge_connectivity_terms(self, df_missing):
 
-        # load existing connectivity_terms
-        connectivity_terms_file = self.__manifest_file.parent/self.__manifest.get('connectivityTerms','None')
-        connectivity_terms = []
-        if connectivity_terms_file.exists():
-            with open(connectivity_terms_file, 'r') as f:
-                connectivity_terms = json.load(f)
-
         # update df_missing, upadate with parents stated in connectivity_terms
-        for term in connectivity_terms:
-            parent_id = (term['id'][0], tuple(term['id'][1])) if isinstance(term['id'], list) else term['id']
-            for term_id in [(alias[0], tuple(alias[1])) if isinstance(alias, list) else alias for alias in term['aliases']]:
+        for parent_id, term in self.__connectivity_terms.items():
+            for term_id in term['aliases'] if isinstance(term['aliases'], list) else [term['aliases']]:
                 m = df_missing.Node == term_id
                 if df_missing[m].parents.isna().any():
                     df_missing.loc[m, 'parents'] = pd.Series([parent_id]*m.sum(), index=m[m].index)
@@ -364,23 +415,29 @@ class FlatMapCheck:
         # save new connectivity_terms
         current_alias = {}
         for idx in df_missing[df_missing.parents.notna()].index:
-            parents = df_missing.loc[idx].parents
-            parent_node = (parents[0], tuple(parents[1]))
-            if parent_node not in current_alias:
-                current_alias[parent_node] = []
-            current_alias[parent_node] += [df_missing.loc[idx].Node]
+            if (parent:=df_missing.loc[idx].parents) not in current_alias:
+                current_alias[parent] = []
+            current_alias[parent] += [df_missing.loc[idx].Node]
 
-        current_alias = [
-            {
+        new_alias_dict = {
+            node_name:{
                 'id': node_name,
-                'name': self.__get_node_name(node_name),
+                'name': '/'.join(self.__get_node_name(node_name)),
                 'aliases': aliases
             }
             for node_name, aliases in current_alias.items()
-        ]        
+        }
+
+        # align with current connentivity_terms
+        for node, item in new_alias_dict.items():
+            if node not in self.__connectivity_terms:
+                self.__connectivity_terms[node] = item
+            else:
+                self.__connectivity_terms[node]['aliases'] = list(set(self.__connectivity_terms[node]['aliases'] + item['aliases']))
+                self.__connectivity_terms[node]['name'] = item['name']
 
         with open(self.__output_dir/'connectivity_terms.json', 'w') as f:
-            json.dump(current_alias, f, indent=4)
+            json.dump(list(self.__connectivity_terms.values()), f, indent=4)
 
         return df_missing
 
@@ -426,14 +483,17 @@ class FlatMapCheck:
             if len(selected_nodes) == k: break
         return selected_nodes
 
-    def __align_missing_nodes(self, df_missing, missing_file, k):
-        ### load missing NPO nodes in flatmap
-        df_missing['Align candidates'] = df_missing['Node Name'].apply(lambda x: self.__get_candidates(x, k))
-        df_missing = df_missing.explode('Align candidates')
-        df_missing[['Align candidates', 'Candidate name', 'Score']] = df_missing['Align candidates'].apply(pd.Series)
-        df_missing['Selected'] = ''
-        df_missing['Note'] = ''
-        df_missing.to_csv(missing_file)
+    def __align_missing_nodes(self, df_missing, k):
+        if df_missing.shape[0] > 0:
+            ### load missing NPO nodes in flatmap
+            df_missing = pd.DataFrame(df_missing)
+            df_missing['Align candidates'] = df_missing['Node Name'].apply(lambda x: self.__get_candidates(x, k))
+            df_missing = df_missing.explode('Align candidates')
+            df_missing[['Align candidates', 'Candidate name', 'Score']] = df_missing['Align candidates'].apply(pd.Series)
+            df_missing['Selected'] = ''
+            df_missing['Comments'] = ''
+            return df_missing
+        return pd.DataFrame(columns=[['Align candidates', 'Candidate name', 'Score', 'Selected', 'Comments']])
 
     #===========================================================================
 
@@ -444,14 +504,24 @@ class FlatMapCheck:
                 nodes_to_neuron_types[node] = nodes_to_neuron_types.get(node, []) + [k]
 
         print('Organising missing nodes')
-        df = pd.DataFrame(columns=['Node', 'Node Name', 'Appear in'])
+        df = pd.DataFrame(columns=['Node', 'Node Name', 'Appear in', 'Notes'])
         for node, k_types in tqdm(nodes_to_neuron_types.items()):
             name = self.__get_node_name(node)
             name = ' IN '.join(name)
+            notes = ''
+            if node in self.__connectivity_terms:
+                aliases = ', '.join([f'{str(alias)}-{self.__get_node_name(alias)}' for alias in self.__connectivity_terms[node]['aliases']])
+                notes = f'The node is available in `connextivity_terms.json` as the aliases of {aliases}. Possible problems:\
+                    \n - missing a pink dot in the svg file\
+                    \n - incorrect alias mapping'
+            elif node in self.__flatmap_aliases:
+                notes = f'The node is mapped to `{self.__flatmap_aliases[node]}-{self.__connectivity_terms[self.__flatmap_aliases[node]].get('name','')}` in `connextivity_terms.json`. Possible problem:\
+                    \n - other nodes on the same path are generalised to the same node.'
             df.loc[len(df)] = [
                 node,
                 name,
-                '\n'.join(list(set(k_types)))
+                '\n'.join(list(set(k_types))),
+                notes
             ]
         df = df.sort_values('Appear in')
         return df
@@ -460,11 +530,13 @@ class FlatMapCheck:
         # a function to load log file
         missing_nodes = {} # node:label
         missing_segments = {} # neuron_path:segment
+        missing_paths = [] # a mlist of missing path
         map_log = {}
         with open(log_file, 'r') as f:
             while line := f.readline():
                 tag_feature = 'Cannot find feature for connectivity node '
                 tag_segment = 'Cannot find any sub-segments of centreline for '
+                tag_path = 'Path is not rendered at all.'
                 if tag_feature in line:
                     feature = line.split(tag_feature)[-1].split(') (')
                     missing_nodes[ast.literal_eval(f'{feature[0]})')] = f'({feature[1]}'.strip()
@@ -472,6 +544,8 @@ class FlatMapCheck:
                     path_id = line[33:].split(': ')[0]
                     if path_id not in missing_segments: missing_segments[path_id] = []
                     missing_segments[path_id] += [line.split(tag_segment)[-1][1:-2]]
+                elif tag_path in line:
+                    missing_paths += [(path_id:=line[33:].split(': ')[0])]
         for path_id, connectivities in self.__npo_connectivities.items():
             map_log[path_id] = {}
             nodes, edges = set(), set()
@@ -490,10 +564,19 @@ class FlatMapCheck:
                 # check if edge contain missing segment
                 if len(set(missing_segments.get(path_id, [])) & flat_nodes) > 1:
                     m_edges.add((node_0, node_1))
-            m_nodes = nodes & set(missing_nodes.keys())
-            r_nodes = nodes - set(missing_nodes.keys())
+            mapped_nodes = set([n if n not in self.__flatmap_aliases else self.__flatmap_aliases[n] for n in nodes])
+            m_nodes = mapped_nodes & set(missing_nodes.keys())
+            r_nodes = mapped_nodes - set(missing_nodes.keys())
             r_edges = edges - m_edges
             complete = 'Complete' if len(m_nodes)==0 and len(m_edges)==0 else 'Partial'
+            notes = ''
+            if path_id in missing_paths:
+                m_nodes = [n for n in nodes if n in self.__flatmap_aliases]
+                r_nodes = []
+                m_edges = edges
+                r_edges = []
+                complete = 'None'
+                notes = f'All nodes are generalised to the same term, so this path is not rendered.\nNodes: {nodes}'
             map_log[path_id] = {
                 'original_nodes': nodes,
                 'missing_nodes': m_nodes,
@@ -502,7 +585,8 @@ class FlatMapCheck:
                 'missing_edges': m_edges,
                 'rendered_edges': r_edges,
                 'completeness': complete,
-                'missing_segment': missing_segments.get(path_id, [])
+                'missing_segment': missing_segments.get(path_id, []),
+                'notes': notes
             }
 
         return map_log
@@ -510,7 +594,7 @@ class FlatMapCheck:
     def __organised_map_log(self):
         # a function to organised data into dataframe and then save it as csv file
         ### complete neuron:
-        df = pd.DataFrame(columns=['Neuron NPO', 'Completeness', 'Missing Nodes', 'Missing Node Name', 'Missing Edges', 'Missing Edge Name', 'Missing Segments', 'Missing Segment Name', 'Rendered Edges', 'Rendered Edge Name'])
+        df = pd.DataFrame(columns=['Neuron NPO', 'Completeness', 'Missing Nodes', 'Missing Node Name', 'Missing Edges', 'Missing Edge Name', 'Missing Segments', 'Missing Segment Name', 'Rendered Edges', 'Rendered Edge Name', 'Notes'])
         keys = [
             'missing_nodes',
             'missing_edges',
@@ -518,6 +602,7 @@ class FlatMapCheck:
             'rendered_edges'
         ]
         print('Organising map log')
+
         for neuron, value in tqdm(self.__map_log.items()):
             info = {}
             for key in keys:
@@ -535,15 +620,15 @@ class FlatMapCheck:
                 else:
                     names = ''
                 info[key+'_name'] = '\n'.join([str(mnn) for mnn in names])
+            info['Notes'] = value['notes']
             df.loc[len(df)] = [neuron, value['completeness']] + list(info.values())
 
-        df = df.sort_values('Completeness')
+        df = df.sort_values('Completeness', ascending=False)
         return df
 
     def check_npo_in_flatmap(self):
         # identified the miissing nodes
         df_missing = self.__get_missing_nodes()
-
         # identify the missing node general terms when is align_general
         df_missing['parents'] = None
         if self.__align_general:
@@ -553,18 +638,30 @@ class FlatMapCheck:
         df_missing = self.__merge_connectivity_terms(df_missing)
 
         # save missing_nodes to a file
-        missing_node_file = self.__output_dir/f'npo_{self.__species}_missing_nodes.csv'
-        df_missing = df_missing[df_missing.parents.isna()].drop('parents', axis=1)
-        df_missing.to_csv(f'{missing_node_file}', index=False)
-
+        df_missing = df_missing[df_missing.parents.isna() | df_missing.Node.isin(self.__flatmap_aliases)].drop('parents', axis=1)
+        
         # align missing_nodes and safe to file
-        missing_node_align_file = self.__output_dir/f'npo_{self.__species}_missing_nodes_alignment.csv'
-        self.__align_missing_nodes(df_missing, missing_node_align_file, self.__k)
+        df_align = self.__align_missing_nodes(df_missing, self.__k)
 
         # save rendered_nodes to a file
         df_rendered = self.__organised_map_log()
-        rendered_file = self.__output_dir/f'npo_{self.__species}_rendered.csv'
-        df_rendered.to_csv(f'{rendered_file}', index=False)
+
+        # save to excel
+        def set_format(writer, df, sheet_name):
+            workbook  = writer.book
+            wrap_format = workbook.add_format({'text_wrap': True})
+            for column in df:
+                col_idx = df.columns.get_loc(column)
+                writer.sheets[sheet_name].set_column(col_idx, col_idx, 25, wrap_format)
+
+        excel_file = self.__output_dir/'npo_completeness.xlsx'
+        with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
+            df_missing.to_excel(writer, sheet_name='missing', index=False)
+            set_format(writer, df_missing, 'missing')
+            df_align.to_excel(writer, sheet_name='align', index=False)
+            set_format(writer, df_align, 'align')
+            df_rendered.to_excel(writer, sheet_name='rendered', index=False)
+            set_format(writer, df_rendered, 'rendered')
 
         with open(self.__map_node_name_file, 'w') as f:
             json.dump(str(self.__map_node_name), f)
@@ -580,6 +677,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Checking nodes and edges completeness in the generated flatmap")
     parser.add_argument('--manifest', dest='manifest_file', metavar='MANIFEST', help='Path of flatmap manifest')
+    parser.add_argument('--sckan-version', dest='sckan_version', metavar='SCKAN_VERSION', help='SCKAN version to check, e.g. sckan-2024-03-26')
     parser.add_argument('--artefact-dir', dest='artefact_dir', metavar='ARTEFACT_DIR', help='Directory to store artefact files, e.g. generated maps and log file, to check NPO completeness')
     parser.add_argument('--output-dir', dest='output_dir', metavar='OUTPUT_DIR', help='Directory to store the check results')
     parser.add_argument('--clean-connectivity', dest='clean_connectivity', action='store_true', help='Run mapmaker as a clean connectivity (optional)')
@@ -617,11 +715,14 @@ if __name__ == '__main__':
 # --clean-connectivity
 # --align-general-term
 # --k `integer value > 0`
+# --sckan-version `the version of SCKAN, e.g. sckan-2024-03-26`
 
 
 # Results are stored in --output-dir/--species/ directory
-#   - npo_{species}_missing.csv
-#   - npo_{species}_rendered.csv
+#   - npo_{species}_completeness.xlsx, There are 3 sheets inside:
+#       - missing
+#        - align
+#       - rendered
 #   - connectivity_terms.json,
 #       - combines the existing connectivity_terms.json with the general terms found
 #       - later this file can be used as a new connectivity_terms.json in AC and FC
