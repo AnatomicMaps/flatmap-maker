@@ -94,7 +94,7 @@ class SVGSource(MapSource):
         if self.base_feature is not None:
             bounds = self.base_feature.bounds
             (scale_x, scale_y) = ((bounds[2]-bounds[0])/width, (bounds[3]-bounds[1])/height)
-            scale = min(scale_x, scale_y)
+            scale = max(scale_x, scale_y)
             self.__transform = (Transform([[1,  0, bounds[0]+(bounds[2]-bounds[0])/2],
                                            [0,  1, bounds[1]+(bounds[3]-bounds[1])/2],
                                            [0,  0,         1]])
