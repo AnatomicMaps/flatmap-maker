@@ -246,11 +246,15 @@ class Network(object):
                         if (nerve_id := properties_store.nerve_ids_by_model.get(centreline_models)) is not None:
                             # Assign nerve cuff id to centreline
                             properties_store.set_property(centreline_id, 'nerve', nerve_id)
-                elif (properties_store is not None
-                  and (models := properties_store.get_property(centreline_id, 'models')) is not None):
-                    # No ``models`` are directly specified for the centreline so assign what we've found
-                    centreline['models'] = models
-                    self.__models_to_id[models].add(centreline_id)
+                elif properties_store is not None:
+                    properties_store.set_property(centreline_id, 'centreline', True)
+                    if (models := properties_store.get_property(centreline_id, 'models')) is not None:
+                        # No ``models`` are directly specified for the centreline so assign what we've found
+                        centreline['models'] = models
+                        self.__models_to_id[models].add(centreline_id)
+                    elif (centreline_label := centreline.get('label')) is not None:
+                        properties_store.set_property(centreline_id, 'label', centreline_label)
+
                 # Check connected nodes
                 connected_nodes = centreline.get('connects', [])
                 if len(connected_nodes) < 2:
