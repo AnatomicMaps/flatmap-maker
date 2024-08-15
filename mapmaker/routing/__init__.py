@@ -158,19 +158,18 @@ class NetworkNode:
     def radii(self) -> Optional[tuple[float, float]]:
         return self.properties.get('radii')
 
-    def set_properties_from_feature(self, feature: Optional[Feature]):
-    #=================================================================
-        if feature is not None:
-            self.map_feature = feature
-            self.properties.update(feature.properties)
-            self.properties['geometry'] = feature.geometry
-            if feature.geometry is not None:
-                centre = feature.geometry.centroid
-                self.properties['centre'] = BezierPoint(centre.x, centre.y)
-                radius = max(math.sqrt(feature.geometry.area/math.pi), MIN_EDGE_JOIN_RADIUS)
-                self.properties['radii'] = (0.999*radius, 1.001*radius)
-            else:
-                log.warning(f'Centreline node {feature.id} has no geometry')
+    def set_properties_from_feature(self, feature: Feature):
+    #=======================================================
+        self.map_feature = feature
+        self.properties.update(feature.properties)
+        self.properties['geometry'] = feature.geometry
+        if feature.geometry is not None:
+            centre = feature.geometry.centroid
+            self.properties['centre'] = BezierPoint(centre.x, centre.y)
+            radius = max(math.sqrt(feature.geometry.area/math.pi), MIN_EDGE_JOIN_RADIUS)
+            self.properties['radii'] = (0.999*radius, 1.001*radius)
+        else:
+            log.warning(f'Centreline node {feature.id} has no geometry')
 
 #===============================================================================
 
@@ -474,8 +473,14 @@ class Network(object):
                 centreline_feature.set_property('type', self.__type)
 
             # Set network node properties
+            valid_nodes = []
             for network_node in network_nodes:
-                network_node.set_properties_from_feature(self.__map_feature(network_node.feature_id))
+                feature = self.__map_feature(network_node.feature_id)
+                if feature is not None:
+                    valid_nodes.append(network_node)
+                    network_node.set_properties_from_feature(feature)
+            network_nodes = valid_nodes
+            self.__centreline_nodes[centreline_id] = valid_nodes
 
             bz_path = BezierPath.fromSegments(centreline_feature.get_property('bezier-segments'))
 
