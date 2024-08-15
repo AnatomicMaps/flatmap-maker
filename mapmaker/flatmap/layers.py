@@ -363,7 +363,7 @@ class MapLayer(FeatureLayer):
                 feature_group = self.flatmap.new_feature(
                       self.id,
                       shapely.geometry.MultiLineString(grouped_lines),
-                      grouped_properties, True)
+                      grouped_properties, is_group=True)
                 layer_features.append(feature_group)
 
         # Feature specific properties have precedence over group's
