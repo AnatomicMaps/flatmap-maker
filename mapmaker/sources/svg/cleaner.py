@@ -35,7 +35,7 @@ from mapmaker.properties.markup import parse_markup
 from mapmaker.utils import FilePath
 
 from .. import EXCLUDED_FEATURE_TYPES, EXCLUDE_SHAPE_TYPES, EXCLUDE_TILE_LAYERS
-from .utils import svg_element_from_feature, svg_markup, SVG_TAG
+from .utils import length_as_pixels, svg_element_from_feature, svg_markup, SVG_TAG
 
 if TYPE_CHECKING:
     from mapmaker.flatmap import FlatMap
@@ -46,6 +46,18 @@ if TYPE_CHECKING:
 class SVGCleaner(object):
     def __init__(self, svg_file: FilePath, properties_store: 'PropertiesStore', all_layers: bool=True):
         self.__svg = etree.parse(svg_file.get_fp())
+        self.__svg_root = self.__svg.getroot()
+
+        # Add a viewBox if it's missing
+        if 'viewBox' not in self.__svg_root.attrib:
+            (width, height) = (length_as_pixels(self.__svg_root.attrib['width']),
+                               length_as_pixels(self.__svg_root.attrib['height']))
+            self.__svg_root.attrib['viewBox'] = f'0 0 {width} {height}'
+
+        # Remove any width and height attributes
+        self.__svg_root.attrib.pop('width', None)
+        self.__svg_root.attrib.pop('height', None)
+
         self.__properties_store = properties_store
         self.__all_layers = all_layers
 
@@ -56,7 +68,7 @@ class SVGCleaner(object):
         if self.__all_layers:
             connectivity_group = etree.Element(SVG_TAG('g'))
             inverse_transform = svgelements.Matrix(transform.inverse().svg_matrix)
-            self.__svg.getroot().append(connectivity_group)
+            self.__svg_root.append(connectivity_group)
             for layer in flatmap.layers:
                 if layer.exported:
                     for feature in layer.features:
@@ -67,7 +79,7 @@ class SVGCleaner(object):
 
     def clean(self):
     #===============
-        self.__filter(self.__svg.getroot())
+        self.__filter(self.__svg_root)
 
     def save(self, file_object: BinaryIO):
     #=====================================
@@ -76,7 +88,7 @@ class SVGCleaner(object):
         if len(comments):
             comments[0].text = header
         else:
-            self.__svg.getroot().addprevious(etree.Comment(header))
+            self.__svg_root.addprevious(etree.Comment(header))
         self.__svg.write(file_object, encoding='utf-8', pretty_print=True, xml_declaration=True)
 
     def __filter(self, element, parent=None):
