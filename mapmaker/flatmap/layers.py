@@ -341,7 +341,7 @@ class MapLayer(FeatureLayer):
                 if feature.geom_type == 'Polygon':
                     grouped_polygons.append(feature.geometry)
                 elif feature.geom_type == 'MultiPolygon':
-                    grouped_polygons.extend(list(feature.geometry.geoms))
+                    grouped_polygons.extend(list(feature.geometry.geoms))       # type: ignore
             if len(grouped_polygons):
                 feature_group = self.flatmap.new_feature(
                         self.id,
@@ -357,7 +357,7 @@ class MapLayer(FeatureLayer):
                     if feature.geom_type == 'LineString':
                         grouped_lines.append(feature.geometry)
                     elif feature.geom_type == 'MultiLineString':
-                        grouped_lines.extend(list(feature.geometry.geoms))
+                        grouped_lines.extend(list(feature.geometry.geoms))      # type: ignore
             if len(grouped_lines):  ## should polygons take precedence over lines???
                                     ## at least for assigning ID...
                 feature_group = self.flatmap.new_feature(

@@ -173,6 +173,7 @@ class PathRouter(object):
                         offset = len(ordering)//2 - ((len(ordering)+1)%2)/2
                         route_graph.nodes[node_0]['offsets'][node_1] = route_index - offset
                         route_graph.nodes[node_1]['offsets'][node_0] = len(ordering) - route_index - 1 - offset
+
         return { route_number: RoutedPath(path_id, route_graph, route_number)
             for route_number, (path_id, route_graph) in enumerate(routes) }
 

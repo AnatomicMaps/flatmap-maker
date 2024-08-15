@@ -275,8 +275,8 @@ class MapSource(object):
     #=========================
         raise TypeError('`process()` must be implemented by `MapSource` sub-class')
 
-    def get_raster_source(self) -> Optional[RasterSource]:
-    #=====================================================
+    def get_raster_source(self) -> Optional['RasterSource']:
+    #=======================================================
         return None
 
 #===============================================================================
@@ -289,8 +289,8 @@ class RasterSource(object):
         self.__source_path = source_path
 
     @property
-    def data(self) -> Optional[bytes]:
-        if self.__data is None and self.__get_data is not None:
+    def data(self) -> bytes:
+        if self.__data is None:
             self.__data = self.__get_data()
         return self.__data
 

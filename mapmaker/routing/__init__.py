@@ -532,7 +532,7 @@ class Network(object):
                 path_end_node = start_node if path_reversed else end_node
 
                 # Split the current Bezier path at the segment boundary and return the remainder
-                (cl_path, bz_path) = split_bezier_path_at_point(bz_path, path_end_node.centre)
+                (cl_path, bz_path) = split_bezier_path_at_point(bz_path, path_end_node.centre)  # type: ignore
 
                 # Save properties for later
                 edge_id = (*edge_feature_ids, key)
@@ -937,7 +937,7 @@ class Network(object):
                                 candidates[(n,s)] = nf.geometry.centroid.distance(sf.geometry.centroid)
                             tmp_edge_dicts[(n,s)] = edge_dict
                         if len(candidates) > 0:
-                            selected_c = min(candidates, key=candidates.get)
+                            selected_c = min(candidates, key=candidates.get)    # type: ignore
                             neighbouring_ids.update([selected_c[0]])
                             closest_feature_dict[selected_c[0]] = selected_c[1]
                 for n_id in neighbouring_ids:
@@ -1037,7 +1037,7 @@ class Network(object):
                                 if (nf:=self.__map_feature(n)) is not None and (sf:=self.__map_feature(s)) is not None:
                                     candidates[(n,s)] = nf.geometry.centroid.distance(sf.geometry.centroid)
                                 tmp_edge_dicts[(n,s)] = edge_dict
-                            new_direct_edges.update([min(candidates, key=candidates.get)])
+                            new_direct_edges.update([min(candidates, key=candidates.get)])  # type: ignore
                 prev_node = node
 
             if len(feature_ids):
