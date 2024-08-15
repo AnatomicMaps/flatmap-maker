@@ -33,5 +33,6 @@ class MAP_KIND(Enum):
     UNKNOWN    = 0
     ANATOMICAL = 1
     FUNCTIONAL = 2
+    CENTRELINE = 3
 
 #===============================================================================

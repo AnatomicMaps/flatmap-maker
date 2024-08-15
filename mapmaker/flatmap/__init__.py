@@ -59,6 +59,7 @@ class FlatMap(object):
         self.__uuid = maker.uuid
         self.__map_dir = maker.map_dir
         self.__map_kind = (MAP_KIND.FUNCTIONAL if manifest.kind == 'functional'
+                      else MAP_KIND.CENTRELINE if manifest.kind == 'centreline'
                       else MAP_KIND.ANATOMICAL)
         self.__manifest = manifest
         self.__local_id = manifest.id

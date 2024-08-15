@@ -475,7 +475,7 @@ class SVGLayer(MapLayer):
             if properties.get('node', False):
                 # All centeline nodes become circles
                 geometry = circle_from_bounds(geometry.bounds)
-            if self.flatmap.map_kind == MAP_KIND.ANATOMICAL:
+            if self.flatmap.map_kind in [MAP_KIND.ANATOMICAL, MAP_KIND.CENTRELINE]:
                 properties['bezier-segments'] = bezier_segments
             return geometry
         except ValueError as err:

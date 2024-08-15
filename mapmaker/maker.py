@@ -465,7 +465,7 @@ class MapMaker(object):
                         and not feature.get_property('exclude', False)
                         and (not 'error' in feature.properties) or settings.get('authoring', False)):
                             exported_features.append(feature)
-                geojson_output = GeoJSONOutput(layer, self.__flatmap.area, self.__map_dir)
+                geojson_output = GeoJSONOutput(self.__flatmap, layer, self.__map_dir)
                 saved_layer = geojson_output.save(layer.features, settings.get('saveGeoJSON', False))
                 for (layer_name, filename) in saved_layer.items():
                     self.__geojson_files.append(filename)
@@ -531,6 +531,8 @@ class MapMaker(object):
         map_index['authoring'] = settings.get('authoring', False)
         if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             map_index['style'] = 'functional'
+        elif self.__flatmap.map_kind == MAP_KIND.CENTRELINE:
+            map_index['style'] = 'centreline'
         else:
             map_index['style'] = 'anatomical'
         if git_status is not None:

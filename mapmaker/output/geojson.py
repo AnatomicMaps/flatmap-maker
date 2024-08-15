@@ -29,8 +29,9 @@ import shapely.geometry
 
 #===============================================================================
 
+from mapmaker.flatmap import FlatMap, MapLayer
 from mapmaker.geometry import mercator_transform
-from mapmaker.settings import settings
+from mapmaker.settings import MAP_KIND, settings
 from mapmaker.utils import log, ProgressBar, set_as_list
 
 from . import ENCODED_FEATURE_PROPERTIES, EXPORTED_FEATURE_PROPERTIES
@@ -38,10 +39,11 @@ from . import ENCODED_FEATURE_PROPERTIES, EXPORTED_FEATURE_PROPERTIES
 #===============================================================================
 
 class GeoJSONOutput(object):
-    def __init__(self, layer, map_area, output_dir):
-    #================================================
+    def __init__(self, flatmap: FlatMap, layer: MapLayer, output_dir: str):
+    #======================================================================
+        self.__flatmap = flatmap
         self.__layer = layer
-        self.__map_area = map_area
+        self.__map_area = flatmap.area
         self.__output_dir = output_dir
         self.__geojson_layers = defaultdict(list)
 
@@ -135,6 +137,8 @@ class GeoJSONOutput(object):
                 if (len(geoms := boundary.geoms)) == 2:
                     properties['pathStartPosition'] = shapely.geometry.mapping(geoms[0])['coordinates']
                     properties['pathEndPosition'] = shapely.geometry.mapping(geoms[1])['coordinates']
+                if self.__flatmap.map_kind == MAP_KIND.CENTRELINE and feature.properties.get('kind') == 'centreline':
+                    geojson['properties']['coordinates'] = geojson['geometry']['coordinates']
 
             # The layer's annotation has property details for each feature.
             # NB. These, and only these, properties are passed to the viewer
