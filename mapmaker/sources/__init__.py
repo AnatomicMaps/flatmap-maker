@@ -254,6 +254,7 @@ class MapSource(object):
             return {}
         properties = parse_markup(markup)
         self.check_markup_errors(properties)
+        self.__flatmap.properties_store.update_properties(properties)
         return properties
 
     def check_markup_errors(self, properties: dict):
