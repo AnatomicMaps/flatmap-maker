@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import os
 import tempfile
 from typing import Optional
 import unicodedata
@@ -141,7 +142,9 @@ class SVGSource(MapSource):
         cleaner = SVGCleaner(self.__source_file, self.flatmap.properties_store, all_layers=True)
         cleaner.clean()
         cleaner.add_connectivity_group(self.flatmap, self.__transform)
-        with open(self.flatmap.full_filename(f'{self.flatmap.id}.svg'), 'wb') as fp:
+        cleaned_svg = self.flatmap.full_filename(f'images/{self.flatmap.id}.svg')
+        os.makedirs(os.path.dirname(cleaned_svg), exist_ok=True)
+        with open(cleaned_svg, 'wb') as fp:
             cleaner.save(fp)
 
     def get_raster_source(self):
