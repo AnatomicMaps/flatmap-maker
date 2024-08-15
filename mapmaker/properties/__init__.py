@@ -245,6 +245,9 @@ class PropertiesStore(object):
         elif 'label' in feature_properties and feature_properties['label'] in [None, '']:
             del feature_properties['label']   # So empty values doesn't get passed to the viewer
 
+        if feature_properties.get('centreline', False) and feature_properties.get('node', False):
+            log.error(f'Feature `{id}` cannot be both a centreline and a node')
+
         ## Put network features and centrelines on their own MapLayer called say "Nerves"
         ## if AC map??
 
