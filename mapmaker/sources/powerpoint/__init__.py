@@ -73,7 +73,7 @@ class PowerpointLayer(MapLayer):
         shapes = self.__slide.process(self.flatmap.annotator)
 
         features = self.__process_shape_list(shapes)
-        self.add_features('Slide', features, outermost=True)
+        self.add_group_features('Slide', features, outermost=True)
 
         if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             for feature in self.features:
@@ -114,7 +114,7 @@ class PowerpointLayer(MapLayer):
         for shape in shapes[1:]:
             if isinstance(shape, TreeList):
                 group_features = self.__process_shape_list(shape)
-                grouped_feature = self.add_features('Group', group_features)
+                grouped_feature = self.add_group_features('Group', group_features)
                 if grouped_feature is not None:
                     features.append(grouped_feature)
             else:
