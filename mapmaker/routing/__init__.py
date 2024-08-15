@@ -497,6 +497,8 @@ class Network(object):
                         min_distance = distance
                         coords = (n, m)
             path_reversed = (coords[0] != coords[1])
+            if path_reversed:
+                centreline_feature.geometry = centreline_feature.geometry.reverse()
 
             # Construct the segmented centreline graph
             seg_no = 0
