@@ -40,7 +40,6 @@ from mapmaker.exceptions import MakerException
 from mapmaker.flatmap import Feature, FlatMap, ManifestSource
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
-from mapmaker.properties import not_in_group_properties
 from mapmaker.settings import MAP_KIND
 from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.classify import ShapeClassifier
@@ -204,14 +203,6 @@ class SVGLayer(MapLayer):
         return [self.flatmap.new_feature(self.id, shape.geometry, shape.properties)
                   for shape in shapes.flatten() if not shape.properties.get('exclude', False)]
 
-    @staticmethod
-    def __excluded_group_shape(properties) -> bool:
-    #==============================================
-        return (not_in_group_properties(properties)
-             or 'auto-hide' in properties.get('class', '')
-             or (properties.get('type') == 'nerve'
-                 and properties.get('kind') != 'centreline'))
-
     def __get_transform(self, wrapped_element) -> Transform:
     #=======================================================
         element_style = self.__style_matcher.element_style(wrapped_element)
@@ -262,7 +253,7 @@ class SVGLayer(MapLayer):
                 properties,
                 group_style)
             properties.pop('tile-layer', None)  # Don't set ``tile-layer``
-            if group_id and len(group_shapes := TreeList([s for s in shapes.flatten() if s.geometry.is_valid and not self.__excluded_group_shape(s.properties)])):
+            if group_id and len(group_shapes := TreeList([s for s in shapes.flatten() if s.geometry.is_valid and not s.properties.get('exclude', False)])):
                 # If the group element has markup and contains geometry then add it as a shape
                 group_geometry = shapely.ops.unary_union([s.geometry for s in group_shapes.flatten()])
                 group_shape = Shape(group_id, group_geometry, properties)

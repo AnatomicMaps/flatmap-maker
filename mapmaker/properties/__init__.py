@@ -38,13 +38,6 @@ if TYPE_CHECKING:
 
 #===============================================================================
 
-def not_in_group_properties(properties: dict) -> bool:
-    return (properties.get('exclude', False)                # already excluded
-         or properties.get('node', False)                   # or a node
-         or properties.get('centreline', False))            # or a centreline
-
-#===============================================================================
-
 class PropertiesStore(object):
     def __init__(self, flatmap: "FlatMap", manifest: "Manifest"):
         self.__flatmap = flatmap
