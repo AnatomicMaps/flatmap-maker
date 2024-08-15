@@ -97,7 +97,13 @@ def length_as_pixels(length: str | float) -> float:
 
 def length_as_points(length: str | float) -> float:
 #==================================================
-    return length_as_pixels(length)/__unit_scaling['pt']
+    if not isinstance(length, str):
+        return length
+    match = re.search(r'(.*)(em|ex|px|in|cm|mm|pt|pc|%)', length)
+    if match is None:
+        return float(length)
+    else:
+        return length_as_pixels(length)/__unit_scaling['px']
 
 #===============================================================================
 
