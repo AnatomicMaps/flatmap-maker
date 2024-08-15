@@ -270,6 +270,10 @@ class Network(object):
                         if (ftu_id := network_node.ftu_id) is not None:
                             if network_node not in self.__nodes_by_ftu[ftu_id]:
                                 self.__nodes_by_ftu[ftu_id].append(network_node)
+                        if properties_store is not None:
+                            if (properties_store.get_property(node_id, 'models') is None
+                            and properties_store.get_property(node_id, 'label') is None):
+                                properties_store.set_property(node_id, 'node', True)
                     self.__containers_by_centreline[centreline_id] = set(centreline.get('contained-in', []))
                     end_nodes_to_centrelines[connected_nodes[0]].append(centreline_id)
                     end_nodes_to_centrelines[connected_nodes[-1]].append(centreline_id)
