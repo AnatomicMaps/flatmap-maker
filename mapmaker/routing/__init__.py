@@ -238,6 +238,7 @@ class Network(object):
                     self.__models_to_id[centreline_models].add(centreline_id)
                     # If we have ``properties_store`` without ``centreline_models`` annotation for the centreline then set it
                     if properties_store is not None:
+                        properties_store.set_property(centreline_id, 'centreline', True)
                         if (models := properties_store.get_property(centreline_id, 'models')) is None:
                             properties_store.set_property(centreline_id, 'models', centreline_models)
                         elif centreline_models != models:
