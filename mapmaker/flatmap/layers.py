@@ -192,8 +192,8 @@ class MapLayer(FeatureLayer):
                                                     (min_zoom+1) if min_zoom is not None else self.min_zoom,
                                                     local_world_to_base))
 
-    def add_features(self, group_name, features, tile_layer=FEATURES_TILE_LAYER, outermost=False):
-    #=============================================================================================
+    def add_features(self, group_name: str, features: list[Feature], tile_layer=FEATURES_TILE_LAYER, outermost=False) -> Optional[Feature]:
+    #======================================================================================================================================
         base_properties = {
             'tile-layer': tile_layer
             }

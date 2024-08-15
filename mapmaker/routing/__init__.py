@@ -191,10 +191,10 @@ class Network(object):
         self.__container_feature_ids = set()
 
         # The following are assigned once we have feature geometry
-        self.__centreline_graph: nx.MultiGraph = None                               #! Edges are centreline segments between intermediate nodes.
+        self.__centreline_graph = nx.MultiGraph()                                   #! Can have multiple paths between nodes which will be contained in different features
         self.__containers_by_segment: dict[str, set[str]] = defaultdict(set)        #! Segment id --> set of features that segment is contained in
         self.__centrelines_by_containing_feature = defaultdict(set)                 #! Feature id --> set of centrelines that are contained in feature
-        self.__expanded_centreline_graph: nx.Graph = None                           #! Expanded version of centreline graph
+        self.__expanded_centreline_graph: Optional[nx.Graph] = None                 #! Expanded version of centreline graph
         self.__segment_edge_by_segment: dict[str, tuple[str, str, str]] = {}        #! Segment id --> segment edge
         self.__segment_ids_by_centreline: dict[str, list[str]] = defaultdict(list)  #! Centreline id --> segment ids of the centreline
 
@@ -406,14 +406,14 @@ class Network(object):
             edge_dict['end-node'] = end_node_id
 
             # Truncate the path at branch nodes
-            if self.__centreline_graph.degree(node_id_0) >= 2:
+            if self.__centreline_graph.degree(node_id_0) >= 2:      # type: ignore
                 if start_node_id == node_id_0:
                     # This assumes network_nodes[0] centre is close to segments[0].start
                     segments = truncate_segments_at_start(segments, network_nodes[0])
                 else:
                     # This assumes network_nodes[-1] centre is close to segments[-1].end
                     segments = truncate_segments_at_end(segments, network_nodes[-1])
-            if self.__centreline_graph.degree(node_1_id) >= 2:
+            if self.__centreline_graph.degree(node_1_id) >= 2:      # type: ignore
                 if start_node_id == node_id_0:
                     # This assumes network_nodes[0] centre is close to segments[-1].end
                     segments = truncate_segments_at_end(segments, network_nodes[0])
@@ -445,7 +445,6 @@ class Network(object):
             return (scale(x) - T)/(1.0 - T)
 
         # Initialise
-        self.__centreline_graph = nx.MultiGraph()           #! Can have multiple paths between nodes which will be contained in different features
         self.__containers_by_segment = defaultdict(set)     #! Segment id --> set of features that segment is contained in
         self.__segment_edge_by_segment = {}
         self.__segment_ids_by_centreline = defaultdict(list)
@@ -479,7 +478,7 @@ class Network(object):
             coords = (0, 0)
             for n, centre in enumerate([node_0_centre, node_1_centre]):
                 for m, t in enumerate([0.0, 1.0]):
-                    distance = centre.distanceFrom(bz_path.pointAtTime(t))
+                    distance = centre.distanceFrom(bz_path.pointAtTime(t))      # type: ignore
                     if min_distance is None or distance < min_distance:
                         min_distance = distance
                         coords = (n, m)
