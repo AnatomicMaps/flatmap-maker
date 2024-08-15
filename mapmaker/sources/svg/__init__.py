@@ -18,7 +18,6 @@
 #
 #===============================================================================
 
-import math
 import tempfile
 from typing import Optional
 import unicodedata
