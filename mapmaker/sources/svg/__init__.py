@@ -179,10 +179,9 @@ class SVGLayer(MapLayer):
                                              self.__transform,
                                              properties,
                                              None, show_progress=True)
-        features = self.__process_shape_list(shapes)
-        self.add_features('SVG', features, outermost=True)
+        features = self.__process_shapes(shapes)
 
-    def __process_shape_list(self, shapes: TreeList[Shape]) -> list[Feature]:
+    def __process_shapes(self, shapes: TreeList[Shape]) -> list[Feature]:
     #====================================================================
         if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             # CellDL conversion mode...
@@ -199,9 +198,19 @@ class SVGLayer(MapLayer):
                 'colour': 'white',
                 'models': 'UBERON:0013702'   ## will create a ``BodyLayer``
             }))
+        return self.__process_shape_list(shapes, 0)
 
-        return [self.flatmap.new_feature(self.id, shape.geometry, shape.properties)
-                  for shape in shapes.flatten() if not shape.properties.get('exclude', False)]
+    def __process_shape_list(self, shapes: TreeList[Shape], depth) -> list[Feature]:
+    #===============================================================================
+        ## need to go through tree list and add_features for every branch
+        features = []
+        for shape in shapes[0:]:
+            if isinstance(shape, TreeList):
+                self.__process_shape_list(shape, depth+1)
+            elif not shape.properties.get('exclude', False):
+                features.append(self.flatmap.new_feature(self.id, shape.geometry, shape.properties))
+        self.add_group_features(f'SVG_{depth}', features, outermost=(depth==0))
+        return features
 
     def __get_transform(self, wrapped_element) -> Transform:
     #=======================================================
@@ -245,7 +254,7 @@ class SVGLayer(MapLayer):
         clipped = self.__clip_geometries.get_by_url(group_clip_path)
         if clipped is not None:
             # Replace any shapes inside a clipped group with just the clipped outline
-            group_shape = Shape(group_id, clipped, properties, svg_element=group)
+            shapes = Shape(group_id, clipped, properties, svg_element=group)
         else:
             group_transform = self.__get_transform(wrapped_group)
             shapes = self.__process_element_list(wrapped_group,
@@ -257,16 +266,11 @@ class SVGLayer(MapLayer):
                 # If the group element has markup and contains geometry then add it as a shape
                 group_geometry = shapely.ops.unary_union([s.geometry for s in group_shapes.flatten()])
                 group_shape = Shape(group_id, group_geometry, properties)
-                # And don't output interior shapes with no markup
-                for shape in group_shapes.flatten():
-                    if not shape.has_property('markup'):
-                        shape.set_property('exclude', True)
-                group_markup = svg_markup(group)
-                if 'id' in properties:
-                    log.warning(f'SVG group `{group_markup}` with id cannot also contain a `.group` marker')
-            else:
-                group_shape = shapes
-        return group_shape
+                # Don't output interior shapes with no markup
+                shapes = TreeList([shape for shape in group_shapes.flatten() if shape.has_property('markup')])
+                shapes.append(group_shape)
+
+        return shapes
 
     def __process_element_list(self, elements: ElementWrapper, transform, parent_properties, parent_style, show_progress=False) -> TreeList[Shape]:
     #==============================================================================================================================================
