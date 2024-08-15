@@ -68,6 +68,14 @@ IGNORED_SVG_TAGS = [
     SVG_TAG('title'),
 ]
 
+# We don't inherit the following properties from a shape's parent group
+
+NON_INHERITED_PROPERTIES = [
+    'id',
+    'markup',
+    'tooltip',
+]
+
 #===============================================================================
 
 class SVGSource(MapSource):
@@ -326,8 +334,8 @@ class SVGLayer(MapLayer):
         markup = svg_markup(element)
         properties_from_markup = self.source.properties_from_markup(markup)
         properties = parent_properties.copy()
-        properties.pop('id', None)       # We don't inherit `id`
-        properties.pop('markup', None)   # nor `markup`
+        for name in NON_INHERITED_PROPERTIES:
+            properties.pop(name, None)
         properties.update(properties_from_markup)
         shape_id = properties.get('id')  ## versus element.attrib.get('id')
         if 'path' in properties:
