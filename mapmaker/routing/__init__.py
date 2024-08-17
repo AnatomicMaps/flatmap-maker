@@ -177,7 +177,7 @@ class Network(object):
     def __init__(self, flatmap: 'FlatMap', network: dict, properties_store: Optional['PropertiesStore']=None):
         self.__flatmap = flatmap
         self.__id = network.get('id')
-        self.__type = network.get('type')
+        self.__type = network.get('type', 'nerve')
 
         self.__centreline_nodes: dict[str, list[NetworkNode]] = defaultdict(list)  #! Centreline id --> [Network nodes]
         self.__nodes_by_ftu: dict[str, list[NetworkNode]] = defaultdict(list)      #! FTU id id --> {Network nodes}
