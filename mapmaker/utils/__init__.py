@@ -59,6 +59,14 @@ class FilePathError(IOError):
 
 #===============================================================================
 
+def trim_strings(value):
+    return (value.strip() if isinstance(value, str)
+       else [trim_strings(v) for v in value] if isinstance(value, list)
+       else {k: trim_strings(v) for k, v in value.items()} if isinstance(value, dict)
+      else value)
+
+#===============================================================================
+
 class FilePath(object):
     def __init__(self, path: str):
         self.__url = make_uri(path)
@@ -91,7 +99,7 @@ class FilePath(object):
 
     def get_json(self) -> Any:
         try:
-            return json.loads(self.get_data())
+            return trim_strings(json.loads(self.get_data()))
         except json.JSONDecodeError as err:
             raise ValueError('{}: {}'.format(self.__url, err)) from None
 
