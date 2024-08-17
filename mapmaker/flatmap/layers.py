@@ -114,10 +114,11 @@ class FeatureLayer(object):
         for feature in self.__features:
             if not settings.get('authoring', False):
                 if ('auto-hide' in feature.get_property('class', '')
+                or feature.get_property('node', False)
                 or feature.get_property('type') == 'nerve' and feature.get_property('kind') != 'centreline'):
                     # Nerve and ``auto-hide`` features are included only if used by connectivity
                     feature.set_property('exclude', True)
-            elif feature.get_property('type') == 'nerve':
+            if feature.get_property('type') == 'nerve' or feature.get_property('node', False):
                 feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
             if self.__exported:
                 # Save relationship between id/class and internal feature id
