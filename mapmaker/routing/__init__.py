@@ -460,12 +460,13 @@ class Network(object):
         segment_edge_ids_by_centreline = defaultdict(list)
 
         for centreline_id, network_nodes in self.__centreline_nodes.items():
+            if (centreline_feature := self.__map_feature(centreline_id)) is None:
+                log.warning(f'Centreline {centreline_id} ignored: not on map')
+                continue
             if (self.__map_feature(network_nodes[0].feature_id) is None
              or self.__map_feature(network_nodes[-1].feature_id) is None):
                 log.error(f'Centreline {centreline_id} ignored: end nodes are not on map')
-                continue
-            if (centreline_feature := self.__map_feature(centreline_id)) is None:
-                log.warning(f'Centreline {centreline_id} ignored: not on map')
+                centreline_feature.set_property('exclude', not settings.get('authoring', False))
                 continue
 
             # Set centreline type to that of the network
