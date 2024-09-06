@@ -1171,7 +1171,7 @@ class Network(object):
                             # Connect to each neighbour of interest, noting those that will
                             # then need connecting
                             neighbours_neighbours = []
-                            node_feature = get_node_feature(node_dict)
+                            node_feature = get_node_feature(node_dict, (neighbours - visited))
                             for neighbour in (neighbours - visited):
                                 neighbour_dict = connectivity_graph.nodes[neighbour]
                                 degree = connectivity_graph.degree(neighbour)
@@ -1192,7 +1192,7 @@ class Network(object):
                                         terminal_graph.nodes[closest_feature_id]['upstream'] = True
                                         terminal_graph.nodes[closest_feature_id]['segments'] = segments
                                     else:
-                                        neighbour_feature = get_node_feature(neighbour_dict)
+                                        neighbour_feature = get_node_feature(neighbour_dict, [node])
                                         terminal_graph.add_node(neighbour_feature.id, feature=neighbour_feature)
                                         terminal_graph.add_edge(node_feature.id, neighbour_feature.id, **debug_properties)
                                 elif neighbour_dict['type'] == 'segment':
