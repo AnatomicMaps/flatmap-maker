@@ -1121,10 +1121,23 @@ class Network(object):
                 return get_ftu_node(selected_feature)
             return selected_feature
 
+        # handling connectivity with no centreline and no terminal
+        pseudo_terminals = []
+        if route_graph.size() == 0 and len([node for node, degree in connectivity_graph.degree() if degree == 1]) == 0:
+            pseudo_terminals += list(connectivity_graph.nodes)[0:1]
+        # handling centrelines connected to subgraph with no terminal
+        centrelines = list(node_with_segments.keys()) + no_sub_segment_nodes
+        (temp_connectivity_graph := nx.Graph(connectivity_graph)).remove_nodes_from(centrelines)
+        subgraphs = [temp_connectivity_graph.subgraph(component) for component in nx.connected_components(temp_connectivity_graph)]
+        for subgraph in subgraphs:
+            if len([node for node, degree in subgraph.degree()
+                    if degree == 1 and not any([connectivity_graph.has_edge(node, ct)] for ct in centrelines)]) == 0:
+                pseudo_terminals += list(subgraph.nodes)[0:1]
+
         terminal_graphs: dict[tuple, nx.Graph] = {}
         visited = set()
         for node, node_dict in connectivity_graph.nodes(data=True):
-            if node not in visited and connectivity_graph.degree(node) == 1:
+            if node not in visited and (connectivity_graph.degree(node) == 1 or node in pseudo_terminals):
                 if node_dict['type'] == 'feature':
                     # First check node isn't already the end of a centreline
                     if len(node_dict['used']) == 0:
