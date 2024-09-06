@@ -810,6 +810,23 @@ class Network(object):
             for ms_node in missing_nodes:
                 bypass_missing_node(ms_node)
 
+        # Merging duplicate nodes due to aliasing
+        if settings.get('NPO', False):
+            group_nodes = {}
+            for node, node_dict in connectivity_graph.nodes(data=True):
+                if (att_node:=node_dict['node']) not in group_nodes:
+                    group_nodes[att_node] = []
+                group_nodes[att_node] += [node]
+            for g_node, ref_nodes in group_nodes.items():
+                if len(ref_nodes) > 1:
+                    if g_node in ref_nodes:
+                        ref_nodes.remove(g_node)
+                    else:
+                        g_node = ref_nodes[0]
+                        ref_nodes = ref_nodes[1:]
+                    for ref_node in ref_nodes:
+                        connectivity_graph = nx.contracted_nodes(connectivity_graph, g_node, ref_node, self_loops=False)
+
         if path.trace:
             for node, node_dict in connectivity_graph.nodes(data=True):
                 node_data = {}
