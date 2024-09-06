@@ -1096,11 +1096,27 @@ class Network(object):
                         return child_feature
             return feature
 
-        def get_node_feature(node_dict) -> Feature:
-            if len(node_dict['features']) > 1:
-                log.error(f'{path.id}: Terminal node {node_dict["name"]} has multiple features {sorted(set(f.id for f in node_dict["features"]))}')
+        # select the closest feature of a node with multiple features to it's neighbors
+        visited_multi_features = {}
+        def get_node_feature(node_dict, neighbours) -> Feature:
             (features:=list(f for f in node_dict['features'])).sort(key=lambda f: f.id)
             selected_feature = features[0]
+            # in a case of a terminal node having multiple features, select the closest one to it's neighbours
+            if len(node_dict['features']) > 1:
+                log.error(f'{path.id}: Terminal node {node_dict["name"]} has multiple features {sorted(set(f.id for f in node_dict["features"]))}')
+                if node_dict['node'] in visited_multi_features:
+                    selected_feature = visited_multi_features[node_dict['node']]
+                else:
+                    feature_distances = {}
+                    neighbour_features = [f for n in neighbours if 'features' in connectivity_graph.nodes[n] for f in connectivity_graph.nodes[n]['features']]
+                    if len(neighbour_features) > 0:
+                        for f in (features:=[f for f in node_dict['features']]):
+                            distances = []
+                            for nf in neighbour_features:
+                                distances += [nf.geometry.centroid.distance(f.geometry.centroid)]
+                            feature_distances[f] = sum(distances)/len(distances)
+                        selected_feature = min(feature_distances, key=feature_distances.get)
+                visited_multi_features[node_dict['node']] = selected_feature
             if settings.get('NPO', False):
                 return get_ftu_node(selected_feature)
             return selected_feature
