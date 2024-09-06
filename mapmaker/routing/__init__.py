@@ -789,17 +789,19 @@ class Network(object):
                         predecessors += [neighbour]
                     elif neighbour == connectivity_graph.edges[(ms_node, neighbour)]['successor']:
                         successors += [neighbour]
-                if len(predecessors) > 0 and len(successors) > 0:
-                    for e in [edge for edge in itertools.product(predecessors,successors) if (edge[0]!=edge[1])]:
-                        ms_nodes = list(set([ms_node] + connectivity_graph.edges[(e[0], ms_node)].get('missing_nodes', []) + \
-                                            connectivity_graph.edges[(ms_node, e[1])].get('missing_nodes', [])))
-                        connectivity_graph.add_edges_from(
-                            [e],
-                            completeness = False,
-                            missing_nodes = ms_nodes,
-                            predecessor = e[0],
-                            successor = e[1],
-                        )
+                if len(predecessors) == 0 or len(successors) == 0:
+                    predecessors =neighbours
+                    successors = neighbours
+                for e in [edge for edge in itertools.product(predecessors,successors) if (edge[0]!=edge[1])]:
+                    ms_nodes = list(set([ms_node] + connectivity_graph.edges[(e[0], ms_node)].get('missing_nodes', []) + \
+                                        connectivity_graph.edges[(ms_node, e[1])].get('missing_nodes', [])))
+                    connectivity_graph.add_edges_from(
+                        [e],
+                        completeness = False,
+                        missing_nodes = ms_nodes,
+                        predecessor = e[0],
+                        successor = e[1],
+                    )
             connectivity_graph.remove_nodes_from([ms_node])
 
         # Removing missing nodes (in FC and AC)
