@@ -1,7 +1,18 @@
 #!/bin/sh
 
-git stash
+git status | grep -q "nothing to commit"
+dirty=($? != 0)
+if (( dirty )); then
+    git stash -u
+fi
+
 poetry build -f wheel
+
+git push origin
+git push origin v$1
 gh release create v$1 --verify-tag --title "Release $1" --notes ""
 gh release upload v$1 dist/mapmaker-$1-py3-none-any.whl
-git stash pop --quiet
+
+if (( dirty )); then
+    git stash pop --quiet
+fi
