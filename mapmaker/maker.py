@@ -100,11 +100,9 @@ class MapMaker(object):
             options['output'] = './flatmaps'
 
         # Check zoom settings are valid
-        min_zoom = options.get('minZoom', 2)
+        min_zoom = 0
         max_zoom = options.get('maxZoom', 10)
         initial_zoom = options.get('initialZoom', 4)
-        if min_zoom < 0 or min_zoom > max_zoom:
-            raise ValueError('Min zoom must be between 0 and {}'.format(max_zoom))
         if max_zoom < min_zoom or max_zoom > 15:
             raise ValueError('Max zoom must be between {} and 15'.format(min_zoom))
         if initial_zoom < min_zoom or initial_zoom > max_zoom:
