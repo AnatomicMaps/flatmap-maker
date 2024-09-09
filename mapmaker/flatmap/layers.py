@@ -181,7 +181,7 @@ class MapLayer(FeatureLayer):
     def add_feature(self, feature: Feature):    # type: ignore
     #=======================================
         if self.__min_zoom is not None and not feature.has_property('minzoom'):
-            feature.set_property('minzoom', self.__min_zoom)
+            feature.set_property('minzoom', max(self.__min_zoom-1, 0))
         super().add_feature(feature, map_layer=self)
         if feature.has_property('details'):
             self.__detail_features.append(feature)
