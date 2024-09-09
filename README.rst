@@ -111,7 +111,7 @@ Command line help
                     [--ignore-git] [--ignore-sckan] [--invalid-neurons] [--publish SPARC_DATASET]
                     [--sckan-version {production,staging}]
                     [--authoring] [--debug] [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
-                    [--initial-zoom N] [--max-zoom N] [--min-zoom N]
+                    [--initial-zoom N] [--max-zoom N]
                     [--export-identifiers EXPORT_FILE] [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE]
                     [--single-file {celldl,svg}]
                     --output OUTPUT --source SOURCE
@@ -158,7 +158,6 @@ Command line help
     Zoom level:
       --initial-zoom N      Initial zoom level (defaults to 4)
       --max-zoom N          Maximum zoom level (defaults to 10)
-      --min-zoom N          Minimum zoom level (defaults to 2)
 
     Miscellaneous:
       --export-identifiers EXPORT_FILE
