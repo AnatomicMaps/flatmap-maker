@@ -114,7 +114,7 @@ def main():
     parser = arg_parser()
     args = parser.parse_args()
     try:
-        mapmaker = MapMaker({k:v for k, v in vars(args).items() if v not in [None, False]})
+        mapmaker = MapMaker({k:v for k, v in vars(args).items() if not (v is None or isinstance(v, bool) and v == False)})
         mapmaker.make()
     except Exception as error:
         msg = str(error)
