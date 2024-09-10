@@ -1030,38 +1030,39 @@ class Network(object):
                 path_nerve_ids.update(properties['nerve-ids'])
                 add_route_edges_from_graph(properties['subgraph'], used_nodes)
 
-        for ends, path_nodes in graph_utils.connected_paths(connectivity_graph).items():
-            feature_ids = set()
-            used_nodes = set()
-            start_dict = connectivity_graph.nodes[ends[0]]
-            prev_node = None
-            for node in path_nodes:
-                node_dict = connectivity_graph.nodes[node]
-                if len(node_dict['used']):
-                    if len(feature_ids):
-                        get_centreline_from_containing_features(start_dict, node_dict, feature_ids, used_nodes)
-                        feature_ids = set()
-                        used_nodes = set()
-                        start_dict = node_dict
-                elif node_dict['type'] == 'feature':
-                    feature_ids.update(f.id for f in node_dict['features'])
-                    used_nodes.add(node)
+        for ends, list_path_nodes in graph_utils.connected_paths(connectivity_graph).items():
+            for path_nodes in list_path_nodes:
+                feature_ids = set()
+                used_nodes = set()
+                start_dict = connectivity_graph.nodes[ends[0]]
+                prev_node = None
+                for node in path_nodes:
+                    node_dict = connectivity_graph.nodes[node]
+                    if len(node_dict['used']):
+                        if len(feature_ids):
+                            get_centreline_from_containing_features(start_dict, node_dict, feature_ids, used_nodes)
+                            feature_ids = set()
+                            used_nodes = set()
+                            start_dict = node_dict
+                    elif node_dict['type'] == 'feature':
+                        feature_ids.update(f.id for f in node_dict['features'])
+                        used_nodes.add(node)
 
-                # two centerline nodes that do not have a sharing feature must be connected.
-                if prev_node is not None:
-                    if len(pn_used:=connectivity_graph.nodes[prev_node]['used']) and len(n_used:=node_dict['used']):
-                        if len(pn_used - n_used) == len(pn_used):
-                            edge_dict = connectivity_graph.edges[(prev_node, node)]
-                            candidates= {}
-                            for n, s in itertools.product(pn_used, n_used):
-                                if (nf:=self.__map_feature(n)) is not None and (sf:=self.__map_feature(s)) is not None:
-                                    candidates[(n,s)] = nf.geometry.centroid.distance(sf.geometry.centroid)
-                                tmp_edge_dicts[(n,s)] = edge_dict
-                            new_direct_edges.update([min(candidates, key=candidates.get)])  # type: ignore
-                prev_node = node
+                    # two centerline nodes that do not have a sharing feature must be connected.
+                    if prev_node is not None:
+                        if len(pn_used:=connectivity_graph.nodes[prev_node]['used']) and len(n_used:=node_dict['used']):
+                            if len(pn_used - n_used) == len(pn_used):
+                                edge_dict = connectivity_graph.edges[(prev_node, node)]
+                                candidates= {}
+                                for n, s in itertools.product(pn_used, n_used):
+                                    if (nf:=self.__map_feature(n)) is not None and (sf:=self.__map_feature(s)) is not None:
+                                        candidates[(n,s)] = nf.geometry.centroid.distance(sf.geometry.centroid)
+                                    tmp_edge_dicts[(n,s)] = edge_dict
+                                new_direct_edges.update([min(candidates, key=candidates.get)])  # type: ignore
+                    prev_node = node
 
-            if len(feature_ids):
-                get_centreline_from_containing_features(start_dict, connectivity_graph.nodes[ends[1]], feature_ids, used_nodes)
+                if len(feature_ids):
+                    get_centreline_from_containing_features(start_dict, connectivity_graph.nodes[ends[1]], feature_ids, used_nodes)
 
         # Now see if unconnected centreline end nodes in the route graph are in fact connected
         # by a centreline
@@ -1104,19 +1105,15 @@ class Network(object):
             # in a case of a terminal node having multiple features, select the closest one to it's neighbours
             if len(node_dict['features']) > 1:
                 log.error(f'{path.id}: Terminal node {node_dict["name"]} has multiple features {sorted(set(f.id for f in node_dict["features"]))}')
-                if node_dict['node'] in visited_multi_features:
-                    selected_feature = visited_multi_features[node_dict['node']]
-                else:
-                    feature_distances = {}
-                    neighbour_features = [f for n in neighbours if 'features' in connectivity_graph.nodes[n] for f in connectivity_graph.nodes[n]['features']]
-                    if len(neighbour_features) > 0:
-                        for f in (features:=[f for f in node_dict['features']]):
-                            distances = []
-                            for nf in neighbour_features:
-                                distances += [nf.geometry.centroid.distance(f.geometry.centroid)]
-                            feature_distances[f] = sum(distances)/len(distances)
-                        selected_feature = min(feature_distances, key=feature_distances.get)
-                visited_multi_features[node_dict['node']] = selected_feature
+                feature_distances = {}
+                neighbour_features = [f for n in neighbours if 'features' in connectivity_graph.nodes[n] for f in connectivity_graph.nodes[n]['features']]
+                if len(neighbour_features) > 0:
+                    for f in (features:=[f for f in node_dict['features']]):
+                        distances = []
+                        for nf in neighbour_features:
+                            distances += [nf.geometry.centroid.distance(f.geometry.centroid)]
+                        feature_distances[f] = sum(distances)/len(distances)
+                    selected_feature = min(feature_distances, key=feature_distances.get)
             if settings.get('NPO', False):
                 return get_ftu_node(selected_feature)
             return selected_feature
@@ -1193,8 +1190,9 @@ class Network(object):
                                         terminal_graph.nodes[closest_feature_id]['segments'] = segments
                                     else:
                                         neighbour_feature = get_node_feature(neighbour_dict, [node])
+                                        local_node_feature = get_node_feature(node_dict, [neighbour])
                                         terminal_graph.add_node(neighbour_feature.id, feature=neighbour_feature)
-                                        terminal_graph.add_edge(node_feature.id, neighbour_feature.id, **debug_properties)
+                                        terminal_graph.add_edge(local_node_feature.id, neighbour_feature.id, **debug_properties)
                                 elif neighbour_dict['type'] == 'segment':
                                     closest_feature_id = None
                                     closest_distance = None
