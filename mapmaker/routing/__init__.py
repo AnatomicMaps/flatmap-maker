@@ -770,8 +770,8 @@ class Network(object):
                 closest_node = node_id
         return (closest_node, closest_distance)
 
-    def __route_graph_from_connectivity(self, path: 'Path', debug=False) -> nx.Graph:
-    #================================================================================
+    def __route_graph_from_connectivity(self, path: 'Path', debug=False) -> Optional[nx.Graph]:
+    #==========================================================================================
         connectivity_graph = path.connectivity
 
         # Map connectivity nodes to map features and centrelines, storing the result
@@ -1112,7 +1112,7 @@ class Network(object):
                         for nf in neighbour_features:
                             distances += [nf.geometry.centroid.distance(f.geometry.centroid)]
                         feature_distances[f] = sum(distances)/len(distances)
-                    selected_feature = min(feature_distances, key=feature_distances.get)
+                    selected_feature = min(feature_distances, key=feature_distances.get)    # type: ignore
             if settings.get('NPO', False):
                 return get_ftu_node(selected_feature)
             return selected_feature
