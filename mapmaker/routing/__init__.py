@@ -1372,8 +1372,13 @@ class Network(object):
             for p in list(nx.all_simple_paths(tmp_route_graph, source=edge[0], target=edge[1])):
                 if len(p) > 2:
                     for i in range(len(p)-1):
-                        if (p[i], p[i+1]) in route_graph.edges:
-                            route_graph.remove_edge(p[i], p[i+1])
+                        tmp_graph = nx.Graph(route_graph)
+                        if (p[i], p[i+1]) not in route_graph.edges:
+                            continue
+                        else:
+                            tmp_graph.remove_edge(p[i], p[i+1])
+                            if nx.is_connected(nx.Graph(tmp_graph.edges)):
+                                route_graph.remove_edge(p[i], p[i+1])
 
         centreline_ids = set()
         for node_0, node_1, edge_dict in nx.Graph(route_graph).edges(data=True):
