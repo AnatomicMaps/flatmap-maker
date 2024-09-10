@@ -1098,7 +1098,6 @@ class Network(object):
             return feature
 
         # select the closest feature of a node with multiple features to it's neighbors
-        visited_multi_features = {}
         def get_node_feature(node_dict, neighbours) -> Feature:
             (features:=list(f for f in node_dict['features'])).sort(key=lambda f: f.id)
             selected_feature = features[0]
