@@ -218,6 +218,8 @@ class FlatMapCheck:
                     anatomical_terms[key] = {'term': _model, 'name': val.get('name')}
                 elif (_class:=val.get('class')) is not None:
                     if (_anat:=anatomical_terms.get(_class)) is not None:
+                        if 'term' not in _anat and 'models' in _anat:
+                            _anat['term'] = _anat['models']
                         anatomical_terms[key] = _anat
                     else:
                         pass
@@ -307,6 +309,7 @@ class FlatMapCheck:
         prefix = """
             PREFIX ILX: <http://uri.interlex.org/base/ilx_>
             PREFIX UBERON: <http://purl.obolibrary.org/obo/UBERON_>
+            PREFIX TEMP: <http://uri.interlex.org/temp/uris/>
             """
         sparql = f"""
             {prefix}
@@ -638,7 +641,7 @@ class FlatMapCheck:
         df_missing = self.__merge_connectivity_terms(df_missing)
 
         # save missing_nodes to a file
-        df_missing = df_missing[df_missing.parents.isna() | df_missing.Node.isin(self.__flatmap_aliases)].drop('parents', axis=1)
+        df_missing = df_missing[df_missing.parents.isna() | df_missing.Node.isin(self.__flatmap_aliases)]
         
         # align missing_nodes and safe to file
         df_align = self.__align_missing_nodes(df_missing, self.__k)
@@ -654,7 +657,7 @@ class FlatMapCheck:
                 col_idx = df.columns.get_loc(column)
                 writer.sheets[sheet_name].set_column(col_idx, col_idx, 25, wrap_format)
 
-        excel_file = self.__output_dir/'npo_completeness.xlsx'
+        excel_file = self.__output_dir/f'npo_completeness-{self.__species}.xlsx'
         with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
             df_missing.to_excel(writer, sheet_name='missing', index=False)
             set_format(writer, df_missing, 'missing')
