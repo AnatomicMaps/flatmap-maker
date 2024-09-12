@@ -81,8 +81,6 @@ def arg_parser():
                         help='Initial zoom level (defaults to 4)')
     zoom_options.add_argument('--max-zoom', dest='maxZoom', metavar='N', type=int, default=10,
                         help='Maximum zoom level (defaults to 10)')
-    zoom_options.add_argument('--min-zoom', dest='minZoom', metavar='N', type=int, default=2,
-                        help='Minimum zoom level (defaults to 2)')
 
     misc_options = parser.add_argument_group('Miscellaneous')
     misc_options.add_argument('--commit', metavar='GIT_COMMIT',
@@ -114,7 +112,7 @@ def main():
     parser = arg_parser()
     args = parser.parse_args()
     try:
-        mapmaker = MapMaker({k:v for k, v in vars(args).items() if v not in [None, False]})
+        mapmaker = MapMaker({k:v for k, v in vars(args).items() if not (v is None or isinstance(v, bool) and v == False)})
         mapmaker.make()
     except Exception as error:
         msg = str(error)

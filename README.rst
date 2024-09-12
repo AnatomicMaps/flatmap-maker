@@ -53,11 +53,11 @@ Installation
 ~~~~~~~~~~~~
 
 *   At a CLI prompt, and in a suitable directory,
-    `download the latest release <https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.11.1.tar.gz>`_
+    `download the latest release <https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.11.2.tar.gz>`_
     in ``tar.gz`` format and extract it, renaming the top-level directory in the archive to ``mapmaker``::
 
-        $ curl -L https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.11.1.tar.gz \
-        | tar xz -s /v1.11.1.tar.gz/mapmaker/
+        $ curl -L https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.11.2.tar.gz \
+        | tar xz -s /v1.11.2.tar.gz/mapmaker/
 
 
 Setup the environment
@@ -111,7 +111,7 @@ Command line help
                     [--ignore-git] [--ignore-sckan] [--invalid-neurons] [--publish SPARC_DATASET]
                     [--sckan-version {production,staging}]
                     [--authoring] [--debug] [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
-                    [--initial-zoom N] [--max-zoom N] [--min-zoom N]
+                    [--initial-zoom N] [--max-zoom N]
                     [--export-identifiers EXPORT_FILE] [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE]
                     [--single-file {celldl,svg}]
                     --output OUTPUT --source SOURCE
@@ -158,7 +158,6 @@ Command line help
     Zoom level:
       --initial-zoom N      Initial zoom level (defaults to 4)
       --max-zoom N          Maximum zoom level (defaults to 10)
-      --min-zoom N          Minimum zoom level (defaults to 2)
 
     Miscellaneous:
       --export-identifiers EXPORT_FILE
