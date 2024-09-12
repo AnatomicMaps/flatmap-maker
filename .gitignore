@@ -10,3 +10,16 @@ mapmaker.egg-info/
 maps/
 *.pyc
 *.pbf
+
+*.sublime-workspace
+bin/
+datasets/
+logs/
+generated/
+good/
+mathjax/
+missing/
+polishing/
+resources/
+WIP/
+WORKDIR/
