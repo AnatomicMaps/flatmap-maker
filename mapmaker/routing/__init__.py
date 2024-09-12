@@ -1059,6 +1059,13 @@ class Network(object):
                                         candidates[(n,s)] = nf.geometry.centroid.distance(sf.geometry.centroid)
                                     tmp_edge_dicts[(n,s)] = edge_dict
                                 new_direct_edges.update([min(candidates, key=candidates.get)])  # type: ignore
+                        elif ((p_dict:=connectivity_graph.nodes[prev_node])['type'] == 'feature' and 
+                              (n_dict:=connectivity_graph.nodes[node])['type'] == 'feature'):
+                            if ((pf:=list(p_dict.get('features'))[0].id) in route_graph.nodes and
+                                (nf:=list(n_dict.get('features'))[0].id) in route_graph.nodes):
+                                edge_dict = connectivity_graph.edges[(prev_node, node)]
+                                tmp_edge_dicts[(pf, nf)] = edge_dict
+                                new_direct_edges.update([(pf, nf)])
                     prev_node = node
 
                 if len(feature_ids):
