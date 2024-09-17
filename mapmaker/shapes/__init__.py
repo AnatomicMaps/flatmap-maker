@@ -40,6 +40,8 @@ class SHAPE_TYPE(str, Enum):   ## Or IntEnum ??
     IMAGE      = 'image'
     TEXT       = 'text'
     UNKNOWN    = 'unknown'
+    FEATURE    = 'feature'
+    LAYER      = 'layer'
 
 #===============================================================================
 
