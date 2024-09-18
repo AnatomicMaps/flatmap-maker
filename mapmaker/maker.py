@@ -165,15 +165,14 @@ class MapMaker(object):
             'clean_connectivity': settings.get('cleanConnectivity', False),
             'sckan_version': sckan_version,
             'sckan_provenance': True,
-            'log_provenance': True
+            'verbose': True
         }
 
         # Ignoring SCKAN implies accepting invalid neurons
         if options.get('ignoreSckan', False):
             options['invalidNeurons'] = True
             store_params.update({
-                'use_scicrunch': False,
-                'use_npo': False
+                'use_sckan': False
             })
 
         settings['KNOWLEDGE_STORE'] = knowledgebase.KnowledgeStore(map_base, **store_params)
