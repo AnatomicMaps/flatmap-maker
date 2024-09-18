@@ -1106,7 +1106,6 @@ class Network(object):
 
         # select the closest feature of a node with multiple features to it's neighbors
         def get_node_feature(node_dict, neighbours, prev_features) -> Feature:
-            print(node_dict["name"], neighbours, prev_features)
             (features:=list(f for f in node_dict['features'])).sort(key=lambda f: f.id)
             selected_feature = features[0]
             # in a case of a terminal node having multiple features, select the closest one to it's neighbours
