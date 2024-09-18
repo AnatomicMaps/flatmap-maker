@@ -337,7 +337,7 @@ class Network(object):
 
     def create_geometry(self):
     #=========================
-        def set_default_node_properties(network_node):
+        def add_centreline_graph_node(network_node):
             feature_id = network_node.feature_id
             if feature_id not in self.__centreline_graph:
                 self.__centreline_graph.add_node(feature_id, network_node=network_node, **network_node.properties)
@@ -507,7 +507,6 @@ class Network(object):
             while start_index < len(network_nodes) - 1:
                 seg_no += 1
                 start_node = network_nodes[start_index]
-
                 end_index = start_index + 1
                 # Loop must terminate as network_nodes[-1] is a map feature from above
                 end_node = network_nodes[end_index]
@@ -521,8 +520,8 @@ class Network(object):
                     segment_id = centreline_id
 
                 # Initialise the graph's node data before creating an edge between them
-                set_default_node_properties(start_node)
-                set_default_node_properties(end_node)
+                add_centreline_graph_node(start_node)
+                add_centreline_graph_node(end_node)
 
                 # Add an edge to the segmented centreline graph
                 edge_feature_ids = (start_node.feature_id, end_node.feature_id)
@@ -682,8 +681,8 @@ class Network(object):
 
         self.__expanded_centreline_graph = expand_centreline_graph(self.__centreline_graph)
 
-    def route_graph_from_path(self, path: 'Path') -> nx.Graph:
-    #=========================================================
+    def route_graph_from_path(self, path: 'Path') -> Optional[nx.Graph]:
+    #===================================================================
         return self.__route_graph_from_connectivity(path)
 
     def layout(self, route_graphs: dict[str, nx.Graph]) -> dict[int, RoutedPath]:
