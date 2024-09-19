@@ -1122,10 +1122,13 @@ class Network(object):
                             feature_distances[f] = sum(distances)/len(distances)
                         selected_feature = min(feature_distances, key=feature_distances.get)    # type: ignore
                 else:
-                    if len(prev_features) > 0 and len(features) > 1:
-                        min_distance = prev_features[-1].geometry.centroid.distance(features[0].geometry.centroid)
-                        for f in (features:=[f for f in features[1:]]):
-                            if (distance:=prev_features[-1].geometry.centroid.distance(f.geometry.centroid)) < min_distance:
+                    min_distance = None
+                    for f in features:
+                        if (f_ftu:=get_ftu_node(f)) in prev_features:
+                            return f_ftu
+                        if len(prev_features) > 0:
+                            distance = prev_features[-1].geometry.centroid.distance(f.geometry.centroid)
+                            if min_distance is None or distance < min_distance:
                                 min_distance = distance
                                 selected_feature = f
                     return get_ftu_node(selected_feature)
