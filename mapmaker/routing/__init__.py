@@ -179,6 +179,7 @@ class Network(object):
         self.__id = network.get('id')
         self.__type = network.get('type', 'nerve')
 
+        self.__centreline_models: dict[str, str] = {}                              #! Centreline id --> models
         self.__centreline_nodes: dict[str, list[NetworkNode]] = defaultdict(list)  #! Centreline id --> [Network nodes]
         self.__nodes_by_ftu: dict[str, list[NetworkNode]] = defaultdict(list)      #! FTU id id --> {Network nodes}
         self.__containers_by_centreline = {}                                       #! Centreline id --> set of features that centreline is contained in
@@ -254,6 +255,7 @@ class Network(object):
                         properties_store.set_property(centreline_id, 'label', centreline_label)
                 if centreline_models is not None:
                     self.__models_to_id[centreline_models].add(centreline_id)
+                    self.__centreline_models[centreline_id] = centreline_models
 
                 # Check connected nodes
                 connected_nodes = centreline.get('connects', [])
@@ -1392,8 +1394,10 @@ class Network(object):
                 route_graph.remove_edge(node_0, node_1)
             elif (centreline_id := edge_dict.get('centreline')) is not None:
                 centreline_ids.add(centreline_id)
+
         # The centrelines used by the path
         route_graph.graph['centrelines'] = list(centreline_ids)
+        route_graph.graph['centrelines-model'] = [self.__centreline_models[id] for id in centreline_ids if id in self.__centreline_models]
 
         # log a warning if no path is rendered
         if len(route_graph.edges) == 0 and len(connectivity_graph.edges) > 0:

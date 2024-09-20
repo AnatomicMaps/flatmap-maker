@@ -44,6 +44,7 @@ EXPORTED_FEATURE_PROPERTIES = [
     'minzoom',          # int
     'models',
     'name',
+    'nerves',           # Optional[list[str]]
     'nerveId',
     'node',             # bool
     'nodeId',

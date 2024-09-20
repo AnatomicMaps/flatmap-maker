@@ -300,6 +300,10 @@ class RoutedPath(object):
         return self.__graph.graph.get('centrelines')
 
     @property
+    def centrelines_model(self) -> Optional[list[str]]:
+        return self.__graph.graph.get('centrelines-model')
+
+    @property
     def nerve_feature_ids(self) -> set[str]:
         return self.__graph.graph['nerve-features']
 

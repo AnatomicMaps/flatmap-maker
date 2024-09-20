@@ -56,6 +56,15 @@ ROUTE_NODES = delimitedList(ROUTE_NODE_GROUP)
 
 #===============================================================================
 
+DEFAULT_PATH_PROPERTIES = {
+    'layout': 'auto',
+    'sckan': True,          #   Auto layout connectivity originates in SCKAN
+    'tile-layer': PATHWAYS_TILE_LAYER,
+    'completeness': True,   #   Auto layout path completeness
+}
+
+#===============================================================================
+
 def parse_path_lines(line_ids):
 #==============================
     try:
@@ -661,19 +670,16 @@ class Pathways:
         self.__flatmap.add_layer(layer)
         for route_number, routed_path in routed_paths.items():
             for path_id, geometric_shapes in routed_path.path_geometry().items():
-                feature_geojson_ids = []
                 path = paths_by_id[path_id]
+                path_geojson_ids = []
+                path_taxons = None
                 for geometric_shape in geometric_shapes:
-                    properties = {
-                        'layout': 'auto',
-                        'sckan': True,          #   Auto layout connectivity originates in SCKAN
-                        'tile-layer': PATHWAYS_TILE_LAYER,
-                        'completeness': True,   #   Auto layout path completeness
-                    }
-                    properties.update(geometric_shape.properties)
-                    if properties.get('type') in ['arrow', 'junction']:
-                        properties['kind'] = path.path_type.viewer_kind
-                    else:
+                    if geometric_shape.properties.get('type') not in ['arrow', 'junction']:
+                        properties = DEFAULT_PATH_PROPERTIES.copy()
+                        if routed_path.centrelines is not None:
+                            # The list of nerve models that the path is associated with
+                            properties['nerves'] = routed_path.centrelines_model
+
                         properties.update(self.__line_properties(path_id))
                         path_model = path.models
                         if settings.get('authoring', False):
@@ -687,19 +693,36 @@ class Pathways:
                             properties['label'] = path.label
                         if 'id' not in properties and path_model is not None:
                             properties['id'] = path_model.replace(':', '_').replace('/', '_')
-                    feature = self.__flatmap.new_feature('pathways', geometric_shape.geometry, properties)
-                    feature_geojson_ids.append(feature.geojson_id)
-                    layer.add_feature(feature)
+                        feature = self.__flatmap.new_feature('pathways', geometric_shape.geometry, properties)
+                        path_geojson_ids.append(feature.geojson_id)
+                        layer.add_feature(feature)
+                        if path_taxons is None:
+                            path_taxons = feature.get_property('taxons')
+
+                for geometric_shape in geometric_shapes:
+                    properties = DEFAULT_PATH_PROPERTIES.copy()
+                    properties.update(geometric_shape.properties)
+                    if properties.get('type') in ['arrow', 'junction']:
+                        properties['kind'] = path.path_type.viewer_kind
+                        if routed_path.centrelines is not None:
+                            # The list of nerve models that the path is associated with
+                            properties['nerves'] = routed_path.centrelines_model
+                        if path_taxons is not None:
+                            properties['taxons'] = path_taxons
+                        feature = self.__flatmap.new_feature('pathways', geometric_shape.geometry, properties)
+                        path_geojson_ids.append(feature.geojson_id)
+                        layer.add_feature(feature)
+
                 nerve_feature_ids = routed_path.nerve_feature_ids
                 nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
                 active_nerve_features.update(nerve_features)
                 self.__resolved_pathways.add_connectivity(path_id,
-                                                          feature_geojson_ids,
+                                                          path_geojson_ids,
                                                           path.models,
                                                           path.path_type,
                                                           routed_path.node_feature_ids,
                                                           nerve_features,
-                                                          routed_path.centrelines)
+                                                          centrelines=routed_path.centrelines)
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
                 feature.pop_property('exclude')
