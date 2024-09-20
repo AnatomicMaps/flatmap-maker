@@ -67,6 +67,8 @@ def arg_parser():
                         help="For use when checking a new map: highlight incomplete features; show centreline network; no image tiles; no neuron paths; etc")
     debug_options.add_argument('--debug', action='store_true',
                         help='See `log.debug()` messages in log')
+    debug_options.add_argument('--no-path-layout', dest='noPathLayout', action='store_true',
+                        help="Don't do `TransitMap` optimisation of paths")
     debug_options.add_argument('--only-networks', dest='onlyNetworks', action='store_true',
                         help='Only output features that are part of a centreline network')
     debug_options.add_argument('--save-drawml', dest='saveDrawML', action='store_true',

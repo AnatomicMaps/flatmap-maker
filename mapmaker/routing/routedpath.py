@@ -43,6 +43,7 @@ import shapely.geometry
 from mapmaker.geometry.beziers import bezier_connect, bezier_to_line_coords, bezier_to_linestring
 from mapmaker.geometry.beziers import coords_to_point, point_to_coords, width_along_line
 from mapmaker.geometry.shapes import GeometricShape
+from mapmaker.settings import settings
 from mapmaker.utils import log
 
 from .layout import TransitMap
@@ -135,7 +136,7 @@ class PathRouter(object):
                     term_ups_edges.add(edge)
 
         # Don't invoke solver if there's only a single shared path...
-        if len(routes) > 1:
+        if not settings.get('noPathLayout', False) and len(routes) > 1:
             log.info('Solving for path order...')
             layout = TransitMap(edges, shared_paths, node_edge_order)
             layout.solve()
