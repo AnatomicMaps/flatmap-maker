@@ -138,7 +138,7 @@ class GeoJSONOutput(object):
                     properties['pathStartPosition'] = shapely.geometry.mapping(geoms[0])['coordinates']
                     properties['pathEndPosition'] = shapely.geometry.mapping(geoms[1])['coordinates']
                 if self.__flatmap.map_kind == MAP_KIND.CENTRELINE and feature.properties.get('kind') == 'centreline':
-                    geojson['properties']['coordinates'] = geojson['geometry']['coordinates']
+                    properties['coordinates'] = geojson['geometry']['coordinates']
 
             # The layer's annotation has property details for each feature.
             # NB. These, and only these, properties are passed to the viewer
