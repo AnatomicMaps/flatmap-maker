@@ -43,6 +43,7 @@ from .powerpoint import Slide
 
 def set_relationship_property(feature, property, relatives):
     geojson_ids = set(s.global_shape.geojson_id for s in relatives if s.global_shape.geojson_id)
+    geojson_ids = set(s.properties.get('geojson_id') for s in relatives if s.properties.get('geojson_id') is not None)
     if feature.has_property(property):
         feature.get_property(property).update(geojson_ids)
     else:
