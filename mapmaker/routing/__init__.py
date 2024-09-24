@@ -1084,6 +1084,7 @@ class Network(object):
             route_graph.add_edge(*edge, **edge_dict)
             path_node_ids.update(node.feature_id for node in edge_dict['network-nodes'])
 
+        # get FTU connector if possible
         def get_ftu_node(feature):
             # looking for FTU if possible
             if feature.properties.get('fc-class') != FC_CLASS.FTU:
@@ -1104,6 +1105,34 @@ class Network(object):
                         return child_feature
             return feature
 
+        # get closest representative of feature in FTU since the same node may appear in multiple system
+        def get_ftu_closest_features():
+            # cluster nodes on the left and right position
+            left_dists, right_dists = {}, {}
+            left_medoids, right_medoids = {}, {}
+            for node_dict in connectivity_graph.nodes.values():
+                min_left, max_right = float('inf'), -float('inf')
+                for f in node_dict['features']:
+                    if f.geometry.centroid.x < min_left:
+                        min_left = f.geometry.centroid.x
+                        left_dists[node_dict['node']] = f.geometry.centroid.x
+                        left_medoids[node_dict['node']] = f
+                    if f.geometry.centroid.x > max_right:
+                        max_right = f.geometry.centroid.x
+                        right_dists[node_dict['node']] = f.geometry.centroid.x
+                        right_medoids[node_dict['node']] = f
+            # select with smaller medoid
+            if sum([v-min(left_dists.values()) for v in left_dists.values()]) < sum([v-min(right_dists.values()) for v in right_dists.values()]):
+                medoids = left_medoids
+            else:
+                medoids = right_medoids
+            return medoids
+
+        if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+            ftu_features = get_ftu_closest_features()
+        else:
+            ftu_features = {}
+
         # select the closest feature of a node with multiple features to it's neighbors
         def get_node_feature(node_dict, neighbours, prev_features) -> Feature:
             (features:=list(f for f in node_dict['features'])).sort(key=lambda f: f.id)
@@ -1122,16 +1151,7 @@ class Network(object):
                             feature_distances[f] = sum(distances)/len(distances)
                         selected_feature = min(feature_distances, key=feature_distances.get)    # type: ignore
                 else:
-                    min_distance = None
-                    for f in features:
-                        if (f_ftu:=get_ftu_node(f)) in prev_features:
-                            return f_ftu
-                        if len(prev_features) > 0:
-                            distance = prev_features[-1].geometry.centroid.distance(f.geometry.centroid)
-                            if min_distance is None or distance < min_distance:
-                                min_distance = distance
-                                selected_feature = f
-                    return get_ftu_node(selected_feature)
+                    return get_ftu_node(ftu_features[node_dict['node']])
             return selected_feature
 
         # handling connectivity with no centreline and no terminal
