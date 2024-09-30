@@ -24,7 +24,7 @@ dependencies:
   - tinycss2>=1.1.1,<2.0.0
   - webcolors>=1.12,<2.0
   - xmltodict>=0.12.0,<0.13.0
-  - Pyomo>=6.2,<7.0
+  - Pyomo>=6.8,<7.0
   - svgwrite>=1.4.3,<2.0.0
   - XlsxWriter>=3.0.3,<4.0.0
   - multiprocess>=0.70.13,<0.71.0
@@ -36,7 +36,7 @@ dependencies:
   - conda-forge::coincbc
   - pip
   - pip:
-      - https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.8.2/flatmapknowledge-1.8.2-py3-none-any.whl
+      - https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.9.2/flatmapknowledge-1.9.2-py3-none-any.whl
       - opencv-python-headless>=4.10.0
       - skia-python==124.0b7
       - cssselect2>=0.6.0,<0.7.0
