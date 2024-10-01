@@ -263,7 +263,7 @@ class SvgFromSlide:
     #============================
         slide_group = SvgGroup(id=svg_id(self.__slide_id), class_=css_class(CD_CLASS.LAYER))
         slide_group.set_desc(title=name_from_id(self.__slide_id))
-        self.__process_shape_list(self.__slide.shapes, slide_group)
+        self.__process_shape_list(self.__slide.shapes[1:], slide_group)     # shapes[0] is entire slide
         self.__drawing.add(slide_group)
 
     def __process_group(self, group: TreeList, svg_parent: SvgElement):
@@ -272,7 +272,7 @@ class SvgFromSlide:
             raise TypeError(f'Invalid shape treelist: index 0 shape type ({group[0].type}) != SHAPE_TYPE.GROUP')
         svg_group = SvgGroup(id=svg_id(group[0].id))
         pptx_group = group[0].properties['pptx-shape']
-        self.__process_shape_list(group, svg_group, group_colour=self.__get_colour(pptx_group))
+        self.__process_shape_list(group[1:], svg_group, group_colour=self.__get_colour(pptx_group))
         if len(svg_group.elements):
             svg_parent.add(svg_group)
             add_markup(svg_group, pptx_group.name)
@@ -280,7 +280,7 @@ class SvgFromSlide:
     def __process_shape_list(self, shapes: TreeList, svg_parent: SvgElement,
                                    group_colour: Optional[ColourPair]=None):
     #=======================================================================
-        for shape in shapes[1:]:
+        for shape in shapes:
             if isinstance(shape, TreeList):
                 self.__process_group(shape, svg_parent)
             elif shape.type in [SHAPE_TYPE.CONNECTION, SHAPE_TYPE.COMPONENT]:
