@@ -105,10 +105,9 @@ class FCSlide(Slide):
         self.__shape_filter = shape_filter
         self.__sckan_neurons = sckan_neurons
         self.__shapes_by_id: dict[str, Shape] = {
-            SLIDE_LAYER_ID: make_component(Shape(SLIDE_LAYER_ID, self.geometry, {
-                                                    'type': SHAPE_TYPE.LAYER,
-                                                    'name': f'{source.id.capitalize()} Layer'
-                                                })
+            SLIDE_LAYER_ID: make_component(Shape(SLIDE_LAYER_ID, self.geometry,
+                                                    {'name': f'{source.id.capitalize()} Layer'},
+                                                    shape_type=SHAPE_TYPE.CONTAINER)
                                           )
         }
         self.__connection_classifier = ConnectionClassifier()
@@ -154,7 +153,7 @@ class FCSlide(Slide):
         outer_geometry = shapely.prepared.prep(self.geometry)
         for shape in self.shapes.flatten(skip=1):
             geometry = shape.geometry
-            if shape.type == SHAPE_TYPE.FEATURE and 'Polygon' in geometry.geom_type:
+            if shape.shape_type == SHAPE_TYPE.COMPONENT and 'Polygon' in geometry.geom_type:
                 # We are only interested in features actually on the slide that are
                 # either components or connectors
                 if outer_geometry.contains(geometry):
@@ -178,7 +177,7 @@ class FCSlide(Slide):
                         fc_shape = make_component(shape)
                         self.__shapes_by_id[shape.id] = fc_shape
                         add_shape_geometry(geometry, fc_shape)
-            elif shape.type == SHAPE_TYPE.CONNECTION:
+            elif shape.shape_type == SHAPE_TYPE.CONNECTION:
                 self.__connections.append(make_connection(shape))
 
         # Spatial index to find component containment hierarchy
@@ -400,7 +399,7 @@ class FCSlide(Slide):
             connector.properties['name'] = '/'.join(names)
             if len(parent_models):
                 connector.properties['parent-models'] = tuple(parent_models)
-        connector.shape_type = 'connector'
+        connector.type = 'connector'
 
     def __feature_properties(self, feature_id):
     #==========================================

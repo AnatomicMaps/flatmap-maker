@@ -239,11 +239,10 @@ class ConnectionClassifier:
                 connector_id = f'{connection.id}/{coord_index+1}'
                 connector = make_connector(Shape(connector_id,
                                                  end_point.buffer(MAX_CONNECTION_GAP), {
-                                                    'type': SHAPE_TYPE.FEATURE,
                                                     'colour': connection.colour,
                                                     'fc-class': connection.fc_class,
                                                     'fc-kind':FC_KIND.CONNECTOR_FREE_END
-                                                }))
+                                                }, shape_type=SHAPE_TYPE.COMPONENT))
                 free_end_connectors.append(connector)
             connection_end_index[connector_id] = coord_index
 

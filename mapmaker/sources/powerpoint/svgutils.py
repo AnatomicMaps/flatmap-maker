@@ -283,7 +283,7 @@ class SvgFromSlide:
         for shape in shapes[1:]:
             if isinstance(shape, TreeList):
                 self.__process_group(shape, svg_parent)
-            elif shape.type in [SHAPE_TYPE.CONNECTION, SHAPE_TYPE.FEATURE]:
+            elif shape.type in [SHAPE_TYPE.CONNECTION, SHAPE_TYPE.COMPONENT]:
                 self.__process_shape(shape, svg_parent, group_colour=group_colour)
             else:
                 raise TypeError(f'Unexpected shape type: {shape.type}')
