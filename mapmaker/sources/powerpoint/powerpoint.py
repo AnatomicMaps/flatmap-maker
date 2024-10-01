@@ -365,8 +365,8 @@ class Slide:
                         shape_properties['stroke-width'] = abs(transform.scale_length((int(pptx_shape.line.width.emu), 0))[0])  # type: ignore
                         shape_properties['stroke-width'] /= STROKE_WIDTH_SCALE_FACTOR
                     else:
-                        name = self.__text_content(pptx_shape)
                         shape_type = SHAPE_TYPE.COMPONENT
+                        name = self.__text_content(pptx_shape)      # type: ignore
                         if name != '':
                             shape_properties['name'] = name
                             shape_properties['align'] = text_alignment(pptx_shape)
@@ -384,8 +384,8 @@ class Slide:
                     bbox = geometry.bounds                      # type: ignore
                     image_pos = (bbox[0], bbox[1])
                     image_size = (bbox[2]-bbox[0], bbox[3]-bbox[1])
-                    image = base64.b64encode(pptx_shape.image.blob).decode('utf-8')
-                    image_data = f'data:{pptx_shape.image.content_type};charset=utf-8;base64,{image}'
+                    image = base64.b64encode(pptx_shape.image.blob).decode('utf-8')     # type: ignore
+                    image_data = f'data:{pptx_shape.image.content_type};charset=utf-8;base64,{image}'   # type: ignore
                     image_rect = svgelements.Rect(*image_pos, *image_size)
                     image_rect.set('data-image-href', image_data)
                     shape.set_property('svg-element', image_rect)
