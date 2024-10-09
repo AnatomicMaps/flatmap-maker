@@ -1032,6 +1032,21 @@ class Network(object):
                 path_nerve_ids.update(properties['nerve-ids'])
                 add_route_edges_from_graph(properties['subgraph'], used_nodes)
 
+                # Need to connect two consecutive centrelines, even though they don't share any common features.
+                for se_dict in [start_dict, end_dict]:
+                    if se_dict.get('type') == 'segment' and \
+                        len(se_dict.get('used', {})) > 0 and \
+                        len(se_dict.get('used', {}) & set(properties['subgraph'].nodes)) == 0:
+                            candidates= {(n, s):self.__flatmap.get_feature(n).geometry.centroid.distance(self.__flatmap.get_feature(s).geometry.centroid)
+                                         for n, s in itertools.product(se_dict.get('used', set()), properties['subgraph'].nodes)}
+                            if len(selected:=min(candidates, key=candidates.get)) == 2:
+                                for n, s in itertools.product(se_dict['node'], used_nodes):
+                                    if (n, s) in connectivity_graph.edges:
+                                        edge_dict = connectivity_graph.edges[(n, s)]
+                                        tmp_edge_dicts[selected] = edge_dict
+                                        new_direct_edges.update([selected])
+                                        break
+
         for ends, list_path_nodes in graph_utils.connected_paths(connectivity_graph).items():
             for path_nodes in list_path_nodes:
                 feature_ids = set()
