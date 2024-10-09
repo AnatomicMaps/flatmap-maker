@@ -1424,6 +1424,14 @@ class Network(object):
         route_graph.graph['centrelines'] = list(centreline_ids)
         route_graph.graph['centrelines-model'] = [self.__centreline_models[id] for id in centreline_ids if id in self.__centreline_models]
 
+        # Apply a filter to prevent incomplete paths from being rendered due to missing nodes in the flatmap.
+        if len(connectivity_graph.nodes) > 0:
+            min_degree = min(dict(path.connectivity.degree()).values())
+            min_degree_nodes = set([node for node, degree in path.connectivity.degree() if degree == min_degree])
+            if len(min_degree_nodes & set(self.__missing_identifiers)):
+                log.warning(f'{path.id}: Path is not rendered due to partial rendering.')
+                route_graph.remove_nodes_from(list(route_graph.nodes))
+
         # log a warning if no path is rendered
         if len(route_graph.edges) == 0 and len(connectivity_graph.edges) > 0:
             log.warning(f'{path.id}: Path is not rendered at all.')
