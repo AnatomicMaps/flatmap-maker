@@ -134,7 +134,7 @@ def is_component(shape):
 
 def make_component(shape):
     make_fc_shape(shape)
-    if shape.type == SHAPE_TYPE.LAYER:
+    if shape.shape_type == SHAPE_TYPE.CONTAINER:
         shape.cd_class = CD_CLASS.LAYER
         shape.fc_class = FC_CLASS.LAYER
     else:
