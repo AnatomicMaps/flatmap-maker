@@ -1041,7 +1041,7 @@ class Network(object):
                                          for n, s in itertools.product(se_dict.get('used', set()), properties['subgraph'].nodes)}
                             if len(candidates) > 0:
                                 if len(selected:=min(candidates, key=candidates.get)) == 2:
-                                    for n, s in itertools.product(se_dict['node'], used_nodes):
+                                    for n, s in itertools.product([se_dict['node']], used_nodes):
                                         if (n, s) in connectivity_graph.edges:
                                             edge_dict = connectivity_graph.edges[(n, s)]
                                             tmp_edge_dicts[selected] = edge_dict
