@@ -1039,13 +1039,14 @@ class Network(object):
                         len(se_dict.get('used', {}) & set(properties['subgraph'].nodes)) == 0:
                             candidates= {(n, s):self.__flatmap.get_feature(n).geometry.centroid.distance(self.__flatmap.get_feature(s).geometry.centroid)
                                          for n, s in itertools.product(se_dict.get('used', set()), properties['subgraph'].nodes)}
-                            if len(selected:=min(candidates, key=candidates.get)) == 2:
-                                for n, s in itertools.product(se_dict['node'], used_nodes):
-                                    if (n, s) in connectivity_graph.edges:
-                                        edge_dict = connectivity_graph.edges[(n, s)]
-                                        tmp_edge_dicts[selected] = edge_dict
-                                        new_direct_edges.update([selected])
-                                        break
+                            if len(candidates) > 0:
+                                if len(selected:=min(candidates, key=candidates.get)) == 2:
+                                    for n, s in itertools.product(se_dict['node'], used_nodes):
+                                        if (n, s) in connectivity_graph.edges:
+                                            edge_dict = connectivity_graph.edges[(n, s)]
+                                            tmp_edge_dicts[selected] = edge_dict
+                                            new_direct_edges.update([selected])
+                                            break
 
         for ends, list_path_nodes in graph_utils.connected_paths(connectivity_graph).items():
             for path_nodes in list_path_nodes:
@@ -1075,7 +1076,8 @@ class Network(object):
                                     if (nf:=self.__map_feature(n)) is not None and (sf:=self.__map_feature(s)) is not None:
                                         candidates[(n,s)] = nf.geometry.centroid.distance(sf.geometry.centroid)
                                     tmp_edge_dicts[(n,s)] = edge_dict
-                                new_direct_edges.update([min(candidates, key=candidates.get)])  # type: ignore
+                                if len(candidates) > 0:
+                                    new_direct_edges.update([min(candidates, key=candidates.get)])  # type: ignore
                         elif ((p_dict:=connectivity_graph.nodes[prev_node])['type'] == 'feature' and 
                               (n_dict:=connectivity_graph.nodes[node])['type'] == 'feature'):
                             if ((pf:=list(p_dict.get('features'))[0].id) in route_graph.nodes and
