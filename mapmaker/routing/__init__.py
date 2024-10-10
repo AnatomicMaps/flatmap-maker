@@ -1434,10 +1434,6 @@ class Network(object):
                 log.warning(f'{path.id}: Path is not rendered due to partial rendering.')
                 route_graph.remove_nodes_from(list(route_graph.nodes))
 
-        # log a warning if no path is rendered
-        if len(route_graph.edges) == 0 and len(connectivity_graph.edges) > 0:
-            log.warning(f'{path.id}: Path is not rendered at all.')
-
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
         else:
