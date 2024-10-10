@@ -90,7 +90,10 @@ class PropertiesStore(object):
                     seen_npo = True
                     settings['NPO'] = True
                     for connectivity_path in knowledgebase.connectivity_paths():
-                        phenotype_sex = knowledgebase.get_knowledge(connectivity_path).get('biologicalSex')
+                        path_knowledge =  knowledgebase.get_knowledge(connectivity_path)
+                        if (path_knowledge.get('pathDisconnected', False) and not settings.get('disconnectedPaths', False)):
+                            continue
+                        phenotype_sex = path_knowledge.get('biologicalSex')
                         if manifest.biological_sex is None or phenotype_sex is None or (manifest.biological_sex == phenotype_sex):
                             self.__pathways.add_connectivity_path(connectivity_path,
                                 self, path_filter=path_filter, traced_paths=traced_paths)
