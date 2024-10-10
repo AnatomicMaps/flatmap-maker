@@ -505,7 +505,7 @@ class MapMaker(object):
         tile_db.execute("COMMIT")
 
         # Update our knowledge base
-        settings['KNOWLEDGE_STORE'].add_flatmap(self.__flatmap)
+        settings['KNOWLEDGE_STORE'].add_flatmap(self.__flatmap, self.__sckan_provenance.get('knowledge-source'))
 
 #*        ## TODO: set ``layer.properties`` for annotations...
 #*        ##update_RDF(options['map_base'], options['map_id'], source, annotations)
