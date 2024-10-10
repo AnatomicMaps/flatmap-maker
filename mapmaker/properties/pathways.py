@@ -597,8 +597,8 @@ class Pathways:
             'source': path_uri,
             'network': 'neural',
             'paths': [{
-            'id': path_uri,
-            'models': path_uri
+                'id': path_uri,
+                'models': path_uri
             }]
         }
         self.__add_connectivity_paths(connectivity, properties_data, path_filter, traced_paths)
