@@ -18,7 +18,7 @@ shapely = "^2.0.0"
 pyproj = "^3.4.0"
 mercantile = "^1.2.1"
 mbutil = "^0.3.0"
-networkx = "^3.3.0"
+networkx = "^3.4.0"
 openpyxl = "^3.1.0"
 tqdm = "^4.64.0"
 lxml = "^5.2.2"
@@ -47,9 +47,9 @@ pandas = "^2.2.2"
 mypy = "^0.982"
 
 [tool.poetry.group.docs.dependencies]
-sphinx = "^6.0"
-sphinx-rtd-theme = "^1.1.1"
-sphinx-argparse = "^0.3.1"
+sphinx = "^8.1"
+sphinx-rtd-theme = "^3.0.1"
+sphinx-argparse = "^0.5.2"
 
 [tool.poetry.group.alignments]
 optional = true
