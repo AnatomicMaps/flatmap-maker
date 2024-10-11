@@ -38,4 +38,5 @@ jobs:
             --commit curation \
             --manifest manifest.json \
             --force \
+            --no-path-layout \
             --background-tiles
