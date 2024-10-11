@@ -91,7 +91,7 @@ class Entitler:
     #===============
         for xml_element in self.__svg_tree.findall('//*[@id]'):
             id = xml_element.attrib['id']
-            if not id.startswith('SVGID') and '_x' in id:
+            if not id.startswith('SVGID'):
                 markup = adobe_decode(id)
                 xml_element.attrib.pop('id', None)
                 title = etree.SubElement(xml_element, 'title')
