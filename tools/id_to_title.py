@@ -89,7 +89,7 @@ class Entitler:
 
     def title(self):
     #===============
-        for xml_element in self.__svg_tree.findall('//*[@id]'):
+        for xml_element in self.__svg_tree.findall('.//*[@id]'):
             id = xml_element.attrib['id']
             if not id.startswith('SVGID'):
                 markup = adobe_decode(id)
