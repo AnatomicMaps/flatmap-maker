@@ -47,6 +47,8 @@ def arg_parser():
                         help='Refresh local connectivity knowledge from SciCrunch')
     generation_options.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
                         help="Generate image tiles of map's layers (may take a while...)")
+    generation_options.add_argument('--disconnected-paths', dest='disconnectedPaths', action='store_true',
+                        help="Include paths that are disconnected in the map")
     generation_options.add_argument('--force', action='store_true',
                         help="Generate the map even if it already exists")
     generation_options.add_argument('--id', metavar='ID',
@@ -57,6 +59,8 @@ def arg_parser():
                         help="Don't check if functional connectivity neurons are known in SCKAN. Sets `--invalid-neurons` option")
     generation_options.add_argument('--invalid-neurons', dest='invalidNeurons', action='store_true',
                         help="Include functional connectivity neurons that aren't known in SCKAN")
+    generation_options.add_argument('--no-path-layout', dest='noPathLayout', action='store_true',
+                        help="Don't do `TransitMap` optimisation of paths")
     generation_options.add_argument('--publish', metavar='SPARC_DATASET',
                         help="Create a SPARC Dataset containing the map's sources and the generated map")
     generation_options.add_argument('--sckan-version', dest='sckanVersion', choices=['production', 'staging'],
@@ -67,10 +71,6 @@ def arg_parser():
                         help="For use when checking a new map: highlight incomplete features; show centreline network; no image tiles; no neuron paths; etc")
     debug_options.add_argument('--debug', action='store_true',
                         help='See `log.debug()` messages in log')
-    debug_options.add_argument('--disconnected-paths', dest='disconnectedPaths', action='store_true',
-                        help="Include paths that are disconnected in the map")
-    debug_options.add_argument('--no-path-layout', dest='noPathLayout', action='store_true',
-                        help="Don't do `TransitMap` optimisation of paths")
     debug_options.add_argument('--only-networks', dest='onlyNetworks', action='store_true',
                         help='Only output features that are part of a centreline network')
     debug_options.add_argument('--save-drawml', dest='saveDrawML', action='store_true',

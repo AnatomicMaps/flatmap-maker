@@ -107,10 +107,10 @@ Command line help
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
-                    [--clean-connectivity] [--background-tiles] [--force] [--id ID]
-                    [--ignore-git] [--ignore-sckan] [--invalid-neurons] [--publish SPARC_DATASET]
-                    [--sckan-version {production,staging}]
-                    [--authoring] [--debug] [--disconnected-paths] [--no-path-layout]
+                    [--clean-connectivity] [--background-tiles] [--disconnected-paths]
+                    [--force] [--id ID] [--ignore-git] [--ignore-sckan] [--invalid-neurons]
+                    [--no-path-layout] [--publish SPARC_DATASET] [--sckan-version {production,staging}]
+                    [--authoring] [--debug]
                     [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N]
                     [--export-identifiers EXPORT_FILE] [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE]
@@ -133,6 +133,7 @@ Command line help
       --clean-connectivity  Refresh local connectivity knowledge from SciCrunch
       --background-tiles    Generate image tiles of map's layers (may take a
                             while...)
+      --disconnected-paths  Include paths that are disconnected in the map
       --force               Generate the map even if it already exists
       --id ID               Set explicit ID for flatmap, overriding manifest
       --ignore-git          Don't check that sources are committed into git
@@ -140,6 +141,7 @@ Command line help
                             in SCKAN. Sets `--invalid-neurons` option
       --invalid-neurons     Include functional connectivity neurons that aren't known
                             in SCKAN
+      --no-path-layout      Don't do `TransitMap` optimisation of paths
       --publish SPARC_DATASET
                             Create a SPARC Dataset containing the map's sources and the generated map
       --sckan-version {production,staging}
@@ -150,8 +152,6 @@ Command line help
                             features; show centreline network; no image tiles; no
                             neuron paths; etc
       --debug               See `log.debug()` messages in log
-      --disconnected-paths  Include paths that are disconnected in the map
-      --no-path-layout      Don't do `TransitMap` optimisation of paths
       --only-networks       Only output features that are part of a centreline
                             network
       --save-drawml         Save a slide's DrawML for debugging
