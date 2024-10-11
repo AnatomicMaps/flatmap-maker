@@ -72,12 +72,13 @@ class DeGrouper:
 
     def __process_element(self, element, output=None):
     #=================================================
-        if output is None:
-            output = etree.Element(element.tag, **element.attrib, nsmap=NAMESPACE_MAP)
-        elif element.tag != SVG_GROUP or len(element.attrib) > 0 or len(element) > 1:
-            output = etree.SubElement(output, element.tag, **element.attrib)
-        for child in element:
-            self.__process_element(child, output)
+        if not isinstance(element, etree._Comment):
+            if output is None:
+                output = etree.Element(element.tag, **element.attrib, nsmap=NAMESPACE_MAP)
+            elif element.tag != SVG_GROUP or len(element.attrib) > 0 or len(element) > 1:
+                output = etree.SubElement(output, element.tag, **element.attrib)
+            for child in element:
+                self.__process_element(child, output)
         return output
 
 #===============================================================================
