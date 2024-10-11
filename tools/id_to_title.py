@@ -12,7 +12,7 @@ from mapmaker.sources.svg.utils import adobe_decode
 
 #===============================================================================
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 
 SVG_NS = 'http://www.w3.org/2000/svg'
