@@ -1132,7 +1132,8 @@ class Network(object):
                 log.error(f'{path.id}: Terminal node {node_dict["name"]} has multiple features {sorted(set(f.id for f in node_dict["features"]))}')
                 if selected_feature.properties.get('fc-class') is None:
                     feature_distances = {}
-                    neighbour_features = [f for n in neighbours if 'features' in connectivity_graph.nodes[n] for f in connectivity_graph.nodes[n]['features']]
+                    neighbour_features = [f for n in neighbours for f in connectivity_graph.nodes[n].get('features', [])] + \
+                                         [self.__flatmap.get_feature(fid) for n in neighbours for fid in connectivity_graph.nodes[n].get('used', [])]
                     if len(neighbour_features) > 0:
                         for f in features:
                             distances = []
