@@ -433,20 +433,20 @@ typing = ["typing-extensions (>=4.12.2)"]
 
 [[package]]
 name = "flatmapknowledge"
-version = "2.0.0"
+version = "2.0.1"
 description = ""
 optional = false
 python-versions = ">=3.12,<4.0"
 files = [
-    {file = "flatmapknowledge-2.0.0-py3-none-any.whl", hash = "sha256:1cc6b24d1624d6f801e10236975e34cf2e647d1c0cb1b7c721007f08848b9898"},
+    {file = "flatmapknowledge-2.0.1-py3-none-any.whl", hash = "sha256:369eda2b881294b716abc8cb5304793142632e7a18b24d066ae563c0a6da08f7"},
 ]
 
 [package.dependencies]
-mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.20.0/mapknowledge-0.20.0-py3-none-any.whl"}
+mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.20.1/mapknowledge-0.20.1-py3-none-any.whl"}
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.0.0/flatmapknowledge-2.0.0-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.0.1/flatmapknowledge-2.0.1-py3-none-any.whl"
 
 [[package]]
 name = "frozendict"
@@ -1057,12 +1057,12 @@ source = ["Cython (>=3.0.11)"]
 
 [[package]]
 name = "mapknowledge"
-version = "0.20.0"
+version = "0.20.1"
 description = ""
 optional = false
 python-versions = ">=3.12,<4.0"
 files = [
-    {file = "mapknowledge-0.20.0-py3-none-any.whl", hash = "sha256:e1c33b245c5fad9ade29667eba6dc2af5482c06ca696e8e426f7732a1a7c5b1b"},
+    {file = "mapknowledge-0.20.1-py3-none-any.whl", hash = "sha256:ac4dbbd52f88b5f5b778b527e618477cf5483d2c31957dc9a934f0ce24e9a1bb"},
 ]
 
 [package.dependencies]
@@ -1074,7 +1074,7 @@ sparqlwrapper = ">=2.0.0,<3.0.0"
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.20.0/mapknowledge-0.20.0-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.20.1/mapknowledge-0.20.1-py3-none-any.whl"
 
 [[package]]
 name = "markupsafe"
@@ -3817,4 +3817,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<4.0"
-content-hash = "29e13766ea0077f59b235fb056eee8dd91299d28367eb6c1969d6254bd574cca"
+content-hash = "18bfe3c61e29c7cdb851aed0b16db819f98a718d6d08eab800d3c28f32f8e126"

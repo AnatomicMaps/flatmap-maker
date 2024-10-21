@@ -36,7 +36,7 @@ dependencies:
   - conda-forge::coincbc
   - pip
   - pip:
-      - https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v1.9.4/flatmapknowledge-1.9.4-py3-none-any.whl
+      - https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.0.1/flatmapknowledge-2.0.1-py3-none-any.whl
       - opencv-python-headless>=4.10.0
       - skia-python==124.0b7
       - cssselect2>=0.6.0,<0.7.0
