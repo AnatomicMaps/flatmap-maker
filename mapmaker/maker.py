@@ -52,6 +52,12 @@ from .shapes.shapefilter import ShapeFilter
 #===============================================================================
 
 """
+If logging to a file (either the ``--log`` or ``logPath`` option has been given)
+then copy the resulting log to the generated flatmap's directory with this name
+"""
+MAKER_LOG = 'mapmaker.log'
+
+"""
 If a file with this name exists in the map's output directory then the map
 is in the process of being made
 """
@@ -81,15 +87,13 @@ class MapMaker(object):
             raise ValueError('`--ignore-git` must be set when `--sckan-version` is used')
 
         # Setup logging
-
-        log_file = options.get('logFile')
-        if log_file is None:
-            log_path = options.get('logPath')
-            if log_path is not None:
+        if (log_file := options.get('logFile')) is None:
+            if (log_path := options.get('logPath')) is not None:
                 log_file = os.path.join(log_path, '{}.log'.format(os.getpid()))
+
         if options.get('silent', False) and log_file is None:
             raise ValueError('`--silent` option requires `--log LOG_FILE` to be given')
-        configure_logging(log_file,
+        self.__file_log = configure_logging(log_file,
             verbose=options.get('verbose', False),
             silent=options.get('silent', False),
             debug=options.get('debug', False))
@@ -338,6 +342,13 @@ class MapMaker(object):
 
         # Remove any temporary directory created for the map's sources
         self.__manifest.clean_up()
+
+        if self.__file_log is not None:
+            log_file = self.__file_log.baseFilename
+            self.__file_log.close()
+            with open(log_file, 'r') as log:
+                with open(os.path.join(self.__map_dir, MAKER_LOG), 'w') as fp:
+                    fp.write(log.read())
 
         # All done, remove our sentinel
         if remove_sentinel and os.path.exists(self.__maker_sentinel):
