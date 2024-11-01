@@ -38,6 +38,10 @@ if TYPE_CHECKING:
 
 #===============================================================================
 
+MAMMALIAN_TAXON = 'NCBITaxon:40674'
+
+#===============================================================================
+
 class PropertiesStore(object):
     def __init__(self, flatmap: "FlatMap", manifest: "Manifest"):
         self.__flatmap = flatmap
@@ -94,7 +98,12 @@ class PropertiesStore(object):
                         if (path_knowledge.get('pathDisconnected', False) and not settings.get('disconnectedPaths', False)):
                             continue
                         phenotype_sex = path_knowledge.get('biologicalSex')
-                        if manifest.biological_sex is None or phenotype_sex is None or (manifest.biological_sex == phenotype_sex):
+                        path_taxons = path_knowledge.get('taxons')
+                        if ((manifest.biological_sex is None or phenotype_sex is None
+                          or manifest.biological_sex == phenotype_sex)
+                        and (settings.get('allPathTaxons', False)
+                          or manifest.models is None or path_taxons is None
+                          or manifest.models in path_taxons or MAMMALIAN_TAXON in path_taxons)):
                             self.__pathways.add_connectivity_path(connectivity_path,
                                 self, path_filter=path_filter, traced_paths=traced_paths)
 
