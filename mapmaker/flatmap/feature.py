@@ -45,6 +45,7 @@ class Feature(PropertyMixin):
                        properties: dict[str, Any],
                        is_group:bool=False):
         super().__init__(properties)
+        self.__anatomical_nodes: set[AnatomicalNode] = set()
         self.__geojson_id = geojson_id     # Must be numeric for tipeecanoe
         self.__geometry = geometry
         self.properties['featureId'] = geojson_id   # Used by flatmap viewer
@@ -61,6 +62,12 @@ class Feature(PropertyMixin):
     def __str__(self):
         return 'Feature {}: {}, {}'.format(self.__geojson_id, self.__geometry.geom_type,
             { k:v for k, v in self.properties.items() if k not in EXCLUDE_PROPERTIES_FROM_STR })
+
+    @property
+    def anatomical_nodes(self) -> list:
+        return [[node[0], list(node[1])] for node in self.__anatomical_nodes]
+    def add_anatomical_node(self, node: AnatomicalNode):
+        self.__anatomical_nodes.add(node)
 
     @property
     def bounds(self) -> tuple[float, float, float, float]:
@@ -186,6 +193,9 @@ class FeatureAnatomicalNodeMap:
             matched_features = features
             if warn:
                 log.warning(f'Feature `{matched_node.full_name}` is not in expected layers')
+
+        for feature in matched_features:
+            feature.add_anatomical_node(matched_node)
         return (matched_node, matched_features)
 
 #===============================================================================
