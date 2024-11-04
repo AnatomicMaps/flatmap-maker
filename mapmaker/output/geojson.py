@@ -140,6 +140,10 @@ class GeoJSONOutput(object):
                 if self.__flatmap.map_kind == MAP_KIND.CENTRELINE and feature.properties.get('kind') == 'centreline':
                     properties['coordinates'] = geojson['geometry']['coordinates']
 
+            # Output the anatomical nodes associated with the feature
+            if len(feature.anatomical_nodes):
+                properties['anatomical-nodes'] = feature.anatomical_nodes
+
             # The layer's annotation has property details for each feature.
             # NB. These, and only these, properties are passed to the viewer
             #     as the feature's ``annotations`` (indexed by geojson_id)

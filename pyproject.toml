@@ -41,10 +41,6 @@ types-requests = "^2.28.11.2"
 colormath = "^3.0.0"
 svgelements = "^1.9.1"
 saxonche = "^12.3.0"
-pandas = "^2.2.2"
-
-[tool.poetry.dev-dependencies]
-mypy = "^0.982"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^8.1"
@@ -55,11 +51,19 @@ sphinx-argparse = "^0.5.2"
 optional = true
 
 [tool.poetry.group.alignments.dependencies]
-torch = "^2.1.1"
+pandas = "^2.2.2"
 sentence-transformers = "^2.2.2"
+torch = "^2.1.1"
+
+[tool.poetry.group.tools]
+optional = true
+
+[tool.poetry.group.tools.dependencies]
+pandas = "^2.2.2"
 
 [tool.poetry.group.dev.dependencies]
 attribution = "^1.7.1"
+mypy = "^0.982"
 
 [tool.attribution]
 name = "mapmaker"
