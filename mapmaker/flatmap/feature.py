@@ -19,6 +19,7 @@
 #===============================================================================
 
 from collections import defaultdict
+import json
 from typing import Any, Optional, TYPE_CHECKING
 
 from shapely.geometry.base import BaseGeometry
@@ -45,7 +46,7 @@ class Feature(PropertyMixin):
                        properties: dict[str, Any],
                        is_group:bool=False):
         super().__init__(properties)
-        self.__anatomical_nodes: set[AnatomicalNode] = set()
+        self.__anatomical_nodes: set[str] = set()
         self.__geojson_id = geojson_id     # Must be numeric for tipeecanoe
         self.__geometry = geometry
         self.properties['featureId'] = geojson_id   # Used by flatmap viewer
@@ -64,10 +65,10 @@ class Feature(PropertyMixin):
             { k:v for k, v in self.properties.items() if k not in EXCLUDE_PROPERTIES_FROM_STR })
 
     @property
-    def anatomical_nodes(self) -> list:
-        return [[node[0], list(node[1])] for node in self.__anatomical_nodes]
+    def anatomical_nodes(self) -> list[str]:
+        return list(self.__anatomical_nodes)
     def add_anatomical_node(self, node: AnatomicalNode):
-        self.__anatomical_nodes.add(node)
+        self.__anatomical_nodes.add(json.dumps(node))
 
     @property
     def bounds(self) -> tuple[float, float, float, float]:
