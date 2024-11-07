@@ -98,7 +98,7 @@ def expand_centreline_graph(graph: nx.MultiGraph) -> nx.Graph:
             edge_node = segment_id
         else:
             edge_node = (node_0, node_1)
-        G.add_node(edge_node, graph_object='edge', node_ends=(node_0, node_1), **edge_dict)
+        G.add_node(edge_node, graph_object='edge', edge=(node_0, node_1), **edge_dict)
         G.add_edge(node_0, edge_node, graph_object='node')
         G.add_edge(edge_node, node_1, graph_object='node')
     return G
@@ -107,18 +107,18 @@ def collapse_centreline_graph(graph: nx.Graph) -> nx.Graph:
 #==========================================================
     G = nx.Graph()
     seen_edges = set()
-    for node, node_dict in graph.nodes(data=True):
+    for node_or_edge, node_dict in graph.nodes(data=True):
         new_dict = node_dict.copy()
         graph_object = new_dict.pop('graph_object', None)
         if graph_object == 'edge':
-            end_nodes = new_dict.pop('node_ends')
-            if end_nodes in seen_edges:
-                log.warning(f'Edge `{node}` ignored as it is already in the route graph')
+            edge_nodes = new_dict.pop('edge')
+            if edge_nodes in seen_edges:
+                self.__log.warning('Edge ignored as it is already in the route graph', type='conn', node=node_or_edge)
             else:
-                G.add_edge(*end_nodes, **new_dict)
-                seen_edges.add(end_nodes)
+                G.add_edge(*edge_nodes, **new_dict)
+                seen_edges.add(edge_nodes)
         elif graph_object == 'node':
-            G.add_node(node, **new_dict)
+            G.add_node(node_or_edge, **new_dict)
         else:
             self.__log.warning('Expanded graph node ignored as it has no `graph type', type='conn', node=node_or_edge)
     return G
@@ -1124,24 +1124,28 @@ class Network(object):
             route_graph.add_edge(*edge, **edge_dict)
             path_node_ids.update(node.feature_id for node in edge_dict['network-nodes'])
 
-        def get_ftu_node(feature):
+        def get_ftu_node(feature: Feature):
             # looking for FTU if possible
             if feature.properties.get('fc-class') != FC_CLASS.FTU:
                 for child in feature.properties.get('children', []):
                     child_feature = self.__flatmap.get_feature_by_geojson_id(child)
-                    if child_feature.properties.get('fc-class') == FC_CLASS.FTU and child_feature.models == feature.models:
+                    if (child_feature is not None
+                    and child_feature.properties.get('fc-class') == FC_CLASS.FTU
+                    and child_feature.models == feature.models):
                         feature = child_feature
                         break
             # looking for correct connector or port
             for child in feature.properties.get('children', []):
                 child_feature = self.__flatmap.get_feature_by_geojson_id(child)
-                if (child_feature.properties.get('fc-kind') in [FC_KIND.CONNECTOR_NODE, FC_KIND.CONNECTOR_PORT, FC_KIND.GANGLION] and \
-                    path.path_type is not None and \
-                    child_feature.properties.get('path-type') != PATH_TYPE.UNKNOWN) and \
-                    (path.path_type == child_feature.properties.get('path-type') or \
-                    PATH_TYPE.PRE_GANGLIONIC|child_feature.properties.get('path-type') == path.path_type or \
-                    PATH_TYPE.POST_GANGLIONIC|child_feature.properties.get('path-type') == path.path_type):
-                        return child_feature
+                if (child_feature is not None
+                and child_feature.properties.get('fc-kind') in [FC_KIND.CONNECTOR_NODE, FC_KIND.CONNECTOR_PORT, FC_KIND.GANGLION]
+                and path.path_type is not None
+                and (child_path_type := child_feature.properties.get('path-type')) != PATH_TYPE.UNKNOWN
+                and child_path_type is not None
+                and (child_path_type == path.path_type
+                  or PATH_TYPE.PRE_GANGLIONIC|child_path_type == path.path_type
+                  or PATH_TYPE.POST_GANGLIONIC|child_path_type == path.path_type)):
+                    return child_feature
             return feature
 
         # select the closest feature of a node with multiple features to it's neighbors
