@@ -117,7 +117,7 @@ def configure_logging(log_file=None, verbose=False, silent=False, debug=False) -
 
 #===============================================================================
 
-log = structlog.get_logger()
+log: structlog.BoundLogger = structlog.get_logger()
 
 #===============================================================================
 
