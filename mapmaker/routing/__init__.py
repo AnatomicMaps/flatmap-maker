@@ -178,6 +178,7 @@ class Network(object):
         self.__flatmap = flatmap
         self.__id = network.get('id')
         self.__type = network.get('type', 'nerve')
+        self.__log = log.bind(type='conn')
 
         self.__centreline_models: dict[str, str] = {}                              #! Centreline id --> models
         self.__centreline_nodes: dict[str, list[NetworkNode]] = defaultdict(list)  #! Centreline id --> [Network nodes]
@@ -732,7 +733,7 @@ class Network(object):
         # Can we directly identify the centreline from nodes anatomical base term?
         if (centreline_ids := self.__models_to_id.get(connectivity_node[0])) is not None:
             if len(connectivity_node[1]) > 0:
-                log.error(f'Node {connectivity_node.full_name} has centreline inside layers')
+                self.__log.error('Node has centreline inside layers', name=connectivity_node.full_name)
             properties.update(self.__segment_properties_from_ids(centreline_ids))
 
         elif matched is not None:
@@ -742,7 +743,11 @@ class Network(object):
                 properties['type'] = 'feature'
                 properties['features'] = features
             elif connectivity_node not in self.__missing_identifiers:
-                properties['warning'] = f'Cannot find feature for connectivity node {connectivity_node} ({connectivity_node.full_name})'
+                properties['warning'] = {
+                    'msg': 'Cannot find feature for connectivity node',
+                    'node': connectivity_node,
+                    'name': connectivity_node.full_name
+                    }
                 self.__missing_identifiers.add(connectivity_node)
         return properties
 
@@ -781,7 +786,8 @@ class Network(object):
         for node, node_dict in connectivity_graph.nodes(data=True):
             node_dict.update(self.__feature_properties_from_node(node))
             if (warning := node_dict.pop('warning', None)) is not None:
-                log.warning(f'{path.id}: {warning}')
+                if (msg := warning.pop('msg', None)) is not None:
+                    self.__log.warning(msg, **warning)
 
         def bypass_missing_node(ms_node):
             if len(neighbours:=list(connectivity_graph.neighbors(ms_node))) > 1:

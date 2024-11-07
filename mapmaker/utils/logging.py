@@ -18,11 +18,16 @@
 #
 #===============================================================================
 
+import json
 import logging
-from typing import Optional
+import logging.config
+import typing
+from typing import Any, Callable, Optional
 
 #===============================================================================
 
+import structlog
+from structlog.typing import EventDict, WrappedLogger
 import tqdm
 
 #===============================================================================
@@ -31,60 +36,88 @@ from mapmaker.settings import settings
 
 #===============================================================================
 
-logger = logging.getLogger(__name__)
+class RenameJSONRenderer:
+    def __init__(self,
+      to: str, replace_by: str | None = None,
+      serializer: Callable[..., str | bytes] = json.dumps, **dumps_kw: Any):
+        self.__renamer = structlog.processors.EventRenamer(to, replace_by)
+        self.__json_renderer = structlog.processors.JSONRenderer(serializer, **dumps_kw)
 
-def configure_logging(log_file=None, verbose=False, silent=False, debug=False) -> Optional[logging.FileHandler]:
-    log_format = '%(asctime)s %(levelname)s: %(message)s'
-    log_level = logging.DEBUG if debug else logging.INFO
-    if silent:
-        logging.lastResort = None
-        logger.propagate = False
-        if log_file is not None:
-            logger.setLevel(log_level)
-    else:
-        logger.setLevel(log_level)
-        if verbose:
-            logging.basicConfig(format='%(message)s')
-        else:
-            logging.basicConfig(format=log_format)
-    if log_file is not None:
-        file_handler = logging.FileHandler(log_file)
-        formatter = logging.Formatter(log_format)
-        file_handler.setFormatter(formatter)
-        file_handler.setLevel(log_level)
-        logger.addHandler(file_handler)
-        return file_handler
+    def __call__(self, logger: WrappedLogger, name: str, event_dict: EventDict) -> str | bytes:
+        return self.__json_renderer(logger, name, self.__renamer(logger, name, event_dict))
 
 #===============================================================================
 
-class log:
+def configure_logging(log_file=None, verbose=False, silent=False, debug=False) -> Optional[logging.FileHandler]:
 
-    @staticmethod
-    def critical(msg, *args, **kwds):
-        logger.critical(msg, *args, **kwds)
+    log_level = logging.DEBUG if debug else logging.INFO
 
-    @staticmethod
-    def debug(msg, *args, **kwds):
-        logger.debug(msg, *args, **kwds)
+    logging_config = {
+        'version': 1,
+        'handlers': {
+            'stream': {
+                'class': 'logging.StreamHandler',
+                'level': log_level,
+                'formatter': 'structured'
+            }
+        },
+        'formatters': {
+            'json': {
+                '()': structlog.stdlib.ProcessorFormatter,
+                "processor": RenameJSONRenderer('msg'),
+            },
+            'structured': {
+                '()': structlog.stdlib.ProcessorFormatter,
+                'processor': structlog.dev.ConsoleRenderer(colors=True),
+            },
+        },
+        'loggers': {
+            '': {
+                'handlers': ['stream'],
+                'level': log_level,
+                'propagate': True
+            },
+        }
+    }
 
-    @staticmethod
-    def error(msg, *args, **kwds):
-        logger.error(msg, *args, **kwds)
+    if silent:
+        logging_config['handlers']['stream']['level'] = logging.CRITICAL
 
-    @staticmethod
-    def exception(msg, *args, **kwds):
-        saved_propagation = logger.propagate
-        logger.propagate = True
-        logger.exception(msg, *args, **kwds)
-        logger.propagate = saved_propagation
+    if log_file is not None:
+        logging_config['handlers']['jsonfile'] = {
+            'class': 'logging.FileHandler',
+            'level': log_level,
+            'formatter': 'json',
+            'filename': log_file
+        }
+        logging_config['loggers']['']['handlers'].append('jsonfile')
 
-    @staticmethod
-    def info(msg, *args, **kwds):
-        logger.info(msg, *args, **kwds)
+    # Configure standard logger
+    logging.config.dictConfig(logging_config)
 
-    @staticmethod
-    def warning(msg, *args, **kwds):
-        logger.warn(msg, *args, **kwds)
+    # Configure structlog
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.TimeStamper(fmt='iso'),
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
+    )
+
+    if log_file is not None:
+        return typing.cast(logging.FileHandler, logging.getLogger().handlers[1])
+
+#===============================================================================
+
+log = structlog.get_logger()
 
 #===============================================================================
 
