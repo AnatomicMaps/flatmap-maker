@@ -55,7 +55,7 @@ from .shapes.shapefilter import ShapeFilter
 If logging to a file (either the ``--log`` or ``logPath`` option has been given)
 then copy the resulting log to the generated flatmap's directory with this name
 """
-MAKER_LOG = 'mapmaker.log'
+MAKER_LOG = 'mapmaker.log.json'
 
 """
 If a file with this name exists in the map's output directory then the map
