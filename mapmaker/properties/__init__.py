@@ -101,7 +101,7 @@ class PropertiesStore(object):
                         path_taxons = path_knowledge.get('taxons')
                         if ((manifest.biological_sex is None or phenotype_sex is None
                           or manifest.biological_sex == phenotype_sex)
-                        and (settings.get('allPathTaxons', False)
+                        and (settings.get('allPathTaxons', True)
                           or manifest.models is None or path_taxons is None
                           or manifest.models in path_taxons or MAMMALIAN_TAXON in path_taxons)):
                             self.__pathways.add_connectivity_path(connectivity_path,
