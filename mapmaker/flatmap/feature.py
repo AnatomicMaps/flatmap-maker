@@ -20,9 +20,11 @@
 
 from collections import defaultdict
 import json
+import typing
 from typing import Any, Optional, TYPE_CHECKING
 
 from shapely.geometry.base import BaseGeometry
+import structlog
 
 #===============================================================================
 
@@ -118,6 +120,7 @@ class Feature(PropertyMixin):
 class FeatureAnatomicalNodeMap:
     def __init__(self, terms_alias_file: Optional[str]=None):
         self.__anatomical_aliases: dict[str|tuple, tuple] = {}
+        self.__log = typing.cast(structlog.BoundLogger, log.bind(type='feature'))
         if terms_alias_file is not None:
             equivalences = FilePath(terms_alias_file).get_json()
             for equivalence in equivalences:
@@ -126,7 +129,7 @@ class FeatureAnatomicalNodeMap:
                 for alias in equivalence.get('aliases', []):
                     alias = (alias[0], tuple(alias[1])) if isinstance(alias, list) else alias
                     if alias in self.__anatomical_aliases:
-                        log.error(f'Alias {alias} cannot map to both {self.__anatomical_aliases[alias]} and {term}')
+                        self.__log.error('Alias cannot map to both terms, alias=alias, terms=[self.__anatomical_aliases[alias], term]')
                     else:
                         self.__anatomical_aliases[alias] = term
         self.__model_to_features: dict[str|tuple, set[Feature]] = defaultdict(set)
@@ -136,8 +139,8 @@ class FeatureAnatomicalNodeMap:
         if feature.models is not None:
             self.__model_to_features[feature.models].add(feature)
 
-    def features_for_anatomical_node(self, anatomical_node: AnatomicalNode, warn: bool=True) -> tuple[AnatomicalNode, set[Feature]]:
-    #===============================================================================================================================
+    def features_for_anatomical_node(self, anatomical_node: AnatomicalNode, warn: bool=False) -> tuple[AnatomicalNode, set[Feature]]:
+    #================================================================================================================================
         def features_from_anatomical_id(term: str|tuple) -> set[Feature]:
             return set(self.__model_to_features.get(self.__anatomical_aliases.get(term, term), []))
 
@@ -169,7 +172,9 @@ class FeatureAnatomicalNodeMap:
                 features = features_from_anatomical_id(substitute_id)
                 if len(features):
                     if warn:
-                        log.warning(f'Cannot find feature for `{entity_name(anatomical_id)}` ({anatomical_id}), substituted containing `{entity_name(substitute_id)}` region')
+                        self.__log.warning('Cannot find feature for entity, substituted containing region',
+                                        name=entity_name(anatomical_id), entity=anatomical_id,
+                                        substitute=entity_name(substitute_id))
                     matched_node = AnatomicalNode([substitute_id, anatomical_layers])
                     break
         if len(anatomical_layers) == 0:
@@ -193,7 +198,7 @@ class FeatureAnatomicalNodeMap:
         if len(matched_features) == 0 and len(features) == 1:
             matched_features = features
             if warn:
-                log.warning(f'Feature `{matched_node.full_name}` is not in expected layers')
+                self.__log.warning(f'Feature is not in expected layers', feature=matched_node.full_name)
 
         for feature in matched_features:
             feature.add_anatomical_node(matched_node)

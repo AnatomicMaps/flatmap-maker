@@ -162,7 +162,8 @@ def connectivity_graph_from_knowledge(knowledge: dict) -> Optional[nx.Graph]:
         phenotypes = knowledge.get('phenotypes', [])
         path_type = path_type_from_phenotypes(phenotypes)
         if path_type == PATH_TYPE.UNKNOWN:
-            log.warning(f"SCKAN knowledge error: Phenotype {phenotypes} is unknown for {knowledge.get('id')}, defaulting to CNS")
+            log.warning('SCKAN knowledge error: Phenotype is unknown, defaulting to CNS',
+                        type='sckan', phenotypes=phenotypes, path=knowledge.get('id'))
             path_type = PATH_TYPE.CNS
         G.graph['path-type'] = path_type
         for node in knowledge.get('connectivity', []):
@@ -251,7 +252,7 @@ class SckanNeuronChecker:
             G = connectivity_graph_from_knowledge(path_knowledge)
             if G:
                 for node in G.nodes:
-                    G.nodes[node]['node-features'] = flatmap.features_for_anatomical_node(node, warn=False)
+                    G.nodes[node]['node-features'] = flatmap.features_for_anatomical_node(node)
                 self.__trim_non_existent_features(G)
                 self.__sckan_path_nodes_by_type[G.graph['path-type']][path_id] = SckanNodeSet(G)
 
@@ -364,7 +365,8 @@ class SckanNeuronPopulations:
                 if len(end_node[1]):
                     end_terms.append(end_node[1])
                 elif settings.get('authoring', False):
-                    log.warning(f'Cannot find term for connector {connector_id} ({end_node[0]}) in connection {connection.id}')
+                    log.warning('Cannot find term for connector in connection', type='conn',
+                                connector=connector_id, node=end_node[0], connection=connection.id)
         intermediate_terms = []
         for component_id in connection.intermediate_components:
             properties = feature_properties_lookup(component_id)

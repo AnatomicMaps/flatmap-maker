@@ -33,6 +33,7 @@ from functools import partial
 import itertools
 import math
 import sys
+import typing
 from typing import TYPE_CHECKING, Any, Optional
 
 #===============================================================================
@@ -57,6 +58,7 @@ from beziers.point import Point as BezierPoint
 
 import networkx as nx
 import shapely.geometry
+import structlog
 
 #===============================================================================
 
@@ -118,7 +120,7 @@ def collapse_centreline_graph(graph: nx.Graph) -> nx.Graph:
         elif graph_object == 'node':
             G.add_node(node, **new_dict)
         else:
-            log.warning(f'Expanded graph node `{node}` ignored as it has no `graph type`')
+            self.__log.warning('Expanded graph node ignored as it has no `graph type', type='conn', node=node_or_edge)
     return G
 
 #===============================================================================
@@ -169,7 +171,7 @@ class NetworkNode:
             radius = max(math.sqrt(feature.geometry.area/math.pi), MIN_EDGE_JOIN_RADIUS)
             self.properties['radii'] = (0.999*radius, 1.001*radius)
         else:
-            log.warning(f'Centreline node {feature.id} has no geometry')
+            self.__log.warning('Centreline node has no geometry', type='conn', node=feature.id)
 
 #===============================================================================
 
@@ -178,7 +180,7 @@ class Network(object):
         self.__flatmap = flatmap
         self.__id = network.get('id')
         self.__type = network.get('type', 'nerve')
-        self.__log = log.bind(type='conn')
+        self.__log = typing.cast(structlog.BoundLogger, log.bind(type='network', network=self.__id))
 
         self.__centreline_models: dict[str, str] = {}                              #! Centreline id --> models
         self.__centreline_nodes: dict[str, list[NetworkNode]] = defaultdict(list)  #! Centreline id --> [Network nodes]
@@ -213,16 +215,20 @@ class Network(object):
                         for feature_id in containers:
                             if properties_store.properties(feature_id).get('models') is None:
                                 # Container features are of no use if they don't model anything...
-                                log.error(f'Contained-in feature `{feature_id}` of `{centreline_id}` does not have an anatomical term')
+                                self.__log.error('Contained-in feature of centreline does not have an anatomical term',
+                                    feature=feature_id, centreline=centreline_id)
                             elif (models := properties_store.nerve_models_by_id.get(feature_id)) is None:
                                 contained_in.append(feature_id)
                             elif centreline_models is None:
-                                log.warning(f'Contained-in feature `{feature_id}` used as nerve model of its centreline (`{centreline_id}`)')
+                                self.__log.warning('Contained-in feature used as nerve model of its centreline',
+                                    feature=feature_id, centreline=centreline_id)
                                 centreline['models'] = models
                             elif models == centreline_models:
-                                log.warning(f'Contained-in feature `{feature_id}` also models nerve of its centreline (`{centreline_id}`)')
+                                self.__log.warning('Contained-in feature also models nerve of its centreline',
+                                    feature=feature_id, centreline=centreline_id)
                             elif models != centreline_models:
-                                log.error(f'Contained-in feature `{feature_id}` models a different nerve than its centreline (`{centreline_id}`)')
+                                self.__log.error('Contained-in feature models a different nerve than its centreline',
+                                    feature=feature_id, centreline=centreline_id)
                         centreline['contained-in'] = contained_in
 
         # Collect centreline and end node identifiers, checking validity
@@ -230,9 +236,9 @@ class Network(object):
         for centreline in network.get('centrelines', []):
             centreline_id = centreline.get('id')
             if centreline_id is None:
-                log.error(f'Centreline in network {self.__id} does not have an id')
+                self.__log.error('Centreline in network does not have an id')
             elif centreline_id in self.__centreline_nodes:
-                log.error(f'Centreline {centreline_id} in network {self.__id} has a duplicate id')
+                self.__log.error('Centreline in network has a duplicate id', centreline=centreline_id)
             else:
                 self.__add_feature(centreline_id)
                 if (centreline_models := centreline.get('models')) is not None:
@@ -243,7 +249,8 @@ class Network(object):
                         if (models := properties_store.get_property(centreline_id, 'models')) is None:
                             properties_store.set_property(centreline_id, 'models', centreline_models)
                         elif centreline_models != models:
-                            log.error(f'Centreline {centreline_id} models both {centreline_models} and {models}')
+                            self.__log.error('Centreline models both two entities', entities=[centreline_models, models],
+                                 centreline=centreline_id)
                         if (nerve_id := properties_store.nerve_ids_by_model.get(centreline_models)) is not None:
                             # Assign nerve cuff id to centreline
                             properties_store.set_property(centreline_id, 'nerve', nerve_id)
@@ -261,7 +268,7 @@ class Network(object):
                 # Check connected nodes
                 connected_nodes = centreline.get('connects', [])
                 if len(connected_nodes) < 2:
-                    log.error(f'Centreline {centreline_id} in network {self.__id} has too few nodes')
+                    self.__log.error('Centreline in network has too few nodes', centreline=centreline_id)
                 else:
                     self.__add_feature(connected_nodes[0])
                     self.__add_feature(connected_nodes[-1])
@@ -286,9 +293,11 @@ class Network(object):
         # Check for multiple branches and crossings
         for node, centrelines in intermediate_nodes_to_centrelines.items():
             if len(centrelines) > 1:
-                log.error(f'Node {node} is intermediate node for more than several centrelines: {centrelines}')
+                self.__log.error('Node is intermediate node for more than several centrelines',
+                                 node=node, centrelines=centrelines)
             if len(centrelines := end_nodes_to_centrelines.get(node, [])) > 1:
-                log.error(f'Intermediate node {node} branches to several centrelines: {centrelines}')
+                self.__log.error('Intermediate node branches to several centrelines',
+                                 node=node, centrelines=centrelines)
 
         # Separate out branch nodes that make up the segmented centreline graph from intermediate nodes
         for centreline_id, nodes in self.__centreline_nodes.items():
@@ -305,7 +314,8 @@ class Network(object):
                 if (centrelines := centrelines_by_end_feature.get(feature_id)) is None:
                     self.__centrelines_by_containing_feature[feature_id].add(centreline_id)
                 else:
-                    log.warning(f"Container feature {feature_id} of {centreline_id} is also an end node for: {centrelines}")
+                    self.__log.warning('Container feature of centrelineis also an end node for other centrelines',
+                                 feature=feature_id, centreline=centreline_id, centrelines=centrelines)
 
     @property
     def id(self):
@@ -322,7 +332,7 @@ class Network(object):
         # Check that the network's features are on the map
         for id in sorted(self.__feature_ids):
             if not self.__flatmap.has_feature(id):
-                log.warning(f'Network feature {id} cannot be found on the flatmap')
+                self.__log.warning('Network feature cannot be found on the flatmap', feature=id)
 
     def has_feature(self, feature):
     #==============================
@@ -335,7 +345,7 @@ class Network(object):
         if feature_id not in self.__missing_identifiers:
             if (feature := self.__flatmap.get_feature(feature_id)) is not None:
                 return feature
-            log.error('Cannot find network feature: {}'.format(feature_id))
+            self.__log.error('Cannot find network feature', feature=feature_id)
             self.__missing_identifiers.add(feature_id)
         return None
 
@@ -465,11 +475,11 @@ class Network(object):
 
         for centreline_id, network_nodes in self.__centreline_nodes.items():
             if (centreline_feature := self.__map_feature(centreline_id)) is None:
-                log.warning(f'Centreline {centreline_id} ignored: not on map')
+                self.__log.warning('Centreline ignored, not on map', centreline=centreline_id)
                 continue
             if (self.__map_feature(network_nodes[0].feature_id) is None
              or self.__map_feature(network_nodes[-1].feature_id) is None):
-                log.error(f'Centreline {centreline_id} ignored: end nodes are not on map')
+                self.__log.error('Centreline ignored, end nodes are not on map', centreline=centreline_id)
                 centreline_feature.set_property('exclude', not settings.get('authoring', False))
                 continue
 
@@ -572,7 +582,7 @@ class Network(object):
                 t = closest_time_distance(bz_path, network_node.centre)[0]
                 if (not path_reversed and t <= last_t
                  or     path_reversed and t >= last_t):
-                    log.error(f'Centreline {segment_id} nodes are out of sequence...')
+                    self.__log.error('Centreline nodes are out of sequence...', centreline=segment_id)
                 else:
                     network_node.centre = bz_path.pointAtTime(t)
                 last_t = t
@@ -595,12 +605,14 @@ class Network(object):
                             else:
                                 intersecting_points = intersection.geoms
                                 if len(intersecting_points) > 2:
-                                    log.warning(f"Intermediate node {node_id} has multiple intersections with centreline {segment_id}")
+                                    self.__log.warning('Intermediate node has multiple intersections with centreline',
+                                                       node=node_id, centreline=segment_id)
                                 else:
                                     intersection_points.append(sorted((closest_time_distance(bz_segment, coords_to_point((pt.x, pt.y)))[0]
                                                                                 for pt in intersecting_points)))
                         if len(intersection_points) == 0:
-                            log.warning(f"Intermediate node `{node_id}` doesn't intersect centreline `{segment_id}`")
+                            self.__log.warning("Intermediate node doesn't intersect centreline",
+                                               node=node_id, centreline=segment_id)
                         else:
                             time_points.extend(((pts, node_id) for pts in intersection_points))
                 intersection_times[seg_num] = sorted(time_points)
@@ -636,11 +648,11 @@ class Network(object):
                             path_components.append(bz_parts[0])
                             last_intersection = (bz_parts[1], node_id)
                         else:
-                            log.error(f'Node {node_id} only intersects once with centreline {edge_id}')
+                            self.__log.error('Node only intersects once with centreline', node=node_id, centreline=edge_id)
                     else:
                         # path crosses feature
                         if prev_intersection is not None and prev_intersection[0] >= times[0]:
-                            log.error(f'Intermediate nodes {prev_intersection[1]} and {node_id} overlap on centreline {edge_id}')
+                            self.__log.error('Intermediate nodes overlap on centreline', nodes=[prev_intersection[1], node_id], centreline=edge_id)
                         else:
                             bz_parts = bz_segment.splitAtTime(time_0)
                             path_components.append(bz_parts[0])
@@ -656,7 +668,7 @@ class Network(object):
                 if last_intersection is None:
                     path_components.append(bz_segment)
             if last_intersection is not None:
-                log.error(f'Last intermediate node {last_intersection[1]} on centreline {edge_id} only intersects once')
+                self.__log.error('Last intermediate node on centreline only intersects once', node=last_intersection[1], centreline=edge_id)
             edge_dict['path-components'] = path_components
 
         # Map container features to their centreline segments
@@ -718,7 +730,7 @@ class Network(object):
     def __feature_properties_from_node(self, connectivity_node: AnatomicalNode) -> dict[str, Any]:
     #=============================================================================================
         # # Allow to use the identified alias
-        if (matched:=self.__flatmap.features_for_anatomical_node(connectivity_node)) is not None:
+        if (matched:=self.__flatmap.features_for_anatomical_node(connectivity_node, warn=True)) is not None:
             if connectivity_node.name != matched[0].name:
                 connectivity_node = matched[0]
 
@@ -842,8 +854,8 @@ class Network(object):
                     node_data['features'] = {f.id for f in node_dict['features']}
                 elif node_dict['type'] == 'segment':
                     node_data['segments'] = node_dict['subgraph'].graph['segment-ids']
-                log.info(f'{path.id}: Connectivity node {node}: {node_data}')
-            log.info(f'{path.id}: Connectivity edges {connectivity_graph.edges}')
+                log.info('Connectivity for node', type='trace', path=path.id, node=node, data=node_data)
+            log.info('Connectivity edges', type='trace', path=path.id, edges=connectivity_graph.edges)
 
         # Go through all the nodes that map to a feature and flag those which enclose
         # an immediate neighbour so that we don't draw a path to the containing node
@@ -862,7 +874,7 @@ class Network(object):
                     if neighbour_dict['type'] == 'feature':
                         feature_nodes.add(neighbour)
                         if node_dict['name'] == neighbour_dict['name']:
-                            log.error(f'{path.id}: Adjacent connectivity nodes are identical! {node_dict["name"]}')
+                            self.__log.error('Adjacent connectivity nodes are identical!', path=path.id, nodes=node_dict["name"])
                         elif neighbour_dict['name'].startswith(node_dict['name']):
                             # node contains neighbour
                             node_dict['contains'].add(neighbour)
@@ -923,7 +935,7 @@ class Network(object):
                     add_route_edges_from_graph(segment_graph, {node})
                     node_with_segments[node] = segment_graph
                 else:
-                    log.warning(f'{path.id}: Cannot find any sub-segments of centreline for `{node_dict["name"]}`')
+                    self.__log.warning('Cannot find any sub-segments of centreline', path=path.id, entity=node_dict['name'])
                     node_dict['type'] = 'no-segment'
                     no_sub_segment_nodes += [node] # store node with undecided sub-segments
 
@@ -996,7 +1008,8 @@ class Network(object):
                             for neighbouring_feature in neighbour_dict['features']:
                                 if (edge_dicts := self.__centreline_graph.get_edge_data(node_feature.id, neighbouring_feature.id)) is not None:
                                     if len(edge_dicts) > 1:
-                                        log.warning(f'{path.id}: Multiple centrelines between {node_feature.id} and {neighbouring_feature.id}')
+                                        self.__log.warning('Multiple centrelines between features',
+                                                           path=path.id, features=[node_feature.id, neighbouring_feature.id])
                                     edge_dict = edge_dicts[list(edge_dicts)[0]]
                                     add_route__with_edge_dict(node_feature.id, neighbouring_feature.id, edge_dict)
                                     node_dict['used'] = {node_feature.id}
@@ -1008,12 +1021,14 @@ class Network(object):
             start_feature_ids = [f.id for f in start_dict.get('features', [])]
             end_feature_ids = [f.id for f in end_dict.get('features', [])]
             if path.trace:
-                log.info(f'{path.id}: Search between {start_feature_ids} and {end_feature_ids}: containers {feature_ids}')
+                log.info('Search between features with containers',
+                         type='trace', path=path.id, start_features=start_feature_ids, end_features=end_feature_ids,
+                         containers=feature_ids)
             candidate_contained_centrelines = set()
             for feature_id in feature_ids:
                 candidate_contained_centrelines.update(self.__centrelines_by_containing_feature.get(feature_id, set()))
             if path.trace:
-                log.info(f'{path.id}: Candidates: {candidate_contained_centrelines}')
+                log.info('Candidates', type='trace', path=path.id, candidates=candidate_contained_centrelines)
             matched_centreline = None
             max_score = 0
             for centreline_id in candidate_contained_centrelines:
@@ -1027,13 +1042,13 @@ class Network(object):
                  or centreline_nodes[-1].feature_id in end_feature_ids):
                     score += 1
                 if path.trace:
-                    log.info(f'{path.id}: Score: {score}: {centreline_id}')
+                    log.info('Score for centreline', type='trace', path=path.id, score=score, centreline=centreline_id)
                 if score > max_score:
                     matched_centreline = centreline_id
                     max_score = score
             if matched_centreline is not None:
                 if path.trace:
-                    log.info(f'{path.id}: Selected: {max_score}: {matched_centreline}')
+                    log.info('Selected centreline', type='trace', path=path.id, score=max_score, centreline=matched_centreline)
                 properties = (self.__segment_properties_from_ids([matched_centreline]))
                 path_nerve_ids.update(properties['nerve-ids'])
                 add_route_edges_from_graph(properties['subgraph'], used_nodes)
@@ -1103,7 +1118,7 @@ class Network(object):
             if (not route_graph.has_edge(node_0, node_1)
             and (edge_dicts := self.__centreline_graph.get_edge_data(node_0, node_1)) is not None):
                 if len(edge_dicts) > 1:
-                    log.warning(f'{path.id}: Multiple centrelines between {node_0} and {node_1}')
+                    self.__log.warning('Multiple centrelines between nodes', path=path.id, nodes=[node_0, node_1])
                 new_edge_dicts[(node_0, node_1)] = edge_dicts[list(edge_dicts)[0]]
         for edge, edge_dict in new_edge_dicts.items():
             route_graph.add_edge(*edge, **edge_dict)
@@ -1135,7 +1150,8 @@ class Network(object):
             selected_feature = features[0]
             # in a case of a terminal node having multiple features, select the closest one to it's neighbours
             if len(features) > 1:
-                log.error(f'{path.id}: Terminal node {node_dict["name"]} has multiple features {sorted(set(f.id for f in node_dict["features"]))}')
+                self.__log.error('Terminal node has multiple features', path=path.id, entity=node_dict['name'],
+                                 features=sorted(set(f.id for f in node_dict["features"])))
                 if selected_feature.properties.get('fc-class') is None:
                     feature_distances = {}
                     neighbour_features = [f for n in neighbours for f in connectivity_graph.nodes[n].get('features', [])] + \
@@ -1263,12 +1279,12 @@ class Network(object):
                         terminal_graphs[node] = terminal_graph
 
         if path.trace:
-            log.info(f'{path.id}: Terminal connections:')
+            log.info('Terminal connections', type='trace', path=path.id)
             for terminal_graph in terminal_graphs.values():
                 for n_0, nd in terminal_graph.nodes(data=True):
-                    log.info(f'{path.id}: Node {n_0}: {nd}')
+                    log.info('Node', type='trace', path=path.id, node=n_0, data=nd)
                 for n_0, n_1, ed in terminal_graph.edges(data=True):
-                    log.info(f'{path.id}: Edge {n_0} -> {n_1}: {ed}')
+                    log.info('Edge', type='trace', path=path.id, edge=[n_0, n_1], data=ed)
 
         def set_properties_from_feature_id(feature_id: str):
             node_dict = {}
@@ -1281,7 +1297,7 @@ class Network(object):
                     radius = max(math.sqrt(feature.geometry.area/math.pi), MIN_EDGE_JOIN_RADIUS)
                     node_dict['radii'] = (0.999*radius, 1.001*radius)
                 else:
-                    log.warning(f'{path.id}: Feature {feature.id} has no geometry')
+                    self.__log.warning('Feature has no geometry', path=path.id, feature=feature.id)
             return node_dict
 
         tmp_route_graph = nx.Graph(route_graph)
@@ -1346,9 +1362,9 @@ class Network(object):
             route_graph.graph['biological-sex'] = connectivity_graph.graph['biological-sex']
 
         if path.trace:
-            log.info(f'{path.id}: Route graph: {route_graph.graph}')
+            log.info('Route graph', type='trace', path=path.id, graph=route_graph.graph)
             for n_0, n_1, ed in route_graph.edges(data=True):
-                log.info(f'{path.id}: Edge {n_0} -> {n_1}: {ed.get("centreline")}')
+                log.info('Edge', type='trace', path=path.id, edge=[n_0, n_1], centreline=ed.get("centreline"))
 
         # Adds direct edges to graph routes for nodes connected to unidentified segments
         def set_direction(upstream_node):
@@ -1438,7 +1454,7 @@ class Network(object):
             min_degree = min(dict(path.connectivity.degree()).values())
             min_degree_nodes = set([node for node, degree in path.connectivity.degree() if degree == min_degree])
             if len(min_degree_nodes & set(self.__missing_identifiers)):
-                log.warning(f'{path.id}: Path is not rendered due to partial rendering.')
+                self.__log.warning('Path is not rendered due to partial rendering', path=path.id)
                 route_graph.remove_nodes_from(list(route_graph.nodes))
 
         if debug:
