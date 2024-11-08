@@ -89,7 +89,7 @@ class MapMaker(object):
         # Setup logging
         if (log_file := options.get('logFile')) is None:
             if (log_path := options.get('logPath')) is not None:
-                log_file = os.path.join(log_path, '{}.log'.format(os.getpid()))
+                log_file = os.path.join(log_path, f'{os.getpid()}.log.json')
 
         if options.get('silent', False) and log_file is None:
             raise ValueError('`--silent` option requires `--log LOG_FILE` to be given')
