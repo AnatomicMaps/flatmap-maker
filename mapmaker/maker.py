@@ -97,7 +97,7 @@ class MapMaker(object):
             verbose=options.get('verbose', False),
             silent=options.get('silent', False),
             debug=options.get('debug', False))
-        log.info('Mapmaker {}'.format(__version__))
+        log.info('Mapmaker', version=__version__)
 
         # Default base output directory to ``./flatmaps``.
         if 'output' not in options:
@@ -118,7 +118,7 @@ class MapMaker(object):
             errors = False
             for option in INVALID_PUBLISHING_OPTIONS:
                 if options.get(option):
-                    log.warning(f'`{option}` not allowed when publishing a dataset')
+                    log.warning('Option not allowed when publishing a dataset', option=option)
                     errors = True
             if errors:
                 raise ValueError('Invalid parameters for dataset publishing ')
@@ -153,7 +153,7 @@ class MapMaker(object):
             raise ValueError('The manifest must specify a JSON `description` file if publishing')
 
         # All set to go
-        log.info('Making map: {}'.format(self.__id))
+        log.info('Making map', id=self.__id)
 
         # Make sure our top-level directory exists
         map_base = options.get('output')
@@ -207,7 +207,7 @@ class MapMaker(object):
             if os.path.exists(self.__maker_sentinel):
                 self.__clean_up(remove_sentinel=False)
                 raise MakerException('Last making of map failed -- use `--force` to re-make')
-            log.info(f'Map: {self.id}, uuid: {self.uuid}, path: {self.__map_dir} already exists -- use `--force` to re-make')
+            log.info('Map already exists -- use `--force` to re-make', id=self.id, uuid=self.uuid, path=self.__map_dir)
             self.__clean_up()
             exit(0)
         else:
@@ -301,20 +301,20 @@ class MapMaker(object):
             svg_file = pathlib.Path(svg_export_file).with_suffix('.svg')
             with open(svg_file, 'w') as fp:
                 svg_maker.save(fp)
-                log.info(f'Saved SVG as {svg_file}')
+                log.info('Saved SVG', svg=svg_file)
 
         # Create a Sparc dataset if publishing
         if (sds_output := settings.get('publish')) is not None:
-            log.info(f'Generating SPARC dataset {sds_output}...')
+            log.info('Generating SPARC dataset...', dataset=sds_output)
             sparc_dataset = SparcDataset(self.__flatmap)
             sparc_dataset.generate()
             sparc_dataset.save(sds_output)
 
         # Show what the map is about
+        log_details = {'id': self.id, 'uuid': self.uuid, 'path': self.__map_dir}
         if self.__flatmap.models is not None:
-            log.info(f'Generated map: id: {self.id}, uuid: {self.uuid}, models: {self.__flatmap.models}, output: {self.__map_dir}')
-        else:
-            log.info(f'Generated map: id: {self.id}, uuid: {self.uuid}, output: {self.__map_dir}')
+            log_details['models'] = self.__flatmap.models
+        log.info('Generated map', **log_details)
 
         # Tidy up
         self.__clean_up()
@@ -465,7 +465,7 @@ class MapMaker(object):
         identifier_export = settings.get('exportIdentifiers', '')
         for layer in self.__flatmap.layers:
             if layer.exported:
-                log.info(f'Layer: {layer.id}: {len(layer.features)} features')
+                log.info('Map layer', layer=layer.id, feature_count=len(layer.features))
                 if identifier_export != '':
                     for feature in layer.features:
                         if (feature.id is not None
