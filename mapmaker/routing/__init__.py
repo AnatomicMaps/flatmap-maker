@@ -113,14 +113,14 @@ def collapse_centreline_graph(graph: nx.Graph) -> nx.Graph:
         if graph_object == 'edge':
             edge_nodes = new_dict.pop('edge')
             if edge_nodes in seen_edges:
-                self.__log.warning('Edge ignored as it is already in the route graph', type='conn', node=node_or_edge)
+                log.warning('Edge ignored as it is already in the route graph', type='conn', node=node_or_edge)
             else:
                 G.add_edge(*edge_nodes, **new_dict)
                 seen_edges.add(edge_nodes)
         elif graph_object == 'node':
             G.add_node(node_or_edge, **new_dict)
         else:
-            self.__log.warning('Expanded graph node ignored as it has no `graph type', type='conn', node=node_or_edge)
+            log.warning('Expanded graph node ignored as it has no `graph type', type='conn', node=node_or_edge)
     return G
 
 #===============================================================================
@@ -171,7 +171,7 @@ class NetworkNode:
             radius = max(math.sqrt(feature.geometry.area/math.pi), MIN_EDGE_JOIN_RADIUS)
             self.properties['radii'] = (0.999*radius, 1.001*radius)
         else:
-            self.__log.warning('Centreline node has no geometry', type='conn', node=feature.id)
+            log.warning('Centreline node has no geometry', type='conn', node=feature.id)
 
 #===============================================================================
 
