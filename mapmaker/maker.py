@@ -344,11 +344,11 @@ class MapMaker(object):
         self.__manifest.clean_up()
 
         if self.__file_log is not None:
-            log_file = self.__file_log.baseFilename
-            self.__file_log.close()
-            with open(log_file, 'r') as log:
-                with open(os.path.join(self.__map_dir, MAKER_LOG), 'w') as fp:
-                    fp.write(log.read())
+            maker_log = os.path.join(self.__map_dir, MAKER_LOG)
+            if not os.path.exists(maker_log):
+                log_file = self.__file_log.baseFilename
+                self.__file_log.close()
+                os.rename(log_file, maker_log)
 
         # All done, remove our sentinel
         if remove_sentinel and os.path.exists(self.__maker_sentinel):
