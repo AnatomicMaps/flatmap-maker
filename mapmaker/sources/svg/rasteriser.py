@@ -80,6 +80,14 @@ def make_colour(colour_string, opacity=1.0):
             colour = webcolors.rgb_percent_to_rgb(rgb) # type: ignore
         else:
             colour = [int(c) for c in rgb]
+    elif colour_string.startswith('rgba('):
+        rgba = colour_string[5:-1].split(',')
+        rgb = rgba[:3]
+        if '%' in colour_string:
+            colour = webcolors.rgb_percent_to_rgb(rgb) # type: ignore
+        else:
+            colour = [int(c) for c in rgb]
+        opacity *= float(rgba[3])
     else:
         colour = webcolors.html5_parse_legacy_color(colour_string)
     return skia.Color(*tuple(colour), round(255*opacity))
