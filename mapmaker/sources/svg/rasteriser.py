@@ -137,7 +137,6 @@ class CanvasDrawingObject(object):
             bbox = typing.cast(Optional[shapely.geometry.Polygon],
                                T.transform_geometry(shapely.geometry.box(*tuple(bounds))))
         self.__bbox = bbox
-        self.__prep_bbox = shapely.prepared.prep(bbox) if bbox is not None else None
         self.__clip_path = clip_path
         self.__paint = paint
         self.__save_state = (self.__matrix is not None
