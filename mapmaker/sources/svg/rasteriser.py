@@ -21,6 +21,7 @@
 import base64
 import contextlib
 import math
+import typing
 from typing import Optional, TYPE_CHECKING
 
 #===============================================================================
@@ -30,6 +31,7 @@ import lxml.etree as etree
 import numpy as np
 import mercantile
 import shapely.geometry
+from shapely.geometry.base import BaseGeometry
 import shapely.ops
 import shapely.prepared
 import skia
@@ -108,7 +110,8 @@ class GradientStops(object):
 class CanvasDrawingObject(object):
     def __init__(self, paint, bounds, parent_transform: Transform,
                        local_transform: Optional[Transform],
-                       clip_path, bbox=None, root_object=False, scale=1.0):
+                       clip_path, bbox: Optional[shapely.geometry.Polygon]=None,
+                       root_object=False, scale=1.0):
         if root_object:
             T = parent_transform if local_transform is None else parent_transform@local_transform
             self.__matrix = skia.Matrix(list(T.flatten()))
@@ -123,7 +126,8 @@ class CanvasDrawingObject(object):
             if self.__matrix is not None:
                 self.__matrix = self.__matrix.preScale(1.0/scale, 1.0/scale)
         if bounds is not None and bbox is None:
-            bbox = T.transform_geometry(shapely.geometry.box(*tuple(bounds)))
+            bbox = typing.cast(Optional[shapely.geometry.Polygon],
+                               T.transform_geometry(shapely.geometry.box(*tuple(bounds))))
         self.__bbox = bbox
         self.__prep_bbox = shapely.prepared.prep(bbox) if bbox is not None else None
         self.__clip_path = clip_path
@@ -132,19 +136,19 @@ class CanvasDrawingObject(object):
                           or self.__clip_path is not None)
 
     @property
-    def bbox(self):
+    def bbox(self) -> Optional[shapely.geometry.Polygon]:
         return self.__bbox
 
     @property
     def paint(self):
         return self.__paint
 
-    def draw_element(self, canvas, tile_bbox):
-    #=========================================
+    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
+    #================================================================================
         pass
 
-    def intersects(self, bbox):
-    #==========================
+    def intersects(self, bbox: BaseGeometry):
+    #========================================
         return bbox is not None and (self.__bbox is None or self.__bbox.intersects(bbox))
 
     @contextlib.contextmanager
@@ -168,8 +172,8 @@ class CanvasPath(CanvasDrawingObject):
         super().__init__(paint, path.getBounds(), parent_transform, local_transform, clip_path)
         self.__path = path
 
-    def draw_element(self, canvas, tile_bbox):
-    #=========================================
+    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
+    #================================================================================
         if self.intersects(tile_bbox):
             with self.transformed_clipped_canvas(canvas):
                 canvas.drawPath(self.__path, self.paint)
@@ -182,8 +186,8 @@ class CanvasImage(CanvasDrawingObject):
         super().__init__(paint, image.bounds(), parent_transform, local_transform, clip_path, scale=scale)
         self.__image = image
 
-    def draw_element(self, canvas, tile_bbox):
-    #=========================================
+    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
+    #================================================================================
         if self.intersects(tile_bbox):
             with self.transformed_clipped_canvas(canvas):
                 canvas.drawImage(self.__image, 0, 0, skia.SamplingOptions(), self.paint)
@@ -228,8 +232,8 @@ class CanvasText(CanvasDrawingObject):
         self.__paint = skia.Paint(AntiAlias=True, Color=skia.ColorBLACK)
         super().__init__(None, bounds, parent_transform, local_transform, clip_path)
 
-    def draw_element(self, canvas, tile_bbox):
-    #=========================================
+    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
+    #================================================================================
         if self.intersects(tile_bbox):
             with self.transformed_clipped_canvas(canvas):
                 canvas.drawString(self.__text, self.__pos[0], self.__pos[1], self.__font, self.__paint)
@@ -249,8 +253,8 @@ class CanvasGroup(CanvasDrawingObject):
     def is_valid(self):
         return len(self.__drawing_objects) > 0
 
-    def draw_element(self, canvas, tile_bbox):
-    #=========================================
+    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
+    #================================================================================
         if self.intersects(tile_bbox):
             with self.transformed_clipped_canvas(canvas):
                 for element in self.__drawing_objects:
@@ -341,8 +345,8 @@ class SVGTiler(object):
         image = surface.makeImageSnapshot()
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
-    def get_tile(self, tile):
-    #========================
+    def get_tile(self, tile: mercantile.Tile):
+    #=========================================
         surface = skia.Surface(*self.__tile_size)  ## In pixels...
         canvas = surface.getCanvas()
         canvas.clear(skia.Color4f(0xFFFFFFFF))

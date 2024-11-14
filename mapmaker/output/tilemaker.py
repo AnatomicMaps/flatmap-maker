@@ -303,8 +303,8 @@ class RasterTiler(object):
         return (self.__tile_size[0]/image_tile_rect.width,
                 self.__tile_size[1]/image_tile_rect.height)
 
-    def get_tile(self, tile):
-    #========================
+    def get_tile(self, tile: mercantile.Tile):
+    #=========================================
         tile_pixel_rect = Rect(self.__tile_coords_to_pixels.transform_point((tile.x, tile.y)),
                                *self.__tile_size)
         image_tile_rect = self.__tile_pixels_to_image.transform_rect(tile_pixel_rect)

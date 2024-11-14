@@ -149,8 +149,9 @@ class Transform(object):
         return bounds_to_extent(
             shapely.affinity.affine_transform(shapely.geometry.box(*bounds),
                                               self.__shapely_matrix).bounds)
-    def transform_geometry(self, geometry):
-    #======================================
+
+    def transform_geometry(self, geometry: BaseGeometry) -> BaseGeometry:
+    #====================================================================
        return shapely.affinity.affine_transform(geometry, self.__shapely_matrix)
 
     def transform_point(self, point) -> tuple[float, float]:
