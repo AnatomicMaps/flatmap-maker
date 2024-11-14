@@ -353,11 +353,15 @@ class SVGLayer(MapLayer):
             else:
                 return Shape(shape_id, geometry, properties, svg_element=element)
         elif element.tag == SVG_TAG('image'):
+            geometry = None
             clip_path_url = element_style.pop('clip-path', None)
-            if ((geometry := self.__clip_geometries.get_by_url(clip_path_url)) is None
-            and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
-                T = transform@self.__get_transform(wrapped_element)
-                geometry = self.__get_clip_geometry(clip_path_element, T)
+            if clip_path_url is not None:
+                if ((geometry := self.__clip_geometries.get_by_url(clip_path_url)) is None
+                and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
+                    T = transform@self.__get_transform(wrapped_element)
+                    geometry = self.__get_clip_geometry(clip_path_element, T)
+            else:
+                geometry = self.__get_geometry(element, properties, transform)
             if geometry is not None:
                 return Shape(shape_id, geometry, properties, shape_type=SHAPE_TYPE.IMAGE, svg_element=element)
         elif element.tag == SVG_TAG('g'):
@@ -380,7 +384,7 @@ class SVGLayer(MapLayer):
         if element.tag == SVG_TAG('path'):
             path_tokens = list(parse_svg_path(element.attrib.get('d', '')))
 
-        elif element.tag == SVG_TAG('rect'):
+        elif element.tag in [SVG_TAG('rect'), SVG_TAG('image')]:
             x = length_as_pixels(element.attrib.get('x', 0))
             y = length_as_pixels(element.attrib.get('y', 0))
             width = length_as_pixels(element.attrib.get('width', 0))
@@ -455,17 +459,6 @@ class SVGLayer(MapLayer):
                            'A', rx, ry, 0, 0, 0, cx, cy+ry,
                            'A', rx, ry, 0, 0, 0, cx+rx, cy,
                            'Z']
-
-        elif element.tag == SVG_TAG('image'):
-            if 'id' in properties or 'class' in properties:
-                width = length_as_pixels(element.attrib.get('width', 0))
-                height = length_as_pixels(element.attrib.get('height', 0))
-                path_tokens = ['M', 0, 0,
-                               'H', width,
-                               'V', height,
-                               'H', 0,
-                               'V', 0,
-                               'Z']
 
         if properties.get('node', False):
             must_close = True
