@@ -39,6 +39,8 @@ class ObjectStore(object):
             url_id = url_id.strip()
             if url_id[:4] == 'url(' and url_id[-1] == ')':
                 id = url_id[4:-1].strip()
+                if len(id) and id[0] in ['"', "'"] and id[0] == id[-1]:
+                    id = id[1:-1]
                 if id.startswith('#'):
                     return id[1:]
         return None
