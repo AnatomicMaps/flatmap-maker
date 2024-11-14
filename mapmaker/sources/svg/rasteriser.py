@@ -577,7 +577,7 @@ class SVGTiler(object):
                     ))
 
         elif element.tag == SVG_TAG('image'):
-            image_href = element.attrib.get(XLINK_HREF)
+            image_href = element.attrib.get('href', element.attrib.get(XLINK_HREF))
             pixel_bytes = None
             if image_href is not None:
                 if image_href.startswith('data:'):

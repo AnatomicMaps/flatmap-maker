@@ -78,11 +78,14 @@ class DefinitionStore(ObjectStore):
 
     def use(self, element):
     #======================
-        id = element.attrib.get(XLINK_HREF)
+        id = element.attrib.get('href', element.attrib.get(XLINK_HREF))
         if id is not None and id.startswith('#'):
             definition = self.get(id[1:])
             if definition is not None:
-                del element.attrib[XLINK_HREF]
+                if 'href' in element.attrib:
+                    del element.attrib['href']
+                else:
+                    del element.attrib[XLINK_HREF]
                 result = copy.copy(definition)
                 result.attrib.update(element.attrib)
                 return result
