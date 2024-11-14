@@ -236,8 +236,8 @@ class CanvasText(CanvasDrawingObject):
             self.__pos[1] += text_height/2
         bounds = skia.Rect(self.__pos[0], self.__pos[1] - text_height,
                            self.__pos[0] + text_width, self.__pos[1])
-        self.__paint = skia.Paint(AntiAlias=True, Color=skia.ColorBLACK)
-        super().__init__(None, bounds, parent_transform, local_transform, clip_path)
+        paint = skia.Paint(AntiAlias=True, Color=skia.ColorBLACK)
+        super().__init__(paint, bounds, parent_transform, local_transform, clip_path)
 
     def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
     #================================================================================
