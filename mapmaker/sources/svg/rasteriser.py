@@ -189,15 +189,16 @@ class CanvasPath(CanvasDrawingObject):
 
 class CanvasImage(CanvasDrawingObject):
     def __init__(self, image, paint, parent_transform: Transform,
-                       local_transform: Optional[Transform], clip_path, scale=1.0):
+                       local_transform: Optional[Transform], clip_path, pos=(0, 0), scale=1.0):
         super().__init__(paint, image.bounds(), parent_transform, local_transform, clip_path, scale=scale)
         self.__image = image
+        self.__pos = (scale*pos[0], scale*pos[1])
 
     def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
     #================================================================================
         if self.intersects(tile_bbox):
             with self.transformed_clipped_canvas(canvas):
-                canvas.drawImage(self.__image, 0, 0, skia.SamplingOptions(), self.paint)
+                canvas.drawImage(self.__image, self.__pos[0], self.__pos[1], skia.SamplingOptions(), self.paint)
 
 #===============================================================================
 
@@ -607,6 +608,8 @@ class SVGTiler(object):
                     image = skia.Image.fromarray(pixels, colorType=skia.kBGRA_8888_ColorType)
                     width = float(element.attrib.get('width', image.width()))
                     height = float(element.attrib.get('height', image.height()))
+                    (x, y) = (length_as_pixels(element.attrib.get('x', 0)),
+                              length_as_pixels(element.attrib.get('y', 0)))
                     scale = 1.0
                     for n, prescale_size in enumerate(PRESCALE_IMAGE_SIZES):
                         if width < prescale_size or height < prescale_size:
@@ -623,7 +626,7 @@ class SVGTiler(object):
                     if ((clip_path := self.__clip_paths.get_by_url(clip_path_url)) is None
                     and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
                         clip_path = self.__get_clip_path(clip_path_element)
-                    drawing_objects.append(CanvasImage(image, paint, parent_transform, transform, clip_path, scale=scale))
+                    drawing_objects.append(CanvasImage(image, paint, parent_transform, transform, clip_path, pos=(x, y), scale=scale))
 
         elif element.tag == SVG_TAG('text'):
             drawing_objects.append(CanvasText(element.text, element.attrib, parent_transform, transform,
