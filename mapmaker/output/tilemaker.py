@@ -19,13 +19,15 @@
 #===============================================================================
 
 import os
+import queue
 from typing import TYPE_CHECKING
 
 #===============================================================================
 
 import cv2
 import mercantile
-import multiprocess as mp
+from multiprocess import Process, Queue
+import multiprocess.connection as mp_connection
 import numpy as np
 import shapely.geometry
 from svglib.svglib import svg2rlg
@@ -45,6 +47,7 @@ if TYPE_CHECKING:
 #===============================================================================
 
 TILE_SIZE = (512, 512)
+HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
 
 #===============================================================================
 
@@ -141,7 +144,7 @@ class TileSet(object):
         self.__extent = extent
 
         # Get the set of tiles that span the extent
-        self.__tiles = list(mercantile.tiles(*extent, max_zoom))
+        self.__tiles: list[mercantile.Tile] = list(mercantile.tiles(*extent, max_zoom))
 
         tile_0 = self.__tiles[0]
         tile_N = self.__tiles[-1]
@@ -378,6 +381,16 @@ class SVGImageTiler(RasterImageTiler):
 
 #===============================================================================
 
+
+def save_tile(tile: mercantile.Tile, zoom: int, tile_extractor, save_tile_queue, progress_bar):
+    tile_image = tile_extractor.get_tile(tile)
+    alpha_image = add_alpha(tile_image)
+    if not_empty(alpha_image):
+        save_tile_queue.put((zoom, tile.x, tile.y, alpha_image))
+    progress_bar.update(1)
+
+
+
 class RasterTileMaker(object):
     """
     A class for generating image tiles for a map
@@ -412,17 +425,41 @@ class RasterTileMaker(object):
     #=============================================
         mbtiles = MBTiles(self.__database_path, True, True)
         mbtiles.add_metadata(id=self.__id)
+
         zoom = self.__max_zoom
-        log.info('Tiling zoom level {} for {}'.format(zoom, self.__id))
+        log.info('Tiling zoom level for layer', zoom=zoom, layer=self.__id)
         progress_bar = ProgressBar(total=len(self.__tile_set),
             unit='tiles', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
+
+
+        save_tile_queue = Queue()
+
+
+        tile_processes = {}
         for tile in self.__tile_set:
-            tile_image = tile_extractor.get_tile(tile)
-            alpha_image = add_alpha(tile_image)
-            if not_empty(alpha_image):
-                mbtiles.save_tile_as_png(zoom, tile.x, tile.y, alpha_image)
-            progress_bar.update(1)
+            ## How can this be done in parallel??
+
+            tile_process = Process(target=save_tile,
+                args=(tile, zoom, tile_extractor, save_tile_queue, progress_bar),
+                name=f'{self.__id}/{tile.z}{tile.x}/{tile.y}')
+            tile_process.start()
+            tile_processes[tile_process.sentinel] = tile_process
+
+            #save_tile(tile, zoom, tile_extractor, mbtiles, progress_bar)
+
+        print(len(tile_processes), 'processes...')
+        while len(tile_processes) > 0:
+            try:
+                save_tile_params = save_tile_queue.get(block=False)
+                mbtiles.save_tile_as_png(*save_tile_params)
+            except queue.Empty:
+                pass
+
+            ended_processes = mp_connection.wait(tile_processes.keys(), 0.0001)
+            for process in ended_processes:
+                tile_processes.pop(process)
+
         progress_bar.close()
         self.__make_overview_tiles(mbtiles, zoom, self.__tile_set.start_coords,
                                                   self.__tile_set.end_coords)
@@ -432,8 +469,7 @@ class RasterTileMaker(object):
     #========================================================================
         if zoom > self.__min_zoom:
             zoom -= 1
-            log.info('Tiling zoom level {} for {}'.format(zoom, self.__id))
-            HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
+            log.info('Tiling zoom level for layer', zoom=zoom, layer=self.__id)
             half_start = (start_coords[0]//2, start_coords[1]//2)
             half_end = (end_coords[0]//2, end_coords[1]//2)
             progress_bar = ProgressBar(total=(half_end[0]-half_start[0]+1)
@@ -474,7 +510,7 @@ class RasterTileMaker(object):
                 tile_extractor = SVGImageTiler(self.__raster_layer, self.__tile_set)
         else:
             raise TypeError(f'Unsupported kind of background tile source: {kind}')
-        return mp.Process(target=self.__make_zoomed_tiles, args=(tile_extractor, ), name=self.__id)
+        return Process(target=self.__make_zoomed_tiles, args=(tile_extractor, ), name=self.__id)
 
 #===============================================================================
 
