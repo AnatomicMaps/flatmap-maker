@@ -20,6 +20,8 @@
 
 import os
 import queue
+from threading import Thread
+from time import sleep
 from typing import TYPE_CHECKING
 
 #===============================================================================
@@ -48,6 +50,11 @@ if TYPE_CHECKING:
 
 TILE_SIZE = (512, 512)
 HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
+
+#===============================================================================
+
+MAX_TILE_PROCESSES = 8 if (cpu_count := os.cpu_count()) is None else (cpu_count - 1)
+IDLE_TIMEOUT = 0.00001
 
 #===============================================================================
 
@@ -382,14 +389,54 @@ class SVGImageTiler(RasterImageTiler):
 #===============================================================================
 
 
-def save_tile(tile: mercantile.Tile, zoom: int, tile_extractor, save_tile_queue, progress_bar):
-    tile_image = tile_extractor.get_tile(tile)
-    alpha_image = add_alpha(tile_image)
-    if not_empty(alpha_image):
-        save_tile_queue.put((zoom, tile.x, tile.y, alpha_image))
-    progress_bar.update(1)
+class ParallelRasteriserManager(Thread):
+    def __init__(self, tile_extractor, tile_queue, image_queue):
+        self.__name = 'tile_extractor'
+        super().__init__(name=self.__name)
+        self.__tile_extractor = tile_extractor
+        self.__tile_queue = tile_queue
+        self.__image_queue = image_queue
+        self.__tile_processes = {}
+        self.__running = True
+        self.__ending = False
 
+    def run(self):
+        while self.__running:
+            if len(self.__tile_processes) < MAX_TILE_PROCESSES:
+                try:
+                    tile = self.__tile_queue.get(block=False)
+                    if tile is not None:
+                        print('received tile', tile.x, tile.y)
+                        tile_process = self.__extract_tile__process(tile)
+                        self.__tile_processes[tile_process.sentinel] = tile_process
+                    else:
+                        print('received last tile...')
+                        self.__ending = True
+                except queue.Empty:
+                    pass
+            if len(self.__tile_processes) > 0:
+                ended_processes = mp_connection.wait(self.__tile_processes.keys(), IDLE_TIMEOUT)
+                for process in ended_processes:
+                    self.__tile_processes.pop(process)
+                self.__running = self.__ending and (len(self.__tile_processes) == 0)
+        print('finished extraction run...')
 
+    def __extract_tile__process(self, tile):
+        tile_process = Process(target=self.__extract_tile,
+            args=(tile, ),
+            name=f'{self.__name}/{tile.z}{tile.x}/{tile.y}')
+        tile_process.start()
+        print('started tile', tile.x, tile.y)
+        return tile_process
+
+    def __extract_tile(self, tile: mercantile.Tile):
+        tile_image = self.__tile_extractor.get_tile(tile)
+        alpha_image = add_alpha(tile_image)
+        print('extracted tile', tile.x, tile.y)
+        if not_empty(alpha_image):
+            self.__image_queue.put((tile.x, tile.y, alpha_image))
+
+#===============================================================================
 
 class RasterTileMaker(object):
     """
@@ -427,40 +474,25 @@ class RasterTileMaker(object):
         mbtiles.add_metadata(id=self.__id)
 
         zoom = self.__max_zoom
-        log.info('Tiling zoom level for layer', zoom=zoom, layer=self.__id)
-        progress_bar = ProgressBar(total=len(self.__tile_set),
-            unit='tiles', ncols=40,
-            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
+        log.info('Tiling zoom level for layer', zoom=zoom, layer=self.__id, tiles=len(self.__tile_set), cpus=MAX_TILE_PROCESSES)
 
-
-        save_tile_queue = Queue()
-
-
-        tile_processes = {}
+        tile_queue = Queue()
+        image_queue = Queue()
+        self.__rasteriser = ParallelRasteriserManager(tile_extractor, tile_queue, image_queue)
+        self.__rasteriser.start()
         for tile in self.__tile_set:
-            ## How can this be done in parallel??
+            tile_queue.put(tile)
+            print('queued tile', tile.x, tile.y)
+        tile_queue.put(None)
 
-            tile_process = Process(target=save_tile,
-                args=(tile, zoom, tile_extractor, save_tile_queue, progress_bar),
-                name=f'{self.__id}/{tile.z}{tile.x}/{tile.y}')
-            tile_process.start()
-            tile_processes[tile_process.sentinel] = tile_process
-
-            #save_tile(tile, zoom, tile_extractor, mbtiles, progress_bar)
-
-        print(len(tile_processes), 'processes...')
-        while len(tile_processes) > 0:
+        while self.__rasteriser.is_alive() or not image_queue.empty():
             try:
-                save_tile_params = save_tile_queue.get(block=False)
-                mbtiles.save_tile_as_png(*save_tile_params)
+                (x, y, image) = image_queue.get(block=False)
+                print('saving tile', x, y)
+                mbtiles.save_tile_as_png(zoom, x, y, image)
             except queue.Empty:
                 pass
-
-            ended_processes = mp_connection.wait(tile_processes.keys(), 0.0001)
-            for process in ended_processes:
-                tile_processes.pop(process)
-
-        progress_bar.close()
+            sleep(IDLE_TIMEOUT)
         self.__make_overview_tiles(mbtiles, zoom, self.__tile_set.start_coords,
                                                   self.__tile_set.end_coords)
         mbtiles.close(compress=True)
