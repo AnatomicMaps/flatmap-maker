@@ -41,7 +41,7 @@ import webcolors
 
 from mapmaker.geometry import extent_to_bounds, Transform, reflect_point
 from mapmaker.properties.markup import parse_markup
-from mapmaker.utils import ProgressBar, log
+from mapmaker.utils import FilePath, ProgressBar, log
 
 from .. import WORLD_METRES_PER_PIXEL
 from .definitions import DefinitionStore, ObjectStore
@@ -116,9 +116,9 @@ class GradientStops(object):
 #===============================================================================
 
 class CanvasDrawingObject(object):
-    def __init__(self, paint, bounds, parent_transform: Transform,
+    def __init__(self, paint: skia.Paint, bounds: skia.IRect, parent_transform: Transform,
                        local_transform: Optional[Transform],
-                       clip_path, bbox: Optional[shapely.geometry.Polygon]=None,
+                       clip_path: Optional[skia.Path], bbox: Optional[shapely.geometry.Polygon]=None,
                        root_object=False, scale=1.0):
         if root_object:
             T = parent_transform if local_transform is None else parent_transform@local_transform
@@ -174,7 +174,7 @@ class CanvasDrawingObject(object):
 #===============================================================================
 
 class CanvasPath(CanvasDrawingObject):
-    def __init__(self, path, paint, parent_transform: Transform,
+    def __init__(self, path: skia.Path, paint: skia.Paint, parent_transform: Transform,
                        local_transform: Optional[Transform], clip_path):
         super().__init__(paint, path.getBounds(), parent_transform, local_transform, clip_path)
         self.__path = path
@@ -188,8 +188,8 @@ class CanvasPath(CanvasDrawingObject):
 #===============================================================================
 
 class CanvasImage(CanvasDrawingObject):
-    def __init__(self, image, paint, parent_transform: Transform,
-                       local_transform: Optional[Transform], clip_path, pos=(0, 0), scale=1.0):
+    def __init__(self, image: skia.Image, paint: skia.Paint, parent_transform: Transform,
+                       local_transform: Optional[Transform], clip_path: skia.Path, pos=(0, 0), scale=1.0):
         super().__init__(paint, image.bounds(), parent_transform, local_transform, clip_path, scale=scale)
         self.__image = image
         self.__pos = (scale*pos[0], scale*pos[1])
@@ -204,7 +204,7 @@ class CanvasImage(CanvasDrawingObject):
 
 class CanvasText(CanvasDrawingObject):
     def __init__(self, text, attribs, parent_transform: Transform,
-                       local_transform: Optional[Transform], clip_path):
+                       local_transform: Optional[Transform], clip_path: skia.Path):
         self.__text = text
         style_rules = dict(attribs)
         if 'style' in attribs:
@@ -275,7 +275,7 @@ class SVGTiler(object):
     def __init__(self, raster_layer: 'RasterLayer', tile_set: 'TileSet'):
         self.__bbox = shapely.geometry.box(*extent_to_bounds(raster_layer.extent))
         self.__svg = etree.fromstring(raster_layer.source_data, parser=etree.XMLParser(huge_tree=True))
-        self.__source_path = raster_layer.source_path
+        self.__source_path: Optional[FilePath] = raster_layer.source_path
         if 'viewBox' in self.__svg.attrib:
             viewbox = [float(x) for x in self.__svg.attrib.get('viewBox').split()]
             (left, top) = tuple(viewbox[:2])
@@ -320,7 +320,7 @@ class SVGTiler(object):
         self.__tile_origin = tile_set.start_coords
         self.__pixel_offset = tuple(tile_set.pixel_rect)[0:2]
 
-        self.__tile_bboxes = {}
+        self.__tile_bboxes: dict[str, shapely.geometry.Polygon] = {}
         for tile in tile_set:
             tile_set.tile_coords_to_pixels.transform_point((tile.x, tile.y))
             x0 = (tile.x - self.__tile_origin[0])*self.__tile_size[0] - self.__pixel_offset[0]
@@ -361,7 +361,8 @@ class SVGTiler(object):
         canvas.translate(self.__pixel_offset[0] + (self.__tile_origin[0] - tile.x)*self.__tile_size[0],
                          self.__pixel_offset[1] + (self.__tile_origin[1] - tile.y)*self.__tile_size[1])
         quadkey = mercantile.quadkey(tile)
-        self.__svg_drawing.draw_element(canvas, self.__tile_bboxes.get(quadkey))
+        if quadkey in self.__tile_bboxes:
+            self.__svg_drawing.draw_element(canvas, self.__tile_bboxes[quadkey])
         image = surface.makeImageSnapshot()
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
@@ -598,7 +599,7 @@ class SVGTiler(object):
                         media_type = parts[0].split(';', 1)[0]
                         if media_type in IMAGE_MEDIA_TYPES:
                             pixel_bytes = base64.b64decode(parts[1])
-                else:
+                elif self.__source_path is not None:
                     pixel_bytes = self.__source_path.join_path(image_href).get_data()
                 if pixel_bytes is not None:
                     pixel_array = np.frombuffer(pixel_bytes, dtype=np.uint8)
@@ -639,8 +640,8 @@ class SVGTiler(object):
         return drawing_objects
 
     @staticmethod
-    def __get_graphics_path(element):
-    #================================
+    def __get_graphics_path(element) -> skia.Path:
+    #=============================================
         if element.tag == SVG_TAG('path'):
             tokens = list(parse_svg_path(element.attrib.get('d', '')))
             path = SVGTiler.__path_from_tokens(tokens)
@@ -691,12 +692,12 @@ class SVGTiler(object):
                         length_as_pixels(element.attrib.get('cy', 0)))
             path = skia.Path.Oval(skia.Rect(cx-rx, cy-ry, cx+rx, cy+ry))
         else:
-            path = None
+            path = skia.Path()
         return path
 
     @staticmethod
-    def __path_from_tokens(tokens):
-    #==============================
+    def __path_from_tokens(tokens) -> skia.Path:
+    #===========================================
         moved = False
         first_point = None
         current_point = []
