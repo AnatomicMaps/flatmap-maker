@@ -103,7 +103,6 @@ class ShapeClassifier:
                 elif bbox_coverage < 0.001 and coverage > 0.85:
                     shape.properties['shape-type'] = SHAPE_TYPE.COMPONENT
                 else:
-                    print(f'Unclassified shape: {shape.id} {shape.properties}')
                     shape.properties['exclude'] = True
 
             if not shape.properties.get('exclude', False):
@@ -134,7 +133,6 @@ class ShapeClassifier:
         text_blocks = self.__block_text()
         for block in text_blocks.values():
             shape = self.__text_block_to_shape(block)
-            print(shape.text)
             self.__shapes.append(shape)
 
 
