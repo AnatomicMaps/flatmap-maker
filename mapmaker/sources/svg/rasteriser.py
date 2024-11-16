@@ -244,7 +244,7 @@ class CanvasText(CanvasDrawingObject):
     #================================================================================
         if self.intersects(tile_bbox):
             with self.transformed_clipped_canvas(canvas):
-                canvas.drawString(self.__text, self.__pos[0], self.__pos[1], self.__font, self.__paint)
+                canvas.drawString(self.__text, self.__pos[0], self.__pos[1], self.__font, self.paint)
 
 #===============================================================================
 
