@@ -71,6 +71,11 @@ PRESCALE_FACTORS     = [100, 10]        # for skia and then scale it back in a t
 
 #===============================================================================
 
+def round(x: float|int) -> int:
+    return int(math.floor(x + 0.5))
+
+#===============================================================================
+
 def make_colour(colour_string, opacity=1.0):
     if colour_string.startswith('#'):
         colour = webcolors.hex_to_rgb(colour_string)
@@ -190,7 +195,9 @@ class CanvasPath(CanvasDrawingObject):
 class CanvasImage(CanvasDrawingObject):
     def __init__(self, image: skia.Image, paint: skia.Paint, parent_transform: Transform,
                        local_transform: Optional[Transform], clip_path: skia.Path, pos=(0, 0), scale=1.0):
-        super().__init__(paint, image.bounds(), parent_transform, local_transform, clip_path, scale=scale)
+        bounds = image.bounds()
+        bounds.offsetTo(round(pos[0]), round(pos[1]))
+        super().__init__(paint, bounds, parent_transform, local_transform, clip_path, scale=scale)
         self.__image = image
         self.__pos = (scale*pos[0], scale*pos[1])
 
