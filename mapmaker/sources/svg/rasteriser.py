@@ -134,10 +134,13 @@ class CanvasDrawingObject(object):
                 self.__matrix = None
             else:
                 self.__matrix = skia.Matrix(list(local_transform.flatten()))
-                T = T@local_transform
+                T = T@local_transform       # used below in finding bbox
+
         if scale != 1.0:
-            if self.__matrix is not None:
-                self.__matrix = self.__matrix.preScale(1.0/scale, 1.0/scale)
+            if self.__matrix is None:
+                self.__matrix = skia.Matrix()
+            self.__matrix = self.__matrix.preScale(1.0/scale, 1.0/scale)
+
         if bounds is not None and bbox is None:
             bbox = typing.cast(Optional[shapely.geometry.Polygon],
                                T.transform_geometry(shapely.geometry.box(*tuple(bounds))))
