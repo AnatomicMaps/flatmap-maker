@@ -637,6 +637,9 @@ class SVGTiler(object):
                     if ((clip_path := self.__clip_paths.get_by_url(clip_path_url)) is None
                     and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
                         clip_path = self.__get_clip_path(clip_path_element)
+                    else:
+                        clip_path = SVGTiler.__get_graphics_path(element)
+                        clip_path.transform(skia.Matrix.Scale(scale, scale))
                     drawing_objects.append(CanvasImage(image, paint, parent_transform, transform, clip_path, pos=(x, y), scale=scale))
 
         elif element.tag == SVG_TAG('text'):
@@ -655,7 +658,7 @@ class SVGTiler(object):
         if element.tag == SVG_TAG('path'):
             tokens = list(parse_svg_path(element.attrib.get('d', '')))
             path = SVGTiler.__path_from_tokens(tokens)
-        elif element.tag == SVG_TAG('rect'):
+        elif element.tag in [SVG_TAG('rect'), SVG_TAG('image')]:
             (width, height) = (length_as_pixels(element.attrib.get('width', 0)),
                                length_as_pixels(element.attrib.get('height', 0)))
             if width == 0 or height == 0: return None
