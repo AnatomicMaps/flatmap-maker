@@ -288,8 +288,8 @@ class SVGTiler(object):
         self.__source_path: Optional[FilePath] = raster_layer.source_path
         if 'viewBox' in self.__svg.attrib:
             viewbox = [float(x) for x in self.__svg.attrib.get('viewBox').split()]
-            (left, top) = tuple(viewbox[:2])
-            self.__size = tuple(viewbox[2:])
+            (left, top) = tuple(viewbox[0:2])
+            self.__size = tuple(viewbox[2:4])
         else:
             (left, top) = (0, 0)
             self.__size = (length_as_pixels(self.__svg.attrib['width']),
@@ -348,11 +348,11 @@ class SVGTiler(object):
         return self.__size
 
     @property
-    def image_to_world(self):
+    def image_to_world(self) -> Transform:
         return self.__image_to_world
 
-    def get_image(self):
-    #===================
+    def get_image(self) -> np.ndarray:
+    #=================================
         # Draw image to fit tile set's pixel rectangle
         surface = skia.Surface(round(self.__scaling[0]*self.__size[0]),
                                round(self.__scaling[1]*self.__size[1]))
@@ -363,8 +363,8 @@ class SVGTiler(object):
         image = surface.makeImageSnapshot()
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
-    def get_tile(self, tile: mercantile.Tile):
-    #=========================================
+    def get_tile(self, tile: mercantile.Tile) -> np.ndarray:
+    #=======================================================
         surface = skia.Surface(*self.__tile_size)  ## In pixels...
         canvas = surface.getCanvas()
         canvas.clear(skia.Color4f(0xFFFFFFFF))
@@ -392,8 +392,8 @@ class SVGTiler(object):
                    @T
                    @SVGTransform(f'translate({-translation[0]}, {-translation[1]})'))
 
-    def __draw_svg(self, svg_to_tile_transform, show_progress=False):
-    #================================================================
+    def __draw_svg(self, svg_to_tile_transform, show_progress=False) -> CanvasGroup:
+    #===============================================================================
         wrapped_svg = wrap_element(self.__svg)
         transform = self.__get_transform(wrapped_svg)
         drawing_objects = self.__draw_element_list(wrapped_svg,
@@ -402,8 +402,8 @@ class SVGTiler(object):
             show_progress=show_progress)
         return CanvasGroup(drawing_objects, svg_to_tile_transform, transform, None, outermost=True)
 
-    def __draw_group(self, group, parent_transform, parent_style):
-    #=============================================================
+    def __draw_group(self, group, parent_transform, parent_style) -> CanvasGroup:
+    #============================================================================
         group_style = self.__style_matcher.element_style(group, parent_style)
         group_clip_path = group_style.pop('clip-path', None)
         transform = self.__get_transform(group)
@@ -412,8 +412,8 @@ class SVGTiler(object):
             group_style)
         return CanvasGroup(drawing_objects, parent_transform, transform, self.__clip_paths.get_by_url(group_clip_path))
 
-    def __draw_element_list(self, elements, parent_transform, parent_style, show_progress=False):
-    #============================================================================================
+    def __draw_element_list(self, elements, parent_transform, parent_style, show_progress=False) -> list[CanvasDrawingObject]:
+    #=========================================================================================================================
         drawing_objects = []
         children = list(elements.iter_children())
         progress_bar = ProgressBar(show=show_progress,
@@ -443,8 +443,8 @@ class SVGTiler(object):
         return drawing_objects
 
     @staticmethod
-    def __gradient_matrix(gradient, path):
-    #=====================================
+    def __gradient_matrix(gradient, path) -> skia.Matrix:
+    #====================================================
         if gradient.attrib.get('gradientUnits') == 'userSpaceOnUse':
             path_transform = Transform.Identity()
         else:                                    #  objectBoundingBox'
@@ -461,8 +461,8 @@ class SVGTiler(object):
         and (clip_path := self.__get_clip_path(clip_path_element)) is not None):
             self.__clip_paths.add(clip_id, clip_path)
 
-    def __get_clip_path(self, clip_path_element):
-    #============================================
+    def __get_clip_path(self, clip_path_element) -> Optional[skia.Path]:
+    #===================================================================
         clip_path = None
         for element in clip_path_element:
             if element.tag == SVG_TAG('use'):
@@ -479,8 +479,8 @@ class SVGTiler(object):
                         clip_path.addPath(path)
         return clip_path
 
-    def __draw_element(self, wrapped_element, parent_transform, parent_style):
-    #=========================================================================
+    def __draw_element(self, wrapped_element, parent_transform, parent_style)-> list[CanvasDrawingObject]:
+    #=====================================================================================================
         drawing_objects = []
         element = wrapped_element.etree_element
         element_style = self.__style_matcher.element_style(wrapped_element, parent_style)
