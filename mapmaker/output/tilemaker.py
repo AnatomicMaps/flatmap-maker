@@ -482,13 +482,11 @@ class RasterTileMaker(object):
         self.__rasteriser.start()
         for tile in self.__tile_set:
             tile_queue.put(tile)
-            print('queued tile', tile.x, tile.y)
         tile_queue.put(None)
 
         while self.__rasteriser.is_alive() or not image_queue.empty():
             try:
                 (x, y, image) = image_queue.get(block=False)
-                print('saving tile', x, y)
                 mbtiles.save_tile_as_png(zoom, x, y, image)
             except queue.Empty:
                 pass
