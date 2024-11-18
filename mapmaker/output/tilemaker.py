@@ -20,7 +20,6 @@
 
 import os
 import queue
-from threading import Thread
 from time import sleep
 from typing import TYPE_CHECKING
 
@@ -28,7 +27,7 @@ from typing import TYPE_CHECKING
 
 import cv2
 import mercantile
-from multiprocess import Process, Queue
+import multiprocess as mp
 import multiprocess.connection as mp_connection
 import numpy as np
 import shapely.geometry
@@ -54,7 +53,9 @@ HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
 #===============================================================================
 
 MAX_TILE_PROCESSES = 8 if (cpu_count := os.cpu_count()) is None else (cpu_count - 1)
+
 IDLE_TIMEOUT = 0.00001
+TILE_BATCH_SIZE = 1024
 
 #===============================================================================
 
@@ -183,6 +184,12 @@ class TileSet(object):
 
         # Map extent in tile pixel coordinates
         self.__pixel_rect = self.__world_to_tile_pixels.transform_rect(Rect(sw[0], ne[1], ne[0], sw[1]))
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+             return self.__tiles[index.start:index.stop:index.step]
+        else:
+            return self.__tiles[index]
 
     def __len__(self):
         return len(self.__tiles)
@@ -388,56 +395,6 @@ class SVGImageTiler(RasterImageTiler):
 
 #===============================================================================
 
-
-class ParallelRasteriserManager(Thread):
-    def __init__(self, tile_extractor, tile_queue, image_queue):
-        self.__name = 'tile_extractor'
-        super().__init__(name=self.__name)
-        self.__tile_extractor = tile_extractor
-        self.__tile_queue = tile_queue
-        self.__image_queue = image_queue
-        self.__tile_processes = {}
-        self.__running = True
-        self.__ending = False
-
-    def run(self):
-        while self.__running:
-            if len(self.__tile_processes) < MAX_TILE_PROCESSES:
-                try:
-                    tile = self.__tile_queue.get(block=False)
-                    if tile is not None:
-                        print('received tile', tile.x, tile.y)
-                        tile_process = self.__extract_tile__process(tile)
-                        self.__tile_processes[tile_process.sentinel] = tile_process
-                    else:
-                        print('received last tile...')
-                        self.__ending = True
-                except queue.Empty:
-                    pass
-            if len(self.__tile_processes) > 0:
-                ended_processes = mp_connection.wait(self.__tile_processes.keys(), IDLE_TIMEOUT)
-                for process in ended_processes:
-                    self.__tile_processes.pop(process)
-                self.__running = self.__ending and (len(self.__tile_processes) == 0)
-        print('finished extraction run...')
-
-    def __extract_tile__process(self, tile):
-        tile_process = Process(target=self.__extract_tile,
-            args=(tile, ),
-            name=f'{self.__name}/{tile.z}{tile.x}/{tile.y}')
-        tile_process.start()
-        print('started tile', tile.x, tile.y)
-        return tile_process
-
-    def __extract_tile(self, tile: mercantile.Tile):
-        tile_image = self.__tile_extractor.get_tile(tile)
-        alpha_image = add_alpha(tile_image)
-        print('extracted tile', tile.x, tile.y)
-        if not_empty(alpha_image):
-            self.__image_queue.put((tile.x, tile.y, alpha_image))
-
-#===============================================================================
-
 class RasterTileMaker(object):
     """
     A class for generating image tiles for a map
@@ -474,32 +431,71 @@ class RasterTileMaker(object):
         mbtiles.add_metadata(id=self.__id)
 
         zoom = self.__max_zoom
-        log.info('Tiling zoom level for layer', zoom=zoom, layer=self.__id, tiles=len(self.__tile_set), cpus=MAX_TILE_PROCESSES)
+        tile_count = len(self.__tile_set)
+        log.info(f'Tiling zoom level {zoom} for layer', zoom=zoom, layer=self.__id, tiles=tile_count, cpus=MAX_TILE_PROCESSES)
 
-        tile_queue = Queue()
-        image_queue = Queue()
-        self.__rasteriser = ParallelRasteriserManager(tile_extractor, tile_queue, image_queue)
-        self.__rasteriser.start()
-        for tile in self.__tile_set:
-            tile_queue.put(tile)
-        tile_queue.put(None)
+        tile_processes = {}
+        running = True
+        ending = False
+        image_queue = mp.Queue()
+        tiles_processed = 0
+        tile_pos = 0
+        while running:
+            # Start a tile extraction process if where have spare processors
+            while not ending and len(tile_processes) < MAX_TILE_PROCESSES:
+                if tile_pos < tile_count:
+                    tiles = self.__tile_set[tile_pos:tile_pos + TILE_BATCH_SIZE]
+                    tile_process = self.__extract_tile__process(tiles, tile_extractor, image_queue)
+                    tile_processes[tile_process.sentinel] = tile_process
+                    tile_pos += len(tiles)
+                else:
+                    ending = True
 
-        while self.__rasteriser.is_alive() or not image_queue.empty():
+            # Save extracted tile images
             try:
                 (x, y, image) = image_queue.get(block=False)
                 mbtiles.save_tile_as_png(zoom, x, y, image)
+                tiles_processed += 1
             except queue.Empty:
                 pass
+
+            # Check if extraction processes have finished
+            if len(tile_processes) > 0:
+                ended_processes = mp_connection.wait(tile_processes.keys(), IDLE_TIMEOUT)
+                for process in ended_processes:
+                    tile_processes[process].join()
+                    tile_processes.pop(process)
+                if ending:
+                    running = len(tile_processes) > 0 or not image_queue.empty()
+            # Idle...
             sleep(IDLE_TIMEOUT)
+        image_queue.close()
+        image_queue.join_thread()
+
         self.__make_overview_tiles(mbtiles, zoom, self.__tile_set.start_coords,
                                                   self.__tile_set.end_coords)
         mbtiles.close(compress=True)
+
+    def __extract_tile__process(self, tiles: list[mercantile.Tile], tile_extractor, image_queue):
+        tile_process = mp.Process(target=self.__extract_tile,
+            args=(tiles, tile_extractor, image_queue),
+            name=f'{self.__id}/{tiles[0].z}/{tiles[0].x}/{tiles[0].y}')
+        tile_process.start()
+        return tile_process
+
+    def __extract_tile(self, tiles: list[mercantile.Tile], tile_extractor, image_queue):
+        for tile in tiles:
+            tile_image = tile_extractor.get_tile(tile)
+            if tile_image is not None:
+                alpha_image = add_alpha(tile_image)
+                if not_empty(alpha_image):
+                    image_queue.put((tile.x, tile.y, alpha_image))
 
     def __make_overview_tiles(self, mbtiles, zoom, start_coords, end_coords):
     #========================================================================
         if zoom > self.__min_zoom:
             zoom -= 1
-            log.info('Tiling zoom level for layer', zoom=zoom, layer=self.__id)
+            log.info(f'Tiling zoom {zoom} level for layer', zoom=zoom, layer=self.__id)
             half_start = (start_coords[0]//2, start_coords[1]//2)
             half_end = (end_coords[0]//2, end_coords[1]//2)
             progress_bar = ProgressBar(total=(half_end[0]-half_start[0]+1)
@@ -540,7 +536,7 @@ class RasterTileMaker(object):
                 tile_extractor = SVGImageTiler(self.__raster_layer, self.__tile_set)
         else:
             raise TypeError(f'Unsupported kind of background tile source: {kind}')
-        return Process(target=self.__make_zoomed_tiles, args=(tile_extractor, ), name=self.__id)
+        return mp.Process(target=self.__make_zoomed_tiles, args=(tile_extractor, ), name=self.__id)
 
 #===============================================================================
 
