@@ -470,7 +470,7 @@ class SVGLayer(MapLayer):
             wrapped_element = wrap_element(element)
             geometry, bezier_segments = geometry_from_svg_path(path_tokens,
                 transform@self.__get_transform(wrapped_element), must_close)
-            if properties.get('node', False):
+            if geometry is not None and properties.get('node', False):
                 # All centeline nodes become circles
                 geometry = circle_from_bounds(geometry.bounds)
             if self.flatmap.map_kind in [MAP_KIND.ANATOMICAL, MAP_KIND.CENTRELINE]:
