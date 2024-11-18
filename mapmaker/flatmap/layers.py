@@ -405,10 +405,12 @@ class RasterLayer(object):
                                 the :class:`~mapmaker.geometry.Transform.Identity()` transform
     :type local_world_to_base: :class:`~mapmaker.geometry.Transform`
     """
-    def __init__(self, id: str, extent, map_source: 'MapSource', min_zoom:Optional[int]=None, local_world_to_base=None):
+    def __init__(self, id: str, extent, map_source: 'MapSource',
+                 min_zoom:Optional[int]=None, max_zoom: Optional[int]=None, local_world_to_base=None):
         self.__id = '{}_image'.format(id)
         self.__extent = extent
         self.__map_source = map_source
+        self.__max_zoom = max_zoom if max_zoom is not None else settings.get('maxRasterZoom', map_source.max_zoom)
         self.__min_zoom = min_zoom if min_zoom is not None else map_source.min_zoom
         self.__local_world_to_base = local_world_to_base
 
@@ -427,6 +429,10 @@ class RasterLayer(object):
     @property
     def map_source(self):
         return self.__map_source
+
+    @property
+    def max_zoom(self):
+        return self.__max_zoom
 
     @property
     def min_zoom(self):

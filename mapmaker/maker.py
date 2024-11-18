@@ -106,11 +106,15 @@ class MapMaker(object):
         # Check zoom settings are valid
         min_zoom = 0
         max_zoom = options.get('maxZoom', 10)
+        max_raster_zoom = options.get('maxRasterZoom', max_zoom)
+
         initial_zoom = options.get('initialZoom', 4)
         if max_zoom < min_zoom or max_zoom > 15:
             raise ValueError('Max zoom must be between {} and 15'.format(min_zoom))
+        if max_raster_zoom > max_zoom:
+            raise ValueError(f'Max raster zoom cannot be greater than max zoom ({max_zoom})')
         if initial_zoom < min_zoom or initial_zoom > max_zoom:
-            raise ValueError('Initial zoom must be between {} and {}'.format(min_zoom, max_zoom))
+            raise ValueError(f'Initial zoom cannot be greater than max zoom ({max_zoom})')
         self.__zoom = (min_zoom, max_zoom, initial_zoom)
 
         if options.get('publish'):
@@ -405,7 +409,8 @@ class MapMaker(object):
         tilemakers = []
         for layer in self.__flatmap.layers:
             for raster_layer in layer.raster_layers:
-                tilemaker = RasterTileMaker(raster_layer, self.__map_dir, layer.max_zoom)
+                tilemaker = RasterTileMaker(raster_layer, self.__map_dir,
+                                            settings.get('maxRasterZoom', layer.max_zoom))
                 tilemakers.append(tilemaker)
                 if settings.get('backgroundTiles', False):
                     tilemaker_process = tilemaker.make_tiles()

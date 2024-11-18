@@ -87,6 +87,8 @@ def arg_parser():
                         help='Initial zoom level (defaults to 4)')
     zoom_options.add_argument('--max-zoom', dest='maxZoom', metavar='N', type=int, default=10,
                         help='Maximum zoom level (defaults to 10)')
+    zoom_options.add_argument('--max-raster-zoom', dest='maxRasterZoom', metavar='N', type=int,
+                        help='Maximum zoom level of rasterised tiles (defaults to maximum zoom level)')
 
     misc_options = parser.add_argument_group('Miscellaneous')
     misc_options.add_argument('--commit', metavar='GIT_COMMIT',

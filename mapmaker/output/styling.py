@@ -82,7 +82,7 @@ class TileSources(object):
         if len(vector_layer_dict):
             sources['vector-tiles'] = VectorTileSource.style(vector_layer_dict, bounds, map_zoom)
         for source in raster_sources:
-            sources[source.id] = RasterTileSource.style(source.id, bounds, source.min_zoom, map_zoom[1])
+            sources[source.id] = RasterTileSource.style(source.id, bounds, source.min_zoom, source.max_zoom)
         return sources
 
 #===============================================================================
