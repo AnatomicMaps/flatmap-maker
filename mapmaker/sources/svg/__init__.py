@@ -353,17 +353,18 @@ class SVGLayer(MapLayer):
             else:
                 return Shape(shape_id, geometry, properties, svg_element=element)
         elif element.tag == SVG_TAG('image'):
-            geometry = None
-            clip_path_url = element_style.pop('clip-path', None)
-            if clip_path_url is not None:
-                if ((geometry := self.__clip_geometries.get_by_url(clip_path_url)) is None
-                and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
-                    T = transform@self.__get_transform(wrapped_element)
-                    geometry = self.__get_clip_geometry(clip_path_element, T)
-            else:
-                geometry = self.__get_geometry(element, properties, transform)
-            if geometry is not None:
-                return Shape(shape_id, geometry, properties, shape_type=SHAPE_TYPE.IMAGE, svg_element=element)
+            if self.flatmap.map_kind != MAP_KIND.FUNCTIONAL:
+                geometry = None
+                clip_path_url = element_style.pop('clip-path', None)
+                if clip_path_url is not None:
+                    if ((geometry := self.__clip_geometries.get_by_url(clip_path_url)) is None
+                    and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
+                        T = transform@self.__get_transform(wrapped_element)
+                        geometry = self.__get_clip_geometry(clip_path_element, T)
+                else:
+                    geometry = self.__get_geometry(element, properties, transform)
+                if geometry is not None:
+                    return Shape(shape_id, geometry, properties, shape_type=SHAPE_TYPE.IMAGE, svg_element=element)
         elif element.tag == SVG_TAG('g'):
             return self.__process_group(wrapped_element, properties, transform, parent_style)
         elif element.tag == SVG_TAG('text'):
