@@ -158,9 +158,9 @@ class CanvasDrawingObject(object):
     def paint(self):
         return self.__paint
 
-    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
-    #================================================================================
-        pass
+    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon) -> int:
+    #=======================================================================================
+        return 0
 
     def intersects(self, bbox: BaseGeometry):
     #========================================
@@ -187,11 +187,13 @@ class CanvasPath(CanvasDrawingObject):
         super().__init__(paint, path.getBounds(), parent_transform, local_transform, clip_path)
         self.__path = path
 
-    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
-    #================================================================================
+    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon) -> int:
+    #=======================================================================================
         if self.intersects(tile_bbox):
             with self.transformed_clipped_canvas(canvas):
                 canvas.drawPath(self.__path, self.paint)
+            return 1
+        return 0
 
 #===============================================================================
 
@@ -204,11 +206,13 @@ class CanvasImage(CanvasDrawingObject):
         self.__image = image
         self.__pos = (scale*pos[0], scale*pos[1])
 
-    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
-    #================================================================================
+    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon) -> int:
+    #=======================================================================================
         if self.intersects(tile_bbox):
             with self.transformed_clipped_canvas(canvas):
                 canvas.drawImage(self.__image, self.__pos[0], self.__pos[1], skia.SamplingOptions(), self.paint)
+            return 1
+        return 0
 
 #===============================================================================
 
@@ -250,11 +254,13 @@ class CanvasText(CanvasDrawingObject):
         paint = skia.Paint(AntiAlias=True, Color=skia.ColorBLACK)
         super().__init__(paint, bounds, parent_transform, local_transform, clip_path)
 
-    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
-    #================================================================================
+    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon) -> int:
+    #=======================================================================================
         if self.intersects(tile_bbox):
             with self.transformed_clipped_canvas(canvas):
                 canvas.drawString(self.__text, self.__pos[0], self.__pos[1], self.__font, self.paint)
+            return 1
+        return 0
 
 #===============================================================================
 
@@ -271,12 +277,14 @@ class CanvasGroup(CanvasDrawingObject):
     def is_valid(self):
         return len(self.__drawing_objects) > 0
 
-    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon):
-    #================================================================================
+    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon) -> int:
+    #=======================================================================================
+        drawn_elements = 0
         if self.intersects(tile_bbox):
             with self.transformed_clipped_canvas(canvas):
                 for element in self.__drawing_objects:
-                    element.draw_element(canvas, tile_bbox)
+                    drawn_elements += element.draw_element(canvas, tile_bbox)
+        return drawn_elements
 
 #===============================================================================
 #===============================================================================
@@ -363,8 +371,8 @@ class SVGTiler(object):
         image = surface.makeImageSnapshot()
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
-    def get_tile(self, tile: mercantile.Tile) -> np.ndarray:
-    #=======================================================
+    def get_tile(self, tile: mercantile.Tile) -> Optional[np.ndarray]:
+    #=================================================================
         surface = skia.Surface(*self.__tile_size)  ## In pixels...
         canvas = surface.getCanvas()
         canvas.clear(skia.Color4f(0xFFFFFFFF))
@@ -372,9 +380,11 @@ class SVGTiler(object):
                          self.__pixel_offset[1] + (self.__tile_origin[1] - tile.y)*self.__tile_size[1])
         quadkey = mercantile.quadkey(tile)
         if quadkey in self.__tile_bboxes:
-            self.__svg_drawing.draw_element(canvas, self.__tile_bboxes[quadkey])
-        image = surface.makeImageSnapshot()
-        return image.toarray(colorType=skia.kBGRA_8888_ColorType)
+            drawn_elements = self.__svg_drawing.draw_element(canvas, self.__tile_bboxes[quadkey])
+            if drawn_elements:
+                image = surface.makeImageSnapshot()
+                return image.toarray(colorType=skia.kBGRA_8888_ColorType)
+        return None
 
     def __get_transform(self, wrapped_element) -> Optional[Transform]:
     #=================================================================
