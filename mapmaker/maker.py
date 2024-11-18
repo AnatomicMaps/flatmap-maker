@@ -417,7 +417,7 @@ class MapMaker(object):
                     tilemaker_process.start()
                     maker_processes[tilemaker_process.sentinel] = tilemaker_process
         while len(maker_processes) > 0:
-            ended_processes = multiprocessing.connection.wait(maker_processes.keys())
+            ended_processes = multiprocessing.connection.wait(maker_processes.keys(), 0.0001)
             for process in ended_processes:
                 maker_processes.pop(process)
         for tilemaker in tilemakers:
