@@ -125,8 +125,10 @@ class MapMaker(object):
                     log.warning('Option not allowed when publishing a dataset', option=option)
                     errors = True
             if errors:
-                raise ValueError('Invalid parameters for dataset publishing ')
-            options['backgroundTiles'] = True
+                raise ValueError('Invalid parameters for dataset publishing')
+            if settings.get('backgroundTiles', False):
+                log.info('Publishing as a dataset has set `--background-tiles`')
+                options['backgroundTiles'] = True
 
         if settings.get('backgroundTiles', False) and (cpu_count := os.cpu_count()) is not None and cpu_count < 2:
             raise ValueError('Cannot make background tiles on a single CPU system')
