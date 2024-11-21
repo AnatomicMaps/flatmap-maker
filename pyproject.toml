@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mapmaker"
-version = "1.15.2"
+version = "1.15.3"
 description = ""
 authors = ["David Brooks <d.brooks@auckland.ac.nz>"]
 include = ["mapmaker/output/data_mapping.json", "resources/*"]
