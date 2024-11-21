@@ -108,6 +108,10 @@ class MapRepository:
             }
 
     @property
+    def description(self) -> str:
+        return self.__repo.git.describe()
+
+    @property
     def sha(self) -> str:
         return self.__repo.head.commit.hexsha
 
@@ -329,7 +333,8 @@ class Manifest:
             return {
                 'sha': self.__repo.sha,
                 'remotes': self.__repo.remotes,
-                'committed': self.__repo.committed
+                'committed': self.__repo.committed,
+                'description': self.__repo.description
             }
 
     @property
