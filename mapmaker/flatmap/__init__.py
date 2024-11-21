@@ -277,6 +277,8 @@ class FlatMap(object):
                 pass
             else:
                 self.__features_with_id[feature.id] = feature
+        if feature.models in self.__properties_store.proxies:
+            feature.set_property('proxy-features', self.__properties_store.proxies[feature.models])
         return feature
 
     def network_feature(self, feature: Feature) -> bool:
