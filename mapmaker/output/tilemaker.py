@@ -52,7 +52,7 @@ HALF_SIZE = (TILE_SIZE[0]//2, TILE_SIZE[1]//2)
 
 #===============================================================================
 
-MAX_TILE_PROCESSES = 8 if (cpu_count := os.cpu_count()) is None else (cpu_count - 1)
+MAX_TILE_PROCESSES = 8 if (cpu_count := os.cpu_count()) is None else cpu_count
 
 IDLE_TIMEOUT = 0.00001
 TILE_BATCH_SIZE = 1024
