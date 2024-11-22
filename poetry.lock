@@ -433,20 +433,20 @@ typing = ["typing-extensions (>=4.12.2)"]
 
 [[package]]
 name = "flatmapknowledge"
-version = "2.0.3"
+version = "2.0.4"
 description = ""
 optional = false
 python-versions = ">=3.12,<4.0"
 files = [
-    {file = "flatmapknowledge-2.0.3-py3-none-any.whl", hash = "sha256:4e9a16003ee1a653866dac86640849abd3aec17be8be5c9a287166fa748c4d50"},
+    {file = "flatmapknowledge-2.0.4-py3-none-any.whl", hash = "sha256:21c921c31f97f7889e1783494faabb10bd1a80a794e0bf71e171b5db121b7218"},
 ]
 
 [package.dependencies]
-mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.20.3/mapknowledge-0.20.3-py3-none-any.whl"}
+mapknowledge = {url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.20.4/mapknowledge-0.20.4-py3-none-any.whl"}
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.0.3/flatmapknowledge-2.0.3-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.0.4/flatmapknowledge-2.0.4-py3-none-any.whl"
 
 [[package]]
 name = "frozendict"
@@ -1043,12 +1043,12 @@ source = ["Cython (>=3.0.11)"]
 
 [[package]]
 name = "mapknowledge"
-version = "0.20.3"
+version = "0.20.4"
 description = ""
 optional = false
 python-versions = ">=3.12,<4.0"
 files = [
-    {file = "mapknowledge-0.20.3-py3-none-any.whl", hash = "sha256:5604f3c7526adbd09c678e126d1ea006ad1c7be05d27e543130779e96708b598"},
+    {file = "mapknowledge-0.20.4-py3-none-any.whl", hash = "sha256:af141f6f8b74b93436fa2c9b1c9632745ffcad508b8a43a96e479fe0a7228233"},
 ]
 
 [package.dependencies]
@@ -1062,7 +1062,7 @@ structlog = ">=24.4.0,<25.0.0"
 
 [package.source]
 type = "url"
-url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.20.3/mapknowledge-0.20.3-py3-none-any.whl"
+url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v0.20.4/mapknowledge-0.20.4-py3-none-any.whl"
 
 [[package]]
 name = "markdown-it-py"
@@ -3875,4 +3875,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<4.0"
-content-hash = "a43c0ba159227ca739343b1c443b11d1cc2e91de1db9506b64510b5f23cfcd3d"
+content-hash = "be5922375e5b1b93b3b9346f6927ebd2967e7a9cda1fbb7390e54f3d2690ee4b"
