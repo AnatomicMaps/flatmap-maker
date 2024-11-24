@@ -112,13 +112,10 @@ class PropertiesStore(object):
                                 for network in properties_dict.get('networks', []) }
 
         # Proxy features defined in JSON
-        self.__proxies = []
-        if manifest.proxy_features is not None:
-            for proxy in FilePath(manifest.proxy_features).get_json():
-                self.__proxies += [{
-                    'feature': proxy['feature'],
-                    'proxies': proxy['proxies']
-                }]
+        self.__proxies = ([dict(feature=proxy['feature'], proxies=proxy['proxies'])
+                           for proxy in FilePath(manifest.proxy_features).get_json()]
+                           if manifest.proxy_features is not None
+                           else [])
 
     @property
     def connectivity(self):
