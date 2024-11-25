@@ -286,6 +286,8 @@ class Manifest:
                 self.__manifest['connectivityTerms'] = self.check_and_normalise_path(self.__manifest['connectivityTerms'], 'Flatmap connectivity terms')
             if 'properties' in self.__manifest:
                 self.__manifest['properties'] = self.check_and_normalise_path(self.__manifest['properties'], 'Flatmap properties')
+            if 'proxyFeatures' in self.__manifest:
+                self.__manifest['proxyFeatures'] = self.check_and_normalise_path(self.__manifest['proxyFeatures'], 'Flatmap proxy features')
             for path in self.__manifest.get('connectivity', []):
                 self.__connectivity.append(self.check_and_normalise_path(path, 'Flatmap connectivity'))
             if not ignore_git and self.__uncommitted:
@@ -318,6 +320,10 @@ class Manifest:
     @property
     def description(self):
         return self.__manifest.get('description')
+
+    @property
+    def proxy_features(self):
+        return self.__manifest.get('proxyFeatures')
 
     @property
     def file_set(self) -> list[ManifestFile]:
