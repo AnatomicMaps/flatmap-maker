@@ -111,6 +111,12 @@ class PropertiesStore(object):
         self.__networks = { network.get('id'): Network(flatmap, network, self)
                                 for network in properties_dict.get('networks', []) }
 
+        # Proxy features defined in JSON
+        self.__proxies = ([dict(feature=proxy['feature'], proxies=proxy['proxies'])
+                           for proxy in FilePath(manifest.proxy_features).get_json()]
+                           if manifest.proxy_features is not None
+                           else [])
+
     @property
     def connectivity(self):
         return self.__pathways.connectivity
@@ -126,6 +132,10 @@ class PropertiesStore(object):
     @property
     def pathways(self):
         return self.__pathways
+
+    @property
+    def proxies(self):
+        return self.__proxies
 
     def network_feature(self, feature):
     #==================================
