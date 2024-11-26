@@ -474,15 +474,15 @@ class MapMaker(object):
     #===========================
         log.info('Outputting features...')
         exported_features = []
-        identifier_export = settings.get('exportIdentifiers', '')
+        feature_export_file = settings.get('exportFeatures', '')
         for layer in self.__flatmap.layers:
             if layer.exported:
                 log.info('Map layer', layer=layer.id, feature_count=len(layer.features))
-                if identifier_export != '':
+                if feature_export_file != '':
                     for feature in layer.features:
                         if (feature.id is not None
-                        and feature.models is not None
                         and not feature.get_property('exclude', False)
+                        and feature.get_property('label', '') != ''
                         and (not 'error' in feature.properties) or settings.get('authoring', False)):
                             exported_features.append(feature)
                 geojson_output = GeoJSONOutput(self.__flatmap, layer, self.__map_dir)
@@ -495,13 +495,17 @@ class MapMaker(object):
                         'description': '{} -- {}'.format(layer.description, layer_name)
                     })
                 self.__flatmap.update_annotations(layer.annotations)
-        if identifier_export != '':
-            export = [{
+        if feature_export_file != '':
+            def clean_export(entry: dict):
+                if entry['models'] is None:
+                    entry.pop('models')
+                return entry
+            export = list(map(clean_export, [{
                 'id': feature.id,
-                'term': feature.models,
-                'label': feature.get_property('label', '')
-            } for feature in exported_features]
-            with open(identifier_export, 'w') as fp:
+                'models': feature.models,
+                'label': feature.get_property('label')
+            } for feature in exported_features]))
+            with open(feature_export_file, 'w') as fp:
                 fp.write(json.dumps(export, indent=4))
 
     def __save_metadata(self):

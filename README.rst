@@ -113,7 +113,7 @@ Command line help
                     [--authoring] [--debug]
                     [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N]
-                    [--export-identifiers EXPORT_FILE] [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE]
+                    [--export-features EXPORT_FILE] [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE]
                     [--single-file {celldl,svg}]
                     --output OUTPUT --source SOURCE
 
@@ -164,8 +164,8 @@ Command line help
       --max-zoom N          Maximum zoom level (defaults to 10)
 
     Miscellaneous:
-      --export-identifiers EXPORT_FILE
-                            Export identifiers and anatomical terms of features as JSON
+      --export-features EXPORT_FILE
+                            Export identifiers and anatomical terms of labelled features as JSON
       --export-neurons EXPORT_FILE
                             Export details of functional connectivity neurons as JSON
       --export-svg EXPORT_FILE
