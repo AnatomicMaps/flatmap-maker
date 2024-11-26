@@ -108,8 +108,11 @@ class MapRepository:
             }
 
     @property
-    def description(self) -> str:
-        return self.__repo.git.describe()
+    def description(self) -> Optional[str]:
+        try:
+            return self.__repo.git.describe()
+        except git.GitCommandError:
+            pass
 
     @property
     def sha(self) -> str:
@@ -334,14 +337,16 @@ class Manifest:
         return self.__repo
 
     @property
-    def git_status(self):
+    def git_status(self) -> Optional[dict]:
         if self.__repo is not None and self.__repo.sha is not None:
-            return {
+            status = {
                 'sha': self.__repo.sha,
                 'remotes': self.__repo.remotes,
-                'committed': self.__repo.committed,
-                'description': self.__repo.description
+                'committed': self.__repo.committed
             }
+            if (description := self.__repo.description) is not None:
+                status['description'] = description
+            return status
 
     @property
     def id(self):
