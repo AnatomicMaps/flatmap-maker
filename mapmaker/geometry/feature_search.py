@@ -18,15 +18,22 @@
 #
 #===============================================================================
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mapmaker.flatmap import Feature
+
+#===============================================================================
+
 class FeatureSearch(object):
-    def __init__(self, features):
+    def __init__(self, features: list['Feature']):
         self.__min_x = sorted(features, key=lambda f: f.geometry.bounds[0])
         self.__min_y = sorted(features, key=lambda f: f.geometry.bounds[1])
         self.__max_x = sorted(features, key=lambda f: f.geometry.bounds[2])
         self.__max_y = sorted(features, key=lambda f: f.geometry.bounds[3])
 
-    def features_covering(self, feature):
-    #====================================
+    def features_covering(self, feature: 'Feature'):
+    #===============================================
         covering = set(self.__features_before(feature, self.__min_x, key=lambda f: f.geometry.bounds[0]))
         covering.intersection_update(self.__features_before(feature, self.__min_y, key=lambda f: f.geometry.bounds[1]),
                                      self.__features_after(feature, self.__max_x, key=lambda f: f.geometry.bounds[2]),
@@ -35,8 +42,8 @@ class FeatureSearch(object):
         covering = [f for f in covering if f.geometry.contains(feature.geometry)]
         return sorted(covering, key=lambda f: f.geometry.area)
 
-    def features_inside(self, feature):
-    #==================================
+    def features_inside(self, feature: 'Feature'):
+    #=============================================
         interior = set(self.__features_after(feature, self.__min_x, key=lambda f: f.geometry.bounds[0]))
         interior.intersection_update(self.__features_after(feature, self.__min_y, key=lambda f: f.geometry.bounds[1]),
                                      self.__features_before(feature, self.__max_x, key=lambda f: f.geometry.bounds[2]),
@@ -46,7 +53,7 @@ class FeatureSearch(object):
         return sorted(interior, key=lambda f: f.geometry.area)
 
     @staticmethod
-    def __features_before(feature, features, key=lambda f: f):
+    def __features_before(feature: 'Feature', features: list['Feature'], key=lambda f: f):
         start = 0
         end = len(features)
         while (end - start) > 1:
@@ -58,7 +65,7 @@ class FeatureSearch(object):
         return features[:end]
 
     @staticmethod
-    def __features_after(feature, features, key=lambda f: f):
+    def __features_after(feature: 'Feature', features: list['Feature'], key=lambda f: f):
         start = 0
         end = len(features)
         while (end - start) > 1:
