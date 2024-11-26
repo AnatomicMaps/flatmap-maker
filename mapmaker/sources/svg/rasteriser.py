@@ -41,9 +41,11 @@ import webcolors
 
 from mapmaker.geometry import extent_to_bounds, Transform, reflect_point
 from mapmaker.properties.markup import parse_markup
+from mapmaker.settings import MAP_KIND
 from mapmaker.utils import FilePath, ProgressBar, log
 
 from .. import WORLD_METRES_PER_PIXEL
+from . import FUNCTIONAL_MAP_MARGIN
 from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
@@ -302,6 +304,11 @@ class SVGTiler(object):
             (left, top) = (0, 0)
             self.__size = (length_as_pixels(self.__svg.attrib['width']),
                            length_as_pixels(self.__svg.attrib['height']))
+        if raster_layer.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+            left -= FUNCTIONAL_MAP_MARGIN
+            top -= FUNCTIONAL_MAP_MARGIN
+            self.__size =  (self.__size[0] + 2*FUNCTIONAL_MAP_MARGIN,
+                            self.__size[1] + 2*FUNCTIONAL_MAP_MARGIN)
         self.__scaling = (tile_set.pixel_rect.width/self.__size[0],
                           tile_set.pixel_rect.height/self.__size[1])
         self.__definitions = DefinitionStore()
