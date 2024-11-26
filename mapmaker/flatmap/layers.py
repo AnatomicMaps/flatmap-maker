@@ -410,6 +410,7 @@ class RasterLayer(object):
         self.__id = '{}_image'.format(id)
         self.__extent = extent
         self.__map_source = map_source
+        self.__flatmap = map_source.flatmap
         self.__max_zoom = max_zoom if max_zoom is not None else settings.get('maxRasterZoom', map_source.max_zoom)
         self.__min_zoom = min_zoom if min_zoom is not None else map_source.min_zoom
         self.__local_world_to_base = local_world_to_base
@@ -417,6 +418,10 @@ class RasterLayer(object):
     @property
     def extent(self):
         return self.__extent
+
+    @property
+    def flatmap(self):
+        return self.__flatmap
 
     @property
     def id(self):
