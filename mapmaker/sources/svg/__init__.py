@@ -20,6 +20,7 @@
 
 import os
 import tempfile
+import typing
 from typing import Optional
 import unicodedata
 
@@ -115,6 +116,7 @@ class SVGSource(MapSource):
                                @np.array([[1.0,  0.0, -left-width/2],
                                           [0.0, -1.0,   top+height/2],
                                           [0.0,  0.0,            1.0]]))
+            self.__metres_per_pixel = scale
         else:
             # Transform from SVG pixels to world coordinates
             self.__transform = (Transform([[WORLD_METRES_PER_PIXEL,                      0, 0],
@@ -123,6 +125,7 @@ class SVGSource(MapSource):
                                @np.array([[1.0,  0.0, -left-width/2.0],
                                           [0.0, -1.0,  top+height/2.0],
                                           [0.0,  0.0,             1.0]]))
+            self.__metres_per_pixel = WORLD_METRES_PER_PIXEL
 
         top_left = self.__transform.transform_point((left, top))
         bottom_right = self.__transform.transform_point((left+width, top+height))
@@ -135,6 +138,10 @@ class SVGSource(MapSource):
     @property
     def boundary_geometry(self):
         return self.__boundary_geometry
+
+    @property
+    def metres_per_pixel(self):
+        return self.__metres_per_pixel
 
     @property
     def transform(self):
@@ -185,6 +192,10 @@ class SVGLayer(MapLayer):
             # Include layer id with shape id when setting feature id
             Shape.reset_shape_id(prefix=f'{id}/')
 
+    @property
+    def source(self) -> SVGSource:
+        return typing.cast(SVGSource, super().source)
+
     def process(self):
     #=================
         properties = {'tile-layer': FEATURES_TILE_LAYER}   # Passed through to map viewer
@@ -198,7 +209,7 @@ class SVGLayer(MapLayer):
     #====================================================================
         if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             # CellDL conversion mode...
-            sc = ShapeClassifier(shapes.flatten(), self.source.map_area())
+            sc = ShapeClassifier(shapes.flatten(), self.source.map_area(), self.source.metres_per_pixel)
             shapes = TreeList(sc.classify())
 
         if self.source.base_feature is not None:
