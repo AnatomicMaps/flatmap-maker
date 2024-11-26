@@ -44,8 +44,7 @@ from mapmaker.properties.markup import parse_markup
 from mapmaker.settings import MAP_KIND
 from mapmaker.utils import FilePath, ProgressBar, log
 
-from .. import WORLD_METRES_PER_PIXEL
-from . import FUNCTIONAL_MAP_MARGIN
+from . import FUNCTIONAL_MAP_MARGIN, SVGSource
 from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
@@ -325,11 +324,13 @@ class SVGTiler(object):
                                            [              0.0,               0.0, 1.0]])@np.array([[1.0, 0.0, -left],
                                                                                                    [0.0, 1.0, -top],
                                                                                                    [0.0, 0.0,  1.0]])
+        svg_source = typing.cast(SVGSource, raster_layer.map_source)
+        metres_per_pixel = svg_source.metres_per_pixel
         # Transform from SVG pixels to world coordinates
         self.__image_to_world = (Transform([
-            [WORLD_METRES_PER_PIXEL/self.__scaling[0],                                        0, 0],
-            [                                       0, WORLD_METRES_PER_PIXEL/self.__scaling[1], 0],
-            [                                       0,                                        0, 1]])
+            [metres_per_pixel/self.__scaling[0],                                  0, 0],
+            [                                 0, metres_per_pixel/self.__scaling[1], 0],
+            [                                 0,                                  0, 1]])
            @np.array([[1.0,  0.0, -self.__scaling[0]*self.__size[0]/2.0],
                       [0.0, -1.0,  self.__scaling[1]*self.__size[1]/2.0],
                       [0.0,  0.0,                                   1.0]]))
