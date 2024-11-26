@@ -97,6 +97,10 @@ def make_colour(colour_string, opacity=1.0):
         opacity *= float(rgba[3])
     else:
         colour = webcolors.html5_parse_legacy_color(colour_string)
+    # A pure white becomes transparent when we add alpha and then allows
+    # a map's background colour to show through...
+    if tuple(colour) == (255, 255, 255):
+        colour = (254, 254, 254)
     return skia.Color(*tuple(colour), round(255*opacity))
 
 #===============================================================================
