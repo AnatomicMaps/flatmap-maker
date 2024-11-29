@@ -102,7 +102,6 @@ def configure_logging(log_file=None, verbose=False, silent=False, debug=False) -
             structlog.stdlib.add_log_level,
             structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
             structlog.processors.TimeStamper(fmt='iso'),
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
