@@ -140,6 +140,8 @@ def parse_markup(markup):
                 properties[prop[0]] = prop[1]
     except ParseException:
         properties['error'] = 'Syntax error'
+        if settings.get('debug', False):
+            raise
     if len(deprecated):
         properties['warning'] = f"Deprecated `{', '.join(deprecated)}`"
     if ('styling' in properties
