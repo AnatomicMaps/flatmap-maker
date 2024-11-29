@@ -68,10 +68,11 @@ CLASS = Group(Keyword('class') + Suppress('(') + ID_TEXT + Suppress(')'))
 CHILDCLASSES = Group(Keyword('children') + Suppress('(') + ID_TEXT + Suppress(')'))
 DETAILS = Group(Keyword('details') + Suppress('(') + ID_TEXT + Suppress(',') + ZOOM_LEVEL + Suppress(')'))
 PATH = Group(Keyword('path') + Suppress('(') + ID_TEXT + Suppress(')'))
+STYLE = Group(Keyword('style') + Suppress('(') + INTEGER + Suppress(')'))
 
 NAME = Group(Keyword('name') + Suppress('(') + FREE_TEXT + Suppress(')'))
 
-FEATURE_PROPERTIES = CLASS | CHILDCLASSES | IDENTIFIER | NAME
+FEATURE_PROPERTIES = CLASS | CHILDCLASSES | IDENTIFIER | NAME | STYLE
 
 SHAPE_FLAGS = Group(Keyword('boundary')
                   | Keyword('closed')
