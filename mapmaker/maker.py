@@ -133,10 +133,6 @@ class MapMaker(object):
         if settings.get('backgroundTiles', False) and (cpu_count := os.cpu_count()) is not None and cpu_count < 2:
             raise ValueError('Cannot make background tiles on a single CPU system')
 
-        # Authoring implies to clean output directory, report deprecated markup, and don't tile background
-        if options.get('authoring', False):
-            options['showDeprecated'] = True
-
         # Save options to add to map's metadata
         self.__options = options
 

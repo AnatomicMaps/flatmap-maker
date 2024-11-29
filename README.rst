@@ -106,7 +106,7 @@ Command line help
 .. code-block:: text
 
     usage: mapmaker [-h] [-v]
-                    [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
+                    [--log LOG_FILE] [--silent] [--verbose]
                     [--all-path-taxons] [--background-tiles] [--clean-connectivity] [--disconnected-paths]
                     [--force] [--id ID] [--ignore-git] [--ignore-sckan] [--invalid-neurons]
                     [--no-path-layout] [--publish SPARC_DATASET] [--sckan-version {production,staging}]
@@ -125,7 +125,6 @@ Command line help
 
     Logging:
       --log LOG_FILE        Append messages to a log file
-      --show-deprecated     Issue a warning for deprecated markup properties
       --silent              Suppress all messages to screen
       --verbose             Show progress bars
 

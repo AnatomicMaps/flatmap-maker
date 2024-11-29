@@ -140,8 +140,8 @@ def parse_markup(markup):
                 properties[prop[0]] = prop[1]
     except ParseException:
         properties['error'] = 'Syntax error'
-    if len(deprecated) and settings.get('showDeprecated', False):
-        properties['warning'] = "Deprecated '{}'".format("', '".join(deprecated))
+    if len(deprecated):
+        properties['warning'] = f"Deprecated `{', '.join(deprecated)}`"
     if ('styling' in properties
     and ('id' in properties or 'class' in properties)):
         properties['error'] = "'styling' element can't have an 'id' nor 'class'"
