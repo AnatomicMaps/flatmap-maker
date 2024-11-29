@@ -125,7 +125,6 @@ Command line help
 
     Logging:
       --log LOG_FILE        Append messages to a log file
-      --show-deprecated     Issue a warning for deprecated markup properties
       --silent              Suppress all messages to screen
       --verbose             Show progress bars
 
