@@ -106,8 +106,8 @@ Command line help
 .. code-block:: text
 
     usage: mapmaker [-h] [-v]
-                    [--log LOG_FILE] [--show-deprecated] [--silent] [--verbose]
-                    [--all-path-taxons] [--background-tiles] [--clean-connectivity] [--disconnected-paths]
+                    [--log LOG_FILE] [--silent] [--verbose]
+                    [--background-tiles] [--clean-connectivity] [--disconnected-paths]
                     [--force] [--id ID] [--ignore-git] [--ignore-sckan] [--invalid-neurons]
                     [--no-path-layout] [--publish SPARC_DATASET] [--sckan-version {production,staging}]
                     [--authoring] [--debug]
@@ -130,7 +130,6 @@ Command line help
       --verbose             Show progress bars
 
     Map generation:
-      --all-path-taxons     Include paths whose taxons don't match the map's taxon
       --background-tiles    Generate image tiles of map's layers (may take a
                             while...)
       --clean-connectivity  Refresh local connectivity knowledge from SciCrunch
