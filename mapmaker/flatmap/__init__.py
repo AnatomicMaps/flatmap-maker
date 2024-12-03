@@ -312,7 +312,8 @@ class FlatMap(object):
                 self.new_feature(self.__bottom_exported_layer.id, proxy_dot(feature.geometry), {   # type: ignore
                     'id': f'proxy_on_{feature.id}',
                     'tile-layer': FEATURES_TILE_LAYER,
-                    'models': feature_model
+                    'models': feature_model,
+                    'kind': 'proxy'
                 })
             )
 
