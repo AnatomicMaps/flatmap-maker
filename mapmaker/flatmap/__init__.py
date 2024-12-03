@@ -33,6 +33,7 @@ import numpy as np          # type: ignore
 from mapmaker import FLATMAP_VERSION, __version__
 from mapmaker.geometry import FeatureSearch, Transform
 from mapmaker.geometry import normalised_coords
+from mapmaker.geometry.proxy_dot import proxy_dot
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.knowledgebase import AnatomicalNode, get_knowledge
 from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
@@ -41,7 +42,7 @@ from mapmaker.settings import MAP_KIND
 from mapmaker.utils import log
 
 from .feature import Feature, FeatureAnatomicalNodeMap
-from .layers import MapLayer
+from .layers import FEATURES_TILE_LAYER, MapLayer
 
 # Exports
 from .manifest import Manifest, ManifestSource
@@ -73,6 +74,7 @@ class FlatMap(object):
         self.__connection_set = ConnectionSet('connections')
         self.__sckan_provenance = maker.sckan_provenance
         self.__sckan_neuron_populations = SckanNeuronPopulations(self)
+        self.__bottom_exported_layer: Optional[MapLayer] = None
 
     def __len__(self):
         return self.__visible_layer_count
@@ -214,6 +216,8 @@ class FlatMap(object):
         self.__add_details()
         # Set additional properties from properties file
         self.__set_feature_properties()
+        # Add features to indicate proxies (NB. has to be after setting feature properties)
+        self.__add_proxied_features()
         # Initialise geographical search for annotated features
         self.__setup_feature_search()
         # Add manual connections into the map's paths
@@ -283,12 +287,43 @@ class FlatMap(object):
     #===================================================
         return self.__properties_store.network_feature(feature)
 
+    def __add_proxied_features(self):
+    #================================
+        if self.__bottom_exported_layer is None:
+            log.warning('No exported layer on which to add proxy features', type='proxy')
+            return
+        for proxy_definition in self.__properties_store.proxies:
+            feature_model = proxy_definition['feature']
+            if self.__feature_node_map.has_model(feature_model):
+                log.warning('Proxied feature ignored already as already on the map', type='proxy', models=feature_model)
+            else:
+                for proxy_model in proxy_definition['proxies']:
+                    if not self.__feature_node_map.has_model(proxy_model):
+                        log.warning('Proxy missing from map', type='proxy', models=feature_model, proxy=proxy_model)
+                    for feature in self.__feature_node_map.get_features(proxy_model):
+                        self.__add_proxy_feature(feature, feature_model)
+
+    def __add_proxy_feature(self, feature: Feature, feature_model: str):
+    #===================================================================
+        if 'Polygon' not in feature.geometry.geom_type:
+            log.warning('Proxy feature must have a polygon shape', type='proxy', models=feature_model, feature=feature)
+        elif self.__bottom_exported_layer is not None:
+            self.__bottom_exported_layer.add_feature(
+                self.new_feature(self.__bottom_exported_layer.id, proxy_dot(feature.geometry), {   # type: ignore
+                    'id': f'proxy_on_{feature.id}',
+                    'tile-layer': FEATURES_TILE_LAYER,
+                    'models': feature_model
+                })
+            )
+
     def add_layer(self, layer: MapLayer):
     #====================================
         if layer.id in self.__layer_dict:
             raise KeyError('Duplicate layer id: {}'.format(layer.id))
         self.__layer_dict[layer.id] = layer
         if layer.exported:
+            if self.__bottom_exported_layer is None:
+                self.__bottom_exported_layer = layer
             self.__visible_layer_count += 1
             for feature in layer.features:
                 if (feature.id is not None
