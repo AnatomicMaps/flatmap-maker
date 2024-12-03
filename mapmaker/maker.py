@@ -523,9 +523,6 @@ class MapMaker(object):
         tile_db.add_metadata(pathways=json.dumps(self.__flatmap.connectivity()))
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(self.__flatmap.annotations, default=set_as_list))
-        # Save proxy features in metadata
-        if self.__manifest.proxy_features is not None:
-            tile_db.add_metadata(proxies=json.dumps(self.__flatmap.properties_store.proxies))
 
         # Commit updates to the database
         tile_db.execute("COMMIT")

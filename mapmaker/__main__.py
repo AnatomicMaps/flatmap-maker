@@ -41,8 +41,6 @@ def arg_parser():
                         help="Show progress bars")
 
     generation_options = parser.add_argument_group('Map generation')
-    generation_options.add_argument('--all-path-taxons', dest='allPathTaxons', action='store_true', default=True,
-                        help="Include paths whose taxons don't match the map's taxon")
     generation_options.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
                         help="Generate image tiles of map's layers (may take a while...)")
     generation_options.add_argument('--clean-connectivity', dest='cleanConnectivity', action='store_true',

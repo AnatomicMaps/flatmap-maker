@@ -204,4 +204,12 @@ class FeatureAnatomicalNodeMap:
             feature.add_anatomical_node(matched_node)
         return (matched_node, matched_features)
 
+    def get_features(self, model: str) -> set[Feature]:
+    #==================================================
+        return self.__model_to_features.get(model, set())
+
+    def has_model(self, model: str) -> bool:
+    #=======================================
+        return model in self.__model_to_features
+
 #===============================================================================
