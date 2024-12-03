@@ -68,7 +68,7 @@ class VectorTileSource(object):
             'maxzoom': layer_zoom[1],
             'bounds': bounds,   # southwest(lng, lat), northeast(lng, lat)
             'attribution': ATTRIBUTION,
-            'generator': 'tippecanoe v1.34.0',
+            'generator': 'tippecanoe',
             'vector_layers': vector_layer_dict['vector_layers'],
             'tilestats': vector_layer_dict['tilestats']
         }
