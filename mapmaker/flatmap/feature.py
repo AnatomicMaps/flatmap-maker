@@ -178,6 +178,8 @@ class FeatureAnatomicalNodeMap:
                     matched_node = AnatomicalNode([substitute_id, anatomical_layers])
                     break
         if len(anatomical_layers) == 0:
+            for feature in features:
+                feature.add_anatomical_node(matched_node)
             return (matched_node, features)
 
         # Restrict found features to those contained in specified layers
