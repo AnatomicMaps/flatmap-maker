@@ -56,8 +56,8 @@ Shape types from size (area and aspect ratio) and geometry:
 # SVG pixel space scaled to world metres
 # These are based on the CVS bondgraph diagram
 
-MAX_TEXT_VERTICAL_OFFSET = 5        # Between cluster baseline and baselines of text in the cluster
-TEXT_BASELINE_OFFSET = -14.5        # From vertical centre of a component
+MAX_TEXT_VERTICAL_OFFSET = 5    # Between cluster baseline and baselines of text in the cluster
+TEXT_BASELINE_OFFSET = -14.5    # From vertical centre of a component
 
 #===============================================================================
 
