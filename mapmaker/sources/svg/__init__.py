@@ -211,10 +211,9 @@ class SVGLayer(MapLayer):
             # CellDL conversion mode...
             sc = ShapeClassifier(shapes.flatten(), self.source.map_area(), self.source.metres_per_pixel)
             shapes = TreeList(sc.classify())
-
         if self.source.base_feature is not None:
             bounds = self.source.bounds
-            margin = 0.01*(abs(bounds[2]-bounds[0])
+            margin = 0.02*(abs(bounds[2]-bounds[0])
                          + abs(bounds[3]-bounds[1]))
             bbox = shapely.geometry.box(*bounds).buffer(margin)
             shapes.insert(0, Shape('background', bbox, {

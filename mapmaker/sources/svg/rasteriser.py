@@ -307,11 +307,14 @@ class SVGTiler(object):
             (left, top) = (0, 0)
             self.__size = (length_as_pixels(self.__svg.attrib['width']),
                            length_as_pixels(self.__svg.attrib['height']))
-        if raster_layer.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+        if (raster_layer.map_source.base_feature is None
+        and raster_layer.flatmap.map_kind == MAP_KIND.FUNCTIONAL):
             left -= FUNCTIONAL_MAP_MARGIN
             top -= FUNCTIONAL_MAP_MARGIN
             self.__size =  (self.__size[0] + 2*FUNCTIONAL_MAP_MARGIN,
                             self.__size[1] + 2*FUNCTIONAL_MAP_MARGIN)
+
+        self.__left_top = (left, top)
         self.__scaling = (tile_set.pixel_rect.width/self.__size[0],
                           tile_set.pixel_rect.height/self.__size[1])
         self.__definitions = DefinitionStore()
@@ -324,8 +327,8 @@ class SVGTiler(object):
                                            [              0.0,               0.0, 1.0]])@np.array([[1.0, 0.0, -left],
                                                                                                    [0.0, 1.0, -top],
                                                                                                    [0.0, 0.0,  1.0]])
-        svg_source = typing.cast(SVGSource, raster_layer.map_source)
-        metres_per_pixel = svg_source.metres_per_pixel
+        self.__svg_source = typing.cast(SVGSource, raster_layer.map_source)
+        metres_per_pixel = self.__svg_source.metres_per_pixel
         # Transform from SVG pixels to world coordinates
         self.__image_to_world = (Transform([
             [metres_per_pixel/self.__scaling[0],                                  0, 0],
@@ -422,6 +425,14 @@ class SVGTiler(object):
             svg_to_tile_transform if transform is None else svg_to_tile_transform@transform,
             None,
             show_progress=show_progress)
+        if self.__svg_source.base_feature is not None:
+            margin = 0.02*(self.__size[0] + self.__size[1])
+            path = skia.Path.RRect((self.__left_top[0] - margin, self.__left_top[1] - margin,
+                                    self.__size[0] + 2*margin, self.__size[1] + 2*margin),
+                                  margin, margin)
+            paint = skia.Paint(AntiAlias=True)
+            paint.setColor(make_colour('#FEFEFE', 1.0))
+            drawing_objects.insert(0, CanvasPath(path, paint, svg_to_tile_transform, transform, None))
         return CanvasGroup(drawing_objects, svg_to_tile_transform, transform, None, outermost=True)
 
     def __draw_group(self, group, parent_transform, parent_style) -> CanvasGroup:
