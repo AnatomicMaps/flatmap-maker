@@ -143,6 +143,9 @@ class FeatureAnatomicalNodeMap:
     #================================================================================================================================
         def features_from_anatomical_id(term: str|tuple) -> set[Feature]:
             return set(self.__model_to_features.get(self.__anatomical_aliases.get(term, term), []))
+        def save_anatomical_node(features):
+            for feature in matched_features:
+                feature.add_anatomical_node(anatomical_node)
 
         if anatomical_node in self.__anatomical_aliases:
             anatomical_node = AnatomicalNode(self.__anatomical_aliases[anatomical_node])
@@ -151,6 +154,7 @@ class FeatureAnatomicalNodeMap:
         features = features_from_anatomical_id(anatomical_id)
         layers = list(anatomical_node[1])
         if len(layers) == 0:
+            save_anatomical_node(features)
             return (anatomical_node, features)
 
         # Remove any nerve features from the anatomical node's layers
@@ -178,8 +182,7 @@ class FeatureAnatomicalNodeMap:
                     matched_node = AnatomicalNode([substitute_id, anatomical_layers])
                     break
         if len(anatomical_layers) == 0:
-            for feature in features:
-                feature.add_anatomical_node(matched_node)
+            save_anatomical_node(features)
             return (matched_node, features)
 
         # Restrict found features to those contained in specified layers
@@ -202,8 +205,7 @@ class FeatureAnatomicalNodeMap:
             if warn:
                 self.__log.warning(f'Feature is not in expected layers', feature=matched_node.full_name)
 
-        for feature in matched_features:
-            feature.add_anatomical_node(matched_node)
+        save_anatomical_node(matched_features)
         return (matched_node, matched_features)
 
     def get_features(self, model: str) -> set[Feature]:
