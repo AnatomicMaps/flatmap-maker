@@ -367,7 +367,15 @@ class FlatMap(object):
                 map_layer = {
                     'id': layer.id,
                     'description': layer.description,
-                    'image-layers': [source.id for source in layer.raster_layers]
+                    'detail-layer': layer.detail_layer,
+                    'image-layers': [
+                        {   'id': raster_layer.id,
+                            'options': {
+                                'max-zoom': raster_layer.max_zoom,
+                                'min-zoom': raster_layer.min_zoom
+                            }
+                        } for raster_layer in layer.raster_layers
+                    ]
                 }
                 if layer.min_zoom is not None:
                     map_layer['min-zoom'] = layer.min_zoom
