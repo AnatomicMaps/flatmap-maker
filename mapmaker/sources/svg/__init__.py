@@ -98,11 +98,6 @@ class SVGSource(MapSource):
             (left, top) = (0, 0)
             width = length_as_pixels(svg.attrib.get('width'))
             height = length_as_pixels(svg.attrib.get('height'))
-        if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
-            left -= FUNCTIONAL_MAP_MARGIN
-            top -= FUNCTIONAL_MAP_MARGIN
-            width += 2*FUNCTIONAL_MAP_MARGIN
-            height += 2*FUNCTIONAL_MAP_MARGIN
         if self.base_feature is not None:
             bounds = self.base_feature.bounds
             (scale_x, scale_y) = ((bounds[2]-bounds[0])/width, (bounds[3]-bounds[1])/height)
@@ -118,6 +113,11 @@ class SVGSource(MapSource):
                                           [0.0,  0.0,            1.0]]))
             self.__metres_per_pixel = scale
         else:
+            if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+                left -= FUNCTIONAL_MAP_MARGIN
+                top -= FUNCTIONAL_MAP_MARGIN
+                width += 2*FUNCTIONAL_MAP_MARGIN
+                height += 2*FUNCTIONAL_MAP_MARGIN
             # Transform from SVG pixels to world coordinates
             self.__transform = (Transform([[WORLD_METRES_PER_PIXEL,                      0, 0],
                                            [                     0, WORLD_METRES_PER_PIXEL, 0],
