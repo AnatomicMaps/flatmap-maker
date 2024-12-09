@@ -273,7 +273,7 @@ class FlatMap(object):
         self.properties_store.update_properties(properties)   # Update from JSON properties file
         feature = Feature(self.__last_geojson_id, geometry, properties, is_group=is_group)
         feature.set_property('layer', layer_id)
-        if (name := properties.get('name', '')) != '':
+        if (name := properties.get('name', properties.get('label', ''))) != '':
             self.__features_with_name[f'{layer_id}/{name.replace(" ", "_")}'] = feature
         self.__features_by_geojson_id[feature.geojson_id] = feature
         if feature.id:
