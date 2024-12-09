@@ -889,7 +889,7 @@ class Network(object):
                     connectivity_graph.nodes[container]['exclude'] = True
                     node = container
 
-        # Create the route graphe for the connectivity path
+        # Create the route graph for the connectivity path
         route_graph = nx.MultiGraph()
 
         # Nerves and nodes used by the path
