@@ -74,6 +74,7 @@ class FlatMap(object):
         self.__connection_set = ConnectionSet('connections')
         self.__sckan_provenance = maker.sckan_provenance
         self.__sckan_neuron_populations = SckanNeuronPopulations(self)
+        self.__layer_dict: OrderedDict[str, MapLayer] = OrderedDict()
         self.__bottom_exported_layer: Optional[MapLayer] = None
 
     def __len__(self):
@@ -116,7 +117,7 @@ class FlatMap(object):
         return self.__id
 
     @property
-    def layer_ids(self):
+    def layer_ids(self) -> list[str]:
         return list(self.__layer_dict.keys())
 
     @property
@@ -501,7 +502,7 @@ class FlatMap(object):
             if layer.exported:
                 annotated_features.extend([f for f in layer.features
                                               if f.models is not None
-                                                and 'Polygon' in f.geom_type])
+                                                and 'Polygon' in f.geom_type])      # type: ignore
         self.__feature_search = FeatureSearch(annotated_features)
 
     def features_covering(self, feature):
