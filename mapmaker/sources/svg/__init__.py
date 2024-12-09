@@ -219,7 +219,7 @@ class SVGLayer(MapLayer):
             shapes.insert(0, Shape('background', bbox, {
                 'tooltip': False,
                 'colour': 'white',
-                'models': 'UBERON:0013702'   ## will create a ``BodyLayer``
+                'kind': 'background'
             }))
         return self.__process_shape_list(shapes, 0)
 
