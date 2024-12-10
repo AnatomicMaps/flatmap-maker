@@ -144,7 +144,7 @@ class FeatureAnatomicalNodeMap:
         def features_from_anatomical_id(term: str|tuple) -> set[Feature]:
             return set(self.__model_to_features.get(self.__anatomical_aliases.get(term, term), []))
         def save_anatomical_node(features):
-            for feature in matched_features:
+            for feature in features:
                 feature.add_anatomical_node(anatomical_node)
 
         if anatomical_node in self.__anatomical_aliases:
