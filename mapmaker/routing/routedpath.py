@@ -453,7 +453,10 @@ class RoutedPath(object):
         for node_0, node_1, edge_dict in self.__graph.edges(data=True):    ## This assumes node_1 is the terminal...
             path_id = edge_dict.get('path-id')
             path_source = edge_dict.get('source')
-            added_properties = {'completeness': edge_dict.get('completeness', True)}
+            added_properties = {
+                'completeness': edge_dict.get('completeness', True),
+                'label': self.__graph.graph.get('label')
+            }
             if (missing_nodes:=edge_dict.get('missing_nodes')) is not None:
                 added_properties['missing-nodes'] = missing_nodes
             if (alert:=self.__graph.graph.get('alert')) is not None:

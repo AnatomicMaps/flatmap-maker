@@ -1355,6 +1355,7 @@ class Network(object):
                     feature.pop_property('exclude')
 
         route_graph.graph['path-id'] = path.id
+        route_graph.graph['label'] = path.label
         route_graph.graph['path-type'] = path.path_type
         route_graph.graph['source'] = path.source
         route_graph.graph['traced'] = path.trace
