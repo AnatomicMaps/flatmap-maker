@@ -54,6 +54,7 @@ class SvgTree:
         self.__root.addprevious(etree.Comment(comment))
 
     def save(self, filename):
+        print(f'Writing {filename}')
         self.__tree.write(filename, encoding='utf-8', pretty_print=True,
                           xml_declaration=True)
 
@@ -113,26 +114,25 @@ if __name__ == '__main__':
     parser.add_argument('--output', metavar='OUTPUT', help='Name of resulting file. Optional')
     parser.add_argument('--overwrite', action='store_true',
                         help='Overwrite source SVG file')
-    parser.add_argument('svg_file', metavar='SVG_FILE', help='SVG file to process. The file is overwritten if no OUTPUT is given and --overwrite is set.')
+    parser.add_argument('svg_files', metavar='SVG_FILE(S)', nargs='+',
+        help='SVG file(s) to process. The file is overwritten if no OUTPUT is given and --overwrite is set.')
     args = parser.parse_args()
 
-    if args.output is None:
-        if args.overwrite:
-            args.output = args.svg_file
-        else:
-            sys.exit('No output file specified and --overwrite is not set')
+    if args.output is None and args.overwrite is None:
+        sys.exit('No output file specified and --overwrite is not set')
+    elif args.output is not None and len(args.svg_files) > 1:
+        sys.exit('Can only specify --output if processing a single file')
 
-    svg_tree = SvgTree.from_file(args.svg_file)
+    for svg_file in args.svg_files:
+        svg_tree = SvgTree.from_file(svg_file)
 
-    if not args.no_degroup:
-        degrouper = DeGrouper(svg_tree)
-        svg_tree = degrouper.degroup()
+        if not args.no_degroup:
+            degrouper = DeGrouper(svg_tree)
+            svg_tree = degrouper.degroup()
 
-    entitler = Entitler(svg_tree)
-    svg_tree = entitler.title()
+        entitler = Entitler(svg_tree)
+        svg_tree = entitler.title()
 
-    if args.output is None:
-        args.output = args.svg_file
-    svg_tree.save(args.output)
+        svg_tree.save(svg_file if args.output is None else args.output)
 
 #===============================================================================
