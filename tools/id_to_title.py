@@ -94,10 +94,20 @@ class Entitler:
             id = xml_element.attrib['id']
             if not id.startswith('SVGID'):
                 markup = adobe_decode(id)
-                xml_element.attrib.pop('id', None)
-                title = etree.SubElement(xml_element, 'title')
-                title.text = markup
-                xml_element.insert(0, title)
+                if markup.startswith('.') or markup.startswith('id '):
+                    if markup.startswith('id '):
+                        tokens = markup.split()
+                        if len(tokens) >= 2:
+                            markup = f'.id({"_".join(tokens[1:])})'
+                elif id.startswith('_'):
+                    markup = f'.id({markup.replace(" ", "_")})'
+                else:
+                    markup = None
+                if markup is not None:
+                    xml_element.attrib.pop('id', None)
+                    title = etree.SubElement(xml_element, 'title')
+                    title.text = markup
+                    xml_element.insert(0, title)
         self.__svg_tree.add_text_comment(f' Titled at {datetime.now(timezone.utc).isoformat()} by {__file__} version {__version__} ')
         return self.__svg_tree
 
