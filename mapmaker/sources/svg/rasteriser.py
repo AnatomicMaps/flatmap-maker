@@ -431,8 +431,7 @@ class SVGTiler(object):
             path = skia.Path.RRect((self.__left_top[0] - margin, self.__left_top[1] - margin,
                                     self.__size[0] + 2*margin, self.__size[1] + 2*margin),
                                   margin, margin)
-            paint = skia.Paint(AntiAlias=True)
-            paint.setColor(make_colour('#FEFEFE', 1.0))
+            paint = skia.Paint(AntiAlias=True, Color=make_colour('#FEFEFE', 1.0))
             drawing_objects.insert(0, CanvasPath(path, paint, svg_to_tile_transform, transform, None))
         return CanvasGroup(drawing_objects, svg_to_tile_transform, transform, None, outermost=True)
 
