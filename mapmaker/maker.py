@@ -171,6 +171,9 @@ class MapMaker(object):
             'verbose': True
         }
 
+        if len(self.__manifest.neuron_connectivity) == 0:
+            options['ignoreSckan'] = True
+
         # Ignoring SCKAN implies accepting invalid neurons
         if options.get('ignoreSckan', False):
             options['invalidNeurons'] = True

@@ -38,7 +38,7 @@ from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.knowledgebase import AnatomicalNode, get_knowledge
 from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
 from mapmaker.properties import ConnectionSet, PropertiesStore
-from mapmaker.settings import MAP_KIND
+from mapmaker.settings import MAP_KIND, settings
 from mapmaker.utils import log
 
 from .feature import Feature, FeatureAnatomicalNodeMap
@@ -223,8 +223,10 @@ class FlatMap(object):
         self.__setup_feature_search()
         # Add manual connections into the map's paths
         self.properties_store.pathways.add_connection_set(self.__connection_set)
-        # Generate connectivity and associated metadata
-        self.__generate_connectivity()
+
+        if not settings.get('ignoreSckan', False):
+            # Generate connectivity and associated metadata
+            self.__generate_connectivity()
         # Set creation time
         self.__created = datetime.now(tz=timezone.utc)
         self.__metadata['created'] = self.__created.isoformat(timespec='seconds')
