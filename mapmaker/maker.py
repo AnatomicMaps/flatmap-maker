@@ -126,25 +126,19 @@ class MapMaker(object):
                     errors = True
             if errors:
                 raise ValueError('Invalid parameters for dataset publishing')
-            if settings.get('backgroundTiles', False):
+            if options.get('backgroundTiles', False):
                 log.info('Publishing as a dataset has set `--background-tiles`')
                 options['backgroundTiles'] = True
 
-        if settings.get('backgroundTiles', False) and (cpu_count := os.cpu_count()) is not None and cpu_count < 2:
+        if options.get('backgroundTiles', False) and (cpu_count := os.cpu_count()) is not None and cpu_count < 2:
             raise ValueError('Cannot make background tiles on a single CPU system')
-
-        # Save options to add to map's metadata
-        self.__options = options
-
-        # Save options into global ``settings`` dict
-        settings.update(options)
 
         # Check we have been given a map source and get our manifest
         if 'source' in options:
             self.__manifest = Manifest(options['source'], single_file=options.get('singleFile'),
                                                           id=options.get('id'),
-                                                          ignore_git=settings.get('authoring', False)
-                                                                  or settings.get('ignoreGit', False),
+                                                          ignore_git=options.get('authoring', False)
+                                                                  or options.get('ignoreGit', False),
                                                           manifest=options.get('manifest'),
                                                           commit=options.get('commit'))
         else:
@@ -169,9 +163,9 @@ class MapMaker(object):
         self.__geojson_files = []
 
         # Our source of knowledge, updated with information about maps we've made, held in a global place
-        sckan_version = settings.get('sckanVersion', self.__manifest.sckan_version)
+        sckan_version = options.get('sckanVersion', self.__manifest.sckan_version)
         store_params = {
-            'clean_connectivity': settings.get('cleanConnectivity', False),
+            'clean_connectivity': options.get('cleanConnectivity', False),
             'sckan_version': sckan_version,
             'sckan_provenance': True,
             'verbose': True
@@ -183,6 +177,12 @@ class MapMaker(object):
             store_params.update({
                 'use_sckan': False
             })
+
+        # Save options to add to map's metadata
+        self.__options = options
+
+        # Save options into global ``settings`` dict
+        settings.update(options)
 
         settings['KNOWLEDGE_STORE'] = knowledgebase.KnowledgeStore(map_base, **store_params)
         self.__sckan_provenance = knowledgebase.sckan_provenance()
