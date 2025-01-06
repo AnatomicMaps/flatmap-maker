@@ -104,6 +104,15 @@ def length_as_points(length: str | float) -> float:
     else:
         return length_as_pixels(length)/__unit_scaling['px']
 
+def percentage_dimension(percentage: Optional[str], max_size: float) -> float:
+#=============================================================================
+    if percentage is None:
+        return max_size
+    elif percentage.endswith('%'):
+        return float(percentage[0:-1])*max_size/100
+    else:
+        return float(max_size)
+
 #===============================================================================
 
 # From https://codereview.stackexchange.com/questions/28502/svg-path-parsing

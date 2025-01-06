@@ -48,7 +48,8 @@ from . import FUNCTIONAL_MAP_MARGIN, SVGSource
 from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import svg_markup, length_as_pixels, length_as_points, parse_svg_path, SVG_TAG, XLINK_HREF
+from .utils import svg_markup, length_as_pixels, length_as_points, parse_svg_path, percentage_dimension
+from .utils import SVG_TAG, XLINK_HREF
 
 if TYPE_CHECKING:
     from mapmaker.flatmap.layers import RasterLayer
@@ -650,8 +651,8 @@ class SVGTiler(object):
                     if pixels.shape[2] == 3:
                         pixels = cv2.cvtColor(pixels, cv2.COLOR_RGB2RGBA)       # type: ignore
                     image = skia.Image.fromarray(pixels, colorType=skia.kBGRA_8888_ColorType)
-                    width = float(element.attrib.get('width', image.width()))
-                    height = float(element.attrib.get('height', image.height()))
+                    (width, height) = (percentage_dimension(element.attrib.get('width'), image.width()),
+                                       percentage_dimension(element.attrib.get('height'), image.height()))
                     (x, y) = (length_as_pixels(element.attrib.get('x', 0)),
                               length_as_pixels(element.attrib.get('y', 0)))
                     scale = 1.0
@@ -671,7 +672,7 @@ class SVGTiler(object):
                     and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
                         clip_path = self.__get_clip_path(clip_path_element)
                     else:
-                        clip_path = SVGTiler.__get_graphics_path(element)
+                        clip_path = skia.Path.Rect((x, y, width, height))
                         clip_path.transform(skia.Matrix.Scale(scale, scale))
                     drawing_objects.append(CanvasImage(image, paint, parent_transform, transform, clip_path, pos=(x, y), scale=scale))
 
@@ -691,7 +692,7 @@ class SVGTiler(object):
         if element.tag == SVG_TAG('path'):
             tokens = list(parse_svg_path(element.attrib.get('d', '')))
             path = SVGTiler.__path_from_tokens(tokens)
-        elif element.tag in [SVG_TAG('rect'), SVG_TAG('image')]:
+        elif element.tag == SVG_TAG('rect'):
             (width, height) = (length_as_pixels(element.attrib.get('width', 0)),
                                length_as_pixels(element.attrib.get('height', 0)))
             if width == 0 or height == 0: return None
