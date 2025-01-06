@@ -467,7 +467,7 @@ class SVGTiler(object):
             elif element.tag in [SVG_TAG('linearGradient'), SVG_TAG('radialGradient')]:
                 self.__definitions.add_definition(element)
                 continue
-            elif element.tag == SVG_TAG('clipPath'):
+            if element is not None and element.tag == SVG_TAG('clipPath'):
                 self.__add_clip_path(element)
             else:
                 drawing_objects.extend(
