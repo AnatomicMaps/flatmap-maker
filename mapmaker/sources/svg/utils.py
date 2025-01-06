@@ -49,7 +49,7 @@ from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, 
 from mapmaker.output.path_colours import get_path_colour
 from mapmaker.utils import log
 
-from .. import PIXELS_PER_INCH
+from .. import PIXELS_PER_INCH, POINTS_PER_INCH
 
 #===============================================================================
 
@@ -65,7 +65,6 @@ XLINK_HREF = '{http://www.w3.org/1999/xlink}href'
 CM_PER_INCH = 2.54
 MM_PER_INCH = 10*CM_PER_INCH
 
-POINTS_PER_INCH = 72
 PICAS_PER_INCH = 6
 
 #===============================================================================
