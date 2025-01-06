@@ -29,9 +29,11 @@ import shapely.strtree
 
 #===============================================================================
 
+from mapmaker.settings import settings
 from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
+from .line_finder import LineFinder
 from .text_finder import TextFinder
 
 #===============================================================================
@@ -62,8 +64,8 @@ class ShapeClassifier:
         self.__shapes = list(shapes)
         self.__shapes_by_type: DefaultDict[SHAPE_TYPE, list[Shape]] = defaultdict(list[Shape])
         self.__geometry_to_shape: dict[int, Shape] = {}
+        self.__line_finder = LineFinder(metres_per_pixel)
         self.__text_finder = TextFinder(metres_per_pixel)
-
         geometries = []
         for n, shape in enumerate(shapes):
             geometry = shape.geometry
@@ -91,16 +93,17 @@ class ShapeClassifier:
                   and coverage < 0.5 and bbox_coverage < 0.001):
                     shape.properties['exclude'] = True
                 elif coverage < 0.4 or 'LineString' in geometry.geom_type:
-                    shape.properties['shape-type'] = SHAPE_TYPE.CONNECTION
-                    shape.properties['type'] = 'line'  ## or 'line-dash'
+                    if not self.__check_connection(shape):
+                        log.warning('Cannot extract line from polygon', shape=shape.id)
                 elif bbox_coverage > 0.001 and coverage > 0.9:
                     shape.properties['shape-type'] = SHAPE_TYPE.CONTAINER
                 elif bbox_coverage < 0.0005 and aspect > 0.9 and 0.7 < coverage <= 0.85:
                     shape.properties['shape-type'] = SHAPE_TYPE.COMPONENT
                 elif bbox_coverage < 0.001 and coverage > 0.85:
                     shape.properties['shape-type'] = SHAPE_TYPE.COMPONENT
-                else:
-                    log.warning(f'Unclassifiable shape: {shape.id} {shape.properties.get('geometry')}')
+                elif not self.__check_connection(shape):
+                    log.warning('Unclassifiable shape', shape=shape.id, geometry=shape.properties.get('geometry'))
+                    shape.properties['colour'] = 'yellow'
             if not shape.properties.get('exclude', False):
                 self.__shapes_by_type[shape.shape_type].append(shape)
                 if shape.shape_type != SHAPE_TYPE.CONNECTION:
@@ -122,6 +125,18 @@ class ShapeClassifier:
             if child.id != last_child_id:
                 child.add_parent(parent)
                 last_child_id = child.id
+
+    def __check_connection(self, shape: Shape) -> bool:
+    #==================================================
+        if 'Polygon' in shape.geometry.geom_type:
+            if (line := self.__line_finder.get_line(shape)) is None:
+                shape.properties['exclude'] = not settings.get('authoring', False)
+                shape.properties['colour'] = 'yellow'
+                return False
+            shape.geometry = line
+        shape.properties['shape-type'] = SHAPE_TYPE.CONNECTION
+        shape.properties['type'] = 'line'  ## or 'line-dash'
+        return True
 
     def classify(self) -> list[Shape]:
     #=================================
