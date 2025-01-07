@@ -1222,9 +1222,10 @@ class Network(object):
                                     neighbours.update(downstream)
                                 elif (neighbour_dict['type'] == 'feature'
                                     and len(neighbour_dict.get('used', set())) == 0
-                                    and len(children:=neighbour_dict.get('contains', set()))) > 0:
-                                    if len(set(children) - set(visited)) == 0:
-                                        neighbours.remove(neighbour)
+                                    and len(children:=neighbour_dict.get('contains', set())) > 0):
+                                    # Replace the neighbour by it's children if the node is a downstream
+                                    neighbours.update(set(children) - set(visited))
+                                    neighbours.remove(neighbour)
                             # Connect to each neighbour of interest, noting those that will
                             # then need connecting
                             neighbours_neighbours = []
