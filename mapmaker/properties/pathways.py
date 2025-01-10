@@ -730,6 +730,7 @@ class Pathways:
                 feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
                 # Add a polygon feature for a nerve cuff
                 properties = feature.properties.copy()
+                feature.properties.pop('models', None)  # Otherwise we can two markers on the feature
                 properties.pop('id', None)   # Otherwise we will have a duplicate id...
                 nerve_polygon_feature = self.__flatmap.new_feature(
                     'pathways',
