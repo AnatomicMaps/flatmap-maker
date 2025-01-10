@@ -92,6 +92,10 @@ NERVE_FEATURE_KINDS = ColourMatcherDict({  # colour ==> nerve kind
 VASCULAR_KINDS = ColourMatcherDict({
     # small ellipse, line
     '#EA3323': 'arterial',                  # red
+    '#FF0000': 'arterial',                  # red
+    '#FF3300': 'arterial',                  # red
+    '#0070C0': 'venous',                    # blue
+    '#156082': 'venous',                    # blue
     '#2F6EBA': 'venous',                    # blue
 })
 
