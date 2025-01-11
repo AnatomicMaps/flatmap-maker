@@ -105,7 +105,7 @@ class Line:
         delta_x = self.p1.x - self.p0.x
         delta_y = self.p1.y - self.p0.y
         self.__delta = XYPair(delta_x, delta_y)
-        self.__rotation = Rotation(self.__delta)
+        self.__rotation = None  # Lazy evaluate
 
     def __hash__(self):
         return hash(((self.p0.x, self.p0.y), (self.p1.x, self.p1.y)))
@@ -120,6 +120,8 @@ class Line:
 
     @property
     def rotation(self) -> Rotation:
+        if self.__rotation is None:
+            self.__rotation = Rotation(self.__delta)
         return self.__rotation
 
     def intersection(self, other: 'Line') -> Optional[XYPair]:
@@ -135,8 +137,8 @@ class Line:
         return None
 
     def parallel(self, other: 'Line') -> bool:
-        return abs(self.__rotation.cos_theta*other.__rotation.sin_theta
-                 - self.__rotation.sin_theta*other.__rotation.cos_theta) < MAX_PARALLEL_SKEW
+        return abs(self.rotation.cos_theta*other.rotation.sin_theta
+                 - self.rotation.sin_theta*other.rotation.cos_theta) < MAX_PARALLEL_SKEW
 
 #===============================================================================
 
