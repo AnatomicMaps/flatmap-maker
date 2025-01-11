@@ -57,7 +57,12 @@ class Shape(PropertyMixin):
         for key, value in kwds.items():
             self.set_property(key.replace('_', '-'), value)
         if self.has_property('id'):
-            self.__id = self.get_property('id')
+            id = self.get_property('id')
+            if Shape.__shape_id_prefix == '':
+                self.__id = id
+            else:
+                self.__id = f'{Shape.__shape_id_prefix}{id}'
+                self.set_property('id', self.__id)
         else:
             if id is not None:
                 self.__id = id
