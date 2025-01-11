@@ -197,6 +197,16 @@ class HorizontalLine:
         p1 = XYPair(max(self.__x_max, other.__x_max), w)
         return Line(self.__rotation.rotate(p0, -1), self.__rotation.rotate(p1, -1))
 
+    def mid_point(self, other: 'HorizontalLine') -> Optional[XYPair]:
+    #================================================================
+        x_left = max(self.__x_min, other.__x_min)
+        x_right = min(self.__x_max, other.__x_max)
+        if x_left < x_right:
+            return self.__rotation.rotate(
+                XYPair((x_left + x_right)/2,
+                       (self.__y + other.__y)/2),
+                -1)
+
     def overlap(self, other: 'HorizontalLine') -> float:
     #===================================================
         if self.__x_max <= other.__x_min or self.__x_min >= other.__x_max:
@@ -240,6 +250,7 @@ class LineFinder:
         used_lines: set[Line] = set()
         mid_lines: list[Line] = []
         boundary_coords = shape.geometry.boundary.simplify(self.__epsilon).coords
+        shapely.prepare(shape.geometry)
         boundary_line_coords = zip(boundary_coords, boundary_coords[1:])
         n = 0
         for (line0, line1) in itertools.combinations(boundary_line_coords, 2):
@@ -252,11 +263,15 @@ class LineFinder:
                 if trace:
                     print('PAR', p0.separation(p1), self.__max_line_width, p0.overlap(p1), shape.id, p0, p1)
 
-                if ((w := p0.separation(p1)) <= self.__max_line_width
-                 and p0.overlap(p1) > MIN_LINE_ASPECT_RATIO*w):
-                    mid_lines.append(p0.mid_line(p1))
-                    used_lines.update([l0, l1])
-            elif (pt := l0.intersection(l1)) is not None:
+                # reject if centroid of overlapping region isn't inside the shape's polygon
+                if ((pt := p0.mid_point(p1)) is not None
+                 and shapely.contains_xy(shape.geometry, pt.x, pt.y)):
+                    if ((w := p0.separation(p1)) <= self.__max_line_width
+                     and p0.overlap(p1) > MIN_LINE_ASPECT_RATIO*w):
+                        mid_lines.append(p0.mid_line(p1))
+                        used_lines.update([l0, l1])
+                    continue
+            if (pt := l0.intersection(l1)) is not None:
                 ends_graph.add_edge(l0, l1, intersection=pt)
             n += 1
         ends_graph.remove_nodes_from(used_lines)
