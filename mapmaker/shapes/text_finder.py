@@ -23,13 +23,7 @@ from typing import Optional
 #===============================================================================
 
 from . import Shape, SHAPE_TYPE
-
-#===============================================================================
-
-# SVG pixel space scaled to world metres -- these are based on the CVS bondgraph diagram
-
-MAX_TEXT_VERTICAL_OFFSET = 5    # Between cluster baseline and baselines of text in the cluster
-TEXT_BASELINE_OFFSET = -14.5    # From vertical centre of a component
+from .constants import MAX_TEXT_VERTICAL_OFFSET, TEXT_BASELINE_OFFSET
 
 #===============================================================================
 

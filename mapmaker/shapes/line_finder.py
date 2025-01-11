@@ -33,16 +33,11 @@ from shapely.geometry import LineString, Polygon
 from mapmaker.utils import log
 
 from . import Shape
+from .constants import EPSILON, MAX_PARALLEL_SKEW, MAX_LINE_WIDTH, MIN_LINE_ASPECT_RATIO
 
 #===============================================================================
 
-EPSILON = 1e-6
-MAX_PARALLEL_SKEW = 0.001
-
-# SVG pixel space -- these values are based on the CVS bondgraph diagram
-
-MAX_LINE_WIDTH = 20             # Close together parallel edges a polygons are converted to lines
-MIN_LINE_ASPECT_RATIO = 1.5     #
+type Coordinate = tuple[float, float]
 
 #===============================================================================
 
