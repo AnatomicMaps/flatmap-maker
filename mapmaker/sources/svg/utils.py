@@ -218,8 +218,9 @@ def svg_element_from_feature(feature: Feature, inverse_transform: svgelements.Ma
             element.attrib['stroke-width'] = '3'
             element.attrib['stroke-dasharray'] = '6 2'
         else:
-            element.attrib['stroke'] = get_path_colour(feature.properties['kind'])
-            if feature.properties['kind'] == 'centreline':
+            kind = feature.get_property('kind')
+            element.attrib['stroke'] = get_path_colour(kind)
+            if kind == 'centreline':
                 element.attrib['stroke-width'] = '5'
                 element.attrib['stroke-opacity'] = '0.2'
             else:

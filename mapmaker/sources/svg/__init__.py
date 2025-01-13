@@ -380,6 +380,9 @@ class SVGLayer(MapLayer):
             and 'id' not in properties):
                 return None
             else:
+                if self.source.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+                    properties['fill'] = element_style.get('fill', 'none')
+                    properties['stroke'] = element_style.get('stroke', 'none')
                 return Shape(shape_id, geometry, properties, svg_element=element)
         elif element.tag == SVG_TAG('image'):
             if self.flatmap.map_kind != MAP_KIND.FUNCTIONAL:
