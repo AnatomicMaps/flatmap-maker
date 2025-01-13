@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create environment with mamba
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           mamba-version: "*"
           channels: conda-forge,defaults
