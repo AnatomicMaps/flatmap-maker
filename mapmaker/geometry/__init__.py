@@ -385,7 +385,7 @@ def connect_dividers(dividers, debug):
 
 def normalised_coords(rectangle: BaseGeometry):
     centroid = rectangle.centroid.coords[0]
-    coords = rectangle.exterior.coords[:-1]
+    coords = rectangle.boundary.coords[:-1]
     top_right = None
     y_max = None
     for n in range(len(coords)):
