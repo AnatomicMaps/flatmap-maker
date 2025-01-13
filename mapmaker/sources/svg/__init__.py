@@ -262,6 +262,7 @@ class SVGLayer(MapLayer):
         if len(group) == 0:
             return None
         children: list[etree.Element] = wrapped_group.etree_children    # type: ignore
+        pruned = False
         while (len(children) == 1
           and children[0].tag == SVG_TAG('g')
           and len(children[0].attrib) == 0):
@@ -271,9 +272,14 @@ class SVGLayer(MapLayer):
             group = children[0]
             wrapped_group = wrap_element(group)
             children = wrapped_group.etree_children                     # type: ignore
+            pruned = True
+        if pruned:
+            markup = svg_markup(group)
+            properties_from_markup = self.source.properties_from_markup(markup)
+            properties.update(properties_from_markup)
+        group_id = properties.get('id')
         group_style = self.__style_matcher.element_style(wrapped_group, parent_style)
         group_clip_path = group_style.pop('clip-path', None)
-        group_id = properties.get('id')
         clipped = self.__clip_geometries.get_by_url(group_clip_path)
         if clipped is not None:
             # Replace any shapes inside a clipped group with just the clipped outline
