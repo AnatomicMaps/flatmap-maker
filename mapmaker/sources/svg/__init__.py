@@ -184,7 +184,7 @@ class SVGLayer(MapLayer):
     def __init__(self, id: str, source: SVGSource, svg: etree.Element, exported=True, min_zoom=None):
         super().__init__(id, source, exported=exported, min_zoom=min_zoom)
         self.__svg = svg
-        self.__style_matcher = StyleMatcher(svg.find(SVG_TAG('style')))
+        self.__style_matcher = StyleMatcher(svg.find(f'.//{SVG_TAG('style')}'))
         self.__transform = source.transform
         self.__definitions = DefinitionStore()
         self.__clip_geometries = ObjectStore()
