@@ -520,6 +520,14 @@ class SVGTiler(object):
                         clip_path.addPath(path)
         return clip_path
 
+    def __gradient_from_url(self, url: str):
+    #=======================================
+        if (gradient := self.__definitions.get_by_url(url)) is not None:
+            if (template := self.__definitions.use(gradient)) is not None:
+                template.attrib.update(gradient.attrib)
+                return template
+            return gradient
+
     def __draw_element(self, wrapped_element, parent_transform, parent_style)-> list[CanvasDrawingObject]:
     #=====================================================================================================
         drawing_objects = []
@@ -549,7 +557,7 @@ class SVGTiler(object):
                 opacity = float(element_style.get('opacity', 1.0))
                 paint = skia.Paint(AntiAlias=True)
                 if fill.startswith('url('):
-                    gradient = self.__definitions.get_by_url(fill)
+                    gradient = self.__gradient_from_url(fill)
                     if gradient is None:
                         fill = '#800'     # Something's wrong so show show in image...
                         opacity = 0.5
