@@ -77,14 +77,13 @@ class StyleMatcher(cssselect2.Matcher):
 
     def element_style(self, wrapped_element, parent_style=None):
     #===========================================================
-        if parent_style is None:
-            parent_style = {}
+        element_style = parent_style.copy() if parent_style is not None else {}
         for key, value in self.__match(wrapped_element).items():
             if key in UNIMPLEMENTED_STYLES:
                 log.warning("'{}: {}' not implemented".format(key, value))
             else:
-                parent_style[key] = ' '.join([t.serialize() for t in value])
-        return ElementStyleDict(wrapped_element.etree_element, parent_style)
+                element_style[key] = ' '.join([t.serialize() for t in value])
+        return ElementStyleDict(wrapped_element.etree_element, element_style)
 
 #===============================================================================
 
