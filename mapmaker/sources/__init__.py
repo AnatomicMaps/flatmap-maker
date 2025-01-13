@@ -29,7 +29,7 @@ import numpy as np
 #===============================================================================
 
 from mapmaker.geometry import bounds_to_extent, Transform
-from mapmaker.flatmap import ManifestSource
+from mapmaker.flatmap import ManifestSource, SOURCE_DETAIL_KINDS
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.properties.markup import parse_markup
 from mapmaker.utils import FilePath
@@ -140,7 +140,7 @@ class MapSource(object):
         self.__layers: list['MapLayer'] = []
         self.__bounds: MapBounds = (0, 0, 0, 0)
         self.__raster_source = None
-        if self.__kind == 'detail':
+        if self.__kind in SOURCE_DETAIL_KINDS:
             if manifest_source.feature is None:
                 raise ValueError('A `detail` source must specify an existing `feature`')
             if manifest_source.zoom < 1:

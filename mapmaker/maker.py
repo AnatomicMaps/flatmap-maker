@@ -35,7 +35,7 @@ from .utils import configure_logging, log, set_as_list
 
 from .annotation import Annotator
 from .exceptions import MakerException
-from .flatmap import FlatMap, Manifest
+from .flatmap import FlatMap, Manifest, SOURCE_DETAIL_KINDS
 from . import knowledgebase
 
 from .output.geojson import GeoJSONOutput
@@ -377,8 +377,12 @@ class MapMaker(object):
             kind = manifest_source.kind
             href = manifest_source.href
             if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL:
-                if href.endswith('.svg') or kind == 'detail':
-                    source = SVGSource(self.__flatmap, manifest_source)
+                if href.endswith('.svg') or kind in SOURCE_DETAIL_KINDS:
+                    try:
+                        source = SVGSource(self.__flatmap, manifest_source)
+                    except ValueError as err:
+                        log.error(f'Source layer skipped', file=href, error=err)
+                        continue
                 elif kind in ['base', 'layer']:
                     source = FCPowerpointSource(self.__flatmap, manifest_source,
                                                 shape_filter=self.__shape_filter,

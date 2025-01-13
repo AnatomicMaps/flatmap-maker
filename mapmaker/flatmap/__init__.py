@@ -54,6 +54,10 @@ if TYPE_CHECKING:
 
 #===============================================================================
 
+SOURCE_DETAIL_KINDS = ['anatomical', 'detail', 'functional']
+
+#===============================================================================
+
 class FlatMap(object):
     def __init__(self, manifest: Manifest, maker: 'MapMaker', annotator: Optional['Annotator']=None):
         self.__id = maker.id
@@ -359,7 +363,8 @@ class FlatMap(object):
             self.__centre = ((self.__extent[0] + self.__extent[2])/2,
                              (self.__extent[1] + self.__extent[3])/2)
             self.__area = source.map_area()
-        elif source.kind not in ['detail', 'details', 'image', 'layer']:
+        elif (source.kind not in ['details', 'image', 'layer']
+          and source.kind not in SOURCE_DETAIL_KINDS):
             raise ValueError('Can only have a single base map')
 
     def layer_metadata(self):

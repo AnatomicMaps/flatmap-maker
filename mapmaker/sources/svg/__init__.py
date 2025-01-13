@@ -38,7 +38,7 @@ import skia
 #===============================================================================
 
 from mapmaker.exceptions import MakerException
-from mapmaker.flatmap import Feature, FlatMap, ManifestSource
+from mapmaker.flatmap import Feature, FlatMap, ManifestSource, SOURCE_DETAIL_KINDS
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.settings import MAP_KIND
@@ -88,7 +88,7 @@ class SVGSource(MapSource):
     def __init__(self, flatmap: FlatMap, manifest_source: ManifestSource):  # maker v's flatmap (esp. id)
         super().__init__(flatmap, manifest_source)
         self.__source_file = FilePath(manifest_source.href)
-        self.__exported = (self.kind in ['base', 'detail'])
+        self.__exported = (self.kind == 'base' or self.kind in SOURCE_DETAIL_KINDS)
         svg = etree.parse(self.__source_file.get_fp()).getroot()
         if 'viewBox' in svg.attrib:
             viewbox = [float(x) for x in svg.attrib.get('viewBox').split()]
@@ -207,7 +207,7 @@ class SVGLayer(MapLayer):
 
     def __process_shapes(self, shapes: TreeList[Shape]) -> list[Feature]:
     #====================================================================
-        if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+        if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL and not self.source.kind == 'anatomical'):
             # CellDL conversion mode...
             sc = ShapeClassifier(shapes.flatten(), self.source.map_area(), self.source.metres_per_pixel)
             shapes = TreeList(sc.classify())
