@@ -311,7 +311,7 @@ class SVGLayer(MapLayer):
              or element.tag in IGNORED_SVG_TAGS):
                 continue
             elif element.tag == SVG_TAG('defs'):
-                self.__definitions.add_definitions(element)
+                self.__add_definitions(element, transform)
                 continue
             elif element.tag == SVG_TAG('use'):
                 element = self.__definitions.use(element)
@@ -322,6 +322,14 @@ class SVGLayer(MapLayer):
                 shapes.append(shape)
         progress_bar.close()
         return shapes
+
+    def __add_definitions(self, defs_element, transform):
+    #====================================================
+        for element in defs_element:
+            if element.tag == SVG_TAG('clipPath'):
+                self.__add_clip_geometry(element, transform)
+            else:
+                self.__definitions.add_definition(element)
 
     def __add_clip_geometry(self, clip_path_element, transform):
     #===========================================================

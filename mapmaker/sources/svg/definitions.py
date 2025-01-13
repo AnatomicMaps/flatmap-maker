@@ -66,11 +66,6 @@ class DefinitionStore(ObjectStore):
     #=================================
         super().add(element.attrib.get('id'), element)
 
-    def add_definitions(self, defs_element):
-    #=======================================
-        for element in defs_element:
-            self.add_definition(element)
-
     def get_by_url(self, url_id):
     #============================
         if (definition := super().get_by_url(url_id)) is not None:

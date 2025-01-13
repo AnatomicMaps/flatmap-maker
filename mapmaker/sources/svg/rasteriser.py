@@ -459,7 +459,7 @@ class SVGTiler(object):
             if element.tag is etree.Comment or element.tag is etree.PI:
                 continue
             if element.tag == SVG_TAG('defs'):
-                self.__definitions.add_definitions(element)
+                self.__add_definitions(element)
                 continue
             elif element.tag == SVG_TAG('use'):
                 element = self.__definitions.use(element)
@@ -474,6 +474,14 @@ class SVGTiler(object):
                     self.__draw_element(wrapped_element, parent_transform, parent_style))
         progress_bar.close()
         return drawing_objects
+
+    def __add_definitions(self, defs_element):
+    #=========================================
+        for element in defs_element:
+            if element.tag == SVG_TAG('clipPath'):
+                self.__add_clip_path(element)
+            else:
+                self.__definitions.add_definition(element)
 
     @staticmethod
     def __gradient_matrix(gradient, path) -> skia.Matrix:
