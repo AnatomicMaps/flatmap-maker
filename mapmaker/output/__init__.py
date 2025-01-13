@@ -53,6 +53,7 @@ EXPORTED_FEATURE_PROPERTIES = [
     'scale',
     'sckan',
     'source',
+    'stroke',           # str
     'stroke-width',     # float
     'path-ids',         # list[str]
     'taxons',           # list[str]
