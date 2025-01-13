@@ -73,10 +73,8 @@ class DefinitionStore(ObjectStore):
 
     def get_by_url(self, url_id):
     #============================
-        definition = super().get_by_url(url_id)
-        if definition is not None:
+        if (definition := super().get_by_url(url_id)) is not None:
             return copy.copy(definition)
-        return None
 
     def use(self, element):
     #======================
