@@ -203,12 +203,6 @@ class HorizontalLine:
     def y(self):
         return self.__y
 
-    def project(self, line: Line) -> 'HorizontalLine':
-    #=================================================
-        p0 = self.__rotation.rotate(line.p0)
-        p1 = self.__rotation.rotate(line.p1)
-        return HorizontalLine(p0.x, p1.x, p0.y)
-
     def connector(self, other: 'HorizontalLine') -> Optional[Line]:
     #==============================================================
         x_left = max(self.__x_min, other.__x_min)
@@ -246,6 +240,12 @@ class HorizontalLine:
             x_left = max(self.__x_min, other.__x_min)
             x_right = min(self.__x_max, other.__x_max)
         return x_right - x_left
+
+    def project(self, line: Line) -> 'HorizontalLine':
+    #=================================================
+        p0 = self.__rotation.rotate(line.p0)
+        p1 = self.__rotation.rotate(line.p1)
+        return HorizontalLine(p0.x, p1.x, p0.y)
 
     def separation(self, other: 'HorizontalLine') -> float:
     #======================================================
