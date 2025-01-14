@@ -377,10 +377,28 @@ class LineFinder:
 #===============================================================================
 
 if __name__ == '__main__':
-    shape = Shape(None, Polygon([[0, 0], [2, 0], [2, 3], [5, 3], [5, 2.95], [6, 3.1],
-                     [5, 3.25], [5, 3.2], [1.8, 3.2], [1.8, 0.2], [0, 0.2], [0, 0]]))
-    line_finder = LineFinder(1)
+    from shapely import Polygon
+
+    shape = Shape(None, Polygon([[0, 0], [2, 0], [2, 3], [5, 3], [5, 2.8], [6, 3.1],
+                     [5, 3.4], [5, 3.2], [1.8, 3.2], [1.8, 0.2], [0, 0.2], [0, 0]]))
+    line_finder = LineFinder(0.1)
     points = line_finder.get_line(shape)
     print(points)
+
+    hl_0 = HorizontalLine(0, 3, 0)
+    hl_1 = HorizontalLine(1, 4, 0)
+    hl_2 = HorizontalLine(1, 2, 0)
+
+    print(hl_0.overlap(hl_0, True), hl_0.overlap(hl_0, False))    # 3, 3
+    print(hl_0.overlap(hl_1, True), hl_0.overlap(hl_1, False))    # 4, 2
+    print(hl_0.overlap(hl_2, True), hl_0.overlap(hl_2, False))    # 3, 1
+
+    print(hl_1.overlap(hl_0, True), hl_1.overlap(hl_0, False))    # 4, 2
+    print(hl_1.overlap(hl_1, True), hl_1.overlap(hl_1, False))    # 3, 3
+    print(hl_1.overlap(hl_2, True), hl_1.overlap(hl_2, False))    # 3, 1
+
+    print(hl_2.overlap(hl_0, True), hl_2.overlap(hl_0, False))    # 3, 1
+    print(hl_2.overlap(hl_1, True), hl_2.overlap(hl_1, False))    # 3, 1
+    print(hl_2.overlap(hl_2, True), hl_2.overlap(hl_2, False))    # 1, 1
 
 #===============================================================================
