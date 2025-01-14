@@ -26,14 +26,16 @@ from typing import Any, Optional
 #===============================================================================
 
 import networkx as nx
-from shapely.geometry import LineString, Polygon
+import shapely
+from shapely.geometry import LineString
 
 #===============================================================================
 
 from mapmaker.utils import log
 
-from . import Shape
-from .constants import EPSILON, MAX_PARALLEL_SKEW, MAX_LINE_WIDTH, MIN_LINE_ASPECT_RATIO
+from mapmaker.shapes import Shape
+from mapmaker.shapes.constants import EPSILON, LINE_OVERLAP_RATIO
+from mapmaker.shapes.constants import MAX_PARALLEL_SKEW, MAX_LINE_WIDTH, MIN_LINE_ASPECT_RATIO
 
 #===============================================================================
 
@@ -47,12 +49,18 @@ class XYPair:
     y: float
     properties: dict[str, Any] = field(default_factory=dict)
 
+    @classmethod
+    def from_coords(cls, coords: Coordinate) -> "XYPair":
+        self = super().__new__(cls)
+        self.__init__(coords[0], coords[1])
+        return self
+
     @property
     def magnitude(self) -> float:
         return math.sqrt(self.x*self.x + self.y*self.y)
 
     @property
-    def coords(self) -> tuple[float, float]:
+    def coords(self) -> Coordinate:
         return (self.x, self.y)
 
     def distance(self, other: 'XYPair') -> float:
@@ -100,6 +108,7 @@ class Rotation:
 class Line:
     p0: XYPair
     p1: XYPair
+    properties: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         delta_x = self.p1.x - self.p0.x
@@ -110,8 +119,14 @@ class Line:
     def __hash__(self):
         return hash(((self.p0.x, self.p0.y), (self.p1.x, self.p1.y)))
 
+    @classmethod
+    def from_coords(cls, coords: tuple[Coordinate, Coordinate]) -> "Line":
+        self = super().__new__(cls)
+        self.__init__(XYPair.from_coords(coords[0]), XYPair.from_coords(coords[1]))
+        return self
+
     @property
-    def coords(self):
+    def coords(self) -> tuple[Coordinate, Coordinate]:
         return (self.p0.coords, self.p1.coords)
 
     @property
@@ -119,19 +134,23 @@ class Line:
         return self.__delta
 
     @property
+    def string(self):
+        return f'LineString([({self.p0.x}, {self.p0.y}), ({self.p1.x}, {self.p1.y})])'
+
+    @property
     def rotation(self) -> Rotation:
         if self.__rotation is None:
             self.__rotation = Rotation(self.__delta)
         return self.__rotation
 
-    def intersection(self, other: 'Line') -> Optional[XYPair]:
+    def intersection(self, other: 'Line', extend: bool=False) -> Optional[XYPair]:
         d = self.__delta.x*other.__delta.y - self.__delta.y*other.__delta.x
         if d != 0:
             c0 = self.p0.x - other.p0.x
             c1 = self.p0.y - other.p0.y
             s = (c1*other.__delta.x - c0*other.__delta.y)/d
             t = (c1*self.__delta.x  - c0*self.__delta.y)/d
-            if (0 <= s <= 1) and (0 <= t <= 1):
+            if extend or (0 <= s <= 1) and (0 <= t <= 1):
                 return XYPair(self.p0.x + s*self.__delta.x,
                               self.p0.y + s*self.__delta.y)
         return None
@@ -190,6 +209,15 @@ class HorizontalLine:
         p1 = self.__rotation.rotate(line.p1)
         return HorizontalLine(p0.x, p1.x, p0.y)
 
+    def connector(self, other: 'HorizontalLine') -> Optional[Line]:
+    #==============================================================
+        x_left = max(self.__x_min, other.__x_min)
+        x_right = min(self.__x_max, other.__x_max)
+        if x_left < x_right:
+            m = (x_left + x_right)/2
+            return Line(self.__rotation.rotate(XYPair(m, self.__y), -1),
+                        self.__rotation.rotate(XYPair(m, other.__y), -1))
+
     def mid_line(self, other: 'HorizontalLine') -> Line:
     #===================================================
         w = (self.__y + other.__y)/2
@@ -207,18 +235,17 @@ class HorizontalLine:
                        (self.__y + other.__y)/2),
                 -1)
 
-    def overlap(self, other: 'HorizontalLine') -> float:
-    #===================================================
+    def overlap(self, other: 'HorizontalLine', max_overlap: bool) -> float:
+    #======================================================================
         if self.__x_max <= other.__x_min or self.__x_min >= other.__x_max:
             return 0
-        elif self.__x_max <= other.__x_max and self.__x_min >= other.__x_min:
-            return self.length
-        elif self.__x_max > other.__x_max and self.__x_min < other.__x_min:
-            return other.length
-        elif self.__x_max >= other.__x_min:
-            return self.__x_max - other.__x_min
-        else: # self._x_min <= other.__x_max
-            return other.__x_max - self.__x_min
+        elif max_overlap:
+            x_left = min(self.__x_min, other.__x_min)
+            x_right = max(self.__x_max, other.__x_max)
+        else:
+            x_left = max(self.__x_min, other.__x_min)
+            x_right = min(self.__x_max, other.__x_max)
+        return x_right - x_left
 
     def separation(self, other: 'HorizontalLine') -> float:
     #======================================================
@@ -252,10 +279,9 @@ class LineFinder:
         boundary_coords = shape.geometry.boundary.simplify(self.__epsilon).coords
         shapely.prepare(shape.geometry)
         boundary_line_coords = zip(boundary_coords, boundary_coords[1:])
-        n = 0
         for (line0, line1) in itertools.combinations(boundary_line_coords, 2):
-            l0 = Line(XYPair(*line0[0]), XYPair(*line0[1]))
-            l1 = Line(XYPair(*line1[0]), XYPair(*line1[1]))
+            l0 = Line.from_coords(line0)
+            l1 = Line.from_coords(line1)
             if l0.parallel(l1):
                 p0 = HorizontalLine.from_line(l0)
                 p1 = p0.project(l1)
@@ -267,13 +293,12 @@ class LineFinder:
                 if ((pt := p0.mid_point(p1)) is not None
                  and shapely.contains_xy(shape.geometry, pt.x, pt.y)):
                     if ((w := p0.separation(p1)) <= self.__max_line_width
-                     and p0.overlap(p1) > MIN_LINE_ASPECT_RATIO*w):
+                     and p0.overlap(p1, True) > MIN_LINE_ASPECT_RATIO*w
+                     and p0.overlap(p1, False)/p0.overlap(p1, True) >= LINE_OVERLAP_RATIO):
                         mid_lines.append(p0.mid_line(p1))
                         used_lines.update([l0, l1])
-                    continue
-            if (pt := l0.intersection(l1)) is not None:
+            elif (pt := l0.intersection(l1)) is not None:
                 ends_graph.add_edge(l0, l1, intersection=pt)
-            n += 1
         ends_graph.remove_nodes_from(used_lines)
         if len(mid_lines) == 1:
             # Only a single line segment
@@ -286,6 +311,20 @@ class LineFinder:
                 pt = l0.intersection(l1)
                 if pt is not None:
                     G.add_edge(l0, l1, intersection=pt)
+                elif l0.parallel(l1):
+                    p0 = HorizontalLine.from_line(l0)
+                    p1 = p0.project(l1)
+                    if p0.separation(p1) <= self.__max_line_width:
+                        connecting_line = p0.connector(p1)
+                        if connecting_line:
+                            i0 = l0.intersection(connecting_line, True)
+                            i1 = l1.intersection(connecting_line, True)
+                            if trace:
+                                print(i0, l0.string, connecting_line.string)
+                                print(i1, connecting_line.string, l1.string)
+                            if i0 is not None and i1 is not None:
+                                G.add_edge(l0, connecting_line, intersection=i0)
+                                G.add_edge(connecting_line, l1, intersection=i1)
             end_lines = []
             try:
                 for (l, d) in G.degree:

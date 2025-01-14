@@ -23,12 +23,28 @@ MAX_PARALLEL_SKEW = 0.001
 
 #===============================================================================
 
+# The ratio of the actual overlap to the combined length of parallel edges needs
+# to be at least 0.6 for them to be candidates for merging into a line
+
+LINE_OVERLAP_RATIO = 0.6
+
+# The combined length of parallel edges needs to be at least 1.5 times the distance
+# between them for them to be candidates for merging
+
+MIN_LINE_ASPECT_RATIO = 1.5     #
+
 # SVG pixel space -- these values are based on the CVS bondgraph diagram
 
 MAX_LINE_WIDTH = 20             # Close together parallel edges a polygons are converted to lines
-MIN_LINE_ASPECT_RATIO = 1.5     #
 
 MAX_TEXT_VERTICAL_OFFSET = 5    # Between cluster baseline and baselines of text in the cluster
 TEXT_BASELINE_OFFSET = -14.5    # From vertical centre of a component
+
+#===============================================================================
+
+# Scaling factors for styling components and connections in map viewers
+
+COMPONENT_BORDER_WIDTH = 2
+CONNECTION_STROKE_WIDTH = 2
 
 #===============================================================================
