@@ -247,7 +247,13 @@ class FlatMap(object):
     def features_for_anatomical_node(self, anatomical_node: AnatomicalNode, warn: bool=True) -> Optional[tuple[AnatomicalNode, set[Feature]]]:
     #=========================================================================================================================================
         if self.__feature_node_map is not None:
-            return self.__feature_node_map.features_for_anatomical_node(anatomical_node, warn=warn)
+            if len((features:=self.__feature_node_map.features_for_anatomical_node(anatomical_node, warn=warn))[1]) > 0:
+                return features
+            if len(fts:=set(feature for feature in self.__features_with_id.values()
+                            if feature.models in [features[0][0]]+list(features[0][1])
+                            and feature.get_property('kind')=='proxy')) > 0:
+                return (anatomical_node, fts)
+            return features
 
     def duplicate_feature_id(self, feature_ids: str) -> bool:
     #========================================================
