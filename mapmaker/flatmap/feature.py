@@ -129,7 +129,7 @@ class FeatureAnatomicalNodeMap:
                 for alias in equivalence.get('aliases', []):
                     alias = (alias[0], tuple(alias[1])) if isinstance(alias, list) else alias
                     if alias in self.__anatomical_aliases:
-                        self.__log.error('Alias cannot map to both terms, alias=alias, terms=[self.__anatomical_aliases[alias], term]')
+                        self.__log.error(f'Alias cannot map to both terms, alias=alias, terms={[self.__anatomical_aliases[alias], term]}')
                     else:
                         self.__anatomical_aliases[alias] = term
         self.__model_to_features: dict[str|tuple, set[Feature]] = defaultdict(set)
