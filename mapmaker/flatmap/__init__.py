@@ -305,6 +305,7 @@ class FlatMap(object):
         if self.__bottom_exported_layer is None:
             log.warning('No exported layer on which to add proxy features', type='proxy')
             return
+        proxy_seqs = {}
         for proxy_definition in self.__properties_store.proxies:
             feature_model = proxy_definition['feature']
             if self.__feature_node_map.has_model(feature_model):
@@ -314,16 +315,17 @@ class FlatMap(object):
                     if not self.__feature_node_map.has_model(proxy_model):
                         log.warning('Proxy missing from map', type='proxy', models=feature_model, proxy=proxy_model)
                     for feature in self.__feature_node_map.get_features(proxy_model):
-                        self.__add_proxy_feature(feature, feature_model)
+                        proxy_seqs[feature.id] = proxy_seqs.get(feature.id, -1) + 1
+                        self.__add_proxy_feature(feature, feature_model, proxy_seqs[feature.id])
 
-    def __add_proxy_feature(self, feature: Feature, feature_model: str):
-    #===================================================================
+    def __add_proxy_feature(self, feature: Feature, feature_model: str, proxy_seq: int):
+    #================================================================================
         if 'Polygon' not in feature.geometry.geom_type:
             log.warning('Proxy feature must have a polygon shape', type='proxy', models=feature_model, feature=feature)
         elif self.__bottom_exported_layer is not None:
             self.__bottom_exported_layer.add_feature(
-                self.new_feature(self.__bottom_exported_layer.id, proxy_dot(feature.geometry), {   # type: ignore
-                    'id': f'proxy_on_{feature.id}',
+                self.new_feature(self.__bottom_exported_layer.id, proxy_dot(feature.geometry, proxy_seq), {   # type: ignore
+                    'id': f'proxy_{proxy_seq}_on_{feature.id}',
                     'tile-layer': FEATURES_TILE_LAYER,
                     'models': feature_model,
                     'kind': 'proxy'
