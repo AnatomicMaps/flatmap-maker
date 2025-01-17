@@ -1186,9 +1186,8 @@ class Network(object):
         (temp_connectivity_graph := nx.Graph(connectivity_graph)).remove_nodes_from(centrelines)
         subgraphs = [temp_connectivity_graph.subgraph(component) for component in nx.connected_components(temp_connectivity_graph)]
         for subgraph in subgraphs:
-            if len([node for node in subgraph.nodes if connectivity_graph.degree[node] == 1]) > 0:
-                break
-            pseudo_terminals += list(subgraph.nodes)[0:1]
+            if len([node for node in subgraph.nodes if connectivity_graph.degree[node] == 1]) == 0:
+                pseudo_terminals += list(subgraph.nodes)[0:1]
 
         terminal_graphs: dict[tuple, nx.Graph] = {}
         visited = set()
