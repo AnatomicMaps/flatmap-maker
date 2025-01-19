@@ -370,33 +370,33 @@ class MapMaker(object):
             self.__shape_filter = ShapeFilter()
         self.__processing_store = {}
         base_source = None
-        for layer_number, manifest_source in enumerate(sorted(self.__manifest.sources,
+        for layer_number, source_manifest in enumerate(sorted(self.__manifest.sources,
                                                        # Make sure ``base`` and ``slides`` source kinds are processed first
                                                        key=lambda s: ('0' if s.kind in ['base', 'slides'] else '1') + s.kind)):
-            id = manifest_source.id
-            source_kind = manifest_source.kind
-            href = manifest_source.href
+            id = source_manifest.id
+            source_kind = source_manifest.kind
+            href = source_manifest.href
             if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL:
                 if href.endswith('.svg') or source_kind in SOURCE_DETAIL_KINDS:
                     try:
-                        source = SVGSource(self.__flatmap, manifest_source)
+                        source = SVGSource(self.__flatmap, source_manifest)
                     except ValueError as err:
                         log.error(f'Source layer skipped', file=href, error=err)
                         continue
                 elif source_kind in ['base', 'layer']:
-                    source = FCPowerpointSource(self.__flatmap, manifest_source,
+                    source = FCPowerpointSource(self.__flatmap, source_manifest,
                                                 shape_filter=self.__shape_filter,
                                                 process_store=self.__processing_store)
                 else:
                     raise ValueError(f'Unsupported FC kind: {source_kind}')
             elif source_kind == 'slides':
-                source = PowerpointSource(self.__flatmap, manifest_source)
+                source = PowerpointSource(self.__flatmap, source_manifest)
             elif source_kind == 'image':
-                if layer_number > 0 and manifest_source.boundary is None:
+                if layer_number > 0 and source_manifest.boundary is None:
                     raise ValueError('An image source must specify a boundary')
-                source = MBFSource(self.__flatmap, manifest_source, exported=(layer_number==0))
+                source = MBFSource(self.__flatmap, source_manifest, exported=(layer_number==0))
             elif source_kind in ['base', 'detail', 'details']:
-                source = SVGSource(self.__flatmap, manifest_source)
+                source = SVGSource(self.__flatmap, source_manifest)
             else:
                 raise ValueError(f'Unsupported source kind: {source_kind}')
             source.process()

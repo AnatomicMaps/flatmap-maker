@@ -45,7 +45,7 @@ from .feature import Feature, FeatureAnatomicalNodeMap
 from .layers import FEATURES_TILE_LAYER, MapLayer
 
 # Exports
-from .manifest import Manifest, ManifestSource
+from .manifest import Manifest, SourceManifest
 
 if TYPE_CHECKING:
     from mapmaker.annotation import Annotator

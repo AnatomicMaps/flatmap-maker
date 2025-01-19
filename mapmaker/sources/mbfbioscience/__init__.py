@@ -32,7 +32,7 @@ import shapely.geometry
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_UM
 
-from mapmaker.flatmap import FlatMap, ManifestSource
+from mapmaker.flatmap import FlatMap, SourceManifest
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.sources import mask_image
@@ -52,10 +52,10 @@ def sparc_dataset(url):
 #===============================================================================
 
 class MBFSource(MapSource):
-    def __init__(self, flatmap: FlatMap, manifest_source: ManifestSource, exported=False):
-        super().__init__(flatmap, manifest_source)
+    def __init__(self, flatmap: FlatMap, source_manifest: SourceManifest, exported=False):
+        super().__init__(flatmap, source_manifest)
         self.__sparc_dataset = sparc_dataset(self.href)
-        self.__boundary_id = manifest_source.boundary
+        self.__boundary_id = source_manifest.boundary
         self.__boundary_geometry = None
 
         self.__layer = MapLayer(self.id, self, exported=exported)

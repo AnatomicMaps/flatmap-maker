@@ -166,7 +166,7 @@ class MapRepository:
 
 #===============================================================================
 
-class ManifestSource:
+class SourceManifest:
     def __init__(self, description: dict, manifest: 'Manifest'):
         self.__id = description['id']
         href = manifest.check_and_normalise_path(description['href'], 'Flatmap source file')
@@ -257,7 +257,7 @@ class Manifest:
                 ]
             }
             self.__raw_manifest = deepcopy(self.__manifest)
-            self.__sources = [ManifestSource(self.__manifest['sources'], self)]
+            self.__sources = [SourceManifest(self.__manifest['sources'], self)]
         else:
             # Check the manifest itself is committed into the repository
             self.__check_committed(self.__url, 'Flatmap source manifest')
@@ -277,7 +277,7 @@ class Manifest:
 
             if 'sources' not in self.__manifest:
                 raise ValueError('No sources given for manifest')
-            self.__sources = [ManifestSource(source, self) for source in self.__manifest['sources']]
+            self.__sources = [SourceManifest(source, self) for source in self.__manifest['sources']]
 
             if 'anatomicalMap' in self.__manifest:
                 self.__manifest['anatomicalMap'] = self.check_and_normalise_path(self.__manifest['anatomicalMap'], 'Flatmap anatomical map')
@@ -377,7 +377,7 @@ class Manifest:
         return self.__manifest.get('sckan-version')
 
     @property
-    def sources(self) -> list[ManifestSource]:
+    def sources(self) -> list[SourceManifest]:
         return self.__sources
 
     @property
