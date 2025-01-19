@@ -101,7 +101,16 @@ class SVGSource(MapSource):
         if self.base_feature is not None:
             bounds = self.base_feature.bounds
             (scale_x, scale_y) = ((bounds[2]-bounds[0])/width, (bounds[3]-bounds[1])/height)
-            scale = max(scale_x, scale_y)
+            if source_manifest.detail_fit == 'fit-width':
+                scale = scale_x
+            elif source_manifest.detail_fit == 'fit-height':
+                scale = scale_y
+            elif source_manifest.detail_fit == 'fit-mean':
+                scale = math.sqrt(scale_x*scale_x + scale_y*scale_y)
+            elif source_manifest.detail_fit == 'fit-smallest':
+                scale = min(scale_x, scale_y)
+            else:                       # Default to ``fit-largest``
+                scale = max(scale_x, scale_y)
             self.__transform = (Transform([[1,  0, bounds[0]+(bounds[2]-bounds[0])/2],
                                            [0,  1, bounds[1]+(bounds[3]-bounds[1])/2],
                                            [0,  0,         1]])

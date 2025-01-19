@@ -175,6 +175,7 @@ class SourceManifest:
         self.__href = href
         self.__kind = description.get('kind', '')
         self.__boundary = description.get('boundary')
+        self.__detail_fit = description.get('detail-fit')
         self.__feature = description.get('feature')
         self.__source_range = (([int(n) for n in source_range] if isinstance(source_range, list)
                                                                else [int(source_range)])
@@ -185,6 +186,10 @@ class SourceManifest:
     @property
     def boundary(self) -> Optional[str]:
         return self.__boundary
+
+    @property
+    def detail_fit(self) -> Optional[str]:
+        return self.__detail_fit
 
     @property
     def feature(self) -> Optional[str]:
