@@ -88,6 +88,11 @@ def mercator_transform(geometry):
 #================================
     return shapely.ops.transform(mercator_transformer.transform, geometry)
 
+def merge_bounds(bounds_0: MapBounds, bounds_1: MapBounds) -> MapBounds:
+#=======================================================================
+    return (min(bounds_0[0], bounds_1[0]), min(bounds_0[1], bounds_1[1]),
+            max(bounds_0[2], bounds_1[2]), max(bounds_0[3], bounds_1[3]))
+
 #===============================================================================
 
 class Transform(object):
