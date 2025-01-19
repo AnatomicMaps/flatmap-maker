@@ -28,6 +28,7 @@ import structlog
 
 #===============================================================================
 
+from mapmaker.geometry import MapBounds
 from mapmaker.knowledgebase import AnatomicalNode, entity_name
 from mapmaker.utils import log, FilePath, PropertyMixin
 
@@ -73,7 +74,7 @@ class Feature(PropertyMixin):
         self.__anatomical_nodes.add(json.dumps(node))
 
     @property
-    def bounds(self) -> tuple[float, float, float, float]:
+    def bounds(self) -> MapBounds:
         return self.__geometry.bounds
 
     @property

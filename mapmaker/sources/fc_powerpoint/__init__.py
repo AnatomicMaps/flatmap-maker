@@ -31,13 +31,12 @@ import shapely.strtree
 #===============================================================================
 
 from mapmaker.flatmap import FlatMap, SourceManifest
-from mapmaker.geometry import Transform
+from mapmaker.geometry import MapBounds, Transform
 from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS, FC_KIND
 from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
 from mapmaker.settings import settings
 from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.shapefilter import ShapeFilter
-from mapmaker.sources import MapBounds
 from mapmaker.utils import log
 
 from ..powerpoint import PowerpointSource, Slide

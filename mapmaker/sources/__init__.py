@@ -28,7 +28,7 @@ import numpy as np
 
 #===============================================================================
 
-from mapmaker.geometry import bounds_to_extent, Transform
+from mapmaker.geometry import bounds_to_extent, MapBounds, Transform
 from mapmaker.flatmap import SourceManifest, SOURCE_DETAIL_KINDS
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.properties.markup import parse_markup
@@ -36,10 +36,6 @@ from mapmaker.utils import FilePath
 
 if TYPE_CHECKING:
     from mapmaker.flatmap import FlatMap, MapLayer
-
-#===============================================================================
-
-MapBounds = tuple[float, float, float, float]
 
 #===============================================================================
 

@@ -67,6 +67,11 @@ mercator_transformer = pyproj.Transformer.from_proj(
 
 warnings.simplefilter(action='default', category=FutureWarning)
 
+# (SE, NW) bounds as decimal coordinates
+MapBounds = tuple[float, float, float, float]
+
+#===============================================================================
+
 def bounds_to_extent(bounds):
 #============================
     sw = mercator_transformer.transform(*bounds[:2])
