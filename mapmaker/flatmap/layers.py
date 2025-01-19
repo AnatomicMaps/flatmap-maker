@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Optional
 
 #===============================================================================
 
-import shapely.geometry
+import shapely
 from shapely.geometry.base import BaseGeometry
 import shapely.ops
 import shapely.prepared
@@ -136,7 +136,7 @@ class MapLayer(FeatureLayer):
         self.__source = source
         self.__boundary_feature = None
         self.__bounds = source.bounds
-        self.__outer_geometry = shapely.geometry.box(*source.bounds)
+        self.__outer_geometry = shapely.box(*source.bounds)
         self.__detail_features: list[Feature] = []
 #*        self.__ontology_data = self.options.ontology_data
         self.__raster_layers: list[RasterLayer] = []
@@ -278,7 +278,7 @@ class MapLayer(FeatureLayer):
             raise GroupValueError("{} can't be bounded by both a closed shape and lines:".format(group_name), features)
         elif len(boundary_lines):
             if debug_group:
-                save_geometry(shapely.geometry.MultiLineString(boundary_lines), 'boundary_lines.wkt')
+                save_geometry(shapely.MultiLineString(boundary_lines), 'boundary_lines.wkt')
             try:
                 boundary_polygon = make_boundary(boundary_lines)
             except ValueError as err:
@@ -299,12 +299,12 @@ class MapLayer(FeatureLayer):
                 # And then only add these cleaned up lines as features, not the original dividers
 
                 if debug_group:
-                    save_geometry(shapely.geometry.MultiLineString(dividers), 'dividers.wkt')
+                    save_geometry(shapely.MultiLineString(dividers), 'dividers.wkt')
                 dividers.append(boundary_polygon.boundary)
 
                 divider_lines = connect_dividers(dividers, debug_group)
                 if debug_group:
-                    save_geometry(shapely.geometry.MultiLineString(divider_lines), 'divider_lines.wkt')
+                    save_geometry(shapely.MultiLineString(divider_lines), 'divider_lines.wkt')
 
                 polygon_boundaries = shapely.ops.unary_union(divider_lines)
                 if debug_group:
@@ -359,7 +359,7 @@ class MapLayer(FeatureLayer):
             if len(grouped_polygons):
                 feature_group = self.flatmap.new_feature(
                         self.id,
-                        shapely.geometry.MultiPolygon(grouped_polygons).buffer(0),
+                        shapely.MultiPolygon(grouped_polygons).buffer(0),
                         grouped_properties, is_group=True)
                 layer_features.append(feature_group)
                 # So that any grouped lines don't have a duplicate id
@@ -376,7 +376,7 @@ class MapLayer(FeatureLayer):
                                     ## at least for assigning ID...
                 feature_group = self.flatmap.new_feature(
                       self.id,
-                      shapely.geometry.MultiLineString(grouped_lines),
+                      shapely.MultiLineString(grouped_lines),
                       grouped_properties, is_group=True)
                 layer_features.append(feature_group)
 
