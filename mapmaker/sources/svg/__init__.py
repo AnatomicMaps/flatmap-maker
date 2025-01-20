@@ -174,9 +174,17 @@ class SVGSource(MapSource):
         with open(cleaned_svg, 'wb') as fp:
             cleaner.save(fp)
 
-    def get_raster_source(self):
-    #===========================
-        return RasterSource('svg', self.__get_raster_data, source_path=self.__source_file)
+    def get_raster_sources(self) -> list[RasterSource]:
+    #==================================================
+        raster_sources = []
+        if (background := self.background_raster_source) is not None:
+            background_path = FilePath(background.href)
+            raster_sources.append(RasterSource(f'{self.id}_background', 'svg', background_path.get_data, self,
+                                               source_path=background_path, background_layer=True,
+                                               transform=Transform.translate(background.translate)@Transform.scale(background.scale)))
+        raster_sources.append(RasterSource(f'{self.id}_image', 'svg', self.__get_raster_data, self,
+                                           source_path=self.__source_file))
+        return raster_sources
 
     def __get_raster_data(self) -> bytes:
     #====================================

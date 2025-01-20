@@ -120,8 +120,10 @@ class Transform(object):
         return cls([[scale, 0, 0], [0, scale, 0], [0, 0, 1]])
 
     @classmethod
-    def translate(cls, tx: float, ty: float):
-        return cls([[1, 0, tx], [0, 1, ty], [0, 0, 1]])
+    def translate(cls, translate: tuple[float, float]):
+        return cls([[1, 0, translate[0]],
+                    [0, 1, translate[1]],
+                    [0, 0,            1]])
 
     @property
     def matrix(self):

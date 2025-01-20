@@ -29,16 +29,16 @@ import shapely.prepared
 
 #===============================================================================
 
-from mapmaker import MIN_ZOOM
+from mapmaker import ZOOM_OFFSET_FROM_BASE
 from mapmaker.exceptions import GroupValueError
-from mapmaker.geometry import connect_dividers, extend_line, make_boundary
-from mapmaker.geometry import save_geometry
+from mapmaker.geometry import connect_dividers, extend_line, make_boundary, merge_bounds
+from mapmaker.geometry import MapBounds, save_geometry, Transform
 from mapmaker.settings import settings
-from mapmaker.utils import log
+from mapmaker.utils import FilePath, log
 
 if TYPE_CHECKING:
-    from mapmaker.sources import MapSource
-    from . import FlatMap
+    from mapmaker.sources import MapSource, RasterSource
+    from . import FlatMap, SourceBackground
 
 from .feature import Feature
 
@@ -194,17 +194,18 @@ class MapLayer(FeatureLayer):
         if feature.has_property('details'):
             self.__detail_features.append(feature)
 
-    def add_raster_layer(self, layer_id: str, extent, map_source: 'MapSource', min_zoom: Optional[int]=None, local_world_to_base=None):
-    #==================================================================================================================================
-        if map_source.raster_source is not None:
-            if min_zoom is not None:
-                min_zoom += 1
-            else:
-                min_zoom = self.min_zoom
-            if map_source.base_feature is not None:
-                min_zoom -= 3
-            self.__raster_layers.append(RasterLayer(layer_id.replace('/', '_'), extent, map_source, min_zoom,
-                                                    local_world_to_base))
+    def add_raster_layers(self, layer_id: str, extent: MapBounds, map_source: 'MapSource',
+                          min_zoom: Optional[int]=None, local_world_to_base: Optional[Transform]=None):
+    #==================================================================================================
+        if min_zoom is not None:
+            min_zoom += 1
+        else:
+            min_zoom = self.min_zoom
+        if map_source.base_feature is not None:
+            min_zoom -= ZOOM_OFFSET_FROM_BASE
+        self.__raster_layers = [RasterLayer(raster_source, extent,
+                                            min_zoom=min_zoom, local_world_to_base=local_world_to_base)
+                                    for raster_source in map_source.raster_sources]
 
     def add_group_features(self, group_name: str, features: list[Feature], tile_layer=FEATURES_TILE_LAYER, outermost=False) -> Optional[Feature]:
     #===========================================================================================================================================
@@ -402,31 +403,32 @@ class RasterLayer(object):
     """
     Details of layer for creating raster tiles.
 
-    :param id: the ``id`` of the source layer to rasterise
-    :type id: str
+    :param raster_source: the source to be rasterised
     :param extent: the extent of the base map in which the layer is to be rasterised
                    as decimal latitude and longitude coordinates.
-    :type extent: tuple(south, west, north, east)
-    :param map_source: the source of the layer's data
-    :type map_source: :class:`~mapmaker.sources.MapSource`
     :param min_zoom: The minimum zoom level to generate tiles for.
                      Optional, defaults to ``min_zoom`` of ``map_source``.
-    :type map_zoom: int
     :param local_world_to_base: an optional transform from the raster layer's
                                 local world coordinates to the base map's
                                 world coordinates. Defaults to ``None``, meaning
                                 the :class:`~mapmaker.geometry.Transform.Identity()` transform
-    :type local_world_to_base: :class:`~mapmaker.geometry.Transform`
     """
-    def __init__(self, id: str, extent, map_source: 'MapSource',
-                 min_zoom:Optional[int]=None, max_zoom: Optional[int]=None, local_world_to_base=None):
-        self.__id = '{}_image'.format(id)
+    def __init__(self, raster_source: 'RasterSource', extent: MapBounds,
+                 min_zoom:Optional[int]=None, max_zoom: Optional[int]=None,
+                local_world_to_base: Optional[Transform]=None):
+        self.__id = raster_source.id
         self.__extent = extent
-        self.__map_source = map_source
-        self.__flatmap = map_source.flatmap
-        self.__max_zoom = max_zoom if max_zoom is not None else settings.get('maxRasterZoom', map_source.max_zoom)
-        self.__min_zoom = min_zoom if min_zoom is not None else map_source.min_zoom
+        self.__raster_source = raster_source
+        self.__map_source = raster_source.map_source
+        self.__flatmap = self.__map_source.flatmap
+        self.__max_zoom = max_zoom if max_zoom is not None else settings.get('maxRasterZoom', self.__map_source.max_zoom)
+        self.__min_zoom = min_zoom if min_zoom is not None else self.__map_source.min_zoom
         self.__local_world_to_base = local_world_to_base
+        self.__background_layer = raster_source.background_layer
+
+    @property
+    def background_layer(self) -> bool:
+        return self.__background_layer
 
     @property
     def extent(self):
@@ -458,22 +460,26 @@ class RasterLayer(object):
 
     @property
     def source_data(self) -> bytes:
-        return self.__map_source.raster_source.data
+        return self.__raster_source.data
 
     @property
     def source_extent(self):
         return self.__map_source.extent
 
     @property
-    def source_kind(self):
-        return self.__map_source.raster_source.kind
+    def source_kind(self) -> str:
+        return self.__raster_source.kind
 
     @property
-    def source_path(self):
-        return self.__map_source.raster_source.source_path
+    def source_path(self) -> Optional[FilePath]:
+        return self.__raster_source.source_path
 
     @property
     def source_range(self):
         return self.__map_source.source_range
+
+    @property
+    def transform(self) -> Optional[Transform]:
+        return self.__raster_source.transform
 
 #===============================================================================

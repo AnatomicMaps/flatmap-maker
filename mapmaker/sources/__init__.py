@@ -29,7 +29,7 @@ import numpy as np
 #===============================================================================
 
 from mapmaker.geometry import bounds_to_extent, MapBounds, Transform
-from mapmaker.flatmap import SourceManifest, SOURCE_DETAIL_KINDS
+from mapmaker.flatmap import SourceBackground, SourceManifest, SOURCE_DETAIL_KINDS
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.properties.markup import parse_markup
 from mapmaker.utils import FilePath
@@ -133,7 +133,8 @@ class MapSource(object):
         self.__errors: list[tuple[str, str]] = []
         self.__layers: list['MapLayer'] = []
         self.__bounds: MapBounds = (0, 0, 0, 0)
-        self.__raster_source = None
+        self.__raster_sources = None
+        self.__background_raster_source = source_manifest.background_source
         if self.__kind in SOURCE_DETAIL_KINDS:
             if source_manifest.feature is None:
                 raise ValueError('A `detail` source must specify an existing `feature`')
@@ -153,6 +154,10 @@ class MapSource(object):
     @property
     def annotator(self):
         return None
+
+    @property
+    def background_raster_source(self) -> Optional[SourceBackground]:
+        return self.__background_raster_source
 
     @property
     def base_feature(self):
@@ -207,10 +212,10 @@ class MapSource(object):
         return self.__min_zoom
 
     @property
-    def raster_source(self) -> 'RasterSource':
-        if self.__raster_source is None:
-            self.__raster_source = self.get_raster_source()
-        return self.__raster_source     # type: ignore
+    def raster_sources(self) -> list['RasterSource']:
+        if self.__raster_sources is None:
+            self.__raster_sources = self.get_raster_sources()
+        return self.__raster_sources     # type: ignore
 
     @property
     def href(self):
@@ -272,18 +277,28 @@ class MapSource(object):
     #=========================
         raise TypeError('`process()` must be implemented by `MapSource` sub-class')
 
-    def get_raster_source(self) -> Optional['RasterSource']:
-    #=======================================================
-        return None
+    def get_raster_sources(self) -> list['RasterSource']:
+    #====================================================
+        return []
 
 #===============================================================================
 
 class RasterSource(object):
-    def __init__(self, kind: str, get_data: Callable[[], bytes], source_path: Optional[FilePath]=None):
+    def __init__(self, id: str, kind: str, get_data: Callable[[], bytes],
+                 map_source: MapSource, source_path: Optional[FilePath]=None,
+                 background_layer: bool=False, transform: Optional[Transform]=None):
+        self.__id = id
         self.__kind = kind
         self.__get_data = get_data
         self.__data = None
+        self.__map_source = map_source
         self.__source_path = source_path
+        self.__background_layer = background_layer
+        self.__transform = transform
+
+    @property
+    def background_layer(self):
+        return self.__background_layer
 
     @property
     def data(self) -> bytes:
@@ -292,12 +307,24 @@ class RasterSource(object):
         return self.__data
 
     @property
+    def id(self) -> str:
+        return self.__id
+
+    @property
     def kind(self) -> str:
         return self.__kind
 
     @property
+    def map_source(self):
+        return self.__map_source
+
+    @property
     def source_path(self) -> Optional[FilePath]:
         return self.__source_path
+
+    @property
+    def transform(self) -> Optional[Transform]:
+        return self.__transform
 
 #===============================================================================
 

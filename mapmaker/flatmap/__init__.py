@@ -45,7 +45,7 @@ from .feature import Feature, FeatureAnatomicalNodeMap
 from .layers import FEATURES_TILE_LAYER, MapLayer
 
 # Exports
-from .manifest import Manifest, SourceManifest
+from .manifest import Manifest, SourceBackground, SourceManifest
 
 if TYPE_CHECKING:
     from mapmaker.annotation import Annotator
@@ -354,7 +354,7 @@ class FlatMap(object):
         for layer in source.layers:
             self.add_layer(layer)
             if layer.exported:
-                layer.add_raster_layer(layer.id, source.extent, source)
+                layer.add_raster_layers(layer.id, source.extent, source)
         # The first layer is used as the base map
         if layer_number == 0:
             if source.kind == 'details':
@@ -380,7 +380,8 @@ class FlatMap(object):
                         {   'id': raster_layer.id,
                             'options': {
                                 'max-zoom': raster_layer.max_zoom,
-                                'min-zoom': raster_layer.min_zoom
+                                'min-zoom': raster_layer.min_zoom,
+                                'background': raster_layer.background_layer
                             }
                         } for raster_layer in layer.raster_layers
                     ]
@@ -472,9 +473,9 @@ class FlatMap(object):
             else:                             # nerve
                 feature.pop_property('maxzoom')
 
-            if hires_layer.source.raster_source is not None:
+            if len(hires_layer.source.raster_sources):
                 extent = transform.transform_extent(hires_layer.source.extent)
-                layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
+                layer.add_raster_layers(f'{detail_layer.id}_{hires_layer.id}',
                                         extent, hires_layer.source, minzoom,
                                         local_world_to_base=transform)
 

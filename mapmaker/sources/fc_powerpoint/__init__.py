@@ -39,6 +39,7 @@ from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.shapefilter import ShapeFilter
 from mapmaker.utils import log
 
+from .. import RasterSource
 from ..powerpoint import PowerpointSource, Slide
 from ..powerpoint.colour import ColourTheme
 
@@ -84,9 +85,9 @@ class FCPowerpointSource(PowerpointSource):
                          ),
                          **kwds)
 
-    def get_raster_source(self):
-    #===========================
-        return None                 # We don't rasterise FC maps
+    def get_raster_sources(self) -> list[RasterSource]:
+    #==================================================
+        return []                 # We don't rasterise FC maps
 
 #===============================================================================
 

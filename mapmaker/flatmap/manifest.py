@@ -20,6 +20,7 @@
 
 from collections import namedtuple
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 import multiprocessing
@@ -166,6 +167,14 @@ class MapRepository:
 
 #===============================================================================
 
+@dataclass
+class SourceBackground:
+    href: str
+    scale: float
+    translate: tuple[float, float]
+
+#===============================================================================
+
 class SourceManifest:
     def __init__(self, description: dict, manifest: 'Manifest'):
         self.__id = description['id']
@@ -182,6 +191,18 @@ class SourceManifest:
                                     if (source_range := description.get('slides')) is not None
                                     else None)
         self.__zoom = description['zoom'] if self.__feature is not None else 0
+        if (background := description.get('background')) is not None:
+            if (href := manifest.check_and_normalise_path(background.get('href'), 'Background source file')) is None:
+                raise ValueError(f'Background for source {self.__id} has no `href`')
+            self.__background_source = SourceBackground(href,
+                                            float(background.get('scale', 1.0)),
+                                            tuple(float(t) for t in background.get('translate', [0, 0]))[0:2])   # type: ignore
+        else:
+            self.__background_source = None
+
+    @property
+    def background_source(self) -> Optional[SourceBackground]:
+        return self.__background_source
 
     @property
     def boundary(self) -> Optional[str]:
@@ -399,7 +420,7 @@ class Manifest:
 
     def check_and_normalise_path(self, path: str, desc: str='') -> str|None:
     #=======================================================================
-        if path.strip() == '':
+        if path is None or path.strip() == '':
             return None
         normalised_path = self.__path.join_url(path)
         if not self.__ignore_git:
