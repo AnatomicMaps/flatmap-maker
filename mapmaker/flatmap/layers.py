@@ -144,11 +144,10 @@ class MapLayer(FeatureLayer):
         self.__max_zoom = source.max_zoom
 
     @property
-    def boundary_feature(self):
+    def boundary_feature(self) -> Optional[Feature]:
         return self.__boundary_feature
-
     @boundary_feature.setter
-    def boundary_feature(self, value):
+    def boundary_feature(self, value: Feature):
         self.__boundary_feature = value
 
     @property
@@ -164,10 +163,10 @@ class MapLayer(FeatureLayer):
         return (self.__source.base_feature is not None)
 
     @property
-    def max_zoom(self) -> Optional[int]:
+    def max_zoom(self) -> int:
         return self.__max_zoom
     @max_zoom.setter
-    def max_zoom(self, zoom):
+    def max_zoom(self, zoom: int):
         self.__max_zoom = zoom
 
     @property
@@ -226,8 +225,9 @@ class MapLayer(FeatureLayer):
                                             min_zoom=min_zoom, local_world_to_base=local_world_to_base)
                                     for raster_source in map_source.raster_sources]
 
-    def add_group_features(self, group_name: str, features: list[Feature], tile_layer=FEATURES_TILE_LAYER, outermost=False) -> Optional[Feature]:
-    #===========================================================================================================================================
+    def add_group_features(self, group_name: str, features: list[Feature],
+                           tile_layer=FEATURES_TILE_LAYER, outermost=False) -> Optional[Feature]:
+    #============================================================================================
         base_properties = {
             'tile-layer': tile_layer
             }
@@ -450,31 +450,31 @@ class RasterLayer(object):
         return self.__background_layer
 
     @property
-    def extent(self):
+    def extent(self) -> MapBounds:
         return self.__extent
 
     @property
-    def flatmap(self):
+    def flatmap(self) -> 'FlatMap':
         return self.__flatmap
 
     @property
-    def id(self):
+    def id(self) -> str:
         return self.__id
 
     @property
-    def local_world_to_base(self):
+    def local_world_to_base(self) -> Optional[Transform]:
         return self.__local_world_to_base
 
     @property
-    def map_source(self):
+    def map_source(self) -> 'MapSource':
         return self.__map_source
 
     @property
-    def max_zoom(self):
+    def max_zoom(self) -> int:
         return self.__max_zoom
 
     @property
-    def min_zoom(self):
+    def min_zoom(self) -> int:
         return self.__min_zoom
 
     @property
@@ -482,7 +482,7 @@ class RasterLayer(object):
         return self.__raster_source.data
 
     @property
-    def source_extent(self):
+    def source_extent(self) -> MapBounds:
         return self.__map_source.extent
 
     @property
@@ -494,7 +494,7 @@ class RasterLayer(object):
         return self.__raster_source.source_path
 
     @property
-    def source_range(self):
+    def source_range(self) -> Optional[list[int]]:
         return self.__map_source.source_range
 
     @property

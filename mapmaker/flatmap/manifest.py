@@ -178,9 +178,8 @@ class SourceBackground:
 class SourceManifest:
     def __init__(self, description: dict, manifest: 'Manifest'):
         self.__id = description['id']
-        href = manifest.check_and_normalise_path(description['href'], 'Flatmap source file')
-        if href is None:
-            raise ValueError('Source in manifest has no `href`')
+        if (href := manifest.check_and_normalise_path(description.get('href'), 'Flatmap source file')) is None:
+            raise ValueError(f'Source {self.__id} in manifest has no `href`')
         self.__href = href
         self.__kind = description.get('kind', '')
         self.__boundary = description.get('boundary')
@@ -418,8 +417,8 @@ class Manifest:
         if self.__temp_directory is not None:
             shutil.rmtree(self.__temp_directory)
 
-    def check_and_normalise_path(self, path: str, desc: str='') -> str|None:
-    #=======================================================================
+    def check_and_normalise_path(self, path: Optional[str], desc: str='') -> str|None:
+    #=================================================================================
         if path is None or path.strip() == '':
             return None
         normalised_path = self.__path.join_url(path)

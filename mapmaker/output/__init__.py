@@ -27,7 +27,7 @@ EXPORTED_FEATURE_PROPERTIES = [
     'centreline',       # bool
     'children',         # list[int]
     'class',
-    'colour',
+    'colour',           # str
     'description',
     'error',
     'fc-class',

@@ -181,8 +181,8 @@ class PowerpointSource(MapSource):
             return [RasterSource(f'{self.id}_image', 'svg', self.__get_raster_data, self)]
         return []
 
-    def get_raster_data(self):
-    #=========================
+    def __get_raster_data(self) -> bytes:
+    #====================================
         svg_maker = SvgMaker(self.__powerpoint)
         svg_maker.add_slides(self.__slides)
         svg_data = BytesIO(svg_maker.svg_bytes())
