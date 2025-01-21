@@ -361,6 +361,9 @@ class SVGLayer(MapLayer):
         and (geometry := self.__get_clip_geometry(clip_path_element, transform)) is not None):
             self.__clip_geometries.add(clip_id, geometry)
 
+    """
+    Get the geometry described by the children of a ``clipPath`` element
+    """
     def __get_clip_geometry(self, clip_path_element, transform) -> Optional[BaseGeometry]:
     #====================================================================================
         geometries = []
