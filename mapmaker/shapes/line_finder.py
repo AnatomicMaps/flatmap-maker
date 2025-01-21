@@ -362,7 +362,7 @@ class LineFinder:
                     distances = [ p0.distance(p1)
                                     for (p0, p1) in itertools.pairwise(points + [points[0]])]
                     for (n, (d0, d1)) in enumerate(itertools.pairwise([distances[-1]] + distances)):
-                        if abs(d0 - d1) <= EPSILON:
+                        if abs(d0 - d1)/(d0 + d1) <= ARROW_POINT_EPSILON:
                             arrow_line = Line(points[n-2].midpoint(points[n-1]), points[n])
                             if arrow_line.p0.distance(line_points[0]) < arrow_line.p0.distance(line_points[-1]):
                                 line_points[0] = arrow_line.p1

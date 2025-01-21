@@ -23,6 +23,11 @@ MAX_PARALLEL_SKEW = 0.001
 
 #===============================================================================
 
+# The ratio of the difference between the lengths of a candidate arrow's point
+# edges and their sum must be less than 0.001
+
+ARROW_POINT_EPSILON = 1e-3
+
 # The ratio of the actual overlap to the combined length of parallel edges needs
 # to be at least 0.6 for them to be candidates for merging into a line
 
