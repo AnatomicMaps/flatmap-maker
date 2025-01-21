@@ -69,7 +69,7 @@ class TextFinder:
                 superscript = self.__text_block_to_text(cluster.shapes)
             else:
                 base_text = self.__text_block_to_text(cluster.shapes)
-        text = f'${base_text}{f"_{{{subscript}}}" if subscript != "" else ""}{f"^{{{superscript}}}" if superscript != "" else ""}$'
+        text = f'${base_text}{f"^{{{superscript}}}" if superscript != "" else ""}{f"_{{{subscript}}}" if subscript != "" else ""}$'
         return text if text != '' else None
 
     def __text_block_to_text(self, text_block: list[Shape]) -> str:
