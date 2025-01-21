@@ -382,6 +382,9 @@ class LineFinder:
                                 line_points[-1] = arrow_line.p1
                             shape.properties['directional'] = True
                             break
+                elif len(end_nodes) != 1:
+                    shape.properties['stroke'] = SHAPE_ERROR_COLOUR
+                    log.warning('Bad arrow shape?', shape=shape.id, nodes=len(end_nodes))
 
         return LineString([pt.coords for pt in line_points]) if len(line_points) >= 2 else None
 
