@@ -34,7 +34,7 @@ from shapely.geometry import LineString
 from mapmaker.utils import log
 
 from mapmaker.shapes import Shape
-from mapmaker.shapes.constants import EPSILON, LINE_OVERLAP_RATIO
+from mapmaker.shapes.constants import ARROW_POINT_EPSILON, EPSILON, LINE_OVERLAP_RATIO
 from mapmaker.shapes.constants import MAX_PARALLEL_SKEW, MAX_LINE_WIDTH, MIN_LINE_ASPECT_RATIO
 
 #===============================================================================
@@ -276,19 +276,17 @@ class LineFinder:
         ends_graph = nx.Graph()
         used_lines: set[Line] = set()
         mid_lines: list[Line] = []
+        unused_boundary_lines: set[Line] = set()
         boundary_coords = shape.geometry.boundary.simplify(self.__epsilon).coords
+
         shapely.prepare(shape.geometry)
-        boundary_line_coords = zip(boundary_coords, boundary_coords[1:])
-        for (line0, line1) in itertools.combinations(boundary_line_coords, 2):
-            l0 = Line.from_coords(line0)
-            l1 = Line.from_coords(line1)
-            if l0.parallel(l1):
-                p0 = HorizontalLine.from_line(l0)
-                p1 = p0.project(l1)
-
-                if trace:
-                    print('PAR', p0.separation(p1), self.__max_line_width, p0.overlap(p1), shape.id, p0, p1)
-
+        boundary_line_coord_pairs = zip(boundary_coords, boundary_coords[1:])
+        boundary_lines = [Line.from_coords(coords) for coords in boundary_line_coord_pairs]
+        unused_boundary_lines = set(boundary_lines)
+        for (line0, line1) in itertools.combinations(boundary_lines, 2):
+            if line0.parallel(line1):
+                p0 = HorizontalLine.from_line(line0)
+                p1 = p0.project(line1)
                 # reject if centroid of overlapping region isn't inside the shape's polygon
                 if ((pt := p0.mid_point(p1)) is not None
                  and shapely.contains_xy(shape.geometry, pt.x, pt.y)):
@@ -296,12 +294,25 @@ class LineFinder:
                      and p0.overlap(p1, True) > MIN_LINE_ASPECT_RATIO*w
                      and p0.overlap(p1, False)/p0.overlap(p1, True) >= LINE_OVERLAP_RATIO):
                         mid_lines.append(p0.mid_line(p1))
-                        used_lines.update([l0, l1])
-            elif (pt := l0.intersection(l1)) is not None:
-                ends_graph.add_edge(l0, l1, intersection=pt)
+                        used_lines.update([line0, line1])
+                        unused_boundary_lines.remove(line0)
+                        unused_boundary_lines.remove(line1)
+            elif (pt := line0.intersection(line1)) is not None:
+                ends_graph.add_edge(line0, line1, intersection=pt)
+
+        # ``Use`` any boundary line parallel to a mid-line and within
+        # MAX_LINE_WIDTH/2 of it
+        for ml in mid_lines:
+            for ul in unused_boundary_lines:
+                if ul.parallel(ml):
+                    mh = HorizontalLine.from_line(ml)
+                    uh = mh.project(ul)
+                    if (uh.separation(mh) < self.__max_line_width/2
+                    and uh.overlap(mh, False) > self.__epsilon):
+                        used_lines.add(ul)
+
         ends_graph.remove_nodes_from(used_lines)
-        if len(mid_lines) == 1:
-            # Only a single line segment
+        if len(mid_lines) == 1:     # Only a single line segment
             line_points = [mid_lines[0].p0, mid_lines[0].p1]
         elif len(mid_lines) == 0:
             line_points = []
