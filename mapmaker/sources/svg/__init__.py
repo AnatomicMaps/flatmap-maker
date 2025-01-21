@@ -142,7 +142,6 @@ class SVGSource(MapSource):
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
         self.__layer = SVGLayer(self.id, self, svg, exported=self.__exported, min_zoom=self.min_zoom)
-        self.add_layer(self.__layer)
         self.__boundary_geometry = None
 
     @property
@@ -162,6 +161,7 @@ class SVGSource(MapSource):
         self.__layer.process()
         if self.__layer.boundary_feature is not None:
             self.__boundary_geometry = self.__layer.boundary_feature.geometry
+        self.add_layer(self.__layer)
 
     def create_preview(self):
     #========================
