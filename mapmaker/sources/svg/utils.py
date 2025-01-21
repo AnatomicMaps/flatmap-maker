@@ -44,7 +44,7 @@ import svgelements
 from mapmaker.exceptions import MakerException
 from mapmaker.flatmap import Feature
 from mapmaker.geometry import Transform, reflect_point
-from mapmaker.geometry.beziers import bezier_sample
+from mapmaker.geometry.beziers import bezier_sample, Coordinate
 from mapmaker.geometry.arc_to_bezier import bezier_segments_from_arc_endpoints, tuple2
 from mapmaker.output.path_colours import get_path_colour
 from mapmaker.utils import log
@@ -234,10 +234,48 @@ def svg_element_from_feature(feature: Feature, inverse_transform: svgelements.Ma
 
 #===============================================================================
 
+def __geometry_from_coordinates(coordinates: list[Coordinate], closed: bool, must_close: Optional[bool]) -> Optional[BaseGeometry]:
+    if must_close == False and closed:
+        raise ValueError("Shape can't have closed geometry")
+    elif must_close == True and not closed:
+        raise ValueError("Shape must have closed geometry")
+
+    if closed and len(coordinates) >= 3:
+        geometry = shapely.geometry.Polygon(coordinates).buffer(0)
+    elif must_close == True and len(coordinates) >= 3:
+        # Return a polygon if flagged as `closed`
+        coordinates.append(coordinates[0])
+        geometry = shapely.geometry.Polygon(coordinates).buffer(0)
+    elif len(coordinates) >= 2:
+        ## Warn if start and end point are ``close`` wrt to the length of the line as shape
+        ## may be intended to be closed... (test with ``cardio_8-1``)
+        geometry = shapely.geometry.LineString(coordinates)
+    else:
+        geometry = None
+
+    if geometry is not None and not geometry.is_valid:
+        if 'Polygon' in geometry.geom_type:
+            # Try smoothing out boundary irregularities
+            geometry = geometry.buffer(20)
+        if not geometry.is_valid:
+            log.error(f'{geometry.geom_type} geometry is invalid')
+            geometry = None
+
+    return geometry
+
+#===============================================================================
+
+type GeometricObject = tuple[Optional[BaseGeometry], list[BezierSegment]]
+
+#===============================================================================
+
 def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
-                           must_close: Optional[bool]=None) -> tuple[Optional[BaseGeometry], list[BezierSegment]]:
-    coordinates = []
-    bezier_segments = []
+                           must_close: Optional[bool]=None) -> GeometricObject:
+
+    geometries: list[BaseGeometry] = []
+
+    coordinates: list[Coordinate] = []
+    bezier_segments: list[BezierSegment] = []
     closed = False
 
     moved = False
@@ -333,6 +371,12 @@ def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
             current_point = pt
 
         elif cmd in ['m', 'M']:
+            if len(coordinates):
+                if (geometry := __geometry_from_coordinates(coordinates, closed, must_close)) is not None:
+                    geometries.append(geometry)
+                coordinates: list[Coordinate] = []
+                closed = False
+
             params = [float(x) for x in path_tokens[pos:pos+2]]
             pos += 2
             pt = params[0:2]
@@ -386,25 +430,12 @@ def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
     elif must_close == True and not closed:
         raise ValueError("Shape must have closed geometry")
 
-    if closed and len(coordinates) >= 3:
-        geometry = shapely.geometry.Polygon(coordinates).buffer(0)
-    elif must_close == True and len(coordinates) >= 3:
-        # Return a polygon if flagged as `closed`
-        coordinates.append(coordinates[0])
-        geometry = shapely.geometry.Polygon(coordinates).buffer(0)
-    elif len(coordinates) >= 2:
-        ## Warn if start and end point are ``close`` wrt to the length of the line as shape
-        ## may be intended to be closed... (test with ``cardio_8-1``)
-        geometry = shapely.geometry.LineString(coordinates)
-    else:
-        geometry = None
+    if (geometry := __geometry_from_coordinates(coordinates, closed, must_close)) is not None:
+        geometries.append(geometry)
 
-    if geometry is not None and not geometry.is_valid:
-        if 'Polygon' in geometry.geom_type:
-            # Try smoothing out boundary irregularities
-            geometry = geometry.buffer(20)
-        if not geometry.is_valid:
-            raise ValueError(f'{geometry.geom_type} geometry is invalid')
+    geometry = (None if len(geometries) == 0
+           else geometries[0] if len(geometries) == 1
+           else shapely.unary_union(geometries))
 
     return (geometry, bezier_segments)
 
