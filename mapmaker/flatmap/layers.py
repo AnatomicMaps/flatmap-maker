@@ -194,6 +194,25 @@ class MapLayer(FeatureLayer):
         if feature.has_property('details'):
             self.__detail_features.append(feature)
 
+    def create_feature_groups(self):
+    #===============================
+        for (group_id, feature_ids) in self.flatmap.properties_store.feature_groups(self.id).items():
+            if len(feature_ids):
+                group_bounds = None
+                for feature_id in feature_ids:
+                    if ((feature := self.flatmap.get_feature_by_name(feature_id)) is None
+                    and (feature := self.flatmap.get_feature(feature_id)) is None):
+                        log.warning('Cannot find source feature for feature group', group=group_id, feature=feature_id)
+                    elif group_bounds is None:
+                        group_bounds = feature.bounds
+                    else:
+                        group_bounds = merge_bounds(group_bounds, feature.bounds)
+                if group_bounds is not None:
+                    self.flatmap.new_feature(self.id, shapely.box(*group_bounds), {
+                        'id': group_id,
+                        'exclude': True
+                    })
+
     def add_raster_layers(self, layer_id: str, extent: MapBounds, map_source: 'MapSource',
                           min_zoom: Optional[int]=None, local_world_to_base: Optional[Transform]=None):
     #==================================================================================================

@@ -231,6 +231,7 @@ class MapSource(object):
 
     def add_layer(self, layer: 'MapLayer'):
     #======================================
+        layer.create_feature_groups()
         self.__layers.append(layer)
 
     def create_preview(self):

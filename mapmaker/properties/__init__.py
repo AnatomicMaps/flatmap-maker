@@ -109,6 +109,16 @@ class PropertiesStore(object):
                            if manifest.proxy_features is not None
                            else [])
 
+        # Feature groups by layer
+        self.__feature_groups: dict[str, dict[str, list[str]]] = {}
+        for group_defns in properties_dict.get('feature-groups', []):
+            if 'layer' in group_defns:
+                feature_groups: dict[str, list[str]] = {}
+                for group in group_defns.get('groups', []):
+                    if 'id' in group:
+                        feature_groups[group['id']] = group.get('features', [])
+                self.__feature_groups[group_defns['layer']] = feature_groups
+
     @property
     def connectivity(self):
         return self.__pathways.connectivity
@@ -128,6 +138,13 @@ class PropertiesStore(object):
     @property
     def proxies(self):
         return self.__proxies
+
+    """
+    Get the feature group definitions for a layer
+    """
+    def feature_groups(self, layer_id: str) -> dict[str, list[str]]:
+    #==============================================================
+        return self.__feature_groups.get(layer_id, {})
 
     def network_feature(self, feature):
     #==================================
