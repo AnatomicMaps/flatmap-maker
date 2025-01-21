@@ -39,6 +39,8 @@ from mapmaker.sources.fc_powerpoint.components import VASCULAR_KINDS
 from mapmaker.utils import log
 
 from .constants import COMPONENT_BORDER_WIDTH, CONNECTION_STROKE_WIDTH, MAX_LINE_WIDTH
+from .constants import SHAPE_ERROR_COLOUR, SHAPE_ERROR_BORDER
+
 from .line_finder import Line, LineFinder, XYPair
 from .text_finder import TextFinder
 
@@ -142,7 +144,7 @@ class ShapeClassifier:
                     connection_joiners.append(shape)
                 elif not self.__add_connection(shape):
                     log.warning('Unclassifiable shape', shape=shape.id)
-                    shape.properties['colour'] = 'yellow'
+                    shape.properties['colour'] = SHAPE_ERROR_COLOUR
             if not shape.properties.get('exclude', False):
                 self.__shapes_by_type[shape.shape_type].append(shape)
                 if shape.shape_type != SHAPE_TYPE.CONNECTION:
@@ -160,8 +162,8 @@ class ShapeClassifier:
                 (connection_0, connection_1) = self.__extend_joined_connections(ends)
                 joined_connection_graph.add_edge(connection_0, connection_1)
             else:
-                joiner.properties['colour'] = 'yellow'
-                joiner.properties['stroke'] = 'red'
+                joiner.properties['colour'] = SHAPE_ERROR_COLOUR
+                joiner.properties['stroke'] = SHAPE_ERROR_BORDER
                 joiner.properties['stroke-width'] = COMPONENT_BORDER_WIDTH
                 joiner.geometry = joiner.geometry.buffer(self.__max_line_width)
         for joined_connection in nx.connected_components(joined_connection_graph):
@@ -195,7 +197,7 @@ class ShapeClassifier:
         if 'Polygon' in shape.geometry.geom_type:
             if (line := self.__line_finder.get_line(shape)) is None:
                 shape.properties['exclude'] = not settings.get('authoring', False)
-                shape.properties['colour'] = 'yellow'
+                shape.properties['colour'] = SHAPE_ERROR_COLOUR
                 return False
             shape.geometry = line
             kind = VASCULAR_KINDS.lookup(shape.properties.get('fill'))
