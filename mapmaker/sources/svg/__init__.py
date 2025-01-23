@@ -59,7 +59,8 @@ from .utils import length_as_points, svg_markup, parse_svg_path, SVG_TAG
 
 #===============================================================================
 
-FUNCTIONAL_MAP_MARGIN = 200     # pixels
+DETAILED_MAP_BORDER = 50        # pixels
+FUNCTIONAL_MAP_MARGIN = 500     # pixels in SVG source space
 
 #===============================================================================
 
@@ -123,7 +124,9 @@ class SVGSource(MapSource):
                                           [0.0,  0.0,            1.0]]))
             self.__metres_per_pixel = scale
         else:
-            if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+            # Add a margin around the base layer of a functional map
+            if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL
+            and self.kind == 'base'):
                 left -= FUNCTIONAL_MAP_MARGIN
                 top -= FUNCTIONAL_MAP_MARGIN
                 width += 2*FUNCTIONAL_MAP_MARGIN
@@ -229,12 +232,16 @@ class SVGLayer(MapLayer):
             # CellDL conversion mode...
             sc = ShapeClassifier(shapes.flatten(), self.source.map_area(), self.source.metres_per_pixel)
             shapes = TreeList(sc.classify())
-        if self.source.base_feature is not None:
+        # Add a background shape behind a detailed functional map
+        if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL
+        and self.source.kind == 'functional'):
             bounds = self.source.bounds
-            margin = 0.02*(abs(bounds[2]-bounds[0])
-                         + abs(bounds[3]-bounds[1]))
-            bbox = shapely.geometry.box(*bounds).buffer(margin)
-            shapes.insert(0, Shape('background', bbox, {
+            margin = self.source.metres_per_pixel*DETAILED_MAP_BORDER
+            bounds = (bounds[0] + margin, bounds[1] - margin,
+                      bounds[2] - margin, bounds[3] - margin)
+            bbox = shapely.geometry.box(*bounds).buffer(2*margin)
+            shapes.insert(0, Shape(None, bbox, {
+                'id': 'background',
                 'tooltip': False,
                 'colour': 'white',
                 'kind': 'background'
