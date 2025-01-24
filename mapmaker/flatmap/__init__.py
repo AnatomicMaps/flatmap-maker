@@ -381,7 +381,8 @@ class FlatMap(object):
                             'options': {
                                 'max-zoom': raster_layer.max_zoom,
                                 'min-zoom': raster_layer.min_zoom,
-                                'background': raster_layer.background_layer
+                                'background': raster_layer.background_layer,
+                                'detail-layer': layer.detail_layer
                             }
                         } for raster_layer in layer.raster_layers
                     ]
