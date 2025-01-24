@@ -25,6 +25,7 @@ import os
 
 #===============================================================================
 
+import shapely.affinity
 import shapely.geometry
 
 #===============================================================================
@@ -74,6 +75,7 @@ class GeoJSONOutput(object):
             unit='ftr', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
 
+        layer_offset = self.__layer.offset
         for feature in features:
             if not settings.get('authoring', False):
                 feature.properties.pop('warning', None)
@@ -94,6 +96,8 @@ class GeoJSONOutput(object):
                     if name in ENCODED_FEATURE_PROPERTIES
             })
             geometry = feature.geometry
+            if layer_offset != (0.0, 0.0):
+                geometry = shapely.affinity.translate(geometry, xoff=layer_offset[0], yoff=layer_offset[1])
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
             tile_layer = properties['tile-layer']

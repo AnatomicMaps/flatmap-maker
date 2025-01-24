@@ -31,8 +31,9 @@ import shapely.prepared
 
 from mapmaker import ZOOM_OFFSET_FROM_BASE
 from mapmaker.exceptions import GroupValueError
-from mapmaker.geometry import connect_dividers, extend_line, make_boundary, merge_bounds
-from mapmaker.geometry import MapBounds, save_geometry, Transform
+from mapmaker.geometry import connect_dividers, extend_line, make_boundary
+from mapmaker.geometry import bounds_centroid, MapBounds, merge_bounds, translate_extent
+from mapmaker.geometry import save_geometry, Transform
 from mapmaker.settings import settings
 from mapmaker.utils import FilePath, log
 
@@ -99,6 +100,10 @@ class FeatureLayer(object):
         return None
 
     @property
+    def offset(self) -> tuple[float, float]:
+        return (0.0, 0.0)
+
+    @property
     def raster_layers(self) -> list['RasterLayer']:
         return []
 
@@ -142,6 +147,7 @@ class MapLayer(FeatureLayer):
         self.__raster_layers: list[RasterLayer] = []
         self.__min_zoom = min_zoom if min_zoom is not None else source.min_zoom
         self.__max_zoom = source.max_zoom
+        self.__offset = (0.0, 0.0)
 
     @property
     def boundary_feature(self) -> Optional[Feature]:
@@ -174,6 +180,10 @@ class MapLayer(FeatureLayer):
         return self.__min_zoom
 
     @property
+    def offset(self) -> tuple[float, float]:
+        return self.__offset
+
+    @property
     def outer_geometry(self) -> BaseGeometry:
         return self.__outer_geometry
 
@@ -192,6 +202,35 @@ class MapLayer(FeatureLayer):
         super().add_feature(feature, map_layer=self)
         if feature.has_property('details'):
             self.__detail_features.append(feature)
+
+    def __find_feature(self, feature_id: str) -> Optional[Feature]:
+    #==============================================================
+        if (feature := self.flatmap.get_feature_by_name(feature_id)) is None:
+            feature = self.flatmap.get_feature(feature_id)
+        return feature
+
+    def calculate_offset(self, feature_alignment: list[tuple[str, str]]):
+    #====================================================================
+        base_feature_bounds = None
+        layer_feature_bounds = None
+        for (base_feature_id, layer_feature_id) in feature_alignment:
+            if (base_feature := self.__find_feature(base_feature_id)) is None:
+                log.warning('Cannot find base feature for layer alignment', layer=self.id, feature=base_feature_id)
+            elif base_feature_bounds is None:
+                base_feature_bounds = base_feature.bounds
+            else:
+                base_feature_bounds = merge_bounds(base_feature_bounds, base_feature.bounds)
+            if (layer_feature := self.__find_feature(layer_feature_id)) is None:
+                log.warning("Cannot find layer's feature for alignment", layer=self.id, feature=layer_feature_id)
+            elif layer_feature_bounds is None:
+                layer_feature_bounds = layer_feature.bounds
+            else:
+                layer_feature_bounds = merge_bounds(layer_feature_bounds, layer_feature.bounds)
+        if base_feature_bounds is not None and layer_feature_bounds is not None:
+            base_centroid = bounds_centroid(base_feature_bounds)
+            layer_centroid = bounds_centroid(layer_feature_bounds)
+            self.__offset = ((base_centroid[0] - layer_centroid[0]),
+                             (base_centroid[1] - layer_centroid[1]))
 
     def create_feature_groups(self):
     #===============================
@@ -221,6 +260,8 @@ class MapLayer(FeatureLayer):
             min_zoom = self.min_zoom
         if map_source.base_feature is not None:
             min_zoom -= ZOOM_OFFSET_FROM_BASE
+        if self.__offset != (0.0, 0.0):
+            extent = translate_extent(extent, self.__offset)
         self.__raster_layers = [RasterLayer(raster_source, extent,
                                             min_zoom=min_zoom, local_world_to_base=local_world_to_base)
                                     for raster_source in map_source.raster_sources]

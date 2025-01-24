@@ -150,6 +150,7 @@ class MapSource(object):
         else:
             self.__min_zoom = flatmap.min_zoom
             self.__base_feature = None
+        self.__feature_alignment = source_manifest.alignment
 
     @property
     def annotator(self):
@@ -232,6 +233,8 @@ class MapSource(object):
     def add_layer(self, layer: 'MapLayer'):
     #======================================
         layer.create_feature_groups()
+        if len(self.__feature_alignment):
+            layer.calculate_offset(self.__feature_alignment)
         self.__layers.append(layer)
 
     def create_preview(self):

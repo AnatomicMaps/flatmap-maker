@@ -70,7 +70,14 @@ warnings.simplefilter(action='default', category=FutureWarning)
 # (SE, NW) bounds as decimal coordinates
 MapBounds = tuple[float, float, float, float]
 
+# (SW, NE) bounds as lng/lat coordinates
+MapExtent = tuple[float, float, float, float]
+
 #===============================================================================
+
+def bounds_centroid(bounds: MapBounds) -> tuple[float, float]:
+#=============================================================
+    return ((bounds[0] + bounds[2])/2, (bounds[1] + bounds[3])/2)
 
 def bounds_to_extent(bounds):
 #============================
@@ -92,6 +99,13 @@ def merge_bounds(bounds_0: MapBounds, bounds_1: MapBounds) -> MapBounds:
 #=======================================================================
     return (min(bounds_0[0], bounds_1[0]), min(bounds_0[1], bounds_1[1]),
             max(bounds_0[2], bounds_1[2]), max(bounds_0[3], bounds_1[3]))
+
+def translate_extent(extent: MapExtent, offset: tuple[float, float]) -> MapBounds:
+#=================================================================================
+    bounds = extent_to_bounds(extent)
+    bds = (bounds[0] + offset[0], bounds[1] + offset[1],
+           bounds[2] + offset[0], bounds[3] + offset[1])
+    return bounds_to_extent(bds)
 
 #===============================================================================
 

@@ -185,6 +185,7 @@ class SourceManifest:
         self.__boundary = description.get('boundary')
         self.__detail_fit = description.get('detail-fit')
         self.__feature = description.get('feature')
+        self.__alignment = [(features[0], features[1]) for features in description.get('alignment', [])]
         self.__source_range = (([int(n) for n in source_range] if isinstance(source_range, list)
                                                                else [int(source_range)])
                                     if (source_range := description.get('slides')) is not None
@@ -198,6 +199,10 @@ class SourceManifest:
                                             tuple(float(t) for t in background.get('translate', [0, 0]))[0:2])   # type: ignore
         else:
             self.__background_source = None
+
+    @property
+    def alignment(self) -> list[tuple[str, str]]:
+        return self.__alignment
 
     @property
     def background_source(self) -> Optional[SourceBackground]:
