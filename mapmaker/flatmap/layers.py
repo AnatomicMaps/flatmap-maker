@@ -238,9 +238,8 @@ class MapLayer(FeatureLayer):
             if len(feature_ids):
                 group_bounds = None
                 for feature_id in feature_ids:
-                    if ((feature := self.flatmap.get_feature_by_name(feature_id)) is None
-                    and (feature := self.flatmap.get_feature(feature_id)) is None):
-                        log.warning('Cannot find source feature for feature group', group=group_id, feature=feature_id)
+                    if (feature := self.__find_feature(feature_id)) is None:
+                        log.warning('Cannot find source feature for feature group', layer=self.id, group=group_id, feature=feature_id)
                     elif group_bounds is None:
                         group_bounds = feature.bounds
                     else:
@@ -251,7 +250,7 @@ class MapLayer(FeatureLayer):
                         'exclude': True
                     })
 
-    def add_raster_layers(self, layer_id: str, extent: MapBounds, map_source: 'MapSource',
+    def add_raster_layers(self, extent: MapBounds, map_source: 'MapSource', layer_id: Optional[str]=None,
                           min_zoom: Optional[int]=None, local_world_to_base: Optional[Transform]=None):
     #==================================================================================================
         if min_zoom is not None:
@@ -475,7 +474,7 @@ class RasterLayer(object):
     """
     def __init__(self, raster_source: 'RasterSource', extent: MapBounds,
                  min_zoom:Optional[int]=None, max_zoom: Optional[int]=None,
-                local_world_to_base: Optional[Transform]=None):
+                 local_world_to_base: Optional[Transform]=None):
         self.__id = raster_source.id
         self.__extent = extent
         self.__raster_source = raster_source

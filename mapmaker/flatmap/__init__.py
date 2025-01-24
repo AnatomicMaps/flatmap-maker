@@ -354,7 +354,7 @@ class FlatMap(object):
         for layer in source.layers:
             self.add_layer(layer)
             if layer.exported:
-                layer.add_raster_layers(layer.id, source.extent, source)
+                layer.add_raster_layers(source.extent, source)
         # The first layer is used as the base map
         if layer_number == 0:
             if source.kind == 'details':
@@ -475,9 +475,9 @@ class FlatMap(object):
 
             if len(hires_layer.source.raster_sources):
                 extent = transform.transform_extent(hires_layer.source.extent)
-                layer.add_raster_layers(f'{detail_layer.id}_{hires_layer.id}',
-                                        extent, hires_layer.source, minzoom,
-                                        local_world_to_base=transform)
+                layer.add_raster_layers(extent, hires_layer.source,
+                                        id=f'{detail_layer.id}_{hires_layer.id}',
+                                        min_zoom=minzoom, local_world_to_base=transform)
 
             # The detail layer gets a scaled copy of each high-resolution feature
             for hires_feature in hires_layer.features:

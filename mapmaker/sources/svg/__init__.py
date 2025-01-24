@@ -432,7 +432,6 @@ class SVGLayer(MapLayer):
             return self.__process_group(wrapped_element, properties, transform, parent_style)
         elif element.tag == SVG_TAG('text'):
             geometry = self.__process_text(element, properties, transform)
-
             if geometry is not None:
                 return Shape(shape_id, geometry, properties, shape_type=SHAPE_TYPE.TEXT, svg_element=element)
         else:
