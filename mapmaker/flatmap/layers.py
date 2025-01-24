@@ -480,7 +480,7 @@ class RasterLayer(object):
         self.__raster_source = raster_source
         self.__map_source = raster_source.map_source
         self.__flatmap = self.__map_source.flatmap
-        self.__max_zoom = max_zoom if max_zoom is not None else settings.get('maxRasterZoom', self.__map_source.max_zoom)
+        self.__max_zoom = max_zoom if max_zoom is not None else self.__map_source.max_zoom
         self.__min_zoom = min_zoom if min_zoom is not None else self.__map_source.min_zoom
         self.__local_world_to_base = local_world_to_base
         self.__background_layer = raster_source.background_layer

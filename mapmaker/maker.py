@@ -417,8 +417,11 @@ class MapMaker(object):
         tilemakers = []
         for layer in self.__flatmap.layers:
             for raster_layer in layer.raster_layers:
-                tilemaker = RasterTileMaker(raster_layer, self.__map_dir,
-                                            settings.get('maxRasterZoom', layer.max_zoom))
+                max_zoom = layer.max_zoom
+                if layer.source.kind == 'base':
+                    # maxRasterZoom is only for base maps
+                    max_zoom = settings.get('maxRasterZoom', max_zoom)
+                tilemaker = RasterTileMaker(raster_layer, self.__map_dir, max_zoom)
                 tilemakers.append(tilemaker)
                 if settings.get('backgroundTiles', False):
                     tilemaker_process = tilemaker.make_tiles()
