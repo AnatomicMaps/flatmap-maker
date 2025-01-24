@@ -139,7 +139,7 @@ class Shape(PropertyMixin):
         return self.get_property('global-shape', self)
 
     @property
-    def id(self) -> str:
+    def id(self) -> Optional[str]:
         return self.__id
 
     @property

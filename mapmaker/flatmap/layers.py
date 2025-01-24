@@ -157,7 +157,7 @@ class MapLayer(FeatureLayer):
         self.__boundary_feature = value
 
     @property
-    def bounds(self) -> tuple[float, float, float, float]:
+    def bounds(self) -> MapBounds:
         return self.__bounds
 
     @property

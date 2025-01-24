@@ -30,12 +30,13 @@ import numpy as np
 
 from mapmaker.geometry import bounds_to_extent, MapBounds, Transform
 from mapmaker.flatmap import SourceBackground, SourceManifest, SOURCE_DETAIL_KINDS
-from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
+from mapmaker.flatmap.layers import MapLayer, PATHWAYS_TILE_LAYER
 from mapmaker.properties.markup import parse_markup
+from mapmaker.shapes import Shape
 from mapmaker.utils import FilePath
 
 if TYPE_CHECKING:
-    from mapmaker.flatmap import FlatMap, MapLayer
+    from mapmaker.flatmap import FlatMap
 
 #===============================================================================
 
@@ -131,7 +132,7 @@ class MapSource(object):
         self.__kind = source_manifest.kind
         self.__source_range = source_manifest.source_range
         self.__errors: list[tuple[str, str]] = []
-        self.__layers: list['MapLayer'] = []
+        self.__layers: list[MapLayer] = []
         self.__bounds: MapBounds = (0, 0, 0, 0)
         self.__raster_sources = None
         self.__background_raster_source = source_manifest.background_source
@@ -201,7 +202,7 @@ class MapSource(object):
         return self.__kind
 
     @property
-    def layers(self) -> list['MapLayer']:
+    def layers(self) -> list[MapLayer]:
         return self.__layers
 
     @property
@@ -230,8 +231,8 @@ class MapSource(object):
     def transform(self) -> Optional[Transform]:
         return None
 
-    def add_layer(self, layer: 'MapLayer'):
-    #======================================
+    def add_layer(self, layer: MapLayer):
+    #====================================
         layer.create_feature_groups()
         if len(self.__feature_alignment):
             layer.calculate_offset(self.__feature_alignment)
@@ -245,8 +246,8 @@ class MapSource(object):
     #====================================
         self.__errors.append((kind, msg))
 
-    def filter_map_shape(self, shape):
-    #=================================
+    def filter_map_shape(self, shape: Shape):
+    #========================================
         return
 
     def map_area(self) -> float:

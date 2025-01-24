@@ -91,7 +91,7 @@ class SVGSource(MapSource):
         super().__init__(flatmap, source_manifest)
         self.__source_file = FilePath(source_manifest.href)
         self.__exported = (self.kind == 'base' or self.kind in SOURCE_DETAIL_KINDS)
-        svg = etree.parse(self.__source_file.get_fp()).getroot()
+        svg: etree.Element = etree.parse(self.__source_file.get_fp()).getroot()
         if 'viewBox' in svg.attrib:
             viewbox = [float(x) for x in svg.attrib.get('viewBox').split()]
             (left, top) = tuple(viewbox[:2])
