@@ -21,7 +21,7 @@
 from dataclasses import dataclass, field
 import itertools
 import math
-from typing import Any, Optional
+from typing import Any, Optional, Self
 
 #===============================================================================
 
@@ -50,7 +50,7 @@ class XYPair:
     properties: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_coords(cls, coords: Coordinate) -> "XYPair":
+    def from_coords(cls, coords: Coordinate) -> Self:
         self = super().__new__(cls)
         self.__init__(coords[0], coords[1])
         return self
@@ -120,7 +120,7 @@ class Line:
         return hash(((self.p0.x, self.p0.y), (self.p1.x, self.p1.y)))
 
     @classmethod
-    def from_coords(cls, coords: tuple[Coordinate, Coordinate]) -> "Line":
+    def from_coords(cls, coords: tuple[Coordinate, Coordinate]) -> Self:
         self = super().__new__(cls)
         self.__init__(XYPair.from_coords(coords[0]), XYPair.from_coords(coords[1]))
         return self
@@ -177,8 +177,8 @@ class HorizontalLine:
         return f'[{self.__x_min}, {self.__x_max}] at {self.__y}'
 
     @classmethod
-    def from_line(cls, line: Line) -> 'HorizontalLine':
-    #==================================================
+    def from_line(cls, line: Line) -> Self:
+    #======================================
         self = super().__new__(cls)
         p0 = line.rotation.rotate(line.p0)
         p1 = line.rotation.rotate(line.p1)

@@ -23,7 +23,7 @@ import pathlib
 
 #===============================================================================
 
-from mapmaker.flatmap import FlatMap, ManifestSource
+from mapmaker.flatmap import FlatMap, SourceManifest
 from mapmaker.flatmap.feature import Feature
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.knowledgebase.celldl import CD_CLASS
@@ -136,8 +136,8 @@ class PowerpointLayer(MapLayer):
 #===============================================================================
 
 class PowerpointSource(MapSource):
-    def __init__(self, flatmap: FlatMap, manifest_source: ManifestSource, SlideClass=Slide, slide_options=None, process_store=None):
-        super().__init__(flatmap, manifest_source)
+    def __init__(self, flatmap: FlatMap, source_manifest: SourceManifest, SlideClass=Slide, slide_options=None, process_store=None):
+        super().__init__(flatmap, source_manifest)
         self.__powerpoint = Powerpoint(flatmap, self, SlideClass=SlideClass, slide_options=slide_options)
         self.__slides: dict[tuple[int, str], Slide] = {}
         number_of_slides = len(self.__powerpoint.slides)

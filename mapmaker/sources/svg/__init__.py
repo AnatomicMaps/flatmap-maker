@@ -38,7 +38,7 @@ import skia
 #===============================================================================
 
 from mapmaker.exceptions import MakerException
-from mapmaker.flatmap import Feature, FlatMap, ManifestSource, SOURCE_DETAIL_KINDS
+from mapmaker.flatmap import Feature, FlatMap, SourceManifest, SOURCE_DETAIL_KINDS
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.settings import MAP_KIND
@@ -85,9 +85,9 @@ NON_INHERITED_PROPERTIES = [
 #===============================================================================
 
 class SVGSource(MapSource):
-    def __init__(self, flatmap: FlatMap, manifest_source: ManifestSource):  # maker v's flatmap (esp. id)
-        super().__init__(flatmap, manifest_source)
-        self.__source_file = FilePath(manifest_source.href)
+    def __init__(self, flatmap: FlatMap, source_manifest: SourceManifest):  # maker v's flatmap (esp. id)
+        super().__init__(flatmap, source_manifest)
+        self.__source_file = FilePath(source_manifest.href)
         self.__exported = (self.kind == 'base' or self.kind in SOURCE_DETAIL_KINDS)
         svg = etree.parse(self.__source_file.get_fp()).getroot()
         if 'viewBox' in svg.attrib:
@@ -101,7 +101,16 @@ class SVGSource(MapSource):
         if self.base_feature is not None:
             bounds = self.base_feature.bounds
             (scale_x, scale_y) = ((bounds[2]-bounds[0])/width, (bounds[3]-bounds[1])/height)
-            scale = max(scale_x, scale_y)
+            if source_manifest.detail_fit == 'fit-width':
+                scale = scale_x
+            elif source_manifest.detail_fit == 'fit-height':
+                scale = scale_y
+            elif source_manifest.detail_fit == 'fit-mean':
+                scale = math.sqrt(scale_x*scale_x + scale_y*scale_y)
+            elif source_manifest.detail_fit == 'fit-smallest':
+                scale = min(scale_x, scale_y)
+            else:                       # Default to ``fit-largest``
+                scale = max(scale_x, scale_y)
             self.__transform = (Transform([[1,  0, bounds[0]+(bounds[2]-bounds[0])/2],
                                            [0,  1, bounds[1]+(bounds[3]-bounds[1])/2],
                                            [0,  0,         1]])

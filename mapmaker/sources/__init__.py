@@ -28,18 +28,14 @@ import numpy as np
 
 #===============================================================================
 
-from mapmaker.geometry import bounds_to_extent, Transform
-from mapmaker.flatmap import ManifestSource, SOURCE_DETAIL_KINDS
+from mapmaker.geometry import bounds_to_extent, MapBounds, Transform
+from mapmaker.flatmap import SourceManifest, SOURCE_DETAIL_KINDS
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.properties.markup import parse_markup
 from mapmaker.utils import FilePath
 
 if TYPE_CHECKING:
     from mapmaker.flatmap import FlatMap, MapLayer
-
-#===============================================================================
-
-MapBounds = tuple[float, float, float, float]
 
 #===============================================================================
 
@@ -55,13 +51,11 @@ WORLD_METRES_PER_EMU = 0.1   ## This to become a command line parameter...
 # SVG pixel resolution
 PIXELS_PER_INCH = 96
 EMU_PER_PIXEL = EMU_PER_INCH/PIXELS_PER_INCH
-EMU_PER_POINT = EMU_PER_INCH/POINTS_PER_INCH
 EMU_PER_METRE = 1.0/WORLD_METRES_PER_EMU
 
 POINTS_PER_PIXEL = POINTS_PER_INCH/PIXELS_PER_INCH
 
 WORLD_METRES_PER_PIXEL = WORLD_METRES_PER_EMU*EMU_PER_PIXEL
-WORLD_METRES_PER_POINT = WORLD_METRES_PER_EMU*EMU_PER_POINT
 
 # MBF Bioscience units to EPSG:3857 coordinates
 WORLD_METRES_PER_UM = 100
@@ -130,27 +124,27 @@ def not_empty(image):
 #===============================================================================
 
 class MapSource(object):
-    def __init__(self, flatmap: 'FlatMap', manifest_source: ManifestSource):
+    def __init__(self, flatmap: 'FlatMap', source_manifest: SourceManifest):
         self.__flatmap = flatmap
-        self.__id = manifest_source.id
-        self.__href = manifest_source.href
-        self.__kind = manifest_source.kind
-        self.__source_range = manifest_source.source_range
+        self.__id = source_manifest.id
+        self.__href = source_manifest.href
+        self.__kind = source_manifest.kind
+        self.__source_range = source_manifest.source_range
         self.__errors: list[tuple[str, str]] = []
         self.__layers: list['MapLayer'] = []
         self.__bounds: MapBounds = (0, 0, 0, 0)
         self.__raster_source = None
         if self.__kind in SOURCE_DETAIL_KINDS:
-            if manifest_source.feature is None:
+            if source_manifest.feature is None:
                 raise ValueError('A `detail` source must specify an existing `feature`')
-            if manifest_source.zoom < 1:
+            if source_manifest.zoom < 1:
                 raise ValueError('A `detail` source must specify `zoom`')
-            if ((feature := flatmap.get_feature_by_name(manifest_source.feature)) is None
-            and (feature := flatmap.get_feature(manifest_source.feature)) is None):
-                raise ValueError(f'Unknown source feature: {manifest_source.feature}')
-            feature.set_property('maxzoom', manifest_source.zoom-1)
+            if ((feature := flatmap.get_feature_by_name(source_manifest.feature)) is None
+            and (feature := flatmap.get_feature(source_manifest.feature)) is None):
+                raise ValueError(f'Unknown source feature: {source_manifest.feature}')
+            feature.set_property('maxzoom', source_manifest.zoom-1)
             feature.set_property('kind', 'expandable')
-            self.__min_zoom = manifest_source.zoom
+            self.__min_zoom = source_manifest.zoom
             self.__base_feature = feature
         else:
             self.__min_zoom = flatmap.min_zoom

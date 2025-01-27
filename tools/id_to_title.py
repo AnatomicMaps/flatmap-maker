@@ -79,7 +79,11 @@ class DeGrouper:
             if output is None:
                 output = etree.Element(element.tag, **element.attrib, nsmap=NAMESPACE_MAP)
             elif element.tag != SVG_GROUP or len(element.attrib) > 0 or len(element) > 1:
-                output = etree.SubElement(output, element.tag, **element.attrib)
+                output = etree.SubElement(output, element.tag, attrib=element.attrib)
+                if element.text is not None:
+                    output.text = element.text
+                if element.tail is not None:
+                    output.tail = element.tail
             for child in element:
                 self.__process_element(child, output)
         return output

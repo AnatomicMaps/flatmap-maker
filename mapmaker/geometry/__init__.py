@@ -67,6 +67,11 @@ mercator_transformer = pyproj.Transformer.from_proj(
 
 warnings.simplefilter(action='default', category=FutureWarning)
 
+# (SE, NW) bounds as decimal coordinates
+MapBounds = tuple[float, float, float, float]
+
+#===============================================================================
+
 def bounds_to_extent(bounds):
 #============================
     sw = mercator_transformer.transform(*bounds[:2])
@@ -82,6 +87,11 @@ def extent_to_bounds(extent):
 def mercator_transform(geometry):
 #================================
     return shapely.ops.transform(mercator_transformer.transform, geometry)
+
+def merge_bounds(bounds_0: MapBounds, bounds_1: MapBounds) -> MapBounds:
+#=======================================================================
+    return (min(bounds_0[0], bounds_1[0]), min(bounds_0[1], bounds_1[1]),
+            max(bounds_0[2], bounds_1[2]), max(bounds_0[3], bounds_1[3]))
 
 #===============================================================================
 
@@ -106,8 +116,12 @@ class Transform(object):
         return cls(np.identity(3))
 
     @classmethod
-    def scale(cls, scale):
+    def scale(cls, scale: float):
         return cls([[scale, 0, 0], [0, scale, 0], [0, 0, 1]])
+
+    @classmethod
+    def translate(cls, tx: float, ty: float):
+        return cls([[1, 0, tx], [0, 1, ty], [0, 0, 1]])
 
     @property
     def matrix(self):

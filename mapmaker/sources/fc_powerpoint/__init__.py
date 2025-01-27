@@ -30,14 +30,13 @@ import shapely.strtree
 
 #===============================================================================
 
-from mapmaker.flatmap import FlatMap, ManifestSource
-from mapmaker.geometry import Transform
+from mapmaker.flatmap import FlatMap, SourceManifest
+from mapmaker.geometry import MapBounds, Transform
 from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS, FC_KIND
 from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
 from mapmaker.settings import settings
 from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.shapefilter import ShapeFilter
-from mapmaker.sources import MapBounds
 from mapmaker.utils import log
 
 from ..powerpoint import PowerpointSource, Slide
@@ -76,9 +75,9 @@ def contained_in(inside_shape, outer_shape, outside_fraction=0.0):
 #===============================================================================
 
 class FCPowerpointSource(PowerpointSource):
-    def __init__(self, flatmap, manifest_source: ManifestSource,
+    def __init__(self, flatmap, source_manifest: SourceManifest,
                  shape_filter: Optional[ShapeFilter]=None, **kwds):
-        super().__init__(flatmap, manifest_source,
+        super().__init__(flatmap, source_manifest,
                          SlideClass=FCSlide, slide_options=dict(
                             shape_filter=shape_filter,
                             sckan_neurons=flatmap.sckan_neuron_populations
