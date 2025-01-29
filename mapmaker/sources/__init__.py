@@ -234,7 +234,7 @@ class MapSource(object):
     #====================================
         layer.create_feature_groups()
         if len(self.__feature_alignment):
-            layer.calculate_offset(self.__feature_alignment)
+            layer.align_layer(self.__feature_alignment)
         self.__layers.append(layer)
 
     def create_preview(self):

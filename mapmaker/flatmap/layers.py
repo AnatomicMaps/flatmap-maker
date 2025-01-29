@@ -180,10 +180,6 @@ class MapLayer(FeatureLayer):
         return self.__min_zoom
 
     @property
-    def offset(self) -> tuple[float, float]:
-        return self.__offset
-
-    @property
     def outer_geometry(self) -> BaseGeometry:
         return self.__outer_geometry
 
@@ -209,8 +205,8 @@ class MapLayer(FeatureLayer):
             feature = self.flatmap.get_feature(feature_id)
         return feature
 
-    def calculate_offset(self, feature_alignment: list[tuple[str, str]]):
-    #====================================================================
+    def align_layer(self, feature_alignment: list[tuple[str, str]]):
+    #===============================================================
         base_feature_bounds = None
         layer_feature_bounds = None
         for (base_feature_id, layer_feature_id) in feature_alignment:
@@ -231,6 +227,9 @@ class MapLayer(FeatureLayer):
             layer_centroid = bounds_centroid(layer_feature_bounds)
             self.__offset = ((base_centroid[0] - layer_centroid[0]),
                              (base_centroid[1] - layer_centroid[1]))
+            if self.__offset != (0.0, 0.0):
+                for feature in self.features:
+                    feature.geometry = shapely.affinity.translate(feature.geometry, xoff=self.__offset[0], yoff=self.__offset[1])
 
     def create_feature_groups(self):
     #===============================
