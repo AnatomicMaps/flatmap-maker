@@ -79,6 +79,7 @@ def round(x: float|int) -> int:
 #===============================================================================
 
 def make_colour(colour_string, opacity=1.0):
+    colour_string = colour_string.strip()
     if colour_string.startswith('#'):
         colour = webcolors.hex_to_rgb(colour_string)
     elif colour_string.startswith('rgb('):
