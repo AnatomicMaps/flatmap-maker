@@ -183,7 +183,7 @@ class ShapeClassifier:
         shape.properties['shape-type'] = SHAPE_TYPE.CONNECTION
         shape.properties['tile-layer'] = PATHWAYS_TILE_LAYER
         shape.properties['stroke-width'] = CONNECTION_STROKE_WIDTH
-        shape.properties['type'] = 'line'  ## or 'line-dash'
+        shape.properties['type'] = 'line-dash' if shape.get_property('dashed', False) else 'line'
         return True
 
     def __append_connection_ends(self, end: shapely.Point, shape: Shape, index: int):
