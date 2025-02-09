@@ -131,16 +131,16 @@ class ShapeClassifier:
                 elif ((n < len(shapes) - 1) and shapes[n+1].shape_type == SHAPE_TYPE.TEXT
                   and coverage < 0.5 and bbox_coverage < 0.001):
                     shape.properties['exclude'] = True
-                elif coverage < 0.4 or 'LineString' in geometry.geom_type:
+                elif 'LineString' in geometry.geom_type or coverage < 0.4 and 'Multi' not in geometry.geom_type:
                     if not self.__add_connection(shape):
                         log.warning('Cannot extract line from polygon', shape=shape.id)
                 elif bbox_coverage > 0.001 and coverage > 0.9:
-                    shape.properties['shape-type'] = SHAPE_TYPE.CONTAINER
-                elif bbox_coverage < 0.0005 and aspect > 0.9 and 0.7 < coverage <= 0.85:
+                    shape.properties['shape-type'] = SHAPE_TYPE.CONTAINER if bbox_coverage > 0.2 else SHAPE_TYPE.COMPONENT
+                elif bbox_coverage < 0.0003 and 0.7 < coverage <= 0.8:
+                    shape.properties['shape-type'] = SHAPE_TYPE.ANNOTATION
+                elif bbox_coverage < 0.001 and coverage > 0.75:
                     shape.properties['shape-type'] = SHAPE_TYPE.COMPONENT
-                elif bbox_coverage < 0.001 and coverage > 0.85:
-                    shape.properties['shape-type'] = SHAPE_TYPE.COMPONENT
-                elif len(shape.geometry.boundary.coords) == 4:      # A triangle
+                elif 'Multi' not in geometry.boundary.geom_type and len(shape.geometry.boundary.coords) == 4:      # A triangle
                     connection_joiners.append(shape)
                 elif not self.__add_connection(shape):
                     log.warning('Unclassifiable shape', shape=shape.id)
@@ -162,6 +162,15 @@ class ShapeClassifier:
         # Set parent/child relationship for components
         self.__set_parent_relationships()
 
+        # Assign text labels to components
+        for shape in self.__shapes:
+            if shape.shape_type in [SHAPE_TYPE.ANNOTATION, SHAPE_TYPE.COMPONENT]:
+                if (label_and_shapes := self.__text_finder.get_text(shape)) is not None:
+                    shape.properties['label'] = label_and_shapes[0]
+                    shape.properties['text-shapes'] = label_and_shapes[1]
+                # Although we do want their text, we don't want annotations to be active features
+                if shape.shape_type == SHAPE_TYPE.ANNOTATION:
+                    shape.properties['exclude'] = True
 
     def __add_connection(self, shape: Shape) -> bool:
     #================================================
@@ -212,13 +221,6 @@ class ShapeClassifier:
             c1.shape.geometry = l1.line_string
         return (c0.shape, c1.shape)
 
-    def classify(self) -> list[Shape]:
-    #=================================
-        for shape in self.__shapes:
-            if shape.shape_type in [SHAPE_TYPE.COMPONENT, SHAPE_TYPE.CONTAINER]:
-                if (label := self.__text_finder.get_text(shape)) is not None:
-                    shape.properties['label'] = label
-        return [s for s in self.__shapes if not s.exclude]
     def __join_connections(self, connection_joiners):
     #================================================
         connection_index = shapely.strtree.STRtree(self.__connection_ends)
