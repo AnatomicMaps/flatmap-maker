@@ -152,29 +152,9 @@ class ShapeClassifier:
                     geometries.append(shape.geometry)
                     shape.properties['stroke-width'] = COMPONENT_BORDER_WIDTH
 
-        connection_index = shapely.strtree.STRtree(self.__connection_ends)
 
-        joined_connection_graph = nx.Graph()
-        for joiner in connection_joiners:
-            ends = connection_index.query_nearest(joiner.geometry) #, max_distance=10*metres_per_pixel*MAX_LINE_WIDTH)
-            if len(ends) == 2:
-                joiner.properties['exclude'] = True
-                (connection_0, connection_1) = self.__extend_joined_connections(ends)
-                joined_connection_graph.add_edge(connection_0, connection_1)
-            else:
-                joiner.properties['colour'] = SHAPE_ERROR_COLOUR
-                joiner.properties['stroke'] = SHAPE_ERROR_BORDER
-                joiner.properties['stroke-width'] = COMPONENT_BORDER_WIDTH
-                joiner.geometry = joiner.geometry.buffer(self.__max_line_width)
-        for joined_connection in nx.connected_components(joined_connection_graph):
-            connections = list(joined_connection)
-            connected_line = shapely.line_merge(shapely.unary_union([conn.geometry for conn in connections]))
-            assert connected_line.geom_type == 'LineString', f'Cannot join connections: {[conn.id for conn in connections]}'
-            connections[0].geometry = connected_line
-            for connection in connections[1:]:
-                if connection.properties.get('directional', False):
-                    connections[0].properties['directional'] = True
-                connection.properties['exclude'] = True
+        # If possible, join connections that share a triangular joiner
+        self.__join_connections(connection_joiners)
 
         self.__str_index = shapely.strtree.STRtree(geometries)
         geometries: list[BaseGeometry] = self.__str_index.geometries     # type: ignore
@@ -246,5 +226,33 @@ class ShapeClassifier:
                 if (label := self.__text_finder.get_text(shape)) is not None:
                     shape.properties['label'] = label
         return [s for s in self.__shapes if not s.exclude]
+    def __join_connections(self, connection_joiners):
+    #================================================
+        connection_index = shapely.strtree.STRtree(self.__connection_ends)
+        joined_connection_graph = nx.Graph()
+        for joiner in connection_joiners:
+            ends = connection_index.query_nearest(joiner.geometry)
+            if len(ends) == 2:
+                joiner.properties['exclude'] = True
+                (connection_0, connection_1) = self.__extend_joined_connections(ends)
+                joined_connection_graph.add_edge(connection_0, connection_1)
+            else:
+                joiner.properties['colour'] = SHAPE_ERROR_COLOUR
+                joiner.properties['stroke'] = SHAPE_ERROR_BORDER
+                joiner.properties['stroke-width'] = COMPONENT_BORDER_WIDTH
+                joiner.geometry = joiner.geometry.buffer(self.__max_line_width)
+        for joined_connection in nx.connected_components(joined_connection_graph):
+            connections = list(joined_connection)
+            connected_line = shapely.line_merge(shapely.unary_union([conn.geometry for conn in connections]))
+            assert connected_line.geom_type == 'LineString', f'Cannot join connections: {[conn.id for conn in connections]}'
+
+            # Need to check all segments have the same colour...
+
+            connections[0].geometry = connected_line
+            for connection in connections[1:]:
+                if connection.properties.get('directional', False):
+                    connections[0].properties['directional'] = True
+                connection.properties['exclude'] = True
+
 
 #===============================================================================
