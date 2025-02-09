@@ -107,6 +107,9 @@ class ShapeClassifier:
         connection_joiners: list[Shape] = []
         component_geometries = []
         for n, shape in enumerate(shapes):
+            if shape.get_property('background', False):
+                shape.set_property('exclude', True)
+                continue
             geometry = shape.geometry
             area = geometry.area
             self.__bounds = geometry.bounds

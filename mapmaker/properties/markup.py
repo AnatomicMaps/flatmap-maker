@@ -74,7 +74,8 @@ NAME = Group(Keyword('name') + Suppress('(') + FREE_TEXT + Suppress(')'))
 
 FEATURE_PROPERTIES = CLASS | CHILDCLASSES | IDENTIFIER | NAME | STYLE
 
-SHAPE_FLAGS = Group(Keyword('boundary')
+SHAPE_FLAGS = Group(Keyword('background')
+                  | Keyword('boundary')
                   | Keyword('closed')
                   | Keyword('exterior')
                   | Keyword('interior')
