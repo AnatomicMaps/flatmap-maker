@@ -176,6 +176,11 @@ class ShapeClassifier:
                 self.__connect_line_end(shape, line_ends[0], 'source')
                 self.__connect_line_end(shape, line_ends[1], 'target')
 
+    @property
+    def shapes(self) -> list[Shape]:
+    #===============================
+        return [s for s in self.__shapes if not s.exclude]
+
     def __add_connection(self, shape: Shape) -> bool:
     #================================================
         if shape.geometry.geom_type == 'MultiPolygon':

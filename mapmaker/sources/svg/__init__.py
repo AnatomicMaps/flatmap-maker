@@ -224,14 +224,15 @@ class SVGLayer(MapLayer):
                                              self.__transform,
                                              properties,
                                              None, show_progress=True)
-        features = self.__process_shapes(shapes)
+        self.__process_shapes(shapes)
 
     def __process_shapes(self, shapes: TreeList[Shape]) -> list[Feature]:
     #====================================================================
-        if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL and not self.source.kind == 'anatomical'):
+        if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL
+        and not self.source.kind == 'anatomical'):
             # CellDL conversion mode...
-            sc = ShapeClassifier(shapes.flatten(), self.source.map_area(), self.source.metres_per_pixel)
-            shapes = TreeList(sc.classify())
+            shape_classifier = ShapeClassifier(shapes.flatten(), self.source.map_area(), self.source.metres_per_pixel)
+            shapes = TreeList(shape_classifier.shapes)
         # Add a background shape behind a detailed functional map
         if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL
         and self.source.kind == 'functional'):
