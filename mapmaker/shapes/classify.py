@@ -105,7 +105,7 @@ class ShapeClassifier:
         self.__connection_ends_to_shape: dict[int, ConnectionEnd] = {}
         self.__max_line_width = metres_per_pixel*MAX_LINE_WIDTH
         connection_joiners: list[Shape] = []
-        geometries = []
+        component_geometries = []
         for n, shape in enumerate(shapes):
             geometry = shape.geometry
             area = geometry.area
@@ -149,28 +149,19 @@ class ShapeClassifier:
                 self.__shapes_by_type[shape.shape_type].append(shape)
                 if shape.shape_type != SHAPE_TYPE.CONNECTION:
                     self.__geometry_to_shape[id(shape.geometry)] = shape
-                    geometries.append(shape.geometry)
+                    component_geometries.append(shape.geometry)
                     shape.properties['stroke-width'] = COMPONENT_BORDER_WIDTH
 
+        # An index for component geometries
+        self.__component_index = shapely.strtree.STRtree(component_geometries)
+        self.__component_geometries: list[BaseGeometry] = self.__component_index.geometries     # type: ignore
 
         # If possible, join connections that share a triangular joiner
         self.__join_connections(connection_joiners)
 
-        self.__str_index = shapely.strtree.STRtree(geometries)
-        geometries: list[BaseGeometry] = self.__str_index.geometries     # type: ignore
-        parent_child = []
-        for geometry in geometries:
-            if geometry.area > 0:
-                parent = self.__geometry_to_shape[id(geometry)]
-                for child in [self.__geometry_to_shape[id(geometries[c])]
-                                for c in self.__str_index.query(geometry, predicate='contains_properly')
-                                    if geometries[c].area > 0]:
-                    parent_child.append((parent, child))
-        last_child_id = None
-        for (parent, child) in sorted(parent_child, key=lambda s: (s[1].id, s[0].geometry.area)):
-            if child.id != last_child_id:
-                child.add_parent(parent)
-                last_child_id = child.id
+        # Set parent/child relationship for components
+        self.__set_parent_relationships()
+
 
     def __add_connection(self, shape: Shape) -> bool:
     #================================================
@@ -254,5 +245,26 @@ class ShapeClassifier:
                     connections[0].properties['directional'] = True
                 connection.properties['exclude'] = True
 
+    def __set_parent_relationships(self):
+    #====================================
+        parent_child = []
+        for geometry in self.__component_geometries:
+            if geometry.area > 0:
+                parent = self.__geometry_to_shape[id(geometry)]
+                bbox_intersecting_shapes = [self.__geometry_to_shape[id(self.__component_geometries[c])]
+                    for c in self.__component_index.query(geometry)
+                        if self.__component_geometries[c].area > 0]
+                for shape in bbox_intersecting_shapes:
+                    if parent.shape_type != SHAPE_TYPE.TEXT and parent.id != shape.id:
+                        # A text shape is always a child even when not properly contained
+                        if (shape.shape_type == SHAPE_TYPE.TEXT
+                         or shapely.contains_properly(parent.geometry, shape.geometry)):
+                            parent_child.append((parent, shape))
+        last_child_id = None
+        for (parent, child) in sorted(parent_child, key=lambda s: (s[1].id, s[0].geometry.area)):
+            # Sorted by child id with smallest parent first when there are multiple parents
+            if child.id != last_child_id:
+                child.add_parent(parent)
+                last_child_id = child.id
 
 #===============================================================================
