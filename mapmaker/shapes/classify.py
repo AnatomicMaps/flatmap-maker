@@ -189,16 +189,16 @@ class ShapeClassifier:
             kind = VASCULAR_KINDS.lookup(shape.properties.get('fill'))
         else:
             kind = VASCULAR_KINDS.lookup(shape.properties.get('stroke'))
-        assert shape.geometry.geom_type == 'LineString', f'Connection not a LineString: {shape.id}'
-        line_ends: shapely.geometry.base.GeometrySequence[shapely.MultiPoint] = shape.geometry.boundary.geoms  # type: ignore
-        self.__append_connection_ends(line_ends[0], shape, 0)
-        self.__append_connection_ends(line_ends[1], shape, -1)
         if kind is not None:
             shape.properties['kind'] = kind
         shape.properties['shape-type'] = SHAPE_TYPE.CONNECTION
         shape.properties['tile-layer'] = PATHWAYS_TILE_LAYER
         shape.properties['stroke-width'] = CONNECTION_STROKE_WIDTH
         shape.properties['type'] = 'line-dash' if shape.get_property('dashed', False) else 'line'
+        assert shape.geometry.geom_type == 'LineString', f'Connection not a LineString: {shape.id}'
+        line_ends: shapely.geometry.base.GeometrySequence[shapely.MultiPoint] = shape.geometry.boundary.geoms  # type: ignore
+        self.__append_connection_ends(line_ends[0], shape, 0)
+        self.__append_connection_ends(line_ends[1], shape, -1)
         return True
 
     def __append_connection_ends(self, end: shapely.Point, shape: Shape, index: int):
@@ -219,7 +219,6 @@ class ShapeClassifier:
     def __extend_joined_connections(self, ends: ndarray) -> tuple[Shape, Shape]:
     #===========================================================================
         # Extend connection line ends so that they touch...
-
         c0 = self.__connection_ends_to_shape[id(self.__connection_ends[ends[0]])]
         c1 = self.__connection_ends_to_shape[id(self.__connection_ends[ends[1]])]
         l0 = LineString(c0.shape.geometry)
