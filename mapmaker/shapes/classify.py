@@ -162,7 +162,7 @@ class ShapeClassifier:
         # Set parent/child relationship for components
         self.__set_parent_relationships()
 
-        # Assign text labels to components
+        # Assign text labels to components and source and target of connections
         for shape in self.__shapes:
             if shape.shape_type in [SHAPE_TYPE.ANNOTATION, SHAPE_TYPE.COMPONENT]:
                 if (label_and_shapes := self.__text_finder.get_text(shape)) is not None:
@@ -171,6 +171,10 @@ class ShapeClassifier:
                 # Although we do want their text, we don't want annotations to be active features
                 if shape.shape_type == SHAPE_TYPE.ANNOTATION:
                     shape.properties['exclude'] = True
+            elif shape.shape_type == SHAPE_TYPE.CONNECTION:
+                line_ends: shapely.geometry.base.GeometrySequence[shapely.MultiPoint] = shape.geometry.boundary.geoms  # type: ignore
+                self.__connect_line_end(shape, line_ends[0], 'source')
+                self.__connect_line_end(shape, line_ends[1], 'target')
 
     def __add_connection(self, shape: Shape) -> bool:
     #================================================
@@ -202,6 +206,15 @@ class ShapeClassifier:
         end_circle = end.buffer(self.__max_line_width)
         self.__connection_ends.append(end_circle)
         self.__connection_ends_to_shape[id(end_circle)] = ConnectionEnd(shape, index)
+
+    def __connect_line_end(self, shape: Shape, end: shapely.Point, property: str):
+    #=============================================================================
+        for child in [self.__geometry_to_shape[id(self.__component_geometries[c])]
+                        for c in self.__component_index.query(end.buffer(self.__max_line_width), predicate='intersects')
+                            if self.__component_geometries[c].area > 0]:
+            if not child.exclude:
+                shape.set_property(property, child.id)
+                return
 
     def __extend_joined_connections(self, ends: ndarray) -> tuple[Shape, Shape]:
     #===========================================================================
