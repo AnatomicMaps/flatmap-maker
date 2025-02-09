@@ -150,7 +150,9 @@ class ShapeClassifier:
                     shape.properties['colour'] = SHAPE_ERROR_COLOUR
             if not shape.properties.get('exclude', False):
                 self.__shapes_by_type[shape.shape_type].append(shape)
-                if shape.shape_type != SHAPE_TYPE.CONNECTION:
+                if shape.shape_type in [SHAPE_TYPE.ANNOTATION,
+                                        SHAPE_TYPE.COMPONENT,
+                                        SHAPE_TYPE.TEXT]:
                     self.__geometry_to_shape[id(shape.geometry)] = shape
                     component_geometries.append(shape.geometry)
                     shape.properties['stroke-width'] = COMPONENT_BORDER_WIDTH
