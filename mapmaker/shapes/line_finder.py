@@ -37,6 +37,8 @@ from mapmaker.shapes import Shape
 from mapmaker.shapes.constants import ARROW_POINT_EPSILON, EPSILON, LINE_OVERLAP_RATIO
 from mapmaker.shapes.constants import MAX_PARALLEL_SKEW, MAX_LINE_WIDTH, MIN_LINE_ASPECT_RATIO
 
+from mapmaker.shapes.constants import SHAPE_ERROR_COLOUR
+
 #===============================================================================
 
 type Coordinate = tuple[float, float]
