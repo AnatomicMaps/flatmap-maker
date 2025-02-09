@@ -307,7 +307,7 @@ class SvgFromSlide:
                                      shape.id, shape.geometry.bounds, shape.properties,
                                      pptx_shape)
         if self.__celldl is not None:
-            self.__celldl.add_metadata(shape)
+            self.__celldl.add_shape(shape)
 
     def __process_svg_shape(self, svg_shape, svg_kind, svg_parent, group_colour,
                             shape_id, bounds, properties, pptx_shape):

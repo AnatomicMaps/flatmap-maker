@@ -89,6 +89,8 @@ def arg_parser():
     misc_options = parser.add_argument_group('Miscellaneous')
     misc_options.add_argument('--commit', metavar='GIT_COMMIT',
                         help='The branch/tag/commit to use when the source is a Git repository')
+    misc_options.add_argument('--export-bondgraphs', dest='exportBondgraphs', action='store_true',
+                        help='Export functional modelling components as CellDL bondgraphs')
     misc_options.add_argument('--export-features', dest='exportFeatures', metavar='EXPORT_FILE',
                         help='Export identifiers and anatomical terms of labelled features as JSON')
     misc_options.add_argument('--export-neurons', dest='exportNeurons', metavar='EXPORT_FILE',

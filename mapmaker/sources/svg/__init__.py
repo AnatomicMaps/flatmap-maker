@@ -2,7 +2,7 @@
 #
 #  Flatmap viewer and annotation tools
 #
-#  Copyright (c) 2020  David Brooks
+#  Copyright (c) 2020 - 2025 David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -42,13 +42,14 @@ from mapmaker.exceptions import MakerException
 from mapmaker.flatmap import Feature, FlatMap, SourceManifest, SOURCE_DETAIL_KINDS
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
-from mapmaker.settings import MAP_KIND
+from mapmaker.settings import MAP_KIND, settings
 from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.classify import ShapeClassifier
-from mapmaker.utils import FilePath, ProgressBar, log, TreeList
+from mapmaker.utils import FilePath, pathlib_path, ProgressBar, log, TreeList
 
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_PIXEL
+from ..celldl import CellDLExporter
 
 from .cleaner import SVGCleaner
 from .definitions import DefinitionStore, ObjectStore
@@ -233,6 +234,12 @@ class SVGLayer(MapLayer):
             # CellDL conversion mode...
             shape_classifier = ShapeClassifier(shapes.flatten(), self.source.map_area(), self.source.metres_per_pixel)
             shapes = TreeList(shape_classifier.shapes)
+            if settings.get('exportBondgraphs', False):
+                celldl_file = pathlib_path(self.source.href).with_suffix('.celldl.svg')
+                log.info(f'Exporting layer `{self.id}` to `{str(celldl_file)}`...')
+                celldl_export = CellDLExporter(self.__svg, self.source.href, self.source.transform.inverse())
+                celldl_export.process(shapes)
+                celldl_export.save(celldl_file)
         # Add a background shape behind a detailed functional map
         if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL
         and self.source.kind == 'functional'):

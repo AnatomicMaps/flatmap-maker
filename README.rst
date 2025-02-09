@@ -113,8 +113,8 @@ Command line help
                     [--authoring] [--debug]
                     [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N]
-                    [--export-features EXPORT_FILE] [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE]
-                    [--single-file {celldl,svg}]
+                    [--export-bondgraphs] [--export-features EXPORT_FILE] [--export-neurons EXPORT_FILE]
+                    [--export-svg EXPORT_FILE] [--single-file {celldl,svg}]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -162,6 +162,8 @@ Command line help
       --max-zoom N          Maximum zoom level (defaults to 10)
 
     Miscellaneous:
+      --export-bondgraphs
+                            Export functional modelling components as CellDL bondgraphs
       --export-features EXPORT_FILE
                             Export identifiers and anatomical terms of labelled features as JSON
       --export-neurons EXPORT_FILE

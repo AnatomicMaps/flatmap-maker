@@ -24,9 +24,12 @@ Slashes aren't valid in SVG (XML) IDs so we replace them with periods (``.``)
 In practice, feature IDs are have the form ``LAYER_NAME/Slide-N/NNNNN`` and
 won't contain any embedded periods.
 """
-def svg_id(id):
-#==============
-    return id.replace('/', '.')
+def svg_id(shape_id: str) -> str:
+#================================
+    shape_id = shape_id.split('/')[-1]
+    if shape_id.startswith('SHAPE_'):
+        shape_id = f'ID-{shape_id[6:].zfill(8)}'
+    return shape_id
 
 def name_from_id(id):
 #====================
