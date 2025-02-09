@@ -147,7 +147,10 @@ class ShapeClassifier:
                     connection_joiners.append(shape)
                 elif not self.__add_connection(shape):
                     log.warning('Unclassifiable shape', shape=shape.id)
-                    shape.properties['colour'] = SHAPE_ERROR_COLOUR
+                    if settings.get('authoring', False):
+                        shape.properties['exclude'] = True
+                    else:
+                        shape.properties['colour'] = SHAPE_ERROR_COLOUR
             if not shape.properties.get('exclude', False):
                 self.__shapes_by_type[shape.shape_type].append(shape)
                 if shape.shape_type in [SHAPE_TYPE.ANNOTATION,
@@ -192,8 +195,10 @@ class ShapeClassifier:
             return False
         elif 'Polygon' in shape.geometry.geom_type:
             if (line := self.__line_finder.get_line(shape)) is None:
-                shape.properties['exclude'] = not settings.get('authoring', False)
-                shape.properties['colour'] = SHAPE_ERROR_COLOUR
+                if settings.get('authoring', False):
+                    shape.properties['exclude'] = True
+                else:
+                    shape.properties['colour'] = SHAPE_ERROR_COLOUR
                 return False
             shape.geometry = line
             kind = VASCULAR_KINDS.lookup(shape.properties.get('fill'))
