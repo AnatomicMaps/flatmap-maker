@@ -165,7 +165,9 @@ class ShapeClassifier:
 
     def __add_connection(self, shape: Shape) -> bool:
     #================================================
-        if 'Polygon' in shape.geometry.geom_type:
+        if shape.geometry.geom_type == 'MultiPolygon':
+            return False
+        elif 'Polygon' in shape.geometry.geom_type:
             if (line := self.__line_finder.get_line(shape)) is None:
                 shape.properties['exclude'] = not settings.get('authoring', False)
                 shape.properties['colour'] = SHAPE_ERROR_COLOUR
