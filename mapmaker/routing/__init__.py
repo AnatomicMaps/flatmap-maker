@@ -88,6 +88,14 @@ if TYPE_CHECKING:
 
 #===============================================================================
 
+NOT_LATERAL_NODES = [
+    'UBERON:0001896',
+    'UBERON:0000988',
+    'UBERON:0001891'
+]
+
+#=============================================================
+
 def expand_centreline_graph(graph: nx.MultiGraph) -> nx.Graph:
 #=============================================================
     G = nx.Graph()
@@ -957,8 +965,11 @@ class Network(object):
                     if neighbour_dict['type'] == 'feature':
                         # if the node is a no-segment and neighbour is a terminal, connect to all neighbour features
                         # else connect to one closest no_segment point and neighbour feature.
-                        features = (neighbour_dict['features'] if len(neighbour_dict['features']) <= 2
-                                    else sorted(neighbour_dict['features'], key=lambda f: f.id)[0:1])
+                        features = (
+                            neighbour_dict['features']
+                            if len(neighbour_dict['features']) <= 2 and all(item not in {neighbour_dict['node'][0], *neighbour_dict['node'][1]} for item in NOT_LATERAL_NODES)
+                            else sorted(neighbour_dict['features'], key=lambda f: f.id)[:1]
+                        )
                         for feature in features:
                             neighbouring_ids.update([feature.id])
                             closest_feature_id = None
@@ -985,7 +996,7 @@ class Network(object):
                     if n_id in segment_graph:
                         updated_neighbouring_ids.update([n_id])
                     else:
-                        if (f:=self.__map_feature(n_id)) is not None:
+                        if self.__map_feature(n_id) is not None:
                             if (closest_feature_id:=closest_feature_dict.get(n_id)) is not None:
                                 updated_neighbouring_ids.update([closest_feature_id])
                                 new_direct_edges.update([(n_id, closest_feature_id)])
@@ -1190,26 +1201,27 @@ class Network(object):
                 pseudo_terminals += list(subgraph.nodes)[0:1]
 
         # sorting nodes with priority -> terminal, number of features (2 than 1, than any size), distance to neighbours
-        terminal_one_feature = {}
-        terminal_one_feature = {
-            n: min(
-                (features[0].geometry.centroid.distance(nf.geometry.centroid)),
-                terminal_one_feature.get(n, float('inf'))
-            )
+        one_feature_terminals = {
+            n: min([
+                features[0].geometry.centroid.distance(nf.geometry.centroid)
+                for neighbour in connectivity_graph.neighbors(n)
+                for nf in (
+                    connectivity_graph.nodes[neighbour].get("features", set()) |
+                    {self.__flatmap.get_feature(f_id) for f_id in connectivity_graph.nodes[neighbour].get("used", set())}
+                )
+            ])
             for n, n_dict in connectivity_graph.nodes(data=True)
             if connectivity_graph.degree(n) == 1 and len(features := list(n_dict.get("features", []))) == 1
-            for neighbour in connectivity_graph.neighbors(n)
-            for nf in connectivity_graph.nodes[neighbour].get("features", [])
         }
-        terminal_one_feature = dict(sorted(terminal_one_feature.items(), key=lambda item: item[1]))
-        terminal_two_features = [
+        one_feature_terminals = dict(sorted(one_feature_terminals.items(), key=lambda item: item[1]))
+        two_feature_terminals = [
             n for n, n_dict in connectivity_graph.nodes(data=True)
             if len(n_dict.get("features", [])) == 2 and connectivity_graph.degree(n) == 1
         ]
         sorted_nodes = (
-            terminal_two_features +
-            list(terminal_one_feature.keys()) +
-            [n for n in connectivity_graph if n not in terminal_two_features and n not in terminal_one_feature]
+            two_feature_terminals +
+            list(one_feature_terminals.keys()) +
+            [n for n in connectivity_graph if n not in two_feature_terminals and n not in one_feature_terminals]
         )
 
         terminal_graphs: dict[tuple, nx.Graph] = {}
@@ -1255,14 +1267,15 @@ class Network(object):
                             for neighbour in (neighbours - visited):
                                 neighbour_dict = connectivity_graph.nodes[neighbour]
                                 degree = connectivity_graph.degree(neighbour)
+                                neighbour_features = neighbour_dict.get('features', set()) | {self.__flatmap.get_feature(f_id) for f_id in neighbour_dict.get('used', set())}
                                 node_features = (
-                                    [get_node_feature(node_dict, neighbour_dict.get('features', []), used_features)]
+                                    [get_node_feature(node_dict, neighbour_features, used_features)]
                                     if len(node_dict['features']) != 2
                                     else used_features.get(node, set())
                                     if connectivity_graph.degree(node) > 1 and len(used_features.get(node, set())) in [1, 2]
                                     else set(node_dict['features'])
-                                    if connectivity_graph.degree(node) == 1
-                                    else [get_node_feature(node_dict, neighbour_dict.get('features', []), used_features)]
+                                    if connectivity_graph.degree(node) == 1 and all(item not in {node_dict['node'][0], *node_dict['node'][1]} for item in NOT_LATERAL_NODES)
+                                    else [get_node_feature(node_dict, neighbour_features, used_features)]
                                 )
                                 for node_feature in node_features:
                                     used_features.setdefault(node, set()).add(node_feature)
@@ -1289,6 +1302,7 @@ class Network(object):
                                             neighbour_features = (
                                                 neighbour_dict.get('features', [])
                                                 if len(neighbour_dict.get('features', [])) <= 2 and degree == 1 and len(node_features) == 1
+                                                    and all(item not in {neighbour_dict['node'][0], *neighbour_dict['node'][1]} for item in NOT_LATERAL_NODES)
                                                 else [get_node_feature(neighbour_dict, [node_feature], used_features)]
                                                 if len(neighbour_terminal_laterals) > 0 and len(used_features.get(neighbour, set())) == 0
                                                 else [get_node_feature(neighbour_dict, [node_feature], used_features)]
