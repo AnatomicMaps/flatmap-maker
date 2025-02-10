@@ -44,6 +44,18 @@ class SHAPE_TYPE(str, Enum):   ## Or IntEnum ??
 #===============================================================================
 
 KnownProperties = ['name', 'cd-class', 'fc-class', 'fc-kind']
+HiddenProperties = [
+    'area',
+    'aspect',
+    'bbox-coverage',
+    'coverage',
+    'fill',
+    'geometry',
+    'stroke',
+    'stroke-width',
+    'svg-element',
+    'tile-layer',
+]
 
 class Shape(PropertyMixin):
     __attributes = ['id', 'geometry', 'parents', 'children']
@@ -96,7 +108,7 @@ class Shape(PropertyMixin):
 
     def __str__(self):
         properties = {key: value for key, value in self.properties.items()
-                                    if key in KnownProperties}
+                        if key != 'id' and key not in HiddenProperties}
         return f'Shape {self.id}: {properties}'
 
     @staticmethod
