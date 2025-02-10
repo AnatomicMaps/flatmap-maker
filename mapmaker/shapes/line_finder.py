@@ -275,6 +275,8 @@ class LineFinder:
 
     def get_line(self, shape: Shape) -> Optional[LineString]:
     #========================================================
+        if 'Multi' in shape.geometry.boundary.geom_type:
+            return
         ends_graph = nx.Graph()
         used_lines: set[Line] = set()
         mid_lines: list[Line] = []
