@@ -42,7 +42,7 @@ MIN_LINE_ASPECT_RATIO = 1.5     #
 
 MAX_LINE_WIDTH = 20             # Close together parallel edges a polygons are converted to lines
 
-MAX_TEXT_VERTICAL_OFFSET = 5    # Between cluster baseline and baselines of text in the cluster
+MAX_TEXT_VERTICAL_OFFSET = 3    # Between cluster baseline and baselines of text in the cluster
 TEXT_BASELINE_OFFSET = -14.5    # From vertical centre of a component
 
 #===============================================================================
