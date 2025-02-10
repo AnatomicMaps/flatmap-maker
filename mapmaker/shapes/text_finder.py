@@ -156,16 +156,15 @@ class TextFinder:
     def __cluster_text(self, text_shapes: list[Shape]) -> list[TextShapeCluster]:
     #============================================================================
         offset = self.__max_text_vertical_offset
-        left_ordered_shapes = sorted(text_shapes, key=lambda s: s.left)
+        shapes_seen_order = sorted(text_shapes, key=lambda s: s.number)
         clusters: list[TextShapeCluster] = []
         current_cluster = None
-        for shape in left_ordered_shapes:
+        for shape in shapes_seen_order:
             if (current_cluster is None
              or abs(shape.baseline - current_cluster.baseline) > offset):
                 current_cluster = TextShapeCluster(shape)
                 clusters.append(current_cluster)
             else:
-                # Note: ``current_cluster.baseline`` is monotonically increasing
                 current_cluster.add_shape(shape)
             shape.properties['exclude'] = True
         return clusters

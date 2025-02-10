@@ -50,12 +50,15 @@ class Shape(PropertyMixin):
 
     __shape_id_prefix: str = ''
     __last_shape_id: int = 0
+    __last_shape_number: int = 0
 
     def __init__(self, id: Optional[str], geometry: BaseGeometry, properties=None, **kwds):
         self.__initialising = True
         super().__init__(properties)
         for key, value in kwds.items():
             self.set_property(key.replace('_', '-'), value)
+        Shape.__last_shape_number += 1
+        self.__number: int = Shape.__last_shape_number
         if self.has_property('id'):
             id = self.get_property('id')
             if Shape.__shape_id_prefix == '':
@@ -153,6 +156,10 @@ class Shape(PropertyMixin):
     @property
     def name(self) -> str:                          # Any text content associated with the shape: e.g. ``Bladder``
         return self.get_property('name', '')
+
+    @property
+    def number(self) -> int:
+        return self.__number
 
     @property
     def opacity(self) -> float:
