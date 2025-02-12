@@ -1197,14 +1197,18 @@ class Network(object):
         one_feature_terminals = {
             n: min([
                 features[0].geometry.centroid.distance(nf.geometry.centroid)
-                for neighbour in connectivity_graph.neighbors(n)
-                for nf in (
-                    connectivity_graph.nodes[neighbour].get("features", set()) |
-                    {self.__flatmap.get_feature(f_id) for f_id in connectivity_graph.nodes[neighbour].get("used", set())}
-                )
+                for nf in nfs
             ])
             for n, n_dict in connectivity_graph.nodes(data=True)
-            if connectivity_graph.degree(n) == 1 and len(features := list(n_dict.get("features", []))) == 1
+            if connectivity_graph.degree(n) == 1
+                and len(features := list(n_dict.get("features", []))) == 1
+                and len(nfs:= [
+                    nf for neighbour in connectivity_graph.neighbors(n)
+                        for nf in (
+                            connectivity_graph.nodes[neighbour].get("features", set()) |
+                            {self.__flatmap.get_feature(f_id) for f_id in connectivity_graph.nodes[neighbour].get("used", set())}
+                        )
+                    ]) > 0
         }
         one_feature_terminals = dict(sorted(one_feature_terminals.items(), key=lambda item: item[1]))
         two_feature_terminals = [
