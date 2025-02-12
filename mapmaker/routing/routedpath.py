@@ -326,7 +326,7 @@ class RoutedPath(object):
         """
         reference_nodes = {}
         path_geometry = defaultdict(list)
-        def connect_gap(node, node_points, added_properties=dict(), iscentreline=False):
+        def connect_gap(node, node_points, iscentreline=False):
             # don't fill the gap from centreline to centreline
             if node in reference_nodes and iscentreline:
                 if reference_nodes[node]['iscenterline']:
@@ -344,7 +344,8 @@ class RoutedPath(object):
                             bezier_to_linestring(bz), {
                                 'path-id': path_id,
                                 'source': path_source,
-                            } | added_properties))
+                                'label': self.__graph.graph.get('label')
+                            }))
             else:
                 reference_nodes[node] = {'points': node_points, 'iscenterline': iscentreline}
             if node in reference_nodes and not iscentreline and reference_nodes[node]['iscenterline']:
@@ -415,16 +416,17 @@ class RoutedPath(object):
                     connect_gap(edge_dict['end-node'], [end_point], iscentreline=True)
 
         # Draw paths to terminal nodes
-        def draw_arrow(start_point, end_point, path_id, path_source, added_properties):
+        def draw_arrow(start_point, end_point, path_id, path_source):
             heading = (end_point - start_point).angle
             end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
             path_geometry[path_id].append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
                 'type': 'arrow',
                 'path-id': path_id,
-                'source': path_source
-            } | added_properties))
+                'source': path_source,
+                'label': self.__graph.graph.get('label')
+            }))
 
-        def draw_line(node_0, node_1, added_properties, tolerance=0.1, separation=2000):
+        def draw_line(node_0, node_1, tolerance=0.1, separation=2000):
             start_coords = self.__graph.nodes[node_0]['geometry'].centroid.coords[0]
             end_coords = self.__graph.nodes[node_1]['geometry'].centroid.coords[0]
             offset = self.__graph.nodes[node_0]['offsets'][node_1]
@@ -440,36 +442,26 @@ class RoutedPath(object):
                         bezier_to_linestring(bz, offset=path_offset), {
                             'path-id': path_id,
                             'source': path_source,
-                        } | added_properties))
+                        }))
             bz_line_coord = bezier_to_line_coords(bz, offset=path_offset)
             if self.__graph.degree(node_0) == 1:
-                draw_arrow(coords_to_point(bz_line_coord[-1]), coords_to_point(bz_line_coord[0]), path_id, path_source, added_properties)
+                draw_arrow(coords_to_point(bz_line_coord[-1]), coords_to_point(bz_line_coord[0]), path_id, path_source)
             if self.__graph.degree(node_1) == 1:
-                draw_arrow(coords_to_point(bz_line_coord[0]), coords_to_point(bz_line_coord[-1]), path_id, path_source, added_properties)
-            connect_gap(node_0, [coords_to_point(bz_line_coord[0])], added_properties)
-            connect_gap(node_1, [coords_to_point(bz_line_coord[-1])], added_properties)
+                draw_arrow(coords_to_point(bz_line_coord[0]), coords_to_point(bz_line_coord[-1]), path_id, path_source)
+            connect_gap(node_0, [coords_to_point(bz_line_coord[0])])
+            connect_gap(node_1, [coords_to_point(bz_line_coord[-1])])
 
         terminal_nodes = set()
         for node_0, node_1, edge_dict in self.__graph.edges(data=True):    ## This assumes node_1 is the terminal...
             path_id = edge_dict.get('path-id')
             path_source = edge_dict.get('source')
-            added_properties = {
-                'completeness': edge_dict.get('completeness', True),
-                'label': self.__graph.graph.get('label')
-            }
-            if (missing_nodes:=edge_dict.get('missing_nodes')) is not None:
-                added_properties['missing-nodes'] = missing_nodes
-            if (alert:=self.__graph.graph.get('alert')) is not None:
-                added_properties['alert'] = alert
-            if (biological_sex:=self.__graph.graph.get('biological-sex')) is not None:
-                added_properties['biological-sex'] = biological_sex
             if ((edge_type := edge_dict.get('type')) == 'terminal'
              or (edge_type == 'upstream'
               and 'upstream' not in [self.__graph.nodes[node_0].get('type'),
                                      self.__graph.nodes[node_1].get('type')])):
                 # Draw lines...
                 terminal_nodes.update([node_0, node_1])
-                draw_line(node_0, node_1, added_properties)
+                draw_line(node_0, node_1)
             elif edge_type == 'upstream':
                 terminal_nodes.update([node_0, node_1])
                 if self.__graph.nodes[node_0].get('type') == 'upstream':
@@ -487,28 +479,24 @@ class RoutedPath(object):
                     end_coords = self.__graph.nodes[terminal_node]['geometry'].centroid.coords[0]
                     end_point = coords_to_point(end_coords)
                     heading = (end_point - start_point).angle
-                    end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
-                    bz = bezier_connect(start_point, end_point, angle, heading)
+                    bz_end_point = end_point - BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
+                    bz = bezier_connect(start_point, bz_end_point, angle, heading)
                     path_geometry[path_id].append(GeometricShape(
                         bezier_to_linestring(bz), {
                             'path-id': path_id,
                             'source': path_source,
-                        } | added_properties))
+                        }))
                     bz_line_coord = bezier_to_line_coords(bz)
-                    connect_gap(upstream_node, [coords_to_point(bz_line_coord[0])], added_properties)
-                    connect_gap(terminal_node, [coords_to_point(bz_line_coord[-1])], added_properties)
+                    connect_gap(upstream_node, [coords_to_point(bz_line_coord[0])])
+                    connect_gap(terminal_node, [coords_to_point(bz_line_coord[-1])])
                     if self.__trace:
                         path_geometry[path_id].extend(bezier_control_points(bz, label=f'{self.__path_id}-T'))
                     # Draw arrow iff degree(node_1) == 1
                     if self.__graph.degree(terminal_node) == 1:
-                        path_geometry[path_id].append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
-                            'type': 'arrow',
-                            'path-id': path_id,
-                            'source': path_source
-                        } | added_properties))
+                        draw_arrow(start_point, end_point, path_id, path_source)
                 else:
                     # This is when the upstream node doesn't have an ongoing centreline
-                    draw_line(upstream_node, terminal_node, added_properties)
+                    draw_line(upstream_node, terminal_node)
 
         # Connect edges at branch nodes
         for node, node_dict in self.__graph.nodes(data=True):

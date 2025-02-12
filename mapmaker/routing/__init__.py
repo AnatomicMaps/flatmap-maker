@@ -88,6 +88,14 @@ if TYPE_CHECKING:
 
 #===============================================================================
 
+NOT_LATERAL_NODES = [
+    'UBERON:0001896',
+    'UBERON:0000988',
+    'UBERON:0001891'
+]
+
+#=============================================================
+
 def expand_centreline_graph(graph: nx.MultiGraph) -> nx.Graph:
 #=============================================================
     G = nx.Graph()
@@ -955,21 +963,25 @@ class Network(object):
                         neighbour_dict = connectivity_graph.nodes[next(iter(neighbour_dict['contains']))]
                     edge_dict = connectivity_graph.edges[(node, neighbour)]
                     if neighbour_dict['type'] == 'feature':
-                        # selecting one the first neighbour feature to be connected with the closest no-segment node
-                        # what about connecting all features?
-                        (features := list(f for f in neighbour_dict['features'])).sort(key=lambda f: f.id)
-                        f = features[0]
-                        neighbouring_ids.update([f.id])
-                        closest_feature_id = None
-                        for n, s in itertools.product([f.id], segment_graph.nodes):
-                            if (edge_dicts := self.__centreline_graph.get_edge_data(n, s)) is not None:
-                                closest_feature_dict[n] = s
-                                tmp_edge_dicts[(n, s)] = edge_dicts[0]
-                                break
-                        if f.id not in closest_feature_dict:
-                            closest_feature_id = self.__closest_feature_id_to_point(f.geometry.centroid, segment_graph.nodes)
-                            closest_feature_dict[f.id] = closest_feature_id
-                            tmp_edge_dicts[(f.id, closest_feature_id)] = edge_dict
+                        # if the node is a no-segment and neighbour is a terminal, connect to all neighbour features
+                        # else connect to one closest no_segment point and neighbour feature.
+                        features = (
+                            neighbour_dict['features']
+                            if len(neighbour_dict['features']) <= 2 and all(item not in {neighbour_dict['node'][0], *neighbour_dict['node'][1]} for item in NOT_LATERAL_NODES)
+                            else sorted(neighbour_dict['features'], key=lambda f: f.id)[:1]
+                        )
+                        for feature in features:
+                            neighbouring_ids.update([feature.id])
+                            closest_feature_id = None
+                            for n, s in itertools.product([feature.id], segment_graph.nodes):
+                                if (edge_dicts := self.__centreline_graph.get_edge_data(n, s)) is not None:
+                                    closest_feature_dict[n] = s
+                                    tmp_edge_dicts[(n, s)] = edge_dicts[0]
+                                    break
+                            if feature.id not in closest_feature_dict:
+                                closest_feature_id = self.__closest_feature_id_to_point(feature.geometry.centroid, segment_graph.nodes)
+                                closest_feature_dict[feature.id] = closest_feature_id
+                                tmp_edge_dicts[(feature.id, closest_feature_id)] = edge_dict
                     elif neighbour_dict['type'] in ['segment', 'no-segment']: # should check this limitation
                         candidates= {}
                         for n, s in itertools.product(neighbour_dict['subgraph'].nodes, segment_graph.nodes):
@@ -984,7 +996,7 @@ class Network(object):
                     if n_id in segment_graph:
                         updated_neighbouring_ids.update([n_id])
                     else:
-                        if (f:=self.__map_feature(n_id)) is not None:
+                        if self.__map_feature(n_id) is not None:
                             if (closest_feature_id:=closest_feature_dict.get(n_id)) is not None:
                                 updated_neighbouring_ids.update([closest_feature_id])
                                 new_direct_edges.update([(n_id, closest_feature_id)])
@@ -1149,17 +1161,15 @@ class Network(object):
             return feature
 
         # select the closest feature of a node with multiple features to it's neighbors
-        def get_node_feature(node_dict, neighbours, prev_features) -> Feature:
+        def get_node_feature(node_dict, neighbour_features, used_features) -> Feature:
             (features:=list(f for f in node_dict['features'])).sort(key=lambda f: f.id)
             selected_feature = features[0]
-            # in a case of a terminal node having multiple features, select the closest one to it's neighbours
+            # in a case of a terminal node having multiple features, select the closest one to it's neighbour_features
             if len(features) > 1:
                 self.__log.error('Terminal node has multiple features', path=path.id, entity=node_dict['name'],
                                  features=sorted(set(f.id for f in node_dict["features"])))
                 if selected_feature.properties.get('fc-class') is None:
                     feature_distances = {}
-                    neighbour_features = [f for n in neighbours for f in connectivity_graph.nodes[n].get('features', [])] + \
-                                         [self.__flatmap.get_feature(fid) for n in neighbours for fid in connectivity_graph.nodes[n].get('used', [])]
                     if len(neighbour_features) > 0:
                         for f in features:
                             distances = []
@@ -1168,6 +1178,7 @@ class Network(object):
                             feature_distances[f] = sum(distances)/len(distances)
                         selected_feature = min(feature_distances, key=feature_distances.get)    # type: ignore
                 else:
+                    prev_features = [feature for features in used_features.values() for feature in features]
                     if len(prev_features) > 0 and len(features) > 1:
                         min_distance = prev_features[-1].geometry.centroid.distance(features[0].geometry.centroid)
                         for f in (features:=[f for f in features[1:]]):
@@ -1186,14 +1197,38 @@ class Network(object):
         (temp_connectivity_graph := nx.Graph(connectivity_graph)).remove_nodes_from(centrelines)
         subgraphs = [temp_connectivity_graph.subgraph(component) for component in nx.connected_components(temp_connectivity_graph)]
         for subgraph in subgraphs:
-            if len([node for node in subgraph.nodes if connectivity_graph.degree[node] == 1]) > 0:
-                break
-            pseudo_terminals += list(subgraph.nodes)[0:1]
+            if len([node for node in subgraph.nodes if connectivity_graph.degree[node] == 1]) == 0:
+                pseudo_terminals += list(subgraph.nodes)[0:1]
+
+        # sorting nodes with priority -> terminal, number of features (2 than 1, than any size), distance to neighbours
+        one_feature_terminals = {
+            n: min([
+                features[0].geometry.centroid.distance(nf.geometry.centroid)
+                for neighbour in connectivity_graph.neighbors(n)
+                for nf in (
+                    connectivity_graph.nodes[neighbour].get("features", set()) |
+                    {self.__flatmap.get_feature(f_id) for f_id in connectivity_graph.nodes[neighbour].get("used", set())}
+                )
+            ])
+            for n, n_dict in connectivity_graph.nodes(data=True)
+            if connectivity_graph.degree(n) == 1 and len(features := list(n_dict.get("features", []))) == 1
+        }
+        one_feature_terminals = dict(sorted(one_feature_terminals.items(), key=lambda item: item[1]))
+        two_feature_terminals = [
+            n for n, n_dict in connectivity_graph.nodes(data=True)
+            if len(n_dict.get("features", [])) == 2 and connectivity_graph.degree(n) == 1
+        ]
+        sorted_nodes = (
+            two_feature_terminals +
+            list(one_feature_terminals.keys()) +
+            [n for n in connectivity_graph if n not in two_feature_terminals and n not in one_feature_terminals]
+        )
 
         terminal_graphs: dict[tuple, nx.Graph] = {}
         visited = set()
-        previous_features = []
-        for node, node_dict in connectivity_graph.nodes(data=True):
+        used_features = {}
+        for node in sorted_nodes:
+            node_dict = connectivity_graph.nodes[node]
             if node not in visited and (connectivity_graph.degree(node) == 1 or node in pseudo_terminals):
                 if node_dict['type'] == 'feature':
                     # First check node isn't already the end of a centreline
@@ -1232,47 +1267,68 @@ class Network(object):
                             for neighbour in (neighbours - visited):
                                 neighbour_dict = connectivity_graph.nodes[neighbour]
                                 degree = connectivity_graph.degree(neighbour)
-                                node_feature = get_node_feature(node_dict, [neighbour], previous_features)
-                                previous_features.append(node_feature)
-                                node_feature_centre = node_feature.geometry.centroid
-                                if (debug_properties:=connectivity_graph.get_edge_data(node, neighbour)) is None:
-                                    debug_properties = {}
-                                if neighbour_dict['type'] == 'feature':
-                                    terminal_graph.add_node(node_feature.id, feature=node_feature)
-                                    if len(used_ids := neighbour_dict.get('used', set())):
-                                        closest_feature_id = self.__closest_feature_id_to_point(node_feature_centre, used_ids)
-                                        terminal_graph.add_edge(node_feature.id, closest_feature_id,
-                                            upstream=True, **debug_properties)
-                                        segments = set()
-                                        for connected_edges in route_graph[closest_feature_id].values():
-                                            for edge_dict in connected_edges.values():
-                                                if (segment_id := edge_dict.get('segment')) is not None:
-                                                    segments.add(segment_id)
-                                        terminal_graph.nodes[closest_feature_id]['upstream'] = True
-                                        terminal_graph.nodes[closest_feature_id]['segments'] = segments
-                                    else:
-                                        neighbour_feature = get_node_feature(neighbour_dict, [node], previous_features)
-                                        previous_features.append(neighbour_feature)
-                                        terminal_graph.add_node(neighbour_feature.id, feature=neighbour_feature)
-                                        terminal_graph.add_edge(node_feature.id, neighbour_feature.id, **debug_properties)
-                                elif neighbour_dict['type'] == 'segment':
-                                    closest_feature_id = None
-                                    closest_distance = None
-                                    last_segment = None
-                                    for segment_id in neighbour_dict['subgraph'].graph['segment-ids']:
-                                        (segment_end, distance) = self.__closest_segment_node_to_point(node_feature_centre, segment_id)
-                                        if (segment_end is not None
-                                          and segment_end in route_graph
-                                          and (closest_distance is None or distance < closest_distance)):
-                                            closest_feature_id = segment_end
-                                            closest_distance = distance
-                                            last_segment = segment_id
-                                    if closest_feature_id is not None:
-                                        terminal_graph.add_edge(node_feature.id, closest_feature_id, upstream=True, **debug_properties)
-                                        terminal_graph.nodes[node_feature.id]['feature'] = node_feature
-                                        terminal_graph.nodes[closest_feature_id]['upstream'] = True
-                                        terminal_graph.nodes[closest_feature_id]['segments'] = set([last_segment])
-                                        neighbour_dict['used'] = {closest_feature_id}
+                                neighbour_features = neighbour_dict.get('features', set()) | {self.__flatmap.get_feature(f_id) for f_id in neighbour_dict.get('used', set())}
+                                node_features = (
+                                    [get_node_feature(node_dict, neighbour_features, used_features)]
+                                    if len(node_dict['features']) != 2
+                                    else used_features.get(node, set())
+                                    if connectivity_graph.degree(node) > 1 and len(used_features.get(node, set())) in [1, 2]
+                                    else set(node_dict['features'])
+                                    if connectivity_graph.degree(node) == 1 and all(item not in {node_dict['node'][0], *node_dict['node'][1]} for item in NOT_LATERAL_NODES)
+                                    else [get_node_feature(node_dict, neighbour_features, used_features)]
+                                )
+                                for node_feature in node_features:
+                                    used_features.setdefault(node, set()).add(node_feature)
+                                    node_feature_centre = node_feature.geometry.centroid
+                                    debug_properties = connectivity_graph.get_edge_data(node, neighbour) or {}
+                                    if neighbour_dict['type'] == 'feature':
+                                        terminal_graph.add_node(node_feature.id, feature=node_feature)
+                                        if len(used_ids := neighbour_dict.get('used', set())):
+                                            closest_feature_id = self.__closest_feature_id_to_point(node_feature_centre, used_ids)
+                                            terminal_graph.add_edge(node_feature.id, closest_feature_id,
+                                                upstream=True, **debug_properties)
+                                            segments = set()
+                                            for connected_edges in route_graph[closest_feature_id].values():
+                                                for edge_dict in connected_edges.values():
+                                                    if (segment_id := edge_dict.get('segment')) is not None:
+                                                        segments.add(segment_id)
+                                            terminal_graph.nodes[closest_feature_id]['upstream'] = True
+                                            terminal_graph.nodes[closest_feature_id]['segments'] = segments
+                                        else:
+                                            neighbour_terminal_laterals = [
+                                                k for k in connectivity_graph[neighbour]
+                                                if connectivity_graph.degree(k) == 1 and len(connectivity_graph.nodes[k].get('features', [])) == 2
+                                            ]
+                                            neighbour_features = (
+                                                neighbour_dict.get('features', [])
+                                                if len(neighbour_dict.get('features', [])) <= 2 and degree == 1 and len(node_features) == 1
+                                                    and all(item not in {neighbour_dict['node'][0], *neighbour_dict['node'][1]} for item in NOT_LATERAL_NODES)
+                                                else [get_node_feature(neighbour_dict, [node_feature], used_features)]
+                                                if len(neighbour_terminal_laterals) > 0 and len(used_features.get(neighbour, set())) == 0
+                                                else [get_node_feature(neighbour_dict, [node_feature], used_features)]
+                                            )
+                                            for neighbour_feature in neighbour_features:
+                                                used_features.setdefault(neighbour, set()).add(neighbour_feature)
+                                                terminal_graph.add_node(neighbour_feature.id, feature=neighbour_feature)
+                                                terminal_graph.add_edge(node_feature.id, neighbour_feature.id, **debug_properties)
+                                    elif neighbour_dict['type'] == 'segment':
+                                        closest_feature_id = None
+                                        closest_distance = None
+                                        last_segment = None
+                                        for segment_id in neighbour_dict['subgraph'].graph['segment-ids']:
+                                            (segment_end, distance) = self.__closest_segment_node_to_point(node_feature_centre, segment_id)
+                                            if (segment_end is not None
+                                            and segment_end in route_graph
+                                            and (closest_distance is None or distance < closest_distance)):
+                                                closest_feature_id = segment_end
+                                                closest_distance = distance
+                                                last_segment = segment_id
+                                        if closest_feature_id is not None:
+                                            terminal_graph.add_edge(node_feature.id, closest_feature_id, upstream=True, **debug_properties)
+                                            terminal_graph.nodes[node_feature.id]['feature'] = node_feature
+                                            terminal_graph.nodes[closest_feature_id]['upstream'] = True
+                                            terminal_graph.nodes[closest_feature_id]['segments'] = set([last_segment])
+                                            neighbour_dict['used'] = {closest_feature_id}
                                 # Only have our neighbour visit their neighbours if the neighbour is unconnected
                                 if degree > 1 and len(neighbour_dict['used']) == 0 and neighbour_dict['type'] == 'feature':
                                     neighbours_neighbours.append((neighbour, neighbour_dict))

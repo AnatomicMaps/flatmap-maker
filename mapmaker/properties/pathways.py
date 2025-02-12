@@ -673,9 +673,18 @@ class Pathways:
                 path = paths_by_id[path_id]
                 path_geojson_ids = []
                 path_taxons = None
+                added_properties = {
+                    key: value for key, value in [
+                        ('missing-nodes', path.connectivity.graph.get('missing_nodes')),
+                        ('alert', path.connectivity.graph.get('alert')),
+                        ('biological-sex', path.connectivity.graph.get('biological-sex')),
+                        ('completeness', path.connectivity.graph.get('completeness')),
+                    ] if value is not None
+                }
+                
                 for geometric_shape in geometric_shapes:
                     if geometric_shape.properties.get('type') not in ['arrow', 'junction']:
-                        properties = DEFAULT_PATH_PROPERTIES.copy()
+                        properties = DEFAULT_PATH_PROPERTIES.copy() | added_properties
                         if routed_path.centrelines is not None:
                             # The list of nerve models that the path is associated with
                             properties['nerves'] = routed_path.centrelines_model
@@ -700,7 +709,7 @@ class Pathways:
                             path_taxons = feature.get_property('taxons')
 
                 for geometric_shape in geometric_shapes:
-                    properties = DEFAULT_PATH_PROPERTIES.copy()
+                    properties = DEFAULT_PATH_PROPERTIES.copy() | added_properties
                     properties.update(geometric_shape.properties)
                     if properties.get('type') in ['arrow', 'junction']:
                         properties['kind'] = path.path_type.viewer_kind

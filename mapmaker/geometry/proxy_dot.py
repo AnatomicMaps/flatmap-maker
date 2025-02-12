@@ -23,7 +23,7 @@ from shapely import LineString, MultiPolygon, Polygon
 
 #===============================================================================
 
-def proxy_dot(poly: MultiPolygon|Polygon) -> Polygon:
+def proxy_dot(poly: MultiPolygon|Polygon, proxy_seq: int) -> Polygon:
     envelope_coords = shapely.oriented_envelope(poly).boundary.coords
     edge_coords = list(zip(envelope_coords, envelope_coords[1:]))
     edges = [LineString(coords) for coords in edge_coords]
@@ -35,8 +35,9 @@ def proxy_dot(poly: MultiPolygon|Polygon) -> Polygon:
         median_line = LineString([p0, p1])
     else:
         median_line = LineString([p1, p0])
-    proxy_point = shapely.line_interpolate_point(median_line, 0.8, normalized=True)
-
-    return proxy_point.buffer(median_line.length/16)
+    distance = 0.8 - proxy_seq * 0.15
+    proxy_point = shapely.line_interpolate_point(median_line, distance, normalized=True)
+    median_distance = median_line.length/16 if median_line.length/16 < 1000 else 1000
+    return proxy_point.buffer(median_distance)
 
 #===============================================================================
