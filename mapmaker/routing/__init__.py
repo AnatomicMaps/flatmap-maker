@@ -86,13 +86,6 @@ if TYPE_CHECKING:
     from mapmaker.properties import PropertiesStore
     from mapmaker.properties.pathways import Path
 
-#===============================================================================
-
-NOT_LATERAL_NODES = [
-    'UBERON:0001896',
-    'UBERON:0000988',
-    'UBERON:0001891'
-]
 
 #=============================================================
 
@@ -758,7 +751,7 @@ class Network(object):
 
         elif matched is not None:
             properties['name'] = matched[0].name
-            features = set(f for f in matched[1] if f.id is not None)
+            features = set(f for f in matched[1] if f.id is not None and not f.get_property('unrouted', False))
             if len(features):
                 properties['type'] = 'feature'
                 properties['features'] = features
@@ -967,7 +960,7 @@ class Network(object):
                         # else connect to one closest no_segment point and neighbour feature.
                         features = (
                             neighbour_dict['features']
-                            if len(neighbour_dict['features']) <= 2 and all(item not in {neighbour_dict['node'][0], *neighbour_dict['node'][1]} for item in NOT_LATERAL_NODES)
+                            if len(neighbour_dict['features']) <= 2
                             else sorted(neighbour_dict['features'], key=lambda f: f.id)[:1]
                         )
                         for feature in features:
@@ -1274,7 +1267,7 @@ class Network(object):
                                     else used_features.get(node, set())
                                     if connectivity_graph.degree(node) > 1 and len(used_features.get(node, set())) in [1, 2]
                                     else set(node_dict['features'])
-                                    if connectivity_graph.degree(node) == 1 and all(item not in {node_dict['node'][0], *node_dict['node'][1]} for item in NOT_LATERAL_NODES)
+                                    if connectivity_graph.degree(node) == 1
                                     else [get_node_feature(node_dict, neighbour_features, used_features)]
                                 )
                                 for node_feature in node_features:
@@ -1302,7 +1295,6 @@ class Network(object):
                                             neighbour_features = (
                                                 neighbour_dict.get('features', [])
                                                 if len(neighbour_dict.get('features', [])) <= 2 and degree == 1 and len(node_features) == 1
-                                                    and all(item not in {neighbour_dict['node'][0], *neighbour_dict['node'][1]} for item in NOT_LATERAL_NODES)
                                                 else [get_node_feature(neighbour_dict, [node_feature], used_features)]
                                                 if len(neighbour_terminal_laterals) > 0 and len(used_features.get(neighbour, set())) == 0
                                                 else [get_node_feature(neighbour_dict, [node_feature], used_features)]
