@@ -115,6 +115,7 @@ Command line help
                     [--initial-zoom N] [--max-zoom N]
                     [--export-features EXPORT_FILE] [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE]
                     [--single-file {celldl,svg}]
+                    [--path-arrows]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
@@ -145,6 +146,7 @@ Command line help
                             Create a SPARC Dataset containing the map's sources and the generated map
       --sckan-version {production,staging}
                             Overide version of SCKAN specified by map's manifest
+      --path-arrows         Render arrows at the terminal nodes.
 
     Diagnostics:
       --authoring           For use when checking a new map: highlight incomplete
