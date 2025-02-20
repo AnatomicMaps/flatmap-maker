@@ -146,7 +146,6 @@ Command line help
                             Create a SPARC Dataset containing the map's sources and the generated map
       --sckan-version {production,staging}
                             Overide version of SCKAN specified by map's manifest
-      --path-arrows         Render arrows at the terminal nodes of paths
 
     Diagnostics:
       --authoring           For use when checking a new map: highlight incomplete
