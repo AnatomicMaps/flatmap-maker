@@ -141,6 +141,7 @@ Command line help
       --invalid-neurons     Include functional connectivity neurons that aren't known
                             in SCKAN
       --no-path-layout      Don't do `TransitMap` optimisation of paths
+      --path-arrows         Render arrows at the terminal nodes of paths
       --publish SPARC_DATASET
                             Create a SPARC Dataset containing the map's sources and the generated map
       --sckan-version {production,staging}
