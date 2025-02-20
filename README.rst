@@ -107,9 +107,9 @@ Command line help
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--silent] [--verbose]
-                    [--background-tiles] [--clean-connectivity] [--disconnected-paths]
-                    [--force] [--id ID] [--ignore-git] [--ignore-sckan] [--invalid-neurons]
-                    [--no-path-layout] [--publish SPARC_DATASET] [--sckan-version {production,staging}]
+                    [--background-tiles] [--clean-connectivity] [--disconnected-paths] [--force]
+                    [--id ID] [--ignore-git] [--ignore-sckan] [--invalid-neurons] [--no-path-layout]
+                    [--path-arrows] [--publish SPARC_DATASET] [--sckan-version {production,staging}]
                     [--authoring] [--debug]
                     [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N]
@@ -141,6 +141,7 @@ Command line help
       --invalid-neurons     Include functional connectivity neurons that aren't known
                             in SCKAN
       --no-path-layout      Don't do `TransitMap` optimisation of paths
+      --path-arrows         Render arrows at the terminal nodes of paths
       --publish SPARC_DATASET
                             Create a SPARC Dataset containing the map's sources and the generated map
       --sckan-version {production,staging}

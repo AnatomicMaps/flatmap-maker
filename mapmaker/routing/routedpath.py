@@ -417,14 +417,15 @@ class RoutedPath(object):
 
         # Draw paths to terminal nodes
         def draw_arrow(start_point, end_point, path_id, path_source):
-            heading = (end_point - start_point).angle
-            end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
-            path_geometry[path_id].append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
-                'type': 'arrow',
-                'path-id': path_id,
-                'source': path_source,
-                'label': self.__graph.graph.get('label')
-            }))
+            if settings.get('pathArrows', False):
+                heading = (end_point - start_point).angle
+                end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
+                path_geometry[path_id].append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
+                    'type': 'arrow',
+                    'path-id': path_id,
+                    'source': path_source,
+                    'label': self.__graph.graph.get('label')
+                }))
 
         def draw_line(node_0, node_1, tolerance=0.1, separation=2000):
             start_coords = self.__graph.nodes[node_0]['geometry'].centroid.coords[0]
@@ -479,7 +480,7 @@ class RoutedPath(object):
                     end_coords = self.__graph.nodes[terminal_node]['geometry'].centroid.coords[0]
                     end_point = coords_to_point(end_coords)
                     heading = (end_point - start_point).angle
-                    bz_end_point = end_point - BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
+                    bz_end_point = (end_point - BezierPoint.fromAngle(heading) * 0.9 * ARROW_LENGTH) if settings.get('pathArrows', False) else end_point
                     bz = bezier_connect(start_point, bz_end_point, angle, heading)
                     path_geometry[path_id].append(GeometricShape(
                         bezier_to_linestring(bz), {
