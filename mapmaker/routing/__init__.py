@@ -1484,6 +1484,7 @@ class Network(object):
 
         # checking looping paths, remove if connectivity_graph doesn't require it
         # this could be caused by unnecesary centrelines
+        for edge in new_edge_dicts:
             if len(simple_paths:=sorted(list(nx.all_simple_paths(tmp_route_graph, source=edge[0], target=edge[1])), key=len, reverse=True)) > 1:
                 matching_nodes = {
                     n:sp for sp in simple_paths
@@ -1494,7 +1495,6 @@ class Network(object):
                     simple_node_paths = list(nx.all_simple_edge_paths(connectivity_graph, source=mn_keys[0], target=mn_keys[1]))
                     while len(simple_paths) > len(simple_node_paths):
                         route_graph.remove_edges_from([simple_paths.pop()])
-                                route_graph.remove_edge(p[i], p[i+1])
 
         centreline_ids = set()
         for node_0, node_1, edge_dict in nx.Graph(route_graph).edges(data=True):
