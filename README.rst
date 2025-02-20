@@ -107,15 +107,14 @@ Command line help
 
     usage: mapmaker [-h] [-v]
                     [--log LOG_FILE] [--silent] [--verbose]
-                    [--background-tiles] [--clean-connectivity] [--disconnected-paths]
-                    [--force] [--id ID] [--ignore-git] [--ignore-sckan] [--invalid-neurons]
-                    [--no-path-layout] [--publish SPARC_DATASET] [--sckan-version {production,staging}]
+                    [--background-tiles] [--clean-connectivity] [--disconnected-paths] [--force]
+                    [--id ID] [--ignore-git] [--ignore-sckan] [--invalid-neurons] [--no-path-layout]
+                    [--path-arrows] [--publish SPARC_DATASET] [--sckan-version {production,staging}]
                     [--authoring] [--debug]
                     [--only-networks] [--save-drawml] [--save-geojson] [--tippecanoe]
                     [--initial-zoom N] [--max-zoom N]
                     [--export-features EXPORT_FILE] [--export-neurons EXPORT_FILE] [--export-svg EXPORT_FILE]
                     [--single-file {celldl,svg}]
-                    [--path-arrows]
                     --output OUTPUT --source SOURCE
 
     Generate a flatmap from its source manifest.
