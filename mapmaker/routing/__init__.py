@@ -1482,17 +1482,18 @@ class Network(object):
                                 route_graph.nodes[closest_feature_id]['type'] = 'terminal'
                                 route_graph.nodes[n_features[0].id].update(set_properties_from_feature_id(n_features[0].id))
 
-        # need to delete edges that is already covered by centerline
-        for edge in new_edge_dicts:
-            for p in list(nx.all_simple_paths(tmp_route_graph, source=edge[0], target=edge[1])):
-                if len(p) > 2:
-                    for i in range(len(p)-1):
-                        tmp_graph = nx.Graph(route_graph)
-                        if (p[i], p[i+1]) not in route_graph.edges:
-                            continue
-                        else:
-                            tmp_graph.remove_edge(p[i], p[i+1])
-                            if nx.is_connected(nx.Graph(tmp_graph.edges)):
+        # checking looping paths, remove if connectivity_graph doesn't require it
+        # this could be caused by unnecesary centrelines
+            if len(simple_paths:=sorted(list(nx.all_simple_paths(tmp_route_graph, source=edge[0], target=edge[1])), key=len, reverse=True)) > 1:
+                matching_nodes = {
+                    n:sp for sp in simple_paths
+                    for n, data in connectivity_graph.nodes(data=True)
+                    if set(data.get('features', data.get('used', []))) & set(sp)
+                }
+                if len(mn_keys:=list(matching_nodes.keys())) == 2:
+                    simple_node_paths = list(nx.all_simple_edge_paths(connectivity_graph, source=mn_keys[0], target=mn_keys[1]))
+                    while len(simple_paths) > len(simple_node_paths):
+                        route_graph.remove_edges_from([simple_paths.pop()])
                                 route_graph.remove_edge(p[i], p[i+1])
 
         centreline_ids = set()
