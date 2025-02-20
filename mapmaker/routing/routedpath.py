@@ -417,7 +417,7 @@ class RoutedPath(object):
 
         # Draw paths to terminal nodes
         def draw_arrow(start_point, end_point, path_id, path_source):
-            if settings.get('pathArrow', False):
+            if settings.get('pathArrows', False):
                 heading = (end_point - start_point).angle
                 end_point -= BezierPoint.fromAngle(heading)*0.9*ARROW_LENGTH
                 path_geometry[path_id].append(GeometricShape.arrow(end_point, heading, ARROW_LENGTH, properties={
@@ -480,7 +480,8 @@ class RoutedPath(object):
                     end_coords = self.__graph.nodes[terminal_node]['geometry'].centroid.coords[0]
                     end_point = coords_to_point(end_coords)
                     heading = (end_point - start_point).angle
-                    bz = bezier_connect(start_point, end_point, angle, heading)
+                    bz_end_point = end_point - BezierPoint.fromAngle(heading) * 0.9 * ARROW_LENGTH if settings.get('pathArrows') else end_point
+                    bz = bezier_connect(start_point, bz_end_point, angle, heading)
                     path_geometry[path_id].append(GeometricShape(
                         bezier_to_linestring(bz), {
                             'path-id': path_id,

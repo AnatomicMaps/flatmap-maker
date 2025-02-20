@@ -63,7 +63,7 @@ def arg_parser():
                         help="Create a SPARC Dataset containing the map's sources and the generated map")
     generation_options.add_argument('--sckan-version', dest='sckanVersion', choices=['production', 'staging'],
                         help="Overide version of SCKAN specified by map's manifest")
-    generation_options.add_argument('--path-arrow', dest='pathArrow', action='store_true',
+    generation_options.add_argument('--path-arrows', dest='pathArrows', action='store_true',
                         help="Render arrows at the terminal nodes.")
 
     debug_options = parser.add_argument_group('Diagnostics')
