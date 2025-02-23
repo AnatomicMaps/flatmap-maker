@@ -86,13 +86,6 @@ if TYPE_CHECKING:
     from mapmaker.properties import PropertiesStore
     from mapmaker.properties.pathways import Path
 
-#===============================================================================
-
-NOT_LATERAL_NODES = [
-    'UBERON:0001896',
-    'UBERON:0000988',
-    'UBERON:0001891'
-]
 
 #=============================================================
 
@@ -758,7 +751,7 @@ class Network(object):
 
         elif matched is not None:
             properties['name'] = matched[0].name
-            features = set(f for f in matched[1] if f.id is not None)
+            features = set(f for f in matched[1] if f.id is not None and not f.get_property('unrouted', False))
             if len(features):
                 properties['type'] = 'feature'
                 properties['features'] = features
@@ -967,7 +960,7 @@ class Network(object):
                         # else connect to one closest no_segment point and neighbour feature.
                         features = (
                             neighbour_dict['features']
-                            if len(neighbour_dict['features']) <= 2 and all(item not in {neighbour_dict['node'][0], *neighbour_dict['node'][1]} for item in NOT_LATERAL_NODES)
+                            if len(neighbour_dict['features']) <= 2
                             else sorted(neighbour_dict['features'], key=lambda f: f.id)[:1]
                         )
                         for feature in features:
@@ -1204,14 +1197,18 @@ class Network(object):
         one_feature_terminals = {
             n: min([
                 features[0].geometry.centroid.distance(nf.geometry.centroid)
-                for neighbour in connectivity_graph.neighbors(n)
-                for nf in (
-                    connectivity_graph.nodes[neighbour].get("features", set()) |
-                    {self.__flatmap.get_feature(f_id) for f_id in connectivity_graph.nodes[neighbour].get("used", set())}
-                )
+                for nf in nfs
             ])
             for n, n_dict in connectivity_graph.nodes(data=True)
-            if connectivity_graph.degree(n) == 1 and len(features := list(n_dict.get("features", []))) == 1
+            if connectivity_graph.degree(n) == 1
+                and len(features := list(n_dict.get("features", []))) == 1
+                and len(nfs:= [
+                    nf for neighbour in connectivity_graph.neighbors(n)
+                        for nf in (
+                            connectivity_graph.nodes[neighbour].get("features", set()) |
+                            {self.__flatmap.get_feature(f_id) for f_id in connectivity_graph.nodes[neighbour].get("used", set())}
+                        )
+                    ]) > 0
         }
         one_feature_terminals = dict(sorted(one_feature_terminals.items(), key=lambda item: item[1]))
         two_feature_terminals = [
@@ -1274,7 +1271,7 @@ class Network(object):
                                     else used_features.get(node, set())
                                     if connectivity_graph.degree(node) > 1 and len(used_features.get(node, set())) in [1, 2]
                                     else set(node_dict['features'])
-                                    if connectivity_graph.degree(node) == 1 and all(item not in {node_dict['node'][0], *node_dict['node'][1]} for item in NOT_LATERAL_NODES)
+                                    if connectivity_graph.degree(node) == 1
                                     else [get_node_feature(node_dict, neighbour_features, used_features)]
                                 )
                                 for node_feature in node_features:
@@ -1302,7 +1299,6 @@ class Network(object):
                                             neighbour_features = (
                                                 neighbour_dict.get('features', [])
                                                 if len(neighbour_dict.get('features', [])) <= 2 and degree == 1 and len(node_features) == 1
-                                                    and all(item not in {neighbour_dict['node'][0], *neighbour_dict['node'][1]} for item in NOT_LATERAL_NODES)
                                                 else [get_node_feature(neighbour_dict, [node_feature], used_features)]
                                                 if len(neighbour_terminal_laterals) > 0 and len(used_features.get(neighbour, set())) == 0
                                                 else [get_node_feature(neighbour_dict, [node_feature], used_features)]
@@ -1486,18 +1482,19 @@ class Network(object):
                                 route_graph.nodes[closest_feature_id]['type'] = 'terminal'
                                 route_graph.nodes[n_features[0].id].update(set_properties_from_feature_id(n_features[0].id))
 
-        # need to delete edges that is already covered by centerline
+        # checking looping paths, remove if connectivity_graph doesn't require it
+        # this could be caused by unnecesary centrelines
         for edge in new_edge_dicts:
-            for p in list(nx.all_simple_paths(tmp_route_graph, source=edge[0], target=edge[1])):
-                if len(p) > 2:
-                    for i in range(len(p)-1):
-                        tmp_graph = nx.Graph(route_graph)
-                        if (p[i], p[i+1]) not in route_graph.edges:
-                            continue
-                        else:
-                            tmp_graph.remove_edge(p[i], p[i+1])
-                            if nx.is_connected(nx.Graph(tmp_graph.edges)):
-                                route_graph.remove_edge(p[i], p[i+1])
+            if len(simple_paths:=sorted(list(nx.all_simple_paths(tmp_route_graph, source=edge[0], target=edge[1])), key=len, reverse=True)) > 1:
+                matching_nodes = {
+                    n:sp for sp in simple_paths
+                    for n, data in connectivity_graph.nodes(data=True)
+                    if set(data.get('features', data.get('used', []))) & set(sp)
+                }
+                if len(mn_keys:=list(matching_nodes.keys())) == 2:
+                    simple_node_paths = list(nx.all_simple_edge_paths(connectivity_graph, source=mn_keys[0], target=mn_keys[1]))
+                    while len(simple_paths) > len(simple_node_paths):
+                        route_graph.remove_edges_from([simple_paths.pop()])
 
         centreline_ids = set()
         for node_0, node_1, edge_dict in nx.Graph(route_graph).edges(data=True):

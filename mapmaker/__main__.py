@@ -59,6 +59,8 @@ def arg_parser():
                         help="Include functional connectivity neurons that aren't known in SCKAN")
     generation_options.add_argument('--no-path-layout', dest='noPathLayout', action='store_true',
                         help="Don't do `TransitMap` optimisation of paths")
+    generation_options.add_argument('--path-arrows', dest='pathArrows', action='store_true',
+                        help="Render arrows at the terminal nodes of paths")
     generation_options.add_argument('--publish', metavar='SPARC_DATASET',
                         help="Create a SPARC Dataset containing the map's sources and the generated map")
     generation_options.add_argument('--sckan-version', dest='sckanVersion', choices=['production', 'staging'],
