@@ -140,6 +140,10 @@ class CellDLExporter:
                         if shape.shape_type == SHAPE_TYPE.CONNECTION:
                             geometry = self.__world_to_pixels.transform_geometry(shape.geometry)
                             coords = [f'{coord[0]} {coord[1]}' for coord in geometry.coords]
+                            attributes = {
+                                'id': element_id,
+                                'd': f'M{coords[0]}L{"L".join(coords[1:])}'
+                            }
                             classes = [svg_class]
                             connection_style = 'rectilinear'
                             for (c1, c2) in itertools.pairwise(geometry.coords):
@@ -148,15 +152,15 @@ class CellDLExporter:
                                     connection_style = 'linear'
                                     break
                             classes.append(connection_style)
-
+                            if shape.properties.get('directional', False):
+                                classes.append('arrow')
                             if self.__export_type == EXPORT_TYPE.BONDGRAPH:
                                 classes.append('bondgraph')
+                            if (colour := shape.properties.get('colour')) is not None:
+                                attributes['style'] = f'stroke: {colour}'
+                            attributes['class'] = ' '.join(classes)
                             svg_element.getparent().remove(svg_element)
-                            svg_element = etree.SubElement(self.__connection_group, SVG_NS.path, {
-                                'id': element_id,
-                                'class': ' '.join(classes),
-                            })
-                            svg_element.attrib['d'] = f'M{coords[0]}L{"L".join(coords[1:])}'
+                            svg_element = etree.SubElement(self.__connection_group, SVG_NS.path, attributes)
                         elif (text_shapes := shape.get_property('text-shapes')) is not None:
                             shape_element = copy.deepcopy(svg_element)
                             svg_element.tag = SVG_NS.g

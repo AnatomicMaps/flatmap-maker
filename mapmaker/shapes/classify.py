@@ -201,11 +201,15 @@ class ShapeClassifier:
                     shape.properties['colour'] = SHAPE_ERROR_COLOUR
                 return False
             shape.geometry = line
-            kind = VASCULAR_KINDS.lookup(shape.properties.get('fill'))
+            colour = shape.properties.get('fill')
         else:
-            kind = VASCULAR_KINDS.lookup(shape.properties.get('stroke'))
-        if kind is not None:
+            colour = shape.properties.get('stroke')
+        if colour is not None:
+            shape.properties['colour'] = colour
+        if (kind := VASCULAR_KINDS.lookup(colour)) is not None:
             shape.properties['kind'] = kind
+        else:
+            print(shape.id, 'COLOUR ?', colour)
         shape.properties['shape-type'] = SHAPE_TYPE.CONNECTION
         shape.properties['tile-layer'] = PATHWAYS_TILE_LAYER
         shape.properties['stroke-width'] = CONNECTION_STROKE_WIDTH
