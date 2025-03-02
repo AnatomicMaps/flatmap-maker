@@ -173,9 +173,9 @@ class ShapeClassifier:
         # Assign text labels to components and source and target of connections
         for shape in self.__shapes:
             if shape.shape_type in [SHAPE_TYPE.ANNOTATION, SHAPE_TYPE.COMPONENT]:
-                if (label_and_shapes := self.__text_finder.get_text(shape)) is not None:
-                    shape.properties['label'] = label_and_shapes[0]
-                    shape.properties['text-shapes'] = label_and_shapes[1]
+                if (name_and_shapes := self.__text_finder.get_text(shape)) is not None:
+                    shape.properties['name'] = name_and_shapes[0]
+                    shape.properties['text-shapes'] = name_and_shapes[1]
                 # Although we do want their text, we don't want annotations to be active features
                 if shape.shape_type == SHAPE_TYPE.ANNOTATION:
                     shape.properties['exclude'] = True

@@ -201,9 +201,7 @@ class MapLayer(FeatureLayer):
 
     def __find_feature(self, feature_id: str) -> Optional[Feature]:
     #==============================================================
-        if (feature := self.flatmap.get_feature_by_name(feature_id)) is None:
-            feature = self.flatmap.get_feature(feature_id)
-        return feature
+        return self.flatmap.get_feature(feature_id.replace(" ", "_"))
 
     def align_layer(self, feature_alignment: list[tuple[str, str]]):
     #===============================================================

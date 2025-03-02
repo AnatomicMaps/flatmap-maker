@@ -208,7 +208,6 @@ class FlatMap(object):
 
         self.__feature_node_map = FeatureAnatomicalNodeMap(self.__manifest.connectivity_terms)
         self.__features_with_id: dict[str, Feature] = {}
-        self.__features_with_name: dict[str, Feature] = {}
         self.__last_geojson_id = 0
         self.__features_by_geojson_id: dict[int, Feature] = {}
 
@@ -272,10 +271,6 @@ class FlatMap(object):
     #===========================================================
         return self.__features_with_id.get(feature_id)
 
-    def get_feature_by_name(self, full_name: str) -> Optional[Feature]:
-    #==================================================================
-        return self.__features_with_name.get(full_name.replace(" ", "_"))
-
     def get_feature_by_geojson_id(self, geojson_id: int) -> Optional[Feature]:
     #=========================================================================
         return self.__features_by_geojson_id.get(geojson_id)
@@ -283,11 +278,13 @@ class FlatMap(object):
     def new_feature(self, layer_id: str, geometry, properties, is_group=False) -> Feature:
     #=====================================================================================
         self.__last_geojson_id += 1
+        if self.map_kind == MAP_KIND.FUNCTIONAL:
+            if ((name := properties.get('name', '')) != ''
+             and properties.get('id', '').startswith(f'{layer_id}/SHAPE_')):
+                properties['id'] = f'{layer_id}/{name.replace(" ", "_")}'
         self.properties_store.update_properties(properties)   # Update from JSON properties file
         feature = Feature(self.__last_geojson_id, geometry, properties, is_group=is_group)
         feature.set_property('layer', layer_id)
-        if (name := properties.get('name', properties.get('label', ''))) != '':
-            self.__features_with_name[f'{layer_id}/{name.replace(" ", "_")}'] = feature
         self.__features_by_geojson_id[feature.geojson_id] = feature
         if feature.id:
             if feature.id in self.__features_with_id:
