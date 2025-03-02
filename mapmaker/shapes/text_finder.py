@@ -18,6 +18,7 @@
 #
 #===============================================================================
 
+import re
 from typing import Optional
 
 #===============================================================================
@@ -55,6 +56,11 @@ class TextShapeCluster:
 
 #===============================================================================
 
+SUBSCRIPT_CHAR = '_'
+SUPERSCRIPT_CHAR = '^'
+
+#===============================================================================
+
 class LatexMaker:
     def __init__(self):
         self.__latex = []
@@ -80,10 +86,10 @@ class LatexMaker:
     #======================
         if len(self.__text):
             if self.__state < 0:
-                self.__latex.append(f'_{{{''.join(self.__text)}}}')
+                self.__latex.append(f'{SUBSCRIPT_CHAR}{{{''.join(self.__text)}}}')
                 self.__subscripted = True
             elif self.__state > 0:
-                superscript = f'^{{{''.join(self.__text)}}}'
+                superscript = f'{SUPERSCRIPT_CHAR}{{{''.join(self.__text)}}}'
                 if self.__subscripted:
                     self.__latex.insert(-1, superscript)
                 else:
@@ -97,6 +103,7 @@ class LatexMaker:
 
 class TextFinder:
     def __init__(self, scaling: float):
+        self.__sub_superscript_re = re.compile(f'{SUBSCRIPT_CHAR}|\\{SUPERSCRIPT_CHAR}')
         self.__max_text_vertical_offset = scaling * MAX_TEXT_VERTICAL_OFFSET
         self.__text_baseline_offset = scaling * TEXT_BASELINE_OFFSET
 
@@ -132,7 +139,7 @@ class TextFinder:
             used_text_shapes.extend(cluster.shapes)
         if len(clusters):
             latex.add_text(self.__text_clusters_to_text(clusters), state)
-        text = f'${latex.latex}$'
+        text = f'${text}$' if self.__sub_superscript_re.search(text:=latex.latex) is not None else text
         return (text, used_text_shapes) if text != '' else None
 
     def __text_block_to_text(self, text_block: list[Shape]) -> str:
