@@ -35,11 +35,10 @@ from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS, FC_KIND
 from mapmaker.knowledgebase.sckan import PATH_TYPE
 from mapmaker.settings import settings
 from mapmaker.shapes import Shape, SHAPE_TYPE
+from mapmaker.shapes.types import is_component, is_connector, make_connector, system_ids
+from mapmaker.shapes.types import NEURON_PATH_TYPES, VASCULAR_KINDS
+from mapmaker.shapes.types import MAX_CONNECTION_GAP
 from mapmaker.utils import log
-
-from .components import is_component, is_connector, make_connector, system_ids
-from .components import NEURON_PATH_TYPES, VASCULAR_KINDS
-from .components import MAX_CONNECTION_GAP
 
 #===============================================================================
 

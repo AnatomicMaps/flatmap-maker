@@ -35,7 +35,6 @@ import shapely.strtree
 from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
 from mapmaker.settings import settings
 from mapmaker.shapes import Shape, SHAPE_TYPE
-from mapmaker.sources.fc_powerpoint.components import VASCULAR_KINDS
 from mapmaker.utils import log
 
 from .constants import COMPONENT_BORDER_WIDTH, CONNECTION_STROKE_WIDTH, MAX_LINE_WIDTH
@@ -43,6 +42,7 @@ from .constants import SHAPE_ERROR_COLOUR, SHAPE_ERROR_BORDER
 
 from .line_finder import Line, LineFinder, XYPair
 from .text_finder import TextFinder
+from .types import VASCULAR_KINDS
 
 #===============================================================================
 
