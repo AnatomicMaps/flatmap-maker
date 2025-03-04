@@ -63,20 +63,21 @@ etree.register_namespace('svg', str(SVG_NS))
 #===============================================================================
 
 class CellDLExporter:
-    def __init__(self, svg_element: etree.Element, source_href: str, world_to_pixels: Transform,
+    def __init__(self, svg_root: etree.Element, source_href: str, world_to_pixels: Transform,
                  export_type: Optional[str]=EXPORT_TYPE.BONDGRAPH):
         self.__celldl = CellDLGraph(BG_NS.Model if export_type == EXPORT_TYPE.BONDGRAPH else None)
         self.__celldl.set_property(DCT_NS.source, rdflib.URIRef(source_href))
-        self.__svg_element = svg_element
+        self.__svg_root = svg_root
         self.__world_to_pixels = world_to_pixels
         self.__export_type = export_type
-        celldl_defs = svg_element.find(f'.//{SVG_NS.defs}[@id="{CELLDL_DEFINITIONS_ID}"]')
+
+        celldl_defs = svg_root.find(f'.//{SVG_NS.defs}[@id="{CELLDL_DEFINITIONS_ID}"]')
         if celldl_defs is None:
-            celldl_defs = svg_element.find(f'.//{SVG_NS.defs}')
+            celldl_defs = svg_root.find(f'.//{SVG_NS.defs}')
             if celldl_defs is not None:
                 celldl_defs.attrib['id'] = CELLDL_DEFINITIONS_ID
             else:
-                celldl_defs = etree.SubElement(svg_element, SVG_NS.defs, {
+                celldl_defs = etree.SubElement(svg_root, SVG_NS.defs, {
                     'id': CELLDL_DEFINITIONS_ID
                 })
             if export_type == EXPORT_TYPE.BONDGRAPH:
@@ -92,21 +93,21 @@ class CellDLExporter:
                 stylesheets.append(BondgraphStylesheet)
             celldl_style.text = '\n'.join(stylesheets)
 
-        diagram = etree.Element(SVG_NS.g, {
+        celldl_diagram = etree.Element(SVG_NS.g, {
             'id': DIAGRAM_LAYER,
             'class': CELLDL_LAYER_CLASS
         })
         viewbox = self.__check_viewbox()
-        for child in svg_element:
+        for child in svg_root:
             if child.tag != SVG_NS.defs:
-                diagram.append(child)
-        svg_element.append(diagram)         # Need to append after above copy/move
-        self.__connection_group = etree.SubElement(diagram, SVG_NS.g)
+                celldl_diagram.append(child)
+        svg_root.append(celldl_diagram)         # Need to append after above copy/move
+        self.__connection_group = etree.SubElement(celldl_diagram, SVG_NS.g)
         self.__metadata_element = etree.Element(SVG_NS.metadata, {
             'id': CELLDL_METADATA_ID,
             'data-content-type': 'text/turtle'
         })
-        svg_element.insert(0, self.__metadata_element)
+        svg_root.insert(0, self.__metadata_element)
 
     def process(self, shapes: TreeList[Shape]):
     #==========================================
@@ -115,18 +116,18 @@ class CellDLExporter:
     def save(self, path: Path):
     #==========================
         self.__metadata_element.text = etree.CDATA(self.__celldl.as_turtle())
-        svg_tree = etree.ElementTree(self.__svg_element)
+        svg_tree = etree.ElementTree(self.__svg_root)
         svg_tree.write(path,
             encoding='utf-8', #inclusive_ns_prefixes=['svg'],
             pretty_print=True, xml_declaration=True)
 
     def __check_viewbox(self) -> tuple[float, float, float, float]:
     #==============================================================
-        width = self.__svg_element.attrib.pop('width', None)
-        height = self.__svg_element.attrib.pop('height', None)
-        if 'viewBox' not in self.__svg_element.attrib:
-            self.__svg_element.attrib['viewBox'] = f'0 0 {length_as_pixels(width):.1f} {length_as_pixels(height):.1f}'
-        return tuple(float(i) for i in self.__svg_element.attrib['viewBox'].split())   # type: ignore
+        width = self.__svg_root.attrib.pop('width', None)
+        height = self.__svg_root.attrib.pop('height', None)
+        if 'viewBox' not in self.__svg_root.attrib:
+            self.__svg_root.attrib['viewBox'] = f'0 0 {length_as_pixels(width):.1f} {length_as_pixels(height):.1f}'
+        return tuple(float(i) for i in self.__svg_root.attrib['viewBox'].split())   # type: ignore
 
     def __process_shape_list(self, shapes: TreeList[Shape]): #, group: etree.Element):
     #=======================================================
