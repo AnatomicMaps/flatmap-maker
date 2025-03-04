@@ -103,6 +103,7 @@ class CellDLExporter:
                 celldl_diagram.append(child)
         svg_root.append(celldl_diagram)         # Need to append after above copy/move
         self.__connection_group = etree.SubElement(celldl_diagram, SVG_NS.g)
+        self.__annotation_group = etree.SubElement(celldl_diagram, SVG_NS.g)
         self.__metadata_element = etree.Element(SVG_NS.metadata, {
             'id': CELLDL_METADATA_ID,
             'data-content-type': 'text/turtle'
@@ -172,6 +173,8 @@ class CellDLExporter:
                             svg_element.extend([element for text_shape in text_shapes
                                                     if (element := text_shape.get_property('svg-element')) is not None])
                             shape.set_property('svg-element', svg_element)
+                            if shape.shape_type == SHAPE_TYPE.ANNOTATION:
+                                self.__annotation_group.append(svg_element)
                         else:
                             svg_element.attrib['id'] = element_id
                             svg_element.attrib['class'] = ' '.join(svg_element.attrib.get('class', '').split() + [svg_class])
