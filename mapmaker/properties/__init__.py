@@ -164,6 +164,7 @@ class PropertiesStore(object):
     #============================================
         if isinstance(features, dict):
             for id, properties in features.items():
+                id = id.replace(" ", "_")
                 self.__properties_by_id[id].update(properties)
                 if (properties.get('type') == 'nerve'
                 and (entity := properties.get('models')) is not None):
@@ -212,6 +213,9 @@ class PropertiesStore(object):
     #===============================================
         classes = feature_properties.get('class', '').split()
         id = feature_properties.get('id')
+        if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+            if (name := feature_properties.get('name', '').replace(" ", "_")) != '':
+                id = f'{feature_properties.get("layer", "")}/{name}'
         if id is not None:
             classes.extend(self.__properties_by_id.get(id, {}).get('class', '').split())
         for cls in classes:

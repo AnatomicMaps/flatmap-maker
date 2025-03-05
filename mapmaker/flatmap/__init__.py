@@ -208,6 +208,7 @@ class FlatMap(object):
 
         self.__feature_node_map = FeatureAnatomicalNodeMap(self.__manifest.connectivity_terms)
         self.__features_with_id: dict[str, Feature] = {}
+        self.__features_with_name: dict[str, Feature] = {}
         self.__last_geojson_id = 0
         self.__features_by_geojson_id: dict[int, Feature] = {}
 
@@ -269,7 +270,11 @@ class FlatMap(object):
 
     def get_feature(self, feature_id: str) -> Optional[Feature]:
     #===========================================================
-        return self.__features_with_id.get(feature_id)
+        if self.map_kind == MAP_KIND.FUNCTIONAL:
+            return self.__features_with_name.get(feature_id.replace(" ", "_"),
+                self.__features_with_id.get(feature_id))
+        else:
+            return self.__features_with_id.get(feature_id)
 
     def get_feature_by_geojson_id(self, geojson_id: int) -> Optional[Feature]:
     #=========================================================================
@@ -278,19 +283,18 @@ class FlatMap(object):
     def new_feature(self, layer_id: str, geometry, properties, is_group=False) -> Feature:
     #=====================================================================================
         self.__last_geojson_id += 1
-        if self.map_kind == MAP_KIND.FUNCTIONAL:
-            if ((name := properties.get('name', '')) != ''
-             and properties.get('id', '').startswith(f'{layer_id}/SHAPE_')):
-                properties['id'] = f'{layer_id}/{name.replace(" ", "_")}'
+        properties['layer'] = layer_id
         self.properties_store.update_properties(properties)   # Update from JSON properties file
         feature = Feature(self.__last_geojson_id, geometry, properties, is_group=is_group)
-        feature.set_property('layer', layer_id)
         self.__features_by_geojson_id[feature.geojson_id] = feature
         if feature.id:
             if feature.id in self.__features_with_id:
                 pass
             else:
                 self.__features_with_id[feature.id] = feature
+        if self.map_kind == MAP_KIND.FUNCTIONAL:
+            if (name := properties.get('name', '')) != '':
+                self.__features_with_name[f'{layer_id}/{name.replace(" ", "_")}'] = feature
         return feature
 
     def network_feature(self, feature: Feature) -> bool:
