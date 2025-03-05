@@ -116,13 +116,13 @@ class SVGSource(MapSource):
                 scale = max(scale_x, scale_y)
             self.__transform = (Transform([[1,  0, bounds[0]+(bounds[2]-bounds[0])/2],
                                            [0,  1, bounds[1]+(bounds[3]-bounds[1])/2],
-                                           [0,  0,         1]])
+                                           [0,  0,                                 1]])
                                @np.array([[scale,     0,  0],
                                           [    0, scale,  0],
                                           [    0,     0,  1]])
                                @np.array([[1.0,  0.0, -left-width/2],
-                                          [0.0, -1.0,   top+height/2],
-                                          [0.0,  0.0,            1.0]]))
+                                          [0.0, -1.0,  top+height/2],
+                                          [0.0,  0.0,           1.0]]))
             self.__metres_per_pixel = scale
         else:
             # Add a margin around the base layer of a functional map
