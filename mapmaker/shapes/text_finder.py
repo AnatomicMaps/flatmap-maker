@@ -117,26 +117,30 @@ class TextFinder:
         clusters = []
         latex = LatexMaker()
         used_text_shapes = []
-        for cluster in text_clusters:
-            if cluster.baseline < (baseline - offset):
-                if state > 0 and len(clusters):
-                    latex.add_text(self.__text_clusters_to_text(clusters), state)
-                    clusters = []
-                clusters.append(cluster)
-                state = -1
-            elif cluster.baseline > (baseline + offset):
-                if state < 0 and len(clusters):
-                    latex.add_text(self.__text_clusters_to_text(clusters), state)
-                    clusters = []
-                clusters.append(cluster)
-                state = 1
-            else:
-                if state != 0 and len(clusters):
-                    latex.add_text(self.__text_clusters_to_text(clusters), state)
-                    clusters = []
-                latex.add_text(self.__text_block_to_text(cluster.shapes), 0)
-                state = 0
-            used_text_shapes.extend(cluster.shapes)
+        if len(text_clusters) == 1:
+            latex.add_text(self.__text_block_to_text(text_clusters[0].shapes), 0)
+            used_text_shapes.extend(text_clusters[0].shapes)
+        else:
+            for cluster in text_clusters:
+                if cluster.baseline < (baseline - offset):
+                    if state > 0 and len(clusters):
+                        latex.add_text(self.__text_clusters_to_text(clusters), state)
+                        clusters = []
+                    clusters.append(cluster)
+                    state = -1
+                elif cluster.baseline > (baseline + offset):
+                    if state < 0 and len(clusters):
+                        latex.add_text(self.__text_clusters_to_text(clusters), state)
+                        clusters = []
+                    clusters.append(cluster)
+                    state = 1
+                else:
+                    if state != 0 and len(clusters):
+                        latex.add_text(self.__text_clusters_to_text(clusters), state)
+                        clusters = []
+                    latex.add_text(self.__text_block_to_text(cluster.shapes), 0)
+                    state = 0
+                used_text_shapes.extend(cluster.shapes)
         if len(clusters):
             latex.add_text(self.__text_clusters_to_text(clusters), state)
         text = f'${text}$' if self.__sub_superscript_re.search(text:=latex.latex) is not None else text
