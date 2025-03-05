@@ -186,7 +186,7 @@ class SVGSource(MapSource):
             background_path = FilePath(background.href)
             raster_sources.append(RasterSource(f'{self.id}_background', 'svg', background_path.get_data, self,
                                                source_path=background_path, background_layer=True,
-                                               transform=Transform.translate(background.translate)@Transform.scale(background.scale)))
+                                               transform=Transform.Translate(background.translate)@Transform.Scale(background.scale)))
         raster_sources.append(RasterSource(f'{self.id}_image', 'svg', self.__get_raster_data, self,
                                            source_path=self.__source_file))
         return raster_sources

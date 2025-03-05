@@ -131,11 +131,11 @@ class Transform(object):
         return cls(np.identity(3))
 
     @classmethod
-    def scale(cls, scale: float) -> Self:
+    def Scale(cls, scale: float) -> Self:
         return cls([[scale, 0, 0], [0, scale, 0], [0, 0, 1]])
 
     @classmethod
-    def translate(cls, translate: tuple[float, float]) -> Self:
+    def Translate(cls, translate: tuple[float, float]) -> Self:
         return cls([[1, 0, translate[0]],
                     [0, 1, translate[1]],
                     [0, 0,            1]])
