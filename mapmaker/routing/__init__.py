@@ -790,7 +790,7 @@ class Network(object):
                 closest_node = node_id
         return (closest_node, closest_distance)
 
-    def __route_graph_from_connectivity(self, path: 'Path', debug=False) -> Optional[nx.Graph]:
+    def __route_graph_from_connectivity(self, path: 'Path', debug=False) -> tuple[Optional[nx.Graph], Optional[nx.Graph]]:
     #==========================================================================================
         connectivity_graph = path.connectivity
 
@@ -846,7 +846,7 @@ class Network(object):
                         g_node = ref_nodes[0]
                         ref_nodes = ref_nodes[1:]
                     for ref_node in ref_nodes:
-                        connectivity_graph = nx.contracted_nodes(connectivity_graph, g_node, ref_node, self_loops=False)
+                        nx.contracted_nodes(connectivity_graph, g_node, ref_node, self_loops=False, copy=False)
 
         if path.trace:
             for node, node_dict in connectivity_graph.nodes(data=True):
@@ -1515,10 +1515,11 @@ class Network(object):
             if len(min_degree_nodes & set(self.__missing_identifiers)):
                 self.__log.warning('Path is not rendered due to partial rendering', path=path.id)
                 route_graph.remove_nodes_from(list(route_graph.nodes))
+                connectivity_graph.remove_nodes_from(list(connectivity_graph.nodes))
 
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
         else:
-            return route_graph
+            return (route_graph, connectivity_graph)
 
 #===============================================================================
