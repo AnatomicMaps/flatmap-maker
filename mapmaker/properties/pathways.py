@@ -653,6 +653,7 @@ class Pathways:
         active_nerve_features: set[Feature] = set()
         paths_by_id = {}
         route_graphs: dict[str, nx.Graph] = {}
+        connectivity_graphs: dict[str, nx.Graph] = {}
         network.create_geometry()
 
         # Find route graphs for each path in each connectivity model
@@ -660,7 +661,7 @@ class Pathways:
             if connectivity_model.network == network.id:
                 for path in connectivity_model.paths.values():
                     paths_by_id[path.id] = path
-                    route_graphs[path.id] = network.route_graph_from_path(path)
+                    route_graphs[path.id], connectivity_graphs[path.id] = network.route_graph_from_path(path)
 
         # Now order them across shared centrelines
         routed_paths = network.layout(route_graphs)
