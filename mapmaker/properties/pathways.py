@@ -711,20 +711,20 @@ class Pathways:
                 # add path_rendered_features, path_rendered_segments, path_rendered_nerves to rendered_features
                 rendered_features += path_rendered_features + path_rendered_segments + path_rendered_nerves
 
-        rendered_nodes = {}
+        indexed_rendered_features = {}
         for id, featureId, path_id, node, rendered_node, *nerveIds in rendered_features:
-            rendered_nodes[featureId] = {
+            indexed_rendered_features[featureId] = {
                 'id': id,
                 'featureId': featureId,
-                'path-ids': list({*rendered_nodes.get(featureId, {}).get('path-ids', []), path_id}),
-                'nodes': list({*rendered_nodes.get(featureId, {}).get('nodes', []), node}),
+                'path-ids': list({*indexed_rendered_features.get(featureId, {}).get('path-ids', []), path_id}),
+                'nodes': list({*indexed_rendered_features.get(featureId, {}).get('nodes', []), node}),
                 'rendered-node': rendered_node,
                 **({'nerveIds': nerveIds[0]} if nerveIds not in ([], [[]]) else {})
             }
         self.__rendered_data = {
             'rendered-connectivities': rendered_connectivities,
             'rendered-hierarchy': list(hierachy.values()),
-            'rendered-nodes': rendered_nodes
+            'rendered-features': indexed_rendered_features
         }
 
     def __route_network_connectivity(self, network: Network):
