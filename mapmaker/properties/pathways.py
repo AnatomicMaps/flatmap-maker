@@ -533,6 +533,10 @@ class Pathways:
                 connectivity['type-paths'][path_type].extend(paths)
         return connectivity
 
+    @property
+    def rendered_connectivities(self):
+        return self.__rendered_data
+
     def add_connection_set(self, connection_set):
     #============================================
         if len(connection_set):
