@@ -32,14 +32,24 @@ class PropertyMixin:
     def properties(self):
         return self.__properties
 
-    def pop_property(self, key: str, default: Any=None) -> Any:
-        return self.__properties.pop(key, default)
+    def append_property(self, key: str, value: Any) -> None:
+        if value is None:
+            return
+        elif key not in self.__properties:
+            self.__properties[key] = [value]
+        elif isinstance(self.__properties[key], list):
+            self.__properties[key].append(value)
+        else:
+            self.__properties[key] = [self.__properties[key], value]
 
     def get_property(self, key: str, default: Any=None) -> Any:
         return self.__properties.get(key, default)
 
     def has_property(self, key: str) -> bool:
         return self.__properties.get(key, '') != ''
+
+    def pop_property(self, key: str, default: Any=None) -> Any:
+        return self.__properties.pop(key, default)
 
     def set_property(self, key: str, value: Any) -> None:
         if value is None:
