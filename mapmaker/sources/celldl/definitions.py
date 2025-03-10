@@ -37,6 +37,7 @@ ERROR_COLOUR = 'yellow'
 
 DIAGRAM_LAYER = 'diagram-layer'
 
+CELLDL_BACKGROUND_CLASS = 'celldl-background'
 CELLDL_LAYER_CLASS = 'celldl-Layer'
 
 CELLDL_DEFINITIONS_ID = "celldl-svg-definitions"
