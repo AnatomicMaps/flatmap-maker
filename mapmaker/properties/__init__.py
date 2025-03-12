@@ -165,6 +165,9 @@ class PropertiesStore(object):
         if isinstance(features, dict):
             for id, properties in features.items():
                 id = id.replace(" ", "_")
+                if (associated_details := properties.get('associated-details')) is not None:
+                    if isinstance(associated_details, str):
+                        properties['associated-details'] = [associated_details]
                 self.__properties_by_id[id].update(properties)
                 if (properties.get('type') == 'nerve'
                 and (entity := properties.get('models')) is not None):
