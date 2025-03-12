@@ -385,6 +385,7 @@ class FlatMap(object):
                     'id': layer.id,
                     'description': layer.description,
                     'detail-layer': layer.detail_layer,
+                    'extent': layer.extent,
                     'image-layers': [
                         {   'id': raster_layer.id,
                             'options': {

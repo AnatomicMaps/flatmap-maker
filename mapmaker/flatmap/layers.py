@@ -31,8 +31,8 @@ import shapely.prepared
 
 from mapmaker import ZOOM_OFFSET_FROM_BASE
 from mapmaker.exceptions import GroupValueError
-from mapmaker.geometry import connect_dividers, extend_line, make_boundary
-from mapmaker.geometry import bounds_centroid, MapBounds, merge_bounds, translate_extent
+from mapmaker.geometry import bounds_to_extent, connect_dividers, extend_line, make_boundary
+from mapmaker.geometry import bounds_centroid, MapBounds, MapExtent, merge_bounds, translate_extent
 from mapmaker.geometry import save_geometry, Transform
 from mapmaker.settings import settings
 from mapmaker.utils import FilePath, log
@@ -167,6 +167,10 @@ class MapLayer(FeatureLayer):
     @property
     def detail_layer(self) -> bool:
         return (self.__source.base_feature is not None)
+
+    @property
+    def extent(self) -> MapExtent:
+        return bounds_to_extent(self.__bounds)
 
     @property
     def max_zoom(self) -> int:
