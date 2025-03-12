@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from datetime import datetime, timezone
 import os
 from typing import Optional, TYPE_CHECKING
@@ -211,6 +211,7 @@ class FlatMap(object):
         self.__features_with_name: dict[str, Feature] = {}
         self.__last_geojson_id = 0
         self.__features_by_geojson_id: dict[int, Feature] = {}
+        self.__associated_layers: defaultdict[str, list[int]] = defaultdict(list)
 
         # Used to find annotated features containing a region
         self.__feature_search = None
@@ -295,6 +296,9 @@ class FlatMap(object):
         if self.map_kind == MAP_KIND.FUNCTIONAL:
             if (name := properties.get('name', '')) != '':
                 self.__features_with_name[f'{layer_id}/{name.replace(" ", "_")}'] = feature
+        if (associated_layers := properties.get('associated-details')) is not None:
+            for layer in associated_layers:
+                self.__associated_layers[layer].append(feature.geojson_id)
         return feature
 
     def network_feature(self, feature: Feature) -> bool:
@@ -386,6 +390,12 @@ class FlatMap(object):
             zoom_point = self.add_zoom_point(feature, description)
             if zoom_point is not None:
                 zoom_point.set_property('details-layer', details_layer)
+            # Set the ``associated-details`` property for connections to features associated with the details layer
+            for geojson_id in self.__associated_layers.get(details_layer, []):
+                if (associated_feature := self.get_feature_by_geojson_id(geojson_id)) is not None:
+                    for connection_id in associated_feature.get_property('connections', []):
+                        if (connection := self.get_feature(connection_id)) is not None:
+                            connection.append_property('associated-details', details_layer)
 
     def add_zoom_point(self, feature: Feature, description: Optional[str]=None) -> Optional[Feature]:
     #================================================================================================

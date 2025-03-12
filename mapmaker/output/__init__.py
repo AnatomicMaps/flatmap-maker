@@ -24,6 +24,7 @@
 
 EXPORTED_FEATURE_PROPERTIES = [
     'cd-class',         # str
+    'associated-details', # Optional[str|list[str]]      Identifiers of detailed layers associated with the feature
     'centreline',       # bool
     'children',         # list[int]
     'class',
@@ -72,6 +73,7 @@ EXPORTED_FEATURE_PROPERTIES = [
 
 ENCODED_FEATURE_PROPERTIES = [
     'hyperlinks',       # Optional[list[dict[str, str]]]    # id, url
+    'associated-details',   # Optional[str|list[str]]
 ]
 
 #===============================================================================
