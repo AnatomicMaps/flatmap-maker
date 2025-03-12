@@ -376,6 +376,29 @@ class FlatMap(object):
           and source.kind not in SOURCE_DETAIL_KINDS):
             raise ValueError('Can only have a single base map')
 
+    """
+    The ``feature`` has details that appear when zoomed.
+    """
+    def add_details_layer(self, feature: Feature, details_layer: str, description: Optional[str]=None):
+    #==================================================================================================
+        if feature.layer is not None:
+            feature.set_property('details-layer', details_layer)
+            zoom_point = self.add_zoom_point(feature, description)
+            if zoom_point is not None:
+                zoom_point.set_property('details-layer', details_layer)
+
+    def add_zoom_point(self, feature: Feature, description: Optional[str]=None) -> Optional[Feature]:
+    #================================================================================================
+        if feature.layer is not None:
+            zoom_point = self.new_feature(feature.properties['layer'], feature.geometry.centroid, {
+                'kind': 'zoom-point',
+                'tile-layer': feature.properties['tile-layer']
+            })
+            if description is not None:
+                zoom_point.set_property('label', description)
+            feature.layer.add_feature(zoom_point)
+            return zoom_point
+
     def layer_metadata(self):
     #========================
         metadata = []

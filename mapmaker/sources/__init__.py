@@ -143,7 +143,11 @@ class MapSource(object):
             if (feature := flatmap.get_feature(source_manifest.feature)) is None:
                 raise ValueError(f'Unknown source feature: {source_manifest.feature}')
             feature.set_property('maxzoom', source_manifest.zoom-1)
-            feature.set_property('kind', 'expandable')
+            if source_manifest.kind == 'functional':
+                details_for = source_manifest.details if source_manifest.details is not None else source_manifest.feature
+                if (detail_feature := flatmap.get_feature(details_for)) is None:
+                    raise ValueError(f'Unknown source feature: {details_for}')
+                flatmap.add_details_layer(detail_feature, self.id, source_manifest.description)
             self.__min_zoom = source_manifest.zoom
             self.__base_feature = feature
         else:

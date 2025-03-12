@@ -34,7 +34,7 @@ from mapmaker.exceptions import GroupValueError
 from mapmaker.geometry import bounds_to_extent, connect_dividers, extend_line, make_boundary
 from mapmaker.geometry import bounds_centroid, MapBounds, MapExtent, merge_bounds, translate_extent
 from mapmaker.geometry import save_geometry, Transform
-from mapmaker.settings import settings
+from mapmaker.settings import MAP_KIND, settings
 from mapmaker.utils import FilePath, log
 
 if TYPE_CHECKING:
@@ -202,6 +202,10 @@ class MapLayer(FeatureLayer):
         super().add_feature(feature, map_layer=self)
         if feature.has_property('details'):
             self.__detail_features.append(feature)
+        if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+            if (hyperlinks := feature.get_property('hyperlinks')) is not None:
+                if 'flatmap' in hyperlinks and (zoom_point := self.flatmap.add_zoom_point(feature)) is not None:
+                    zoom_point.set_property('hyperlinks', hyperlinks)
 
     def __find_feature(self, feature_id: str) -> Optional[Feature]:
     #==============================================================

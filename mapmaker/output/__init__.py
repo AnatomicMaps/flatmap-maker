@@ -28,7 +28,8 @@ EXPORTED_FEATURE_PROPERTIES = [
     'children',         # list[int]
     'class',
     'colour',           # str
-    'description',
+    'description',      # str
+    'details-layer',    # str       The identifier of the layer with details about the feature
     'error',
     'fc-class',
     'fc-kind',
