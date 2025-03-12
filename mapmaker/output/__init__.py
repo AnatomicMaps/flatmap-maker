@@ -23,7 +23,6 @@
 # is saved as GeoJSON.
 
 EXPORTED_FEATURE_PROPERTIES = [
-    'cd-class',         # str
     'associated-details', # Optional[str|list[str]]      Identifiers of detailed layers associated with the feature
     'centreline',       # bool
     'children',         # list[int]
@@ -32,8 +31,6 @@ EXPORTED_FEATURE_PROPERTIES = [
     'description',      # str
     'details-layer',    # str       The identifier of the layer with details about the feature
     'error',
-    'fc-class',
-    'fc-kind',
     'featureId',        # int
     'group',
     'hyperlink',        # Optional[str]
@@ -53,12 +50,12 @@ EXPORTED_FEATURE_PROPERTIES = [
     'nodeId',
     'opacity',          # float
     'parents',          # list[int]
+    'path-ids',         # list[str]
     'scale',
     'sckan',
-    'source',
+    'source',           # str
     'stroke',           # str
     'stroke-width',     # float
-    'path-ids',         # list[str]
     'target',           # str
     'taxons',           # list[str]
     'tile-layer',
@@ -74,8 +71,8 @@ EXPORTED_FEATURE_PROPERTIES = [
 #===============================================================================
 
 ENCODED_FEATURE_PROPERTIES = [
-    'hyperlinks',       # Optional[list[dict[str, str]]]    # id, url
     'associated-details',   # Optional[str|list[str]]
+    'hyperlinks',           # Optional[list[dict[str, str]]]    # id, url
 ]
 
 #===============================================================================
