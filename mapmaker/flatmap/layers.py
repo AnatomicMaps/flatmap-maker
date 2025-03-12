@@ -228,6 +228,8 @@ class MapLayer(FeatureLayer):
             if self.__offset != (0.0, 0.0):
                 for feature in self.features:
                     feature.geometry = shapely.affinity.translate(feature.geometry, xoff=self.__offset[0], yoff=self.__offset[1])
+            self.__bounds = (self.__bounds[0] + self.__offset[0], self.__bounds[1] + self.__offset[1],
+                             self.__bounds[2] + self.__offset[0], self.__bounds[3] + self.__offset[1])
 
     def create_feature_groups(self):
     #===============================
