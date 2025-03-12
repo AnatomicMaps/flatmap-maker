@@ -36,6 +36,7 @@ EXPORTED_FEATURE_PROPERTIES = [
     'fc-kind',
     'featureId',        # int
     'group',
+    'hyperlink',        # Optional[str]
     'hyperlinks',       # Optional[list[dict[str, str]]]    # id, url
     'id',               # Optional[str]
     'invisible',        # bool
