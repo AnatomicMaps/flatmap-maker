@@ -119,6 +119,7 @@ class ResolvedPath:
         self.__nodes = set()
         self.__models = None
         self.__centrelines = set()
+        self.__connectivity = set()
 
     @property
     def as_dict(self) -> dict[str, Any] :
@@ -129,7 +130,8 @@ class ResolvedPath:
             'lines': list(self.__lines),
             'nerves': list(self.__nerves),
             'nodes': list(self.__nodes),
-            'models': self.__models
+            'models': self.__models,
+            'connectivity': list(self.__connectivity)
         }
         if len(self.__centrelines):
             result['centrelines'] = list(self.__centrelines)
@@ -181,6 +183,17 @@ class ResolvedPath:
             The path's external identifier (what it models)
         """
         self.__models = model_id
+
+    def extend_connectivity(self, connectivity: list[tuple]):
+        """
+        Associate rendered connectivity with the path.
+
+        Arguments:
+        ----------
+        connectivity
+            Rendered connectivity edges
+        """
+        self.__connectivity.update(connectivity)
 
 #===============================================================================
 
@@ -258,6 +271,7 @@ class ResolvedPathways:
     def add_connectivity(self, path_id: str, line_geojson_ids: list[int],
                          model: str, path_type: PATH_TYPE,
                          node_feature_ids: set[str], nerve_features: list[Feature],
+                         rendered_connectivity: list[tuple],
                          centrelines: Optional[list[str]]=None):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -266,6 +280,7 @@ class ResolvedPathways:
         resolved_path.extend_nodes(self.__resolve_nodes_for_path(path_id, node_feature_ids))
         resolved_path.extend_lines(line_geojson_ids)
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
+        resolved_path.extend_connectivity(rendered_connectivity)
         if centrelines is not None:
             resolved_path.add_centrelines(centrelines)
 
@@ -496,6 +511,7 @@ class Pathways:
         self.__connectivity_models = []
         self.__active_nerve_ids: set[str] = set()   ### Manual layout only???
         self.__connection_sets: list[ConnectionSet] = []
+        self.__node_hierarchy = defaultdict(set)
         if len(paths_list):
             self.add_connectivity({'paths': paths_list})
 
@@ -532,6 +548,14 @@ class Pathways:
             for path_type, paths in connection_set_dict['type-paths'].items():
                 connectivity['type-paths'][path_type].extend(paths)
         return connectivity
+
+    @property
+    def node_hierarchy(self):
+        node_hierarchy = {
+            'nodes': [{'id':node} for node in self.__node_hierarchy['nodes']],
+            'links': [{'source':link[0], 'target':link[1]} for link in self.__node_hierarchy['links']]
+        }
+        return node_hierarchy
 
     def add_connection_set(self, connection_set):
     #============================================
@@ -643,6 +667,31 @@ class Pathways:
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
+    def __extract_rendered_connectivity(self, node_feature_ids, connectivity_graph):
+        # restructure connectivity graph so it aligns to self.__resolved_pathways
+        removed_nodes = [node for node, node_dict in connectivity_graph.nodes(data=True)
+                        if node_dict.get('type') == 'feature' and
+                        not {f.id for f in node_dict.get('features', [])} & node_feature_ids]
+        for node in removed_nodes:
+            neighbors = list(connectivity_graph.neighbors(node))
+            predecessors = [n for n in neighbors if n == connectivity_graph.edges[(node, n)]['predecessor']]
+            successors = [n for n in neighbors if n == connectivity_graph.edges[(node, n)]['successor']]
+            predecessors, successors = (predecessors or neighbors), (successors or neighbors)
+            connectivity_graph.add_edges_from([(e_0, e_1, {'predecessor': e_0, 'successor': e_1})
+                            for e_0 in predecessors for e_1 in successors if e_0 != e_1])
+        connectivity_graph.remove_nodes_from(removed_nodes)
+
+        # extract hierarchy
+        for node_dict in connectivity_graph.nodes.values():
+            self.__node_hierarchy['nodes'].add(source := node_dict['node'])
+            while len(target := source[1]) > 0:
+                target = (target[0], target[1:])
+                self.__node_hierarchy['links'].add((source, target))
+                self.__node_hierarchy['nodes'].add(source := target)
+
+        return [(connectivity_graph.nodes[edge[0]]['node'], connectivity_graph.nodes[edge[1]]['node']) for edge in connectivity_graph.edges]
+
+
     def __route_network_connectivity(self, network: Network):
     #========================================================
         if self.__resolved_pathways is None:
@@ -725,12 +774,14 @@ class Pathways:
                 nerve_feature_ids = routed_path.nerve_feature_ids
                 nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
                 active_nerve_features.update(nerve_features)
+                rendered_connectivity = self.__extract_rendered_connectivity(routed_path.node_feature_ids, route_graphs[path_id].graph['connectivity'])
                 self.__resolved_pathways.add_connectivity(path_id,
                                                           path_geojson_ids,
                                                           path.models,
                                                           path.path_type,
                                                           routed_path.node_feature_ids,
                                                           nerve_features,
+                                                          rendered_connectivity,
                                                           centrelines=routed_path.centrelines)
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':

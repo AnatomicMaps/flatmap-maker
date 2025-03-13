@@ -129,6 +129,10 @@ class PropertiesStore(object):
     def proxies(self):
         return self.__proxies
 
+    @property
+    def node_hierarchy(self):
+        return self.__pathways.node_hierarchy
+
     def network_feature(self, feature):
     #==================================
         # Is the ``feature`` included in some network?
