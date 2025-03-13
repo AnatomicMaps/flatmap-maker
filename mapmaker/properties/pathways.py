@@ -550,8 +550,12 @@ class Pathways:
         return connectivity
 
     @property
-    def rendered_connectivities(self):
-        return self.__rendered_data
+    def node_hierarchy(self):
+        node_hierarchy = {
+            'nodes': [{'id':node} for node in self.__node_hierarchy['nodes']],
+            'links': [{'source':link[0], 'target':link[1]} for link in self.__node_hierarchy['links']]
+        }
+        return node_hierarchy
 
     def add_connection_set(self, connection_set):
     #============================================
@@ -676,6 +680,14 @@ class Pathways:
             connectivity_graph.add_edges_from([(e_0, e_1, {'predecessor': e_0, 'successor': e_1})
                             for e_0 in predecessors for e_1 in successors if e_0 != e_1])
         connectivity_graph.remove_nodes_from(removed_nodes)
+
+        # extract hierarchy
+        for node_dict in connectivity_graph.nodes.values():
+            self.__node_hierarchy['nodes'].add(source := node_dict['node'])
+            while len(target := source[1]) > 0:
+                target = (target[0], target[1:])
+                self.__node_hierarchy['links'].add((source, target))
+                self.__node_hierarchy['nodes'].add(source := target)
 
         return [(connectivity_graph.nodes[edge[0]]['node'], connectivity_graph.nodes[edge[1]]['node']) for edge in connectivity_graph.edges]
 

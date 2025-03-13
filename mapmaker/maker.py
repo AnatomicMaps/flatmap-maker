@@ -531,7 +531,7 @@ class MapMaker(object):
         # Save annotations in metadata
         tile_db.add_metadata(annotations=json.dumps(self.__flatmap.annotations, default=set_as_list))
         # Save rendered_connectivitie in metadata
-        tile_db.add_metadata(rendered_connectivities=json.dumps(self.__flatmap.properties_store.rendered_connectivities))
+        tile_db.add_metadata(node_hierarchy=json.dumps(self.__flatmap.properties_store.node_hierarchy))
 
         # Commit updates to the database
         tile_db.execute("COMMIT")

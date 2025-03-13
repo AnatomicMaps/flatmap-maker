@@ -130,8 +130,8 @@ class PropertiesStore(object):
         return self.__proxies
 
     @property
-    def rendered_connectivities(self):
-        return self.__pathways.rendered_connectivities
+    def node_hierarchy(self):
+        return self.__pathways.node_hierarchy
 
     def network_feature(self, feature):
     #==================================
