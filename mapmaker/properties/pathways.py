@@ -119,6 +119,7 @@ class ResolvedPath:
         self.__nodes = set()
         self.__models = None
         self.__centrelines = set()
+        self.__connectivity = set()
 
     @property
     def as_dict(self) -> dict[str, Any] :
@@ -129,7 +130,8 @@ class ResolvedPath:
             'lines': list(self.__lines),
             'nerves': list(self.__nerves),
             'nodes': list(self.__nodes),
-            'models': self.__models
+            'models': self.__models,
+            'connectivity': list(self.__connectivity)
         }
         if len(self.__centrelines):
             result['centrelines'] = list(self.__centrelines)
@@ -181,6 +183,17 @@ class ResolvedPath:
             The path's external identifier (what it models)
         """
         self.__models = model_id
+
+    def extend_connectivity(self, connectivity: list[tuple]):
+        """
+        Associate rendered connectivity with the path.
+
+        Arguments:
+        ----------
+        connectivity
+            Rendered connectivity edges
+        """
+        self.__connectivity.update(connectivity)
 
 #===============================================================================
 
@@ -258,6 +271,7 @@ class ResolvedPathways:
     def add_connectivity(self, path_id: str, line_geojson_ids: list[int],
                          model: str, path_type: PATH_TYPE,
                          node_feature_ids: set[str], nerve_features: list[Feature],
+                         rendered_connectivity: list[tuple],
                          centrelines: Optional[list[str]]=None):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -266,6 +280,7 @@ class ResolvedPathways:
         resolved_path.extend_nodes(self.__resolve_nodes_for_path(path_id, node_feature_ids))
         resolved_path.extend_lines(line_geojson_ids)
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
+        resolved_path.extend_connectivity(rendered_connectivity)
         if centrelines is not None:
             resolved_path.add_centrelines(centrelines)
 
@@ -496,6 +511,7 @@ class Pathways:
         self.__connectivity_models = []
         self.__active_nerve_ids: set[str] = set()   ### Manual layout only???
         self.__connection_sets: list[ConnectionSet] = []
+        self.__node_hierarchy = defaultdict(set)
         if len(paths_list):
             self.add_connectivity({'paths': paths_list})
 
@@ -647,85 +663,22 @@ class Pathways:
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
-    def __extract_rendered_hierarchy(self, route_graphs, connectivity_graphs):
-        rendered_connectivities = []
-        hierachy = {}
-        rendered_features = []
-        for path_id, cg in connectivity_graphs.items():
-            if self.__resolved_pathways is not None and path_id in self.__resolved_pathways.paths_dict:
-                #restructure connectivity graph so it aligns to self.__resolved_pathways
-                resolved_nodes = set(self.__resolved_pathways.paths_dict[path_id].get('nodes', []))
-                removed_nodes = [node for node, node_dict in cg.nodes(data=True)
-                                if node_dict.get('type') == 'feature' and
-                                not {f.geojson_id for f in node_dict.get('features', [])} & resolved_nodes]
-                for node in removed_nodes:
-                    neighbors = list(cg.neighbors(node))
-                    predecessors = [n for n in neighbors if n == cg.edges[(node, n)]['predecessor']]
-                    successors = [n for n in neighbors if n == cg.edges[(node, n)]['successor']]
-                    predecessors, successors = (predecessors or neighbors), (successors or neighbors)
-                    cg.add_edges_from([(e_0, e_1, {'predecessor': e_0, 'successor': e_1})
-                                    for e_0 in predecessors for e_1 in successors if e_0 != e_1])
-                cg.remove_nodes_from(removed_nodes)
+    def __extract_rendered_connectivity(self, node_feature_ids, connectivity_graph):
+        # restructure connectivity graph so it aligns to self.__resolved_pathways
+        removed_nodes = [node for node, node_dict in connectivity_graph.nodes(data=True)
+                        if node_dict.get('type') == 'feature' and
+                        not {f.id for f in node_dict.get('features', [])} & node_feature_ids]
+        for node in removed_nodes:
+            neighbors = list(connectivity_graph.neighbors(node))
+            predecessors = [n for n in neighbors if n == connectivity_graph.edges[(node, n)]['predecessor']]
+            successors = [n for n in neighbors if n == connectivity_graph.edges[(node, n)]['successor']]
+            predecessors, successors = (predecessors or neighbors), (successors or neighbors)
+            connectivity_graph.add_edges_from([(e_0, e_1, {'predecessor': e_0, 'successor': e_1})
+                            for e_0 in predecessors for e_1 in successors if e_0 != e_1])
+        connectivity_graph.remove_nodes_from(removed_nodes)
 
-                route_graph = route_graphs[path_id]
-                path_rendered_features, path_rendered_segments, path_rendered_nerves = [], [], []
-                segment_to_node = {}
-                # get node_hierarchy and rendered_nodes
-                for node, node_dict in cg.nodes(data=True):
-                    # get node_hierarchy
-                    rendered_node = tuple(node_dict['node'])
-                    root = rendered_node[1][-1] if rendered_node[1] else rendered_node[0]
-                    hierachy.setdefault(root, {'id': root, 'children': [], 'paths': []})['paths'].extend([path_id] * (path_id not in hierachy[root]['paths']))
-                    while len(rendered_node[1]) > 0:
-                        hierachy[root]['children'].append(rendered_node) if rendered_node not in hierachy[root]['children'] else None
-                        rendered_node = (rendered_node[1][0], rendered_node[1][1:])
-                    # get rendered features and organise segments based on nodes in connectivity_node
-                    if node_dict.get('type') == 'feature':
-                        path_rendered_features += [(f.id, f.geojson_id, path_id, node, node_dict['node']) for f in node_dict.get('features', []) if f.id in route_graph.nodes]
-                    if node_dict.get('type') in ['segment', 'no-segment']:
-                        nerveIds = {f.geojson_id: nerve_id for nerve_id in node_dict.get('nerve-ids', []) if (f := self.__flatmap.get_feature(nerve_id)) is not None}
-                        segment_to_node[tuple(node_dict['subgraph'].nodes)] = (node, node_dict['node'], nerveIds)
+        return [(connectivity_graph.nodes[edge[0]]['node'], connectivity_graph.nodes[edge[1]]['node']) for edge in connectivity_graph.edges]
 
-                # get rendered segments and nerves
-                for n_0, n_1, edge_dict in nx.Graph(route_graph).edges(data=True):
-                    if (centreline_id := edge_dict.get('centreline')) and (nr_nodes := [v for k, v in segment_to_node.items() if {n_0, n_1}.issubset(k)]):
-                        path_rendered_segments += [
-                            (centreline_id, f.geojson_id if (f := self.__flatmap.get_feature(centreline_id)) else None,
-                             path_id, nr[0], nr[1], list(nr[2].keys()))
-                            for nr in nr_nodes
-                        ]
-                        path_rendered_nerves += [(nerve_id, fid, path_id, nr[0], nr[1]) for nr in nr_nodes for fid, nerve_id in nr[2].items()]
-
-                # get rendered_connectivities
-                path_rendered_nodes = {}
-                for _, fid, _, _, r_node in path_rendered_features:
-                    path_rendered_nodes.setdefault(r_node, {'rendered-node': r_node, 'featureIds': []})['featureIds'].append(fid)
-                for _, fid, _, _, r_node, nerveIds in path_rendered_segments:
-                    path_rendered_nodes.setdefault(r_node, {'rendered-node': r_node, 'segmentIds': [], **({'nerveIds': nerveIds} if nerveIds or None else {})})['segmentIds'].append(fid)
-                rendered_connectivities += [{
-                    'id': path_id,
-                    'connectivity': [(cg.nodes[edge[0]]['node'], cg.nodes[edge[1]]['node']) for edge in cg.edges],
-                    'rendered-nodes': list(path_rendered_nodes.values())
-                }]
-
-                # add path_rendered_features, path_rendered_segments, path_rendered_nerves to rendered_features
-                rendered_features += path_rendered_features + path_rendered_segments + path_rendered_nerves
-
-        indexed_rendered_features = {}
-        for id, featureId, path_id, node, rendered_node, *nerveIds in rendered_features:
-            indexed_rendered_features[featureId] = {
-                'id': id,
-                'featureId': featureId,
-                'path-ids': list({*indexed_rendered_features.get(featureId, {}).get('path-ids', []), path_id}),
-                'nodes': list({*indexed_rendered_features.get(featureId, {}).get('nodes', []), node}),
-                'rendered-node': rendered_node,
-                **({'nerveIds': nerveIds[0]} if nerveIds not in ([], [[]]) else {})
-            }
-        self.__rendered_data = {
-            'rendered-connectivities': rendered_connectivities,
-            'rendered-hierarchy': list(hierachy.values()),
-            'rendered-features': indexed_rendered_features
-        }
 
     def __route_network_connectivity(self, network: Network):
     #========================================================
@@ -737,7 +690,6 @@ class Pathways:
         active_nerve_features: set[Feature] = set()
         paths_by_id = {}
         route_graphs: dict[str, nx.Graph] = {}
-        connectivity_graphs: dict[str, nx.Graph] = {}
         network.create_geometry()
 
         # Find route graphs for each path in each connectivity model
@@ -745,7 +697,7 @@ class Pathways:
             if connectivity_model.network == network.id:
                 for path in connectivity_model.paths.values():
                     paths_by_id[path.id] = path
-                    route_graphs[path.id], connectivity_graphs[path.id] = network.route_graph_from_path(path)
+                    route_graphs[path.id] = network.route_graph_from_path(path)
 
         # Now order them across shared centrelines
         routed_paths = network.layout(route_graphs)
@@ -810,12 +762,14 @@ class Pathways:
                 nerve_feature_ids = routed_path.nerve_feature_ids
                 nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
                 active_nerve_features.update(nerve_features)
+                rendered_connectivity = self.__extract_rendered_connectivity(routed_path.node_feature_ids, route_graphs[path_id].graph['connectivity'])
                 self.__resolved_pathways.add_connectivity(path_id,
                                                           path_geojson_ids,
                                                           path.models,
                                                           path.path_type,
                                                           routed_path.node_feature_ids,
                                                           nerve_features,
+                                                          rendered_connectivity,
                                                           centrelines=routed_path.centrelines)
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
@@ -830,8 +784,6 @@ class Pathways:
                     'pathways',
                     shapely.geometry.Polygon(feature.geometry.coords).buffer(0), properties)
                 layer.features.append(nerve_polygon_feature)
-
-        self.__extract_rendered_hierarchy(route_graphs, connectivity_graphs)
 
     def generate_connectivity(self, networks: Iterable[Network]):
     #============================================================

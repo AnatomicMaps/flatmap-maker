@@ -790,7 +790,7 @@ class Network(object):
                 closest_node = node_id
         return (closest_node, closest_distance)
 
-    def __route_graph_from_connectivity(self, path: 'Path', debug=False) -> tuple[Optional[nx.Graph], Optional[nx.Graph]]:
+    def __route_graph_from_connectivity(self, path: 'Path', debug=False) -> Optional[nx.Graph]:
     #==========================================================================================
         connectivity_graph = path.connectivity
 
@@ -1533,9 +1533,12 @@ class Network(object):
                 feature.append_property('sckan', (path.id, node))
                 feature.append_property('rendered', (path.id, node_dict['node']))
 
+        # Assign connectivity_node as a route_graph property, which will be used along with ResolvedPathways.
+        route_graph.graph['connectivity'] = connectivity_graph
+
         if debug:
             return (route_graph, G, connectivity_graph, terminal_graphs)    # type: ignore
         else:
-            return (route_graph, connectivity_graph)
+            return route_graph
 
 #===============================================================================
