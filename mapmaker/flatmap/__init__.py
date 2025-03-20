@@ -195,6 +195,12 @@ class FlatMap(object):
             knowledge = get_knowledge(self.__models)
             if 'label' in knowledge:
                 self.__metadata['describes'] = knowledge['label']
+        if self.map_kind == MAP_KIND.FUNCTIONAL:
+            self.__metadata['style'] = 'functional'
+        elif self.map_kind == MAP_KIND.CENTRELINE:
+            self.__metadata['style'] = 'centreline'
+        else:
+            self.__metadata['style'] = 'anatomical'
 
         self.__entities = set()
 

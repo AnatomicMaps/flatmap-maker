@@ -550,7 +550,8 @@ class MapMaker(object):
             'max-zoom': self.__zoom[1],
             'bounds': self.__flatmap.extent,
             'version': FLATMAP_VERSION,
-            'image-layers': len(self.__raster_layers) > 0
+            'image-layers': len(self.__raster_layers) > 0,
+            'style': metadata['style']
         }
         if self.__uuid is not None:
             map_index['uuid'] = self.__uuid
@@ -559,12 +560,6 @@ class MapMaker(object):
         if self.__manifest.biological_sex is not None:
             map_index['biologicalSex'] = self.__manifest.biological_sex
         map_index['authoring'] = settings.get('authoring', False)
-        if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL:
-            map_index['style'] = 'functional'
-        elif self.__flatmap.map_kind == MAP_KIND.CENTRELINE:
-            map_index['style'] = 'centreline'
-        else:
-            map_index['style'] = 'anatomical'
         if git_status is not None:
             map_index['git-status'] = git_status
         if len(self.__sckan_provenance):
