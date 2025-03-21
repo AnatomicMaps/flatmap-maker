@@ -566,12 +566,21 @@ class SVGLayer(MapLayer):
         if element_text == '':
             element_text = ' '
         font_manager = skia.FontMgr()
-        for font_family in style_rules.get('font-family', 'Calibri').split(','):
+        font_families = style_rules.get('font-family', 'Calibri')
+        for font_family in font_families.split(','):
             type_face = font_manager.matchFamilyStyle(font_family, font_style)
             if type_face is not None:
                 break
         if type_face is None:
-            type_face = font_manager.matchFamilyStyle(None, font_style)
+            if 'Calibri' not in font_families:
+                log.warning('Cannot get font information (missing fonts?), trying Calibri', font=font_families, text=element_text)
+                type_face = font_manager.matchFamilyStyle('Calibri', font_style)
+                if type_face is None:
+                    log.warning('Cannot get font information for Calibri', font='Calibri')
+                    type_face = font_manager.matchFamilyStyle(None, font_style)
+            else:
+                log.warning('Cannot get font information (missing fonts?)', font=font_families)
+                type_face = font_manager.matchFamilyStyle(None, font_style)
         font = skia.Font(type_face, length_as_points(style_rules.get('font-size', 10)))
         bounds = skia.Rect()
         width = font.measureText(element_text, skia.TextEncoding.kUTF8, bounds)

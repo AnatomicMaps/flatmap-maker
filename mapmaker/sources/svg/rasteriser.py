@@ -237,12 +237,18 @@ class CanvasText(CanvasDrawingObject):
                                     skia.FontStyle.kUpright_Slant)
         type_face = None
         font_manager = skia.FontMgr()
-        for font_family in style_rules.get('font-family', 'Calibri').split(','):
+        font_families = style_rules.get('font-family', 'Calibri')
+        for font_family in font_families.split(','):
             type_face = font_manager.matchFamilyStyle(font_family, font_style)
             if type_face is not None:
                 break
         if type_face is None:
-            type_face = font_manager.matchFamilyStyle(None, font_style)
+            if 'Calibri' not in font_families:
+                type_face = font_manager.matchFamilyStyle('Calibri', font_style)
+                if type_face is None:
+                    type_face = font_manager.matchFamilyStyle(None, font_style)
+            else:
+                type_face = font_manager.matchFamilyStyle(None, font_style)
         self.__font = skia.Font(type_face,
                                 length_as_points(style_rules.get('font-size', 10)))
         self.__pos = [float(attribs.get('x', 0)), float(attribs.get('y', 0))]
