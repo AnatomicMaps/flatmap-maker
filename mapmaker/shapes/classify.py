@@ -292,8 +292,10 @@ class ShapeClassifier:
                 for shape in bbox_intersecting_shapes:
                     if parent.shape_type != SHAPE_TYPE.TEXT and parent.id != shape.id:
                         # A text shape is always a child even when not properly contained
-                        if (shape.shape_type == SHAPE_TYPE.TEXT
-                         or shapely.contains_properly(parent.geometry, shape.geometry)):
+                        if (shapely.contains_properly(parent.geometry, shape.geometry)
+                          # Text shapes need say at 90% containment...
+                          or (shape.shape_type == SHAPE_TYPE.TEXT
+                          and parent.geometry.intersection(shape.geometry).area/shape.geometry.area > 0.9)):
                             parent_child.append((parent, shape))
         last_child_id = None
         for (parent, child) in sorted(parent_child, key=lambda s: (s[1].id, s[0].geometry.area)):
