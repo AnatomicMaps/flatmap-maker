@@ -63,9 +63,7 @@ class FlatMap(object):
         self.__id = maker.id
         self.__uuid = maker.uuid
         self.__map_dir = maker.map_dir
-        self.__map_kind = (MAP_KIND.FUNCTIONAL if manifest.kind == 'functional'
-                      else MAP_KIND.CENTRELINE if manifest.kind == 'centreline'
-                      else MAP_KIND.ANATOMICAL)
+        self.__map_kind = manifest.map_kind
         self.__manifest = manifest
         self.__local_id = manifest.id
         self.__models = manifest.models
@@ -201,6 +199,7 @@ class FlatMap(object):
             self.__metadata['style'] = 'centreline'
         else:
             self.__metadata['style'] = 'anatomical'
+        self.__metadata['map-kinds'] = self.__manifest.map_kinds
 
         self.__entities = set()
 

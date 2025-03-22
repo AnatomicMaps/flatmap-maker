@@ -551,7 +551,7 @@ class MapMaker(object):
             'bounds': self.__flatmap.extent,
             'version': FLATMAP_VERSION,
             'image-layers': len(self.__raster_layers) > 0,
-            'style': metadata['style']
+            'map-kinds': metadata['map-kinds']
         }
         if self.__uuid is not None:
             map_index['uuid'] = self.__uuid

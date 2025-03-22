@@ -60,6 +60,7 @@ def clone_from_with_timeout(repo_path: str, working_directory: str) -> git.Repo:
 
 #===============================================================================
 
+from mapmaker.settings import MAP_KIND
 from mapmaker.utils import log, FilePath
 
 #===============================================================================
@@ -336,6 +337,11 @@ class Manifest:
             if not ignore_git and self.__uncommitted:
                 raise ValueError("Not all sources are commited into git -- was the '--authoring' or '--ignore-git' option intended?")
 
+        self.__map_kinds = self.__manifest.get('kind', 'anatomical').split()
+        self.__map_kind = (MAP_KIND.FUNCTIONAL if 'functional' in self.__map_kinds
+                      else MAP_KIND.CENTRELINE if 'centreline' in self.__map_kinds
+                      else MAP_KIND.ANATOMICAL)
+
     @property
     def anatomical_map(self):
         return self.__manifest.get('anatomicalMap')
@@ -393,8 +399,12 @@ class Manifest:
         return self.__manifest['id']
 
     @property
-    def kind(self):                 #! Either ``anatomical`` or ``functional``
-        return self.__manifest.get('kind', 'anatomical')
+    def map_kinds(self) -> list[str]:
+        return self.__map_kinds
+
+    @property
+    def map_kind(self) -> MAP_KIND:
+        return self.__map_kind
 
     @property
     def raw_manifest(self):
