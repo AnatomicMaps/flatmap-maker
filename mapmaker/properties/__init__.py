@@ -139,6 +139,10 @@ class PropertiesStore(object):
     def proxies(self):
         return self.__proxies
 
+    @property
+    def node_hierarchy(self):
+        return self.__pathways.node_hierarchy
+
     """
     Get the feature group definitions for a layer
     """
