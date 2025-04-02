@@ -689,7 +689,13 @@ class Pathways:
                 self.__node_hierarchy['links'].add((source, target))
                 self.__node_hierarchy['nodes'].add(source := target)
 
-        return [(connectivity_graph.nodes[edge[0]]['node'], connectivity_graph.nodes[edge[1]]['node']) for edge in connectivity_graph.edges]
+        # extract and filter rendered edges, axons, dendrites, somas
+        rendered_connectivity = [(connectivity_graph.nodes[edge[0]]['node'], connectivity_graph.nodes[edge[1]]['node']) for edge in connectivity_graph.edges]
+        axons = [connectivity_graph.nodes[axon]['node'] for axon in connectivity_graph.graph.get('axons') if axon in connectivity_graph.nodes]
+        dendrites = [connectivity_graph.nodes[dendrite]['node'] for dendrite in connectivity_graph.graph.get('dendrites') if dendrite in connectivity_graph.nodes]
+        somas = [connectivity_graph.nodes[soma]['node'] for soma in connectivity_graph.graph.get('somas') if soma in connectivity_graph.nodes]
+
+        return rendered_connectivity, axons, dendrites, somas
 
 
     def __route_network_connectivity(self, network: Network):
