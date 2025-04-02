@@ -120,6 +120,9 @@ class ResolvedPath:
         self.__models = None
         self.__centrelines = set()
         self.__connectivity = set()
+        self.__axons = set()
+        self.__dendrites = set()
+        self.__somas = set()
 
     @property
     def as_dict(self) -> dict[str, Any] :
@@ -131,7 +134,10 @@ class ResolvedPath:
             'nerves': list(self.__nerves),
             'nodes': list(self.__nodes),
             'models': self.__models,
-            'connectivity': list(self.__connectivity)
+            'connectivity': list(self.__connectivity),
+            'axons': list(self.__axons),
+            'dendrites': list(self.__dendrites),
+            'somas': list(self.__somas)
         }
         if len(self.__centrelines):
             result['centrelines'] = list(self.__centrelines)
@@ -194,6 +200,39 @@ class ResolvedPath:
             Rendered connectivity edges
         """
         self.__connectivity.update(connectivity)
+
+    def extend_axons(self, axons: list[tuple]):
+        """
+        Associate rendered axons with the path.
+
+        Arguments:
+        ----------
+        axons
+            Rendered axons
+        """
+        self.__axons.update(axons)
+
+    def extend_dendrites(self, dendrites: list[tuple]):
+        """
+        Associate rendered dendrites with the path.
+
+        Arguments:
+        ----------
+        dendrites
+            Rendered dendrites
+        """
+        self.__dendrites.update(dendrites)
+
+    def extend_somas(self, somas: list[tuple]):
+        """
+        Associate rendered somas with the path.
+
+        Arguments:
+        ----------
+        connectivity
+            Rendered somas
+        """
+        self.__somas.update(somas)
 
 #===============================================================================
 
@@ -272,6 +311,9 @@ class ResolvedPathways:
                          model: str, path_type: PATH_TYPE,
                          node_feature_ids: set[str], nerve_features: list[Feature],
                          rendered_connectivity: list[tuple],
+                         axons: list[tuple],
+                         dendrites: list[tuple],
+                         somas: list[tuple],
                          centrelines: Optional[list[str]]=None):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -281,6 +323,9 @@ class ResolvedPathways:
         resolved_path.extend_lines(line_geojson_ids)
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
         resolved_path.extend_connectivity(rendered_connectivity)
+        resolved_path.extend_axons(axons)
+        resolved_path.extend_dendrites(dendrites)
+        resolved_path.extend_somas(somas)
         if centrelines is not None:
             resolved_path.add_centrelines(centrelines)
 
@@ -780,7 +825,7 @@ class Pathways:
                 nerve_feature_ids = routed_path.nerve_feature_ids
                 nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
                 active_nerve_features.update(nerve_features)
-                rendered_connectivity = self.__extract_rendered_connectivity(routed_path.node_feature_ids, route_graphs[path_id].graph['connectivity'])
+                rendered_connectivity, axons, dendrites, somas = self.__extract_rendered_connectivity(routed_path.node_feature_ids, route_graphs[path_id].graph['connectivity'])
                 self.__resolved_pathways.add_connectivity(path_id,
                                                           path_geojson_ids,
                                                           path.models,
@@ -788,6 +833,9 @@ class Pathways:
                                                           routed_path.node_feature_ids,
                                                           nerve_features,
                                                           rendered_connectivity,
+                                                          axons,
+                                                          dendrites,
+                                                          somas,
                                                           centrelines=routed_path.centrelines)
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
