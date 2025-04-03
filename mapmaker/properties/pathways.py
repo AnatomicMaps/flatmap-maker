@@ -713,6 +713,7 @@ class Pathways:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
     def __extract_rendered_connectivity(self, node_feature_ids, connectivity_graph):
+    #===============================================================================
         # restructure connectivity graph so it aligns to self.__resolved_pathways
         removed_nodes = [node for node, node_dict in connectivity_graph.nodes(data=True)
                         if node_dict.get('type') == 'feature' and
@@ -735,10 +736,14 @@ class Pathways:
                 self.__node_hierarchy['nodes'].add(source := target)
 
         # extract and filter rendered edges, axons, dendrites, somas
-        rendered_connectivity = [(connectivity_graph.nodes[edge[0]]['node'], connectivity_graph.nodes[edge[1]]['node']) for edge in connectivity_graph.edges]
-        axons = [connectivity_graph.nodes[axon]['node'] for axon in connectivity_graph.graph.get('axons') if axon in connectivity_graph.nodes]
-        dendrites = [connectivity_graph.nodes[dendrite]['node'] for dendrite in connectivity_graph.graph.get('dendrites') if dendrite in connectivity_graph.nodes]
-        somas = [connectivity_graph.nodes[soma]['node'] for soma in connectivity_graph.graph.get('somas') if soma in connectivity_graph.nodes]
+        rendered_connectivity = [(connectivity_graph.nodes[edge[0]]['node'], connectivity_graph.nodes[edge[1]]['node'])
+                                    for edge in connectivity_graph.edges]
+        axons = [connectivity_graph.nodes[axon]['node']
+                    for axon in connectivity_graph.graph.get('axons') if axon in connectivity_graph.nodes]
+        dendrites = [connectivity_graph.nodes[dendrite]['node']
+                    for dendrite in connectivity_graph.graph.get('dendrites') if dendrite in connectivity_graph.nodes]
+        somas = [connectivity_graph.nodes[soma]['node']
+                    for soma in connectivity_graph.graph.get('somas') if soma in connectivity_graph.nodes]
 
         return rendered_connectivity, axons, dendrites, somas
 
@@ -825,7 +830,8 @@ class Pathways:
                 nerve_feature_ids = routed_path.nerve_feature_ids
                 nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
                 active_nerve_features.update(nerve_features)
-                rendered_connectivity, axons, dendrites, somas = self.__extract_rendered_connectivity(routed_path.node_feature_ids, route_graphs[path_id].graph['connectivity'])
+                rendered_connectivity, axons, dendrites, somas = self.__extract_rendered_connectivity(routed_path.node_feature_ids,
+                                                                                                      route_graphs[path_id].graph['connectivity'])
                 self.__resolved_pathways.add_connectivity(path_id,
                                                           path_geojson_ids,
                                                           path.models,
