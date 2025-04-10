@@ -174,6 +174,10 @@ def connectivity_graph_from_knowledge(knowledge: dict) -> Optional[nx.Graph]:
             G.graph['alert'] = alert
         if (sex:=knowledge.get('biologicalSex')) is not None:
             G.graph['biological-sex'] = sex
+        G.graph['node-phenotypes'] = {
+            phenotype: [kb.AnatomicalNode(node) for node in nodes]
+                for phenotype, nodes in knowledge.get('node-phenotypes', {}).items()
+        }
         G.graph['axons'] = [kb.AnatomicalNode(axon) for axon in knowledge.get('axons', [])]
         G.graph['dendrites'] = [kb.AnatomicalNode(dendrite) for dendrite in knowledge.get('dendrites', [])]
         G.graph['somas'] = [kb.AnatomicalNode(soma) for soma in knowledge.get('somas', [])]
