@@ -159,14 +159,15 @@ class FeatureAnatomicalNodeMap:
             return (anatomical_node, features)
 
         # Remove any nerve features from the anatomical node's layers
+        # And filter out any layer that has no features
         anatomical_layers = []
         for layer in layers:
             nerve_layer = False
-            for feature in features_from_anatomical_id(layer):
+            for feature in (features := features_from_anatomical_id(layer)):
                 if feature.get_property('type') == 'nerve':
                     nerve_layer = True
                     break
-            if not nerve_layer:
+            if not nerve_layer and len(features) > 0:
                 anatomical_layers.append(layer)
 
         # Look for a substitute feature if we can't find the base term
