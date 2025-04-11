@@ -120,9 +120,7 @@ class ResolvedPath:
         self.__models = None
         self.__centrelines = set()
         self.__connectivity = set()
-        self.__axons = set()
-        self.__dendrites = set()
-        self.__somas = set()
+        self.__node_phenotypes = dict()
 
     @property
     def as_dict(self) -> dict[str, Any] :
@@ -135,9 +133,7 @@ class ResolvedPath:
             'nodes': list(self.__nodes),
             'models': self.__models,
             'connectivity': list(self.__connectivity),
-            'axons': list(self.__axons),
-            'dendrites': list(self.__dendrites),
-            'somas': list(self.__somas)
+            'node-phenotypes': self.__node_phenotypes
         }
         if len(self.__centrelines):
             result['centrelines'] = list(self.__centrelines)
@@ -201,38 +197,16 @@ class ResolvedPath:
         """
         self.__connectivity.update(connectivity)
 
-    def extend_axons(self, axons: list[tuple]):
+    def extend_node_phenotypes(self, node_phenotypes: dict):
         """
-        Associate rendered axons with the path.
+        Associate rendered node_phenotypes with the path.
 
         Arguments:
         ----------
-        axons
-            Rendered axons
+        node_phenotypes
+            Rendered node_phenotypes
         """
-        self.__axons.update(axons)
-
-    def extend_dendrites(self, dendrites: list[tuple]):
-        """
-        Associate rendered dendrites with the path.
-
-        Arguments:
-        ----------
-        dendrites
-            Rendered dendrites
-        """
-        self.__dendrites.update(dendrites)
-
-    def extend_somas(self, somas: list[tuple]):
-        """
-        Associate rendered somas with the path.
-
-        Arguments:
-        ----------
-        connectivity
-            Rendered somas
-        """
-        self.__somas.update(somas)
+        self.__node_phenotypes.update(node_phenotypes)
 
 #===============================================================================
 
@@ -311,9 +285,7 @@ class ResolvedPathways:
                          model: str, path_type: PATH_TYPE,
                          node_feature_ids: set[str], nerve_features: list[Feature],
                          rendered_connectivity: list[tuple],
-                         axons: list[tuple],
-                         dendrites: list[tuple],
-                         somas: list[tuple],
+                         node_phenotypes: dict,
                          centrelines: Optional[list[str]]=None):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -323,9 +295,7 @@ class ResolvedPathways:
         resolved_path.extend_lines(line_geojson_ids)
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
         resolved_path.extend_connectivity(rendered_connectivity)
-        resolved_path.extend_axons(axons)
-        resolved_path.extend_dendrites(dendrites)
-        resolved_path.extend_somas(somas)
+        resolved_path.extend_node_phenotypes(node_phenotypes)
         if centrelines is not None:
             resolved_path.add_centrelines(centrelines)
 
@@ -735,17 +705,15 @@ class Pathways:
                 self.__node_hierarchy['links'].add((source, target))
                 self.__node_hierarchy['nodes'].add(source := target)
 
-        # extract and filter rendered edges, axons, dendrites, somas
+        # extract and filter rendered edges and node_phenotypes
         rendered_connectivity = [(connectivity_graph.nodes[edge[0]]['node'], connectivity_graph.nodes[edge[1]]['node'])
                                     for edge in connectivity_graph.edges]
-        axons = [connectivity_graph.nodes[axon]['node']
-                    for axon in connectivity_graph.graph.get('axons') if axon in connectivity_graph.nodes]
-        dendrites = [connectivity_graph.nodes[dendrite]['node']
-                    for dendrite in connectivity_graph.graph.get('dendrites') if dendrite in connectivity_graph.nodes]
-        somas = [connectivity_graph.nodes[soma]['node']
-                    for soma in connectivity_graph.graph.get('somas') if soma in connectivity_graph.nodes]
+        node_phenotypes = {
+            phenotype: [connectivity_graph.nodes[node]['node'] for node in nodes if node in connectivity_graph.nodes]
+            for phenotype, nodes in connectivity_graph.graph.get('node-phenotypes').items()
+        }
 
-        return rendered_connectivity, axons, dendrites, somas
+        return rendered_connectivity, node_phenotypes
 
 
     def __route_network_connectivity(self, network: Network):
@@ -830,7 +798,7 @@ class Pathways:
                 nerve_feature_ids = routed_path.nerve_feature_ids
                 nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
                 active_nerve_features.update(nerve_features)
-                rendered_connectivity, axons, dendrites, somas = self.__extract_rendered_connectivity(routed_path.node_feature_ids,
+                rendered_connectivity, node_phenotypes = self.__extract_rendered_connectivity(routed_path.node_feature_ids,
                                                                                                       route_graphs[path_id].graph['connectivity'])
                 self.__resolved_pathways.add_connectivity(path_id,
                                                           path_geojson_ids,
@@ -839,9 +807,7 @@ class Pathways:
                                                           routed_path.node_feature_ids,
                                                           nerve_features,
                                                           rendered_connectivity,
-                                                          axons,
-                                                          dendrites,
-                                                          somas,
+                                                          node_phenotypes,
                                                           centrelines=routed_path.centrelines)
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
