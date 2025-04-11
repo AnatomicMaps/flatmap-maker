@@ -123,6 +123,7 @@ class ResolvedPath:
         self.__axons = set()
         self.__dendrites = set()
         self.__somas = set()
+        self.__node_phenotypes = dict()
 
     @property
     def as_dict(self) -> dict[str, Any] :
@@ -137,7 +138,8 @@ class ResolvedPath:
             'connectivity': list(self.__connectivity),
             'axons': list(self.__axons),
             'dendrites': list(self.__dendrites),
-            'somas': list(self.__somas)
+            'somas': list(self.__somas),
+            'node-phenotypes': self.__node_phenotypes
         }
         if len(self.__centrelines):
             result['centrelines'] = list(self.__centrelines)
@@ -234,6 +236,17 @@ class ResolvedPath:
         """
         self.__somas.update(somas)
 
+    def extend_node_phenotypes(self, node_phenotypes: dict):
+        """
+        Associate rendered node_phenotypes with the path.
+
+        Arguments:
+        ----------
+        node_phenotypes
+            Rendered node_phenotypes
+        """
+        self.__node_phenotypes.update(node_phenotypes)
+
 #===============================================================================
 
 class Route:
@@ -314,6 +327,7 @@ class ResolvedPathways:
                          axons: list[tuple],
                          dendrites: list[tuple],
                          somas: list[tuple],
+                         node_phenotypes: dict,
                          centrelines: Optional[list[str]]=None):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -326,6 +340,7 @@ class ResolvedPathways:
         resolved_path.extend_axons(axons)
         resolved_path.extend_dendrites(dendrites)
         resolved_path.extend_somas(somas)
+        resolved_path.extend_node_phenotypes(node_phenotypes)
         if centrelines is not None:
             resolved_path.add_centrelines(centrelines)
 
@@ -744,8 +759,12 @@ class Pathways:
                     for dendrite in connectivity_graph.graph.get('dendrites') if dendrite in connectivity_graph.nodes]
         somas = [connectivity_graph.nodes[soma]['node']
                     for soma in connectivity_graph.graph.get('somas') if soma in connectivity_graph.nodes]
+        node_phenotypes = {
+            phenotype: [connectivity_graph.nodes[node]['node'] for node in nodes if node in connectivity_graph.nodes]
+            for phenotype, nodes in connectivity_graph.graph.get('node-phenotypes').items()
+        }
 
-        return rendered_connectivity, axons, dendrites, somas
+        return rendered_connectivity, axons, dendrites, somas, node_phenotypes
 
 
     def __route_network_connectivity(self, network: Network):
@@ -830,7 +849,7 @@ class Pathways:
                 nerve_feature_ids = routed_path.nerve_feature_ids
                 nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
                 active_nerve_features.update(nerve_features)
-                rendered_connectivity, axons, dendrites, somas = self.__extract_rendered_connectivity(routed_path.node_feature_ids,
+                rendered_connectivity, axons, dendrites, somas, node_phenotypes = self.__extract_rendered_connectivity(routed_path.node_feature_ids,
                                                                                                       route_graphs[path_id].graph['connectivity'])
                 self.__resolved_pathways.add_connectivity(path_id,
                                                           path_geojson_ids,
@@ -842,6 +861,7 @@ class Pathways:
                                                           axons,
                                                           dendrites,
                                                           somas,
+                                                          node_phenotypes,
                                                           centrelines=routed_path.centrelines)
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
