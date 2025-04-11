@@ -231,7 +231,7 @@ class ResolvedPath:
 
         Arguments:
         ----------
-        connectivity
+        somas
             Rendered somas
         """
         self.__somas.update(somas)
