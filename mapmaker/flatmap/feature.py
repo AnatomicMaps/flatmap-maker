@@ -163,11 +163,11 @@ class FeatureAnatomicalNodeMap:
         anatomical_layers = []
         for layer in layers:
             nerve_layer = False
-            for feature in (features := features_from_anatomical_id(layer)):
-                if feature.get_property('type') == 'nerve':
+            for layer_feature in (layer_features := features_from_anatomical_id(layer)):
+                if layer_feature.get_property('type') == 'nerve':
                     nerve_layer = True
                     break
-            if not nerve_layer and len(features) > 0:
+            if not nerve_layer and len(layer_features) > 0:
                 anatomical_layers.append(layer)
 
         # Look for a substitute feature if we can't find the base term
