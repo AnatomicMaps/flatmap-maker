@@ -549,7 +549,8 @@ class MapMaker(object):
             'max-zoom': self.__zoom[1],
             'bounds': self.__flatmap.extent,
             'version': FLATMAP_VERSION,
-            'image-layers': len(self.__raster_layers) > 0
+            'image-layers': len(self.__raster_layers) > 0,
+            'created': metadata['created']
         }
         if self.__uuid is not None:
             map_index['uuid'] = self.__uuid
