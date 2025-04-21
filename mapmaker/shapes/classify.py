@@ -293,9 +293,8 @@ class ShapeClassifier:
                     if parent.shape_type != SHAPE_TYPE.TEXT and parent.id != shape.id:
                         # A text shape is always a child even when not properly contained
                         if (shapely.contains_properly(parent.geometry, shape.geometry)
-                          # Text shapes need say at 90% containment...
                           or (shape.shape_type == SHAPE_TYPE.TEXT
-                          and parent.geometry.intersection(shape.geometry).area/shape.geometry.area > 0.9)):
+                          and parent.geometry.intersection(shape.geometry).area/shape.geometry.area > MIN_TEXT_INSIDE)):
                             parent_child.append((parent, shape))
         last_child_id = None
         for (parent, child) in sorted(parent_child, key=lambda s: (s[1].id, s[0].geometry.area)):
