@@ -411,6 +411,8 @@ class FlatMap(object):
             })
             if description is not None:
                 zoom_point.set_property('label', description)
+            if (models := feature.models) is not None:
+                zoom_point.set_property('models', models)
             feature.layer.add_feature(zoom_point)
             return zoom_point
 
