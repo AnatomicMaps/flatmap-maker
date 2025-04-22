@@ -31,8 +31,8 @@ FLATMAP_VERSION = 1.6
 MIN_ZOOM  =  2   #: Default minimum zoom level for generated flatmaps
 MAX_ZOOM  = 10   #: Default maximum zoom level for generated flatmaps
 
-
-ZOOM_OFFSET_FROM_BASE = 1
+# For showing rasterised image of detailed map on its base map before the details show
+ZOOM_OFFSET_FROM_BASE = 2
 
 #===============================================================================
 
