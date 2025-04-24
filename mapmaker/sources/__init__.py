@@ -135,6 +135,7 @@ class MapSource(object):
         self.__bounds: MapBounds = (0, 0, 0, 0)
         self.__raster_sources = None
         self.__background_raster_source = source_manifest.background_source
+        self.__zoom_point_id = None
         if self.__kind in SOURCE_DETAIL_KINDS:
             if source_manifest.feature is None:
                 raise ValueError('A `detail` source must specify an existing `feature`')
@@ -147,7 +148,7 @@ class MapSource(object):
                 details_for = source_manifest.details if source_manifest.details is not None else source_manifest.feature
                 if (detail_feature := flatmap.get_feature(details_for)) is None:
                     raise ValueError(f'Unknown source feature: {details_for}')
-                flatmap.add_details_layer(detail_feature, self.id, source_manifest.description)
+                self.__zoom_point_id = flatmap.add_details_layer(detail_feature, self.id, source_manifest.description)
             self.__min_zoom = source_manifest.zoom
             self.__base_feature = feature
         else:
@@ -232,6 +233,10 @@ class MapSource(object):
     @property
     def transform(self) -> Optional[Transform]:
         return None
+
+    @property
+    def zoom_point_id(self):
+        return self.__zoom_point_id
 
     def add_layer(self, layer: MapLayer):
     #====================================

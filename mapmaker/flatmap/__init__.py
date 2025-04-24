@@ -388,8 +388,8 @@ class FlatMap(object):
     """
     The ``feature`` has details that appear when zoomed.
     """
-    def add_details_layer(self, feature: Feature, details_layer: str, description: Optional[str]=None):
-    #==================================================================================================
+    def add_details_layer(self, feature: Feature, details_layer: str, description: Optional[str]=None) -> Optional[int]:
+    #===================================================================================================================
         if feature.layer is not None:
             feature.set_property('details-layer', details_layer)
             zoom_point = self.add_zoom_point(feature, description)
@@ -401,6 +401,7 @@ class FlatMap(object):
                     for connection_id in associated_feature.get_property('connections', []):
                         if (connection := self.get_feature(connection_id)) is not None:
                             connection.append_property('associated-details', details_layer)
+            return zoom_point.geojson_id if zoom_point else None
 
     def add_zoom_point(self, feature: Feature, description: Optional[str]=None) -> Optional[Feature]:
     #================================================================================================
@@ -425,6 +426,8 @@ class FlatMap(object):
                     'id': layer.id,
                     'description': layer.description,
                     'detail-layer': layer.detail_layer,
+                    'parent-layer': layer.parent_layer,
+                    'zoom-point': layer.zoom_point_id,
                     'extent': layer.extent,
                     'image-layers': [
                         {   'id': raster_layer.id,

@@ -148,6 +148,7 @@ class MapLayer(FeatureLayer):
         self.__min_zoom = min_zoom if min_zoom is not None else source.min_zoom
         self.__max_zoom = source.max_zoom
         self.__offset = (0.0, 0.0)
+        self.__zoom_point_id = None
 
     @property
     def boundary_feature(self) -> Optional[Feature]:
@@ -188,12 +189,22 @@ class MapLayer(FeatureLayer):
         return self.__outer_geometry
 
     @property
+    def parent_layer(self) -> Optional[str]:
+        if (base_feature := self.__source.base_feature) is not None:
+            return base_feature.get_property('layer')
+        return None
+
+    @property
     def raster_layers(self) -> list['RasterLayer']:
         return self.__raster_layers
 
     @property
     def source(self) -> 'MapSource':
         return self.__source
+
+    @property
+    def zoom_point_id(self) -> Optional[int]:
+        return self.source.zoom_point_id
 
     def add_feature(self, feature: Feature):    # type: ignore
     #=======================================
