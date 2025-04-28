@@ -1517,22 +1517,6 @@ class Network(object):
                 route_graph.remove_nodes_from(list(route_graph.nodes))
                 connectivity_graph.remove_nodes_from(list(connectivity_graph.nodes))
 
-        # Add 'sckan' and 'rendered' properties to features corresponding to connectivity_graph nodes.
-        for node, node_dict in connectivity_graph.nodes(data=True):
-            features = node_dict.get('features', set()) | {
-                feature
-                for nerve_id in node_dict.get('nerve-ids', [])
-                if (feature := self.__flatmap.get_feature(nerve_id))
-            } | {
-                feature
-                for edge in subgraph.edges
-                if edge in route_graph.edges
-                if (feature := self.__flatmap.get_feature(route_graph.edges[edge].get('centreline')))
-            } if (subgraph := node_dict.get('subgraph')) else set()
-            for feature in features:
-                feature.append_property('sckan', (path.id, node))
-                feature.append_property('rendered', (path.id, node_dict['node']))
-
         # Assign connectivity_node as a route_graph property, which will be used along with ResolvedPathways.
         route_graph.graph['connectivity'] = connectivity_graph
 
