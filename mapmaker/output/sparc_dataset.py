@@ -21,6 +21,7 @@
 from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
+import importlib
 from io import BytesIO
 import json
 import logging
@@ -42,7 +43,7 @@ from mapmaker.flatmap import FlatMap
 
 #===============================================================================
 
-MAPPING_URL = "mapmaker/output/data_mapping.json"
+MAPPING_DATA_JSON = str(importlib.resources.files('mapmaker/output/data_mapping.json'))
 
 #===============================================================================
 
@@ -52,7 +53,7 @@ from mapmaker.utils import pathlib_path
 
 class VersionMapping:
     def __init__(self):
-        with open(MAPPING_URL, 'r') as f:
+        with open(MAPPING_DATA_JSON, 'r') as f:
             self.__mappings = json.load(f)
 
     @property

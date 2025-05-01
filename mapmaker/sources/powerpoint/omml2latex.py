@@ -31,10 +31,9 @@ def openmath2latex(openmathml: str) -> str:
         # Load stylesheets
         omml_proc = proc.new_xslt30_processor()
         omml2mathml = omml_proc.compile_stylesheet(
-            stylesheet_file=str(importlib.resources.files('resources').joinpath('xsl/omml2mathml.xsl')))
+            stylesheet_file=str(importlib.resources.files('resources/xsl/omml2mathml.xsl')))
         mathml_proc = proc.new_xslt30_processor()
-        mathml_proc.set_cwd(
-            str(importlib.resources.files('resources').joinpath('xsl/mathml2latex/')))
+        mathml_proc.set_cwd(str(importlib.resources.files('resources/xsl/mathml2latex/')))
         mathml2latex = mathml_proc.compile_stylesheet(stylesheet_file='mmltex.xsl')
         # Transform OpenMath to Latex via MathML
         mathml = omml2mathml.transform_to_string(xdm_node=proc.parse_xml(xml_text=openmathml))
