@@ -21,7 +21,7 @@
 from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
-import importlib
+import importlib.resources
 from io import BytesIO
 import json
 import logging
@@ -43,7 +43,7 @@ from mapmaker.flatmap import FlatMap
 
 #===============================================================================
 
-MAPPING_DATA_JSON = str(importlib.resources.files('mapmaker/output/data_mapping.json'))
+MAPPING_DATA_JSON = str(importlib.resources.files('mapmaker.output').joinpath('data_mapping.json'))
 
 #===============================================================================
 
