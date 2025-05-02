@@ -39,3 +39,5 @@ jobs:
             --force \
             --no-path-layout \
             --background-tiles
+        env:
+          SCICRUNCH_API_KEY: ${{ secrets.SCICRUNCH_API_KEY }}
