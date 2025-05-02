@@ -45,6 +45,7 @@ dependencies = [
     "saxonche>=12.5.0",
     "structlog>=24.4.0",
     "rich>=13.9.4",
+    "tippecanoe>=2.72.0",
 ]
 
 [tool.poetry.group.dev.dependencies]
