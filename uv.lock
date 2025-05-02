@@ -2,9 +2,12 @@ version = 1
 revision = 2
 requires-python = "==3.12.*"
 resolution-markers = [
-    "sys_platform == 'darwin'",
-    "platform_machine == 'aarch64' and sys_platform == 'linux'",
-    "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')",
+    "platform_release == '5.4.0-1103-aws' and sys_platform == 'darwin'",
+    "platform_release != '5.4.0-1103-aws' and sys_platform == 'darwin'",
+    "platform_machine == 'aarch64' and platform_release == '5.4.0-1103-aws' and sys_platform == 'linux'",
+    "platform_machine == 'aarch64' and platform_release != '5.4.0-1103-aws' and sys_platform == 'linux'",
+    "(platform_machine != 'aarch64' and platform_release == '5.4.0-1103-aws' and sys_platform == 'linux') or (platform_release == '5.4.0-1103-aws' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(platform_machine != 'aarch64' and platform_release != '5.4.0-1103-aws' and sys_platform == 'linux') or (platform_release != '5.4.0-1103-aws' and sys_platform != 'darwin' and sys_platform != 'linux')",
 ]
 
 [[package]]
@@ -501,7 +504,7 @@ requires-dist = [
 
 [[package]]
 name = "mapmaker"
-version = "1.17.1"
+version = "1.17.2"
 source = { editable = "." }
 dependencies = [
     { name = "beziers" },
@@ -528,7 +531,8 @@ dependencies = [
     { name = "rich" },
     { name = "saxonche" },
     { name = "shapely" },
-    { name = "skia-python" },
+    { name = "skia-python", version = "124.0b7", source = { registry = "https://pypi.org/simple" }, marker = "platform_release == '5.4.0-1103-aws'" },
+    { name = "skia-python", version = "136.0b13", source = { registry = "https://pypi.org/simple" }, marker = "platform_release != '5.4.0-1103-aws'" },
     { name = "structlog" },
     { name = "svgelements" },
     { name = "svglib" },
@@ -568,7 +572,8 @@ requires-dist = [
     { name = "rich", specifier = ">=13.9.4" },
     { name = "saxonche", specifier = ">=12.5.0" },
     { name = "shapely", specifier = ">=2.0.0" },
-    { name = "skia-python", specifier = ">=136.0b13" },
+    { name = "skia-python", marker = "platform_release != '5.4.0-1103-aws'", specifier = ">=136.0b13" },
+    { name = "skia-python", marker = "platform_release == '5.4.0-1103-aws'", specifier = "==124.0b7" },
     { name = "structlog", specifier = ">=24.4.0" },
     { name = "svgelements", specifier = ">=1.9.1" },
     { name = "svglib", specifier = ">=1.3.0" },
@@ -1243,11 +1248,37 @@ wheels = [
 
 [[package]]
 name = "skia-python"
+version = "124.0b7"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "platform_release == '5.4.0-1103-aws' and sys_platform == 'darwin'",
+    "platform_machine == 'aarch64' and platform_release == '5.4.0-1103-aws' and sys_platform == 'linux'",
+    "(platform_machine != 'aarch64' and platform_release == '5.4.0-1103-aws' and sys_platform == 'linux') or (platform_release == '5.4.0-1103-aws' and sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "numpy", marker = "platform_release == '5.4.0-1103-aws'" },
+    { name = "pybind11", marker = "platform_release == '5.4.0-1103-aws'" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e3/ed/bcca51e70b0f6c0879515d653ecd45756c68863e2e43479243915c953fdf/skia_python-124.0b7-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:ebaba2d50a32a020802f0ef73db089fa7e5c2bd37d4ba8e3bcfb3d466c150cc6", size = 11709505, upload-time = "2024-05-01T01:48:02.63Z" },
+    { url = "https://files.pythonhosted.org/packages/94/d5/e43e478cc9f4d6f5334f75fbd3dc761e0e043e0f472aa0e2976c6afca0da/skia_python-124.0b7-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:dd4d8cd9945aab75d95851515b834fde2eab0230f5ca794730171d4e392856e3", size = 11271824, upload-time = "2024-05-01T01:48:06.372Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/35/5fd2529e74582febd5d2fbc1e39e7681e29a3cfb5d9863e717310ae8ad7b/skia_python-124.0b7-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cf4af60b27e3ab5e5d98e7b5dcaffdd04ab206d8987819b172bed3190167eed1", size = 12316928, upload-time = "2024-05-01T01:48:10.333Z" },
+    { url = "https://files.pythonhosted.org/packages/74/e8/57549e29f6a7bfe10324abad3a5113354a10044ff62c547491a74ea01187/skia_python-124.0b7-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:eb3697ee2fc6c4a33e033bb6b96ba12c08c6b11ea0c230f108af07078be31043", size = 12790629, upload-time = "2024-05-01T01:48:14.079Z" },
+    { url = "https://files.pythonhosted.org/packages/51/02/b4c91ecdc8c04e9509cf0d6402c14255f3229503f819a8a46a3e14cc704e/skia_python-124.0b7-cp312-cp312-win_amd64.whl", hash = "sha256:6341539d80ba342884ba367ec40f89f317574a5a4cb99ed868a7a66e66745207", size = 5720806, upload-time = "2024-05-01T01:48:17.322Z" },
+]
+
+[[package]]
+name = "skia-python"
 version = "136.0b13"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "platform_release != '5.4.0-1103-aws' and sys_platform == 'darwin'",
+    "platform_machine == 'aarch64' and platform_release != '5.4.0-1103-aws' and sys_platform == 'linux'",
+    "(platform_machine != 'aarch64' and platform_release != '5.4.0-1103-aws' and sys_platform == 'linux') or (platform_release != '5.4.0-1103-aws' and sys_platform != 'darwin' and sys_platform != 'linux')",
+]
 dependencies = [
-    { name = "numpy" },
-    { name = "pybind11" },
+    { name = "numpy", marker = "platform_release != '5.4.0-1103-aws'" },
+    { name = "pybind11", marker = "platform_release != '5.4.0-1103-aws'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/9c/45ee922bcf78ad9cf9d0a78fb988983e45bc9c87bcc8c75fbcd10c513513/skia_python-136.0b13-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:f0b83852ffc40cd69431afba09eaf389b6d8175cf11f23f9887d0d938789ef3e", size = 11738717, upload-time = "2025-04-07T00:06:08.208Z" },
