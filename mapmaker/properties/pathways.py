@@ -121,6 +121,7 @@ class ResolvedPath:
         self.__centrelines = set()
         self.__connectivity = set()
         self.__node_phenotypes = dict()
+        self.__forward_connections = set()
 
     @property
     def as_dict(self) -> dict[str, Any] :
@@ -133,7 +134,8 @@ class ResolvedPath:
             'nodes': list(self.__nodes),
             'models': self.__models,
             'connectivity': list(self.__connectivity),
-            'node-phenotypes': self.__node_phenotypes
+            'node-phenotypes': self.__node_phenotypes,
+            'forward-connections': list(self.__forward_connections)
         }
         if len(self.__centrelines):
             result['centrelines'] = list(self.__centrelines)
@@ -207,6 +209,17 @@ class ResolvedPath:
             Rendered node_phenotypes
         """
         self.__node_phenotypes.update(node_phenotypes)
+
+    def extend_forward_connections(self, forward_connections: list[str]):
+        """
+        Associate rendered forward connections with the path.
+
+        Arguments:
+        ----------
+        forward_connections
+            Rendered forward_connections
+        """
+        self.__forward_connections.update(forward_connections)
 
 #===============================================================================
 
@@ -286,6 +299,7 @@ class ResolvedPathways:
                          node_feature_ids: set[str], nerve_features: list[Feature],
                          rendered_connectivity: list[tuple],
                          node_phenotypes: dict,
+                         forward_connections: list[str],
                          centrelines: Optional[list[str]]=None):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -296,6 +310,7 @@ class ResolvedPathways:
         resolved_path.extend_nerves([f.geojson_id for f in nerve_features])
         resolved_path.extend_connectivity(rendered_connectivity)
         resolved_path.extend_node_phenotypes(node_phenotypes)
+        resolved_path.extend_forward_connections(forward_connections)
         if centrelines is not None:
             resolved_path.add_centrelines(centrelines)
 
@@ -800,6 +815,10 @@ class Pathways:
                 active_nerve_features.update(nerve_features)
                 rendered_connectivity, node_phenotypes = self.__extract_rendered_connectivity(routed_path.node_feature_ids,
                                                                                                       route_graphs[path_id].graph['connectivity'])
+                forward_connections = [
+                    conn_id for conn_id in route_graphs[path_id].graph['connectivity'].graph.get('forward-connections', [])
+                    if conn_id in route_graphs and route_graphs[conn_id].graph['connectivity'].nodes
+                ]
                 self.__resolved_pathways.add_connectivity(path_id,
                                                           path_geojson_ids,
                                                           path.models,
@@ -808,6 +827,7 @@ class Pathways:
                                                           nerve_features,
                                                           rendered_connectivity,
                                                           node_phenotypes,
+                                                          forward_connections,
                                                           centrelines=routed_path.centrelines)
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
