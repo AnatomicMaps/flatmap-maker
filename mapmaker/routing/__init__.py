@@ -847,6 +847,10 @@ class Network(object):
                         ref_nodes = ref_nodes[1:]
                     for ref_node in ref_nodes:
                         nx.contracted_nodes(connectivity_graph, g_node, ref_node, self_loops=False, copy=False)
+                        for neighbor in connectivity_graph.neighbors(g_node):
+                            for key in ('predecessor', 'successor'):
+                                if connectivity_graph[g_node][neighbor].get(key) == ref_node:
+                                    connectivity_graph[g_node][neighbor][key] = g_node
 
         if path.trace:
             for node, node_dict in connectivity_graph.nodes(data=True):

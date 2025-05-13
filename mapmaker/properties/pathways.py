@@ -718,8 +718,11 @@ class Pathways:
                 self.__node_hierarchy['nodes'].add(source := target)
 
         # extract and filter rendered edges and node_phenotypes
-        rendered_connectivity = [(connectivity_graph.nodes[edge[0]]['node'], connectivity_graph.nodes[edge[1]]['node'])
-                                    for edge in connectivity_graph.edges]
+        rendered_connectivity = [
+            (connectivity_graph.nodes[ed['predecessor']]['node'], connectivity_graph.nodes[ed['successor']]['node'])
+            for _, _, ed in connectivity_graph.edges(data=True)
+        ]
+
         node_phenotypes = {
             phenotype: [connectivity_graph.nodes[node]['node'] for node in nodes if node in connectivity_graph.nodes]
             for phenotype, nodes in connectivity_graph.graph.get('node-phenotypes').items()
