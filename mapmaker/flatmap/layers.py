@@ -104,6 +104,10 @@ class FeatureLayer(object):
         return (0.0, 0.0)
 
     @property
+    def parent_layer(self) -> Optional[str]:
+         return None
+
+    @property
     def raster_layers(self) -> list['RasterLayer']:
         return []
 

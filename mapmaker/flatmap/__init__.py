@@ -426,9 +426,6 @@ class FlatMap(object):
                     'id': layer.id,
                     'description': layer.description,
                     'detail-layer': layer.detail_layer,
-                    'parent-layer': layer.parent_layer,
-                    'zoom-point': layer.zoom_point_id,
-                    'extent': layer.extent,
                     'image-layers': [
                         {   'id': raster_layer.id,
                             'options': {
@@ -444,6 +441,10 @@ class FlatMap(object):
                     map_layer['min-zoom'] = layer.min_zoom
                 if layer.max_zoom is not None:
                     map_layer['max-zoom'] = layer.max_zoom
+                if layer.parent_layer is not None:
+                    map_layer['extent'] = layer.extent
+                    map_layer['parent-layer'] = layer.parent_layer
+                    map_layer['zoom-point'] = layer.zoom_point_id
                 metadata.append(map_layer)
         return metadata
 
