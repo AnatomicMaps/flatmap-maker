@@ -682,12 +682,24 @@ class Pathways:
             for nerve_id in nerves:
                 self.__paths_by_nerve_id[nerve_id].append(path_id)
 
-    def __extract_rendered_connectivity(self, node_feature_ids, connectivity_graph):
+    def __extract_rendered_connectivity(self, connectivity_graph:nx.Graph):
     #===============================================================================
         # restructure connectivity graph so it aligns to self.__resolved_pathways
-        removed_nodes = [node for node, node_dict in connectivity_graph.nodes(data=True)
-                        if node_dict.get('type') == 'feature' and
-                        not {f.id for f in node_dict.get('features', [])} & node_feature_ids]
+        available_features = {
+            x for layer in self.__flatmap.layers if layer.exported
+            for feature in layer.features
+            if 'error' not in feature.properties
+            and not feature.get_property('exclude', False)
+            and (model := feature.get_property('models', False))
+            for x in (feature.id, model)
+        }
+        removed_nodes = [
+            node for node, node_dict in connectivity_graph.nodes(data=True)
+            if (
+                (node_dict.get('type') == 'feature' and not {f.id for f in node_dict.get('features', [])} & available_features) or
+                (node_dict.get('type') != 'feature' and not set(node_dict['node'].normalised()) & available_features)
+            )
+        ]
         for node in removed_nodes:
             neighbors = list(connectivity_graph.neighbors(node))
             predecessors = [n for n in neighbors if n == connectivity_graph.edges[(node, n)]['predecessor']]
@@ -706,8 +718,11 @@ class Pathways:
                 self.__node_hierarchy['nodes'].add(source := target)
 
         # extract and filter rendered edges and node_phenotypes
-        rendered_connectivity = [(connectivity_graph.nodes[edge[0]]['node'], connectivity_graph.nodes[edge[1]]['node'])
-                                    for edge in connectivity_graph.edges]
+        rendered_connectivity = [
+            (connectivity_graph.nodes[ed['predecessor']]['node'], connectivity_graph.nodes[ed['successor']]['node'])
+            for _, _, ed in connectivity_graph.edges(data=True)
+        ]
+
         node_phenotypes = {
             phenotype: [connectivity_graph.nodes[node]['node'] for node in nodes if node in connectivity_graph.nodes]
             for phenotype, nodes in connectivity_graph.graph.get('node-phenotypes').items()
@@ -798,8 +813,7 @@ class Pathways:
                 nerve_feature_ids = routed_path.nerve_feature_ids
                 nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
                 active_nerve_features.update(nerve_features)
-                rendered_connectivity, node_phenotypes = self.__extract_rendered_connectivity(routed_path.node_feature_ids,
-                                                                                                      route_graphs[path_id].graph['connectivity'])
+                rendered_connectivity, node_phenotypes = self.__extract_rendered_connectivity(route_graphs[path_id].graph['connectivity'])
                 self.__resolved_pathways.add_connectivity(path_id,
                                                           path_geojson_ids,
                                                           path.models,
