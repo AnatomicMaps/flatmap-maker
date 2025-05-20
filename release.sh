@@ -6,7 +6,7 @@ if (( dirty )); then
     git stash -u
 fi
 
-poetry build -f wheel
+uv build --wheel
 
 git push origin
 git push origin v$1

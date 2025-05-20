@@ -65,9 +65,7 @@ EXPORTED_FEATURE_PROPERTIES = [
     'missing-nodes',
     'alert',
     'biological-sex',
-    'anatomical-nodes', # list[[str, list[str]]]
-    'rendered',
-    'sckan'
+    'anatomical-nodes' # list[[str, list[str]]]
 ]
 
 #===============================================================================
