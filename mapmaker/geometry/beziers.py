@@ -83,7 +83,7 @@ def bezier_to_line_coords(bz, num_points=100, offset=0) -> list[Coordinate]:
         return list(line.coords)
     coords: list[Coordinate] = []
     for l in line.geoms:
-        coords.extend(l.coords if offset >= 0 else reversed(l.coords))
+        coords.extend(l.coords)
     return coords
 
 #===============================================================================
