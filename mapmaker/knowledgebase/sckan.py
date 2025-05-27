@@ -179,6 +179,7 @@ def connectivity_graph_from_knowledge(knowledge: dict) -> Optional[nx.Graph]:
                 for phenotype, nodes in knowledge.get('node-phenotypes', {}).items()
         }
         G.graph['forward-connections'] = knowledge.get('forward-connections', [])
+        G.graph['nerves'] = knowledge.get('nerves', [])
         return G
 
 #===============================================================================
