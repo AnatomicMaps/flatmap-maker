@@ -27,6 +27,8 @@ import networkx as nx
 from pyparsing import delimitedList, Group, ParseException, ParseResults, Suppress
 import shapely.geometry
 
+from mapknowledge import NERVE_TYPE
+
 #===============================================================================
 
 from mapmaker.flatmap.feature import Feature
@@ -763,7 +765,7 @@ class Pathways:
             'node_nerves': [
                 rn for n in connectivity_graph.graph.get('nerves', [])
                 if n in connectivity_graph and
-                ((rn := connectivity_graph.nodes[n]['node']) == n or any(get_knowledge(t).get('type') == 'nerve' for t in [rn[0], *rn[1]]))
+                ((rn := connectivity_graph.nodes[n]['node']) == n or any(get_knowledge(t).get('type') == NERVE_TYPE for t in [rn[0], *rn[1]]))
             ]
         }
         
