@@ -170,7 +170,7 @@ class SVGSource(MapSource):
     def create_preview(self):
     #========================
         # Save a cleaned copy of the SVG in the map's output directory. Call after
-        # connectivity has been generated otherwise thno paths will be in the saved SVG
+        # connectivity has been generated otherwise no paths will be in the saved SVG
         cleaner = SVGCleaner(self.__source_file, self.flatmap.properties_store, all_layers=True)
         cleaner.clean()
         cleaner.add_connectivity_group(self.flatmap, self.__transform)

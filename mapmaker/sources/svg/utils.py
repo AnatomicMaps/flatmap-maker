@@ -33,7 +33,7 @@ from beziers.point import Point as BezierPoint
 from beziers.quadraticbezier import QuadraticBezier
 from beziers.segment import Segment as BezierSegment
 
-import shapely.geometry
+import shapely
 from shapely.geometry.base import BaseGeometry
 
 import lxml.etree as etree
@@ -177,8 +177,8 @@ def svg_markup(element):
 #===============================================================================
 
 def circle_from_bounds(bounds):
-    centre = shapely.geometry.Point((bounds[0] + bounds[2])/2.0,
-                                    (bounds[1] + bounds[3])/2.0)
+    centre = shapely.Point((bounds[0] + bounds[2])/2.0,
+                           (bounds[1] + bounds[3])/2.0)
     return centre.buffer(math.sqrt(abs((bounds[2] - bounds[0])*(bounds[3] - bounds[1])))/2.0)
 
 #===============================================================================
@@ -241,15 +241,15 @@ def __geometry_from_coordinates(coordinates: list[Coordinate], closed: bool, mus
         raise ValueError("Shape must have closed geometry")
 
     if closed and len(coordinates) >= 3:
-        geometry = shapely.geometry.Polygon(coordinates).buffer(0)
+        geometry = shapely.Polygon(coordinates).buffer(0)
     elif must_close == True and len(coordinates) >= 3:
         # Return a polygon if flagged as `closed`
         coordinates.append(coordinates[0])
-        geometry = shapely.geometry.Polygon(coordinates).buffer(0)
+        geometry = shapely.Polygon(coordinates).buffer(0)
     elif len(coordinates) >= 2:
         ## Warn if start and end point are ``close`` wrt to the length of the line as shape
         ## may be intended to be closed... (test with ``cardio_8-1``)
-        geometry = shapely.geometry.LineString(coordinates)
+        geometry = shapely.LineString(coordinates)
     else:
         geometry = None
 

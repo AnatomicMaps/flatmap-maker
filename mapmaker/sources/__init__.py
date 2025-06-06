@@ -113,7 +113,7 @@ def mask_image(image, mask_polygon):
     if image.shape[2] == 4:
         mask[:, :, 3] = 0
     mask_color = (0,)*image.shape[2]
-    cv2.fillPoly(mask, np.array([mask_polygon.exterior.coords], dtype=np.int32),
+    cv2.fillPoly(mask, np.array([mask_polygon.exterior.coords], dtype=np.int32),    # type: ignore
                  color=mask_color, lineType=cv2.LINE_AA)
     return cv2.bitwise_or(image, mask)
 
