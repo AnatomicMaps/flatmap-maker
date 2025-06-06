@@ -1,6 +1,6 @@
 [project]
 name = "mapmaker"
-version = "1.17.4"
+version = "1.18.0"
 description = "Generate MapLibre compatible tilesets for flatmaps."
 authors = [
     { name = "David Brooks", email = "d.brooks@auckland.ac.nz"}
@@ -32,7 +32,8 @@ dependencies = [
     "cssselect2>=0.6.0",
     "webcolors>=1.12",
     "xmltodict>=0.12.0",
-    "flatmapknowledge @ https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.1.0/flatmapknowledge-2.1.0-py3-none-any.whl",
+    "flatmapknowledge @ https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.3.0/flatmapknowledge-2.3.0-py3-none-any.whl",
+    "mapknowledge @ https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.1.0/mapknowledge-1.1.0-py3-none-any.whl",
     "Pyomo>=6.8",
     "svgwrite>=1.4.3",
     "XlsxWriter>=3.0.3",
