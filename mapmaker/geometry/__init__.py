@@ -141,6 +141,10 @@ class Transform(object):
                     [0, 0,            1]])
 
     @property
+    def is_identity(self) -> bool:
+        return np.allclose(self.__matrix, np.identity(3))
+
+    @property
     def matrix(self) -> np.ndarray:
         return self.__matrix
 
@@ -169,6 +173,12 @@ class Transform(object):
             angle -= 2*PI
         return angle
 
+    def scale(self, scale: float) -> 'Transform':
+    #================================
+        return Transform([[scale*self.__matrix[0, 0],       self.__matrix[0, 1], self.__matrix[0, 2]],
+                          [      self.__matrix[1, 0], scale*self.__matrix[1, 1], self.__matrix[1, 2]],
+                          [      self.__matrix[2, 0],       self.__matrix[2, 1], self.__matrix[2, 2]]])
+
     def scale_length(self, length):
     #==============================
         scaling = transforms3d.affines.decompose(self.__matrix)[2]
@@ -188,6 +198,12 @@ class Transform(object):
     def transform_point(self, point) -> tuple[float, float]:
     #=======================================================
         return tuple(self.__matrix@[point[0], point[1], 1.0])[:2]
+
+    def translate(self, translation: tuple[float, float]) -> 'Transform':
+    #====================================================================
+        return Transform([[self.__matrix[0, 0], self.__matrix[0, 1], translation[0] + self.__matrix[0, 2]],
+                          [self.__matrix[1, 0], self.__matrix[1, 1], translation[1] + self.__matrix[1, 2]],
+                          [self.__matrix[2, 0], self.__matrix[2, 1],                  self.__matrix[2, 2]]])
 
 #===============================================================================
 
