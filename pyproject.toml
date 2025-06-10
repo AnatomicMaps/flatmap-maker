@@ -49,38 +49,37 @@ dependencies = [
     "tippecanoe>=2.72.0",
 ]
 
-[tool.poetry.group.dev.dependencies]
-attribution = "^1.7.1"
-mypy = "^0.982"
-sphinx = "^8.1"
-sphinx-rtd-theme = "^3.0.1"
-sphinx-argparse = "^0.5.2"
-
-[tool.poetry.group.alignments]
-optional = true
-
-[tool.poetry.group.alignments.dependencies]
-pandas = "^2.2.2"
-sentence-transformers = "^2.2.2"
-torch = "^2.1.1"
-
-[tool.poetry.group.tools]
-optional = true
-
-[tool.poetry.group.tools.dependencies]
-pandas = "^2.2.2"
+[dependency-groups]
+dev = [
+    "attribution<=1.7.1",
+    "mypy<=0.982",
+    "sphinx<=8.1",
+    "sphinx-rtd-theme<=3.0.1",
+    "sphinx-argparse<=0.5.2",
+]
+alignments = [
+    "pandas<=2.2.2",
+    "sentence-transformers<=2.2.2",
+    "torch<=2.1.1",
+]
+tools = [
+    "pandas<=2.2.2",
+]
 
 [tool.attribution]
 name = "mapmaker"
 package = "mapmaker"
 version_file = true
 
-[tool.poetry.scripts]
+[project.scripts]
 mapmaker = 'mapmaker.__main__:main'
 
 [build-system]
-requires = ["poetry_core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.pyright]
 pythonVersion = "3.12"
