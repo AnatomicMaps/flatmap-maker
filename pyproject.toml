@@ -1,6 +1,6 @@
 [project]
 name = "mapmaker"
-version = "1.18.0"
+version = "1.19.2"
 description = "Generate MapLibre compatible tilesets for flatmaps."
 authors = [
     { name = "David Brooks", email = "d.brooks@auckland.ac.nz"}
@@ -32,8 +32,8 @@ dependencies = [
     "cssselect2>=0.6.0",
     "webcolors>=1.12",
     "xmltodict>=0.12.0",
-    "flatmapknowledge @ https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.3.0/flatmapknowledge-2.3.0-py3-none-any.whl",
-    "mapknowledge @ https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.1.0/mapknowledge-1.1.0-py3-none-any.whl",
+    "flatmapknowledge @ https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.4.2/flatmapknowledge-2.4.2-py3-none-any.whl",
+    "mapknowledge @ https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.2.2/mapknowledge-1.2.2-py3-none-any.whl",
     "Pyomo>=6.8",
     "svgwrite>=1.4.3",
     "XlsxWriter>=3.0.3",
@@ -57,14 +57,20 @@ dev = [
     "sphinx-rtd-theme<=3.0.1",
     "sphinx-argparse<=0.5.2",
 ]
-alignments = [
-    "pandas<=2.2.2",
-    "sentence-transformers<=2.2.2",
-    "torch<=2.1.1",
-]
-tools = [
-    "pandas<=2.2.2",
-]
+
+[tool.poetry.group.alignments]
+optional = true
+
+[tool.poetry.group.alignments.dependencies]
+pandas = "^2.2.2"
+sentence-transformers = "^2.2.2"
+torch = "^2.1.1"
+
+[tool.poetry.group.tools]
+optional = true
+
+[tool.poetry.group.tools.dependencies]
+pandas = "^2.2.2"
 
 [tool.attribution]
 name = "mapmaker"
