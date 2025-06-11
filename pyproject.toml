@@ -57,14 +57,20 @@ dev = [
     "sphinx-rtd-theme<=3.0.1",
     "sphinx-argparse<=0.5.2",
 ]
-alignments = [
-    "pandas<=2.2.2",
-    "sentence-transformers<=2.2.2",
-    "torch<=2.1.1",
-]
-tools = [
-    "pandas<=2.2.2",
-]
+
+[tool.poetry.group.alignments]
+optional = true
+
+[tool.poetry.group.alignments.dependencies]
+pandas = "^2.2.2"
+sentence-transformers = "^2.2.2"
+torch = "^2.1.1"
+
+[tool.poetry.group.tools]
+optional = true
+
+[tool.poetry.group.tools.dependencies]
+pandas = "^2.2.2"
 
 [tool.attribution]
 name = "mapmaker"
