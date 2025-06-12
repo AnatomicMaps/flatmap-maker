@@ -42,6 +42,7 @@ from mapmaker.exceptions import MakerException
 from mapmaker.flatmap import Feature, FlatMap, SourceManifest, SOURCE_DETAIL_KINDS
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
+from mapmaker.output.bondgraph import BondgraphModel
 from mapmaker.settings import MAP_KIND, settings
 from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.classify import ShapeClassifier
@@ -235,11 +236,11 @@ class SVGLayer(MapLayer):
             shape_classifier = ShapeClassifier(shapes.flatten(), self.source.map_area(), self.source.metres_per_pixel)
             shapes = TreeList(shape_classifier.shapes)
             if settings.get('exportBondgraphs', False):
-                celldl_file = pathlib_path(self.source.href).with_suffix('.celldl.svg')
-                log.info(f'Exporting layer `{self.id}` to `{str(celldl_file)}`...')
-                celldl_export = CellDLExporter(self.__svg, self.source.href, self.source.transform.inverse())
-                celldl_export.process(shapes)
-                celldl_export.save(celldl_file)
+                bondgraph_file = pathlib_path(self.source.href).with_suffix('.bondgraph.ttl')
+                log.info(f'Exporting layer `{self.id}` to `{str(bondgraph_file)}`...')
+                bondgraph = BondgraphModel(shapes)
+                with open(bondgraph_file, 'wb') as fp:
+                    fp.write(bondgraph.as_turtle())
         # Add a background shape behind a detailed functional map
         if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL
         and self.source.kind == 'functional'):
