@@ -21,6 +21,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Ubuntu packages
+        uses: ConorMacBride/install-package@v1
+        with:
+          apt: libfontconfig1 libegl1 libglx-mesa0 libgl1-mesa-dri
+
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
