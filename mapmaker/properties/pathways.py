@@ -297,6 +297,7 @@ class ResolvedPathways:
         return result
 
     def __resolve_nodes_for_path(self, path_id, node_feature_ids):
+    #=============================================================
         node_geojson_ids = []
         for feature_id in node_feature_ids:
             if (feature := self.__flatmap.get_feature(feature_id)) is not None:
@@ -310,6 +311,7 @@ class ResolvedPathways:
         return node_geojson_ids
 
     def add_connectivity(self, path_id: str, line_geojson_ids: list[int],
+    #====================================================================
                          model: str, path_type: PATH_TYPE,
                          node_feature_ids: set[str], nerve_features: list[Feature],
                          rendered_data: dict,
@@ -329,6 +331,7 @@ class ResolvedPathways:
             resolved_path.add_centrelines(centrelines)
 
     def add_pathway(self, path_id: str, model: Optional[str], path_type: PATH_TYPE,
+    #==============================================================================
                     route: Route, lines: list[str], nerves: list[str]):
         resolved_path = self.__paths[path_id]
         if model is not None:
