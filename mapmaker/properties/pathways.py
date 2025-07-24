@@ -573,9 +573,10 @@ class Pathways:
             'node-paths': defaultdict(list),
             'type-paths': defaultdict(list)
         }
+        connectivity_models = []
         for model in self.__connectivity_models:
             if model.source is not None:
-                connectivity['models'].append({
+                connectivity_models.append({
                     'id': model.source,
                     'paths': model.path_ids
                 })
@@ -585,12 +586,20 @@ class Pathways:
             connectivity['type-paths'] = defaultdict(list, self.__resolved_pathways.type_paths)
         for connection_set in self.__connection_sets:
             connection_set_dict = connection_set.as_dict()
-            connectivity['models'].extend(connection_set_dict['models'])
+            connectivity_models.extend(connection_set_dict['models'])
             connectivity['paths'].update(connection_set_dict['paths'])
             for node, paths in connection_set_dict['node-paths'].items():
                 connectivity['node-paths'][node].extend(paths)
             for path_type, paths in connection_set_dict['type-paths'].items():
                 connectivity['type-paths'][path_type].extend(paths)
+        for connectivity_model in connectivity_models:
+            paths = [path_id for path_id in connectivity_model['paths']
+                        if path_id in connectivity['paths']]
+            if paths:
+                connectivity['models'].append({
+                    'id': connectivity_model['id'],
+                    'paths': paths
+                })
         return connectivity
 
     @property
