@@ -772,7 +772,7 @@ class Pathways:
             },
             'forward_connections': [
                 conn_id for conn_id in connectivity_graph.graph.get('forward-connections', [])
-                if conn_id in route_graphs and route_graphs[conn_id].graph['connectivity'].nodes
+                if conn_id in route_graphs and route_graphs[conn_id].nodes
             ],
             'node_nerves': [
                 rn for n in connectivity_graph.graph.get('nerves', [])
@@ -780,7 +780,7 @@ class Pathways:
                 ((rn := connectivity_graph.nodes[n]['node']) == n or any(get_knowledge(t).get('type') == NERVE_TYPE for t in [rn[0], *rn[1]]))
             ]
         }
-        
+
         return rendered_data
 
 
@@ -822,7 +822,7 @@ class Pathways:
                         ('completeness', path.connectivity.graph.get('completeness')),
                     ] if value is not None
                 }
-                
+
                 for geometric_shape in geometric_shapes:
                     if geometric_shape.properties.get('type') not in ['arrow', 'junction']:
                         properties = DEFAULT_PATH_PROPERTIES.copy() | added_properties
