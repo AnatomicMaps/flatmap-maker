@@ -297,6 +297,7 @@ class ResolvedPathways:
         return result
 
     def __resolve_nodes_for_path(self, path_id, node_feature_ids):
+    #=============================================================
         node_geojson_ids = []
         for feature_id in node_feature_ids:
             if (feature := self.__flatmap.get_feature(feature_id)) is not None:
@@ -310,6 +311,7 @@ class ResolvedPathways:
         return node_geojson_ids
 
     def add_connectivity(self, path_id: str, line_geojson_ids: list[int],
+    #====================================================================
                          model: str, path_type: PATH_TYPE,
                          node_feature_ids: set[str], nerve_features: list[Feature],
                          rendered_data: dict,
@@ -329,6 +331,7 @@ class ResolvedPathways:
             resolved_path.add_centrelines(centrelines)
 
     def add_pathway(self, path_id: str, model: Optional[str], path_type: PATH_TYPE,
+    #==============================================================================
                     route: Route, lines: list[str], nerves: list[str]):
         resolved_path = self.__paths[path_id]
         if model is not None:
@@ -573,9 +576,10 @@ class Pathways:
             'node-paths': defaultdict(list),
             'type-paths': defaultdict(list)
         }
+        connectivity_models = []
         for model in self.__connectivity_models:
             if model.source is not None:
-                connectivity['models'].append({
+                connectivity_models.append({
                     'id': model.source,
                     'paths': model.path_ids
                 })
@@ -585,12 +589,20 @@ class Pathways:
             connectivity['type-paths'] = defaultdict(list, self.__resolved_pathways.type_paths)
         for connection_set in self.__connection_sets:
             connection_set_dict = connection_set.as_dict()
-            connectivity['models'].extend(connection_set_dict['models'])
+            connectivity_models.extend(connection_set_dict['models'])
             connectivity['paths'].update(connection_set_dict['paths'])
             for node, paths in connection_set_dict['node-paths'].items():
                 connectivity['node-paths'][node].extend(paths)
             for path_type, paths in connection_set_dict['type-paths'].items():
                 connectivity['type-paths'][path_type].extend(paths)
+        for connectivity_model in connectivity_models:
+            paths = [path_id for path_id in connectivity_model['paths']
+                        if path_id in connectivity['paths']]
+            if paths:
+                connectivity['models'].append({
+                    'id': connectivity_model['id'],
+                    'paths': paths
+                })
         return connectivity
 
     @property
@@ -760,7 +772,7 @@ class Pathways:
             },
             'forward_connections': [
                 conn_id for conn_id in connectivity_graph.graph.get('forward-connections', [])
-                if conn_id in route_graphs and route_graphs[conn_id].graph['connectivity'].nodes
+                if conn_id in route_graphs and route_graphs[conn_id].nodes
             ],
             'node_nerves': [
                 rn for n in connectivity_graph.graph.get('nerves', [])
@@ -768,7 +780,7 @@ class Pathways:
                 ((rn := connectivity_graph.nodes[n]['node']) == n or any(get_knowledge(t).get('type') == NERVE_TYPE for t in [rn[0], *rn[1]]))
             ]
         }
-        
+
         return rendered_data
 
 
@@ -810,7 +822,7 @@ class Pathways:
                         ('completeness', path.connectivity.graph.get('completeness')),
                     ] if value is not None
                 }
-                
+
                 for geometric_shape in geometric_shapes:
                     if geometric_shape.properties.get('type') not in ['arrow', 'junction']:
                         properties = DEFAULT_PATH_PROPERTIES.copy() | added_properties
