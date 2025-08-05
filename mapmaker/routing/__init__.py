@@ -1108,7 +1108,7 @@ class Network(object):
                                     tmp_edge_dicts[(n,s)] = edge_dict
                                 if len(candidates) > 0:
                                     new_direct_edges.update([min(candidates, key=candidates.get)])  # type: ignore
-                        elif ((p_dict:=connectivity_graph.nodes[prev_node])['type'] == 'feature' and 
+                        elif ((p_dict:=connectivity_graph.nodes[prev_node])['type'] == 'feature' and
                               (n_dict:=connectivity_graph.nodes[node])['type'] == 'feature'):
                             if ((pf:=list(p_dict.get('features'))[0].id) in route_graph.nodes and
                                 (nf:=list(n_dict.get('features'))[0].id) in route_graph.nodes):
@@ -1376,6 +1376,10 @@ class Network(object):
                     route_graph.add_node(node_0, type='terminal')
                     route_graph.add_node(node_1, type='terminal')
                     route_graph.add_edge(node_0, node_1, type='terminal', **debug_properties)
+                    for node in (node_0, node_1):
+                        if (f:=self.__flatmap.get_feature(node)) and f.get_property('type')=='nerve':
+                            path_nerve_ids.add(node)
+                            path_node_ids.add(node)
                 else:
                     upstream_node = node_0 if terminal_graph.nodes[node_0].get('upstream') else node_1
                     route_graph.nodes[upstream_node]['type'] = 'upstream'
