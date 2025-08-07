@@ -258,6 +258,8 @@ class FlatMap(object):
             if len(fts:=set(feature for feature in self.__features_with_id.values()
                             if feature.models in [features[0][0]]+list(features[0][1])
                             and feature.get_property('kind')=='proxy')) > 0:
+                for f in fts:
+                    f.add_anatomical_node(anatomical_node)
                 return (features[0], fts)
             return features
 

@@ -428,8 +428,10 @@ class RoutedPath(object):
                 }))
 
         def draw_line(node_0, node_1, tolerance=0.1, separation=2000):
-            start_coords = self.__graph.nodes[node_0]['geometry'].centroid.coords[0]
-            end_coords = self.__graph.nodes[node_1]['geometry'].centroid.coords[0]
+            start_coords = (g.centroid.coords[0] if (g:=self.__graph.nodes[node_0]['geometry']).geom_type=='LineString'
+                            else g.representative_point().coords[0])
+            end_coords = (g.centroid.coords[0] if (g:=self.__graph.nodes[node_1]['geometry']).geom_type=='LineString'
+                          else g.representative_point().coords[0])
             offset = self.__graph.nodes[node_0]['offsets'][node_1]
             path_offset = separation * offset
             start_point = coords_to_point(start_coords)
