@@ -23,7 +23,7 @@ import itertools
 #===============================================================================
 
 import networkx as nx
-from pyomo.environ import *
+import pyomo.environ as pyomo
 
 #===============================================================================
 
@@ -38,7 +38,7 @@ class TransitMap:
             self.__graph.edges[edge]['lines'] = set()
         for edge, lines in edge_lines.items():
             self.__graph.edges[edge]['lines'].update(lines)
-        self.__model = ConcreteModel()
+        self.__model = pyomo.ConcreteModel()
         node_ordering = { key: tuple(node for node in ordered_nodes if node in self.__graph)
                             for key, ordered_nodes in node_edge_order.items() }
 
@@ -55,7 +55,7 @@ class TransitMap:
 
         def n_n1_l_le_p_constraint(model, n, n1, l, p):
             if p == len(self.__graph.edges[n, n1]['lines']):
-                return Constraint.Skip
+                return pyomo.Constraint.Skip
             return model.n_n1_l_le_p[n, n1, l, p] <= model.n_n1_l_le_p[n, n1, l, p+1]
 
         def edge_position_set():
@@ -77,10 +77,10 @@ class TransitMap:
             return (sum(model.n_n1_l_le_p[n, n1, l, p]
                       + model.n_n1_l_le_p[n1, n, l, p] for p in range(1, len(lines)+1))) == (len(lines) + 1)
 
-        self.__model.n_n1_l_le_p = Var(n_n1_l_le_p_set(), domain=Binary)
-        self.__model.n_n1_l_p_constraint = Constraint(n_n1_l_le_p_set(), rule=n_n1_l_le_p_constraint)
-        self.__model.edge_position_unique_constraint = Constraint(edge_position_set(), rule=edge_position_unique_constraint)
-        self.__model.edge_line_mirror_constraint = Constraint(edge_line_set(), rule=edge_line_mirror_constraint)
+        self.__model.n_n1_l_le_p = pyomo.Var(n_n1_l_le_p_set(), domain=pyomo.Binary)
+        self.__model.n_n1_l_p_constraint = pyomo.Constraint(n_n1_l_le_p_set(), rule=n_n1_l_le_p_constraint)
+        self.__model.edge_position_unique_constraint = pyomo.Constraint(edge_position_set(), rule=edge_position_unique_constraint)
+        self.__model.edge_line_mirror_constraint = pyomo.Constraint(edge_line_set(), rule=edge_line_mirror_constraint)
 
         #======================================================================
 
@@ -107,10 +107,10 @@ class TransitMap:
         def n_n1_A_lt_B_constraint_3(model, n, n1, A, B):
             return model.n_n1_A_lt_B[n, n1, A, B] + model.n_n1_A_lt_B[n1, n, A, B] == 1
 
-        self.__model.n_n1_A_lt_B = Var(set(n_n1_A_lt_B_set()), domain=Binary)
-        self.__model.n_n1_A_lt_B_constraint_1 = Constraint(set(n_n1_A_lt_B_set()), rule=n_n1_A_lt_B_constraint_1)
-        self.__model.n_n1_A_lt_B_constraint_2 = Constraint(set(n_n1_A_lt_B_set()), rule=n_n1_A_lt_B_constraint_2)
-        self.__model.n_n1_A_lt_B_constraint_3 = Constraint(set(n_n1_A_lt_B_set()), rule=n_n1_A_lt_B_constraint_3)
+        self.__model.n_n1_A_lt_B = pyomo.Var(set(n_n1_A_lt_B_set()), domain=pyomo.Binary)
+        self.__model.n_n1_A_lt_B_constraint_1 = pyomo.Constraint(set(n_n1_A_lt_B_set()), rule=n_n1_A_lt_B_constraint_1)
+        self.__model.n_n1_A_lt_B_constraint_2 = pyomo.Constraint(set(n_n1_A_lt_B_set()), rule=n_n1_A_lt_B_constraint_2)
+        self.__model.n_n1_A_lt_B_constraint_3 = pyomo.Constraint(set(n_n1_A_lt_B_set()), rule=n_n1_A_lt_B_constraint_3)
 
         #======================================================================
 
@@ -136,9 +136,9 @@ class TransitMap:
                   - model.n_n1_A_lt_B[node, n1, A, B]
                   - model.n_n1_n2_A_B[node, n1, n2, A, B]) <= 0
 
-        self.__model.n_n1_n2_A_B = Var(n_n1_n2_A_B_set(), domain=Binary)
-        self.__model.n_n1_n2_A_B_constraint_1 = Constraint(n_n1_n2_A_B_set(), rule=n_n1_n2_A_B_constraint_1)
-        self.__model.n_n1_n2_A_B_constraint_2 = Constraint(n_n1_n2_A_B_set(), rule=n_n1_n2_A_B_constraint_2)
+        self.__model.n_n1_n2_A_B = pyomo.Var(n_n1_n2_A_B_set(), domain=pyomo.Binary)
+        self.__model.n_n1_n2_A_B_constraint_1 = pyomo.Constraint(n_n1_n2_A_B_set(), rule=n_n1_n2_A_B_constraint_1)
+        self.__model.n_n1_n2_A_B_constraint_2 = pyomo.Constraint(n_n1_n2_A_B_set(), rule=n_n1_n2_A_B_constraint_2)
 
         #======================================================================
 
@@ -174,8 +174,8 @@ class TransitMap:
             else:
                 return 1 - model.n_n1_A_lt_B[node, n1, B, A] - model.n_n1_n2_n3_A_B[node, n1, n2, n3, A, B] <= 0
 
-        self.__model.n_n1_n2_n3_A_B = Var(n_n1_n2_n3_A_B_set(), domain=Binary)
-        self.__model.n_n1_n2_n3_A_B_constraint = Constraint(n_n1_n2_n3_A_B_set(), rule=n_n1_n2_n3_A_B_constraint)
+        self.__model.n_n1_n2_n3_A_B = pyomo.Var(n_n1_n2_n3_A_B_set(), domain=pyomo.Binary)
+        self.__model.n_n1_n2_n3_A_B_constraint = pyomo.Constraint(n_n1_n2_n3_A_B_set(), rule=n_n1_n2_n3_A_B_constraint)
 
         #======================================================================
 
@@ -186,7 +186,7 @@ class TransitMap:
                   + sum(model.n_n1_n2_n3_A_B[node, n1, n2, n3, A, B]
                             for (node, n1, n2, n3, A, B) in model.n_n1_n2_n3_A_B))
 
-        self.__model.total_crossings = Objective(rule=total_crossings)
+        self.__model.total_crossings = pyomo.Objective(rule=total_crossings)
 
     #======================================================================
 
@@ -197,7 +197,7 @@ class TransitMap:
     #==========================
         # Solve the model using CBC
         options = {'sec': 600, 'threads': 10, 'ratio': 0.02}
-        SolverFactory('cbc').solve(self.__model, options = options, tee=tee)
+        pyomo.SolverFactory('cbc').solve(self.__model, options = options, tee=tee)
 
     def results(self):
     #=================
