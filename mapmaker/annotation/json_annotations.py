@@ -61,6 +61,8 @@ class Annotation:
 
 #===============================================================================
 
+type Records = list[dict[str, str]]
+
 class JsonAnnotations:
     def __init__(self, annotation_file: str):
         if not relative_path(annotation_file) and annotation_file.startswith('file:'):
@@ -185,7 +187,6 @@ class JsonAnnotations:
 
     def save(self):
     #==============
-        Records = list[dict[str, str]]
         def record_sort(records: Records) -> Records:
             return sorted(records, key=lambda r: ((v := list(r.values()))[0].lower(), v[1].lower()))
 
