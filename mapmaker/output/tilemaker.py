@@ -87,7 +87,8 @@ class Rect(object):
 
     @property
     def geometry(self):
-        return shapely.geometry.box(*self.__coords)
+        return shapely.geometry.box(self.__coords[0], self.__coords[1],
+                                    self.__coords[2], self.__coords[3])
 
     @property
     def height(self):
@@ -148,7 +149,7 @@ class TileSet(object):
     :param max_zoom:
     :type max_zoom: int
     """
-    def __init__(self, extent, max_zoom):
+    def __init__(self, extent: tuple[float, float, float, float], max_zoom: int):
         self.__extent = extent
 
         # Get the set of tiles that span the extent
@@ -361,7 +362,7 @@ class RasterImageTiler(RasterTiler):
         super().__init__(raster_layer, tile_set, image_rect)
         self.__source_image = image
 
-    def extract_tile_as_image(self, image_tile_rect):
+    def extract_tile_as_image(self, image_tile_rect):           # pyright: ignore[reportIncompatibleMethodOverride]
     #================================================
         X0 = max(0, round(image_tile_rect.x0))
         X1 = min(round(image_tile_rect.x1), self.__source_image.shape[1])
@@ -437,7 +438,7 @@ class RasterTileMaker(object):
         tile_processes = {}
         running = True
         ending = False
-        image_queue = mp.Queue()
+        image_queue = mp.Queue()                                            # pyright: ignore[reportAttributeAccessIssue]
         tiles_processed = 0
         tile_pos = 0
         while running:
@@ -477,7 +478,7 @@ class RasterTileMaker(object):
         mbtiles.close(compress=True)
 
     def __extract_tile__process(self, tiles: list[mercantile.Tile], tile_extractor, image_queue):
-        tile_process = mp.Process(target=self.__extract_tile,
+        tile_process = mp.Process(target=self.__extract_tile,               # pyright: ignore[reportAttributeAccessIssue]
             args=(tiles, tile_extractor, image_queue),
             name=f'{self.__id}/{tiles[0].z}/{tiles[0].x}/{tiles[0].y}')
         tile_process.start()
@@ -536,7 +537,7 @@ class RasterTileMaker(object):
                 tile_extractor = SVGImageTiler(self.__raster_layer, self.__tile_set)
         else:
             raise TypeError(f'Unsupported kind of background tile source: {kind}')
-        return mp.Process(target=self.__make_zoomed_tiles, args=(tile_extractor, ), name=self.__id)
+        return mp.Process(target=self.__make_zoomed_tiles, args=(tile_extractor, ), name=self.__id) # pyright: ignore[reportAttributeAccessIssue]
 
 #===============================================================================
 
