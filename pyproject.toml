@@ -1,6 +1,6 @@
 [project]
 name = "mapmaker"
-version = "1.19.3"
+version = "1.20.1"
 description = "Generate MapLibre compatible tilesets for flatmaps."
 authors = [
     { name = "David Brooks", email = "d.brooks@auckland.ac.nz"}
@@ -32,8 +32,8 @@ dependencies = [
     "cssselect2>=0.6.0",
     "webcolors>=1.12",
     "xmltodict>=0.12.0",
-    "flatmapknowledge @ https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.5.1/flatmapknowledge-2.5.1-py3-none-any.whl",
-    "mapknowledge @ https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.3.1/mapknowledge-1.3.1-py3-none-any.whl",
+    "flatmapknowledge @ https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.5.2/flatmapknowledge-2.5.2-py3-none-any.whl",
+    "mapknowledge @ https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.3.2/mapknowledge-1.3.2-py3-none-any.whl",
     "Pyomo>=6.8",
     "svgwrite>=1.4.3",
     "XlsxWriter>=3.0.3",
@@ -52,10 +52,10 @@ dependencies = [
 [dependency-groups]
 dev = [
     "attribution<=1.7.1",
-    "mypy<=0.982",
     "sphinx<=8.1",
     "sphinx-rtd-theme<=3.0.1",
     "sphinx-argparse<=0.5.2",
+    "pyright>=1.1.403",
 ]
 
 [tool.poetry.group.alignments]
@@ -88,72 +88,8 @@ build-backend = "hatchling.build"
 allow-direct-references = true
 
 [tool.pyright]
+include = ['mapmaker']
 pythonVersion = "3.12"
 venvPath = "."
 venv = ".venv"
 
-[[tool.mypy.overrides]]
-module = [
-    'beziers.cubicbezier',
-    'beziers.line',
-    'beziers.path',
-    'beziers.point',
-    'beziers.quadraticbezier',
-    'beziers.segment',
-    'cssselect2',
-    'cv2',
-    'fitz',
-    'flatmapknowledge',
-    'lxml',
-    'mbutil',
-    'mercantile',
-    'multiprocess',
-    'openpyxl',
-    'pptx.oxml',
-    'pptx',
-    'pptx.dml.fill',
-    'pptx.enum.shapes',
-    'pptx.enum.dml',
-    'pptx.enum.text',
-    'pptx.oxml.ns',
-    'pptx.dml.color',
-    'pptx.dml.line',
-    'pptx.oxml.dml.color',
-    'pptx.oxml.theme',
-    'pptx.oxml.shapes.autoshape',
-    'pptx.oxml.shapes.groupshape',
-    'pptx.oxml.shapes.shared',
-    'pptx.oxml.simpletypes',
-    'pptx.oxml.slide',
-    'pptx.oxml.xmlchemy',
-    'pptx.shapes',
-    'pptx.shapes.base',
-    'pptx.shapes.connector',
-    'pptx.shapes.group',
-    'pptx.shapes.shapetree',
-    'pptx.slide',
-    'pptx.util',
-    'pyomo.environ',
-    'pyparsing',
-    'pyproj',
-    'networkx',
-    'skia',
-    'shapely',
-    'shapely.affinity',
-    'shapely.errors',
-    'shapely.geometry',
-    'shapely.geometry.base',
-    'shapely.ops',
-    'shapely.prepared',
-    'shapely.strtree',
-    'shapely.wkt',
-    'svglib.svglib',
-    'svgwrite',
-    'tinycss2',
-    'tqdm',
-    'transforms3d',
-    'webcolors',
-    'xlsxwriter',
-    'xmltodict',
-]
-ignore_missing_imports = true

@@ -67,7 +67,7 @@ class Annotator:
             if len(names) > 1 and names[1]:
                 self.__add_key(term, names[:2])
             else:
-                self.__add_key(term, names[0])
+                self.__add_key(term, names[0])      # type: ignore
 
     def __add_key(self, term, key):
     #==============================

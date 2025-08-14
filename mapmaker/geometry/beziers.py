@@ -27,6 +27,10 @@ from beziers.path import BezierPath
 from beziers.point import Point as BezierPoint
 from beziers.segment import Segment as BezierSegment
 
+import numpy as np
+
+from shapely.coords import CoordinateSequence
+from shapely.geometry import LineString, MultiLineString
 from shapely.geometry.base import BaseGeometry
 import shapely
 
@@ -68,32 +72,35 @@ def bezier_sample(bz, num_points=100) -> list[Coordinate]:
 #=========================================================
     return [(pt.x, pt.y) for pt in bz.sample(num_points)]
 
-def bezier_to_linestring(bz, num_points=100, offset=0) -> shapely.LineString|shapely.MultiLineString:
-#====================================================================================================
-    line = shapely.LineString(bezier_sample(bz, num_points))
+def bezier_to_linestring(bz, num_points=100, offset=0) -> LineString|MultiLineString:
+#====================================================================================
+    line = LineString(bezier_sample(bz, num_points))
     if offset == 0:
         return line
     else:
         return line.parallel_offset(abs(offset), 'left' if offset >= 0 else 'right')
 
-def bezier_to_line_coords(bz, num_points=100, offset=0) -> list[Coordinate]:
-#===========================================================================
+#===============================================================================
+
+def bezier_to_line_coords(bz, num_points=100, offset=0) -> CoordinateSequence:
+#=============================================================================
     line = bezier_to_linestring(bz, num_points=num_points, offset=offset)
-    if isinstance(line, shapely.LineString):
-        return list(line.coords)
-    coords: list[Coordinate] = []
-    for l in line.geoms:
-        coords.extend(l.coords)
-    return coords
+    if isinstance(line, MultiLineString):
+        coords = []
+        for l in line.geoms:
+            coords.extend(l.coords)
+        return CoordinateSequence(np.array(coords))
+    return line.coords
 
 #===============================================================================
 
-def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle: Optional[float]=None) -> Optional[CubicBezier]:
+def bezier_connect(a: BezierPoint, b: BezierPoint,
+                    start_angle: float, end_angle: Optional[float]=None) -> CubicBezier:
     # Connect points ``a`` and ``b`` with a Bezier curve with a slope
     # at ``a`` of ``start_angle`` and a slope at ''b'' of ``pi + end_angle``.
     d = a.distanceFrom(b)
     if d == 0:
-        return
+        raise ValueError('Cannot draw a line between two coincident points')
     if end_angle is None:
         end_angle = start_angle
     return CubicBezier(a, a + BezierPoint.fromAngle(start_angle)*d/3,
@@ -101,7 +108,7 @@ def bezier_connect(a: BezierPoint, b: BezierPoint, start_angle: float, end_angle
 
 #===============================================================================
 
-def closest_time_distance(bz: BezierPath, pt: BezierPoint, steps: int=100) -> Coordinate:
+def closest_time_distance(bz: BezierPath|BezierSegment, pt: BezierPoint, steps: int=100) -> Coordinate:
     def subdivide_search(t0: float, t1: float, steps: int) -> tuple[float, float, float]:
         closest_d = -1
         closest_t = t0
@@ -112,7 +119,7 @@ def closest_time_distance(bz: BezierPath, pt: BezierPoint, steps: int=100) -> Co
                 t = 1.0
             elif t < 0.0:
                 t = 0.0
-            d = bz.pointAtTime(t).distanceFrom(pt)
+            d = bz.pointAtTime(t).distanceFrom(pt)      # pyright: ignore[reportAttributeAccessIssue]
             if closest_d < 0 or d < closest_d:
                 closest_t = t
                 closest_d = d
@@ -156,10 +163,10 @@ def split_bezier_path_at_point(bz_path: BezierPath, point: BezierPoint) -> tuple
     if (closest_seg_index is None
     or (closest_seg_index == (len(segments) - 1) and closest_time == 1.0)):
         return (bz_path,
-                BezierPath.fromSegments(segments[-1].splitAtTime(1.0)[1:]))
+                BezierPath.fromSegments(segments[-1].splitAtTime(1.0)[1:]))     # pyright: ignore[reportAttributeAccessIssue]
     else:
         segment = segments[closest_seg_index]
-        (s0, s1) = segment.splitAtTime(closest_time)
+        (s0, s1) = segment.splitAtTime(closest_time)                            # pyright: ignore[reportAttributeAccessIssue]
         return (BezierPath.fromSegments(list(segments[:closest_seg_index]) + [s0]),
                 BezierPath.fromSegments([s1] + list(segments[closest_seg_index+1:])))
 

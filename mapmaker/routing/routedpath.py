@@ -285,7 +285,7 @@ class IntermediateNode:
         if show_controls:
             geometry.extend(bezier_control_points(segs[0], 'intermediate 0'))
             geometry.extend(bezier_control_points(segs[1], 'intermediate 1'))
-        return (bezier_to_line_coords(BezierPath.fromSegments(segs), num_points=num_points, offset=offset), geometry)
+        return (bezier_to_line_coords(BezierPath.fromSegments(segs), num_points=num_points, offset=offset), geometry)   # pyright: ignore[reportArgumentType]
 
 #===============================================================================
 
@@ -448,11 +448,11 @@ class RoutedPath(object):
                         }))
             bz_line_coord = bezier_to_line_coords(bz, offset=path_offset)
             if self.__graph.degree(node_0) == 1:
-                draw_arrow(coords_to_point(bz_line_coord[-1]), coords_to_point(bz_line_coord[0]), path_id, path_source)
+                draw_arrow(coords_to_point(bz_line_coord[-1]), coords_to_point(bz_line_coord[0]), path_id, path_source) # pyright: ignore[reportArgumentType]
             if self.__graph.degree(node_1) == 1:
-                draw_arrow(coords_to_point(bz_line_coord[0]), coords_to_point(bz_line_coord[-1]), path_id, path_source)
-            connect_gap(node_0, [coords_to_point(bz_line_coord[0])])
-            connect_gap(node_1, [coords_to_point(bz_line_coord[-1])])
+                draw_arrow(coords_to_point(bz_line_coord[0]), coords_to_point(bz_line_coord[-1]), path_id, path_source) # pyright: ignore[reportArgumentType]
+            connect_gap(node_0, [coords_to_point(bz_line_coord[0])])        # pyright: ignore[reportArgumentType]
+            connect_gap(node_1, [coords_to_point(bz_line_coord[-1])])       # pyright: ignore[reportArgumentType]
 
         terminal_nodes = set()
         for node_0, node_1, edge_dict in self.__graph.edges(data=True):    ## This assumes node_1 is the terminal...
@@ -490,8 +490,8 @@ class RoutedPath(object):
                             'source': path_source,
                         }))
                     bz_line_coord = bezier_to_line_coords(bz)
-                    connect_gap(upstream_node, [coords_to_point(bz_line_coord[0])])
-                    connect_gap(terminal_node, [coords_to_point(bz_line_coord[-1])])
+                    connect_gap(upstream_node, [coords_to_point(bz_line_coord[0])])     # pyright: ignore[reportArgumentType]
+                    connect_gap(terminal_node, [coords_to_point(bz_line_coord[-1])])    # pyright: ignore[reportArgumentType]
                     if self.__trace:
                         path_geometry[path_id].extend(bezier_control_points(bz, label=f'{self.__path_id}-T'))
                     # Draw arrow iff degree(node_1) == 1

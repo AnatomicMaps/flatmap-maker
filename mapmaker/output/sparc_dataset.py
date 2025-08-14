@@ -139,7 +139,7 @@ class DatasetDescription:
         for row in worksheet.rows:
             if row[0].value == None:
                 break
-            if row[0].value.lower().strip() == key:
+            if str(row[0].value).lower().strip() == key:
                 for pos in range(len(values)):
                     row[pos+data_pos].value = str(values[pos])
 
@@ -213,11 +213,12 @@ class DirectoryManifest:
     def __get_bytes(self):
         workbook = openpyxl.Workbook()
         worksheet = workbook.active
-        for col, value in enumerate(self.COLUMNS + tuple(self.__metadata.keys()), start=1):
-            worksheet.cell(row=1, column=col, value=value)
-        for row, record in enumerate(self.__file_records, start=2):
-            for col, value in enumerate(record, start=1):
-                worksheet.cell(row=row, column=col, value=value)
+        if worksheet is not None:
+            for col, value in enumerate(self.COLUMNS + tuple(self.__metadata.keys()), start=1):
+                worksheet.cell(row=1, column=col, value=value)
+            for row, record in enumerate(self.__file_records, start=2):
+                for col, value in enumerate(record, start=1):
+                    worksheet.cell(row=row, column=col, value=value)
         buffer = BytesIO()
         workbook.save(buffer)
         buffer.seek(0)
