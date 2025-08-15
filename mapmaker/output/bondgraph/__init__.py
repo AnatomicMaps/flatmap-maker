@@ -32,6 +32,9 @@ from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.colours import ColourMatcherDict
 from mapmaker.utils.svg import svg_id
 
+from .namespaces import NAMESPACES
+from .namespaces import BG, BGF, DCT, RDF, MODEL
+
 #===============================================================================
 
 BG_FRAMEWORK_VERSION = "1.0"
@@ -120,29 +123,6 @@ def name_to_symbol(name: str) -> str:
     return name
 
 #===============================================================================
-
-DCT_NS = rdflib.Namespace('http://purl.org/dc/terms/')
-CDT_NS = rdflib.Namespace('https://w3id.org/cdt/')
-RDF_NS = rdflib.Namespace('http://www.w3.org/1999/02/22-rdf-syntax-ns#')
-RDFS_NS = rdflib.Namespace('http://www.w3.org/2000/01/rdf-schema#')
-
-#===============================================================================
-
-BG_NS = rdflib.Namespace('http://celldl.org/ontologies/bondgraph#')
-BGF_NS = rdflib.Namespace('http://celldl.org/ontologies/bondgraph-framework#')
-MODEL_NS = rdflib.Namespace('#')
-
-#===============================================================================
-
-NAMESPACES = {
-    'bg': BG_NS,
-    'bgf': BGF_NS,
-    'cdt': CDT_NS,
-    'dct': DCT_NS,
-    'rdfs': RDFS_NS,
-    '': MODEL_NS
-}
-
 #===============================================================================
 
 class BondgraphModel:
