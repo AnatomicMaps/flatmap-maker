@@ -220,7 +220,8 @@ class PropertiesStore(object):
     #===============================================
         classes = feature_properties.get('class', '').split()
         id = feature_properties.get('id')
-        if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+        if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL and id not in self.__properties_by_id:
+            # Use the feature's name to lookup properties when the feature has no ID
             if (name := feature_properties.get('name', '').replace(" ", "_")) != '':
                 id = f'{feature_properties.get("layer", "")}/{name}'
         if id is not None:
