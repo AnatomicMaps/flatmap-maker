@@ -30,6 +30,7 @@ import rdflib
 
 from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.colours import ColourMatcherDict
+from mapmaker.utils import log, TreeList
 from mapmaker.utils.svg import svg_id
 
 from .namespaces import NAMESPACES
@@ -135,10 +136,10 @@ class BondgraphModel:
         self.__uri = MODEL[id]
         for (prefix, ns) in NAMESPACES.items():
             self.__graph.bind(prefix, str(ns))
-        self.__graph.add((self.__uri, RDF_NS.type, BG_NS.BondGraph))
-        self.__graph.add((self.__uri, BGF_NS.hasSchema, rdflib.Literal(BG_FRAMEWORK_VERSION)))
-        self.__graph.add((self.__uri, DCT_NS.created, rdflib.Literal(datetime.now(UTC).isoformat())))
-        self.__process_shape_list(shapes)
+        self.__graph.add((self.__uri, RDF.type, BG.BondGraph))
+        self.__graph.add((self.__uri, BGF.hasSchema, rdflib.Literal(BG_FRAMEWORK_VERSION)))
+        self.__graph.add((self.__uri, DCT.created, rdflib.Literal(datetime.now(UTC).isoformat())))
+        self.__process_shape_list(shapes.flatten())
 
     def as_turtle(self) -> bytes:
     #============================
@@ -156,11 +157,9 @@ class BondgraphModel:
     def __process_shape_list(self, shapes: list[Shape]):
     #===================================================
         nodes: dict[str, tuple[str, str]] = {}
-        bonds: dict[str, tuple[str, str]] = {}
-
+        connections: dict[str, tuple[str, str]] = {}
         for shape in shapes:
             if not shape.properties.get('exclude', False):
-                uri = svg_id(shape.id)
                 if shape.shape_type == SHAPE_TYPE.COMPONENT:
                     if shape.has_property('stroke'):
                         stroke = shape.get_property('stroke')
@@ -173,17 +172,29 @@ class BondgraphModel:
                         component_type = 'bgf:OneNode'
                     else:
                         component_type = 'unknown'
+                    #
                     if component_type != 'unknown':
                         nodes[shape.id] = (component_type, name_to_symbol(shape.name))
-
                 elif shape.shape_type == SHAPE_TYPE.CONNECTION:
-                    bonds[shape.id] = (shape.source, shape.target)
-
+                    connections[shape.id] = (shape.source, shape.target)
                 elif shape.shape_type == SHAPE_TYPE.ANNOTATION:
                     pass
-
-        for shape_id, bond in bonds.items():
-            if bond[0] not in nodes or bond[1] not in nodes:
-                raise ValueError(f'Bad bondgraph connection ({shape_id}) -- source ({bond[0]}) and/or target ({bond[1]}) missing')
+        for type, name in nodes.values():
+            if type.startswith('bgf:'):
+                self.__graph.add((MODEL[name], RDF.type, BGF[type[4:]]))
+        missing_node = MODEL.MISSING
+        for shape_id, connection in connections.items():
+            if connection[0] in nodes:
+                source = MODEL[nodes[connection[0]][1]]
+            else:
+                log.warning(f'Missing source node shape `{connection[0]}/` for connection')
+                source = missing_node
+            if connection[1] in nodes:
+                target = MODEL[nodes[connection[1]][1]]
+            else:
+                log.warning(f'Missing target node shape `{connection[1]}` for connection')
+                target = missing_node
+            self.__graph.add((MODEL[svg_id(shape_id)], BGF.hasSource, source))
+            self.__graph.add((MODEL[svg_id(shape_id)], BGF.hasSource, target))
 
 #===============================================================================
