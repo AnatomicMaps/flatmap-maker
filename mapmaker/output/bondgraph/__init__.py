@@ -140,10 +140,6 @@ class BondgraphModel:
         self.__graph.add((self.__uri, DCT_NS.created, rdflib.Literal(datetime.now(UTC).isoformat())))
         self.__process_shape_list(shapes)
 
-    def __add_shape(self, shape: Shape):
-    #===================================
-        pass
-
     def as_turtle(self) -> bytes:
     #============================
         ttl = self.__graph.serialize(format='turtle', encoding='unicode')
