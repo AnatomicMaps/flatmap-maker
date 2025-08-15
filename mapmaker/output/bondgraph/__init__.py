@@ -146,11 +146,12 @@ class BondgraphModel:
 
     def as_turtle(self) -> bytes:
     #============================
-        return self.__graph.serialize(format='turtle', encoding='utf-8')
+        ttl = self.__graph.serialize(format='turtle', encoding='unicode')
+        return ttl
 
     def as_xml(self) -> bytes:
     #=========================
-        return self.__graph.serialize(format='xml', encoding='utf-8')
+        return self.__graph.serialize(format='xml', encoding='unicode')
 
     def set_property(self, property: rdflib.URIRef, value: rdflib.Literal|rdflib.URIRef):
     #====================================================================================
