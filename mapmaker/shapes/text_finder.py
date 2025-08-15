@@ -61,6 +61,19 @@ SUPERSCRIPT_CHAR = '^'
 
 #===============================================================================
 
+CHEMICAL_SYMBOLS = {
+    'Ca^{2+}': 'Ca2+',
+    'CO_{2}': 'CO2',
+    'Glc': 'Glc',
+    'H_{2}O': 'H2O',
+    'K^{+}': 'K+',
+    'Na': 'Na',
+    'Na^{+}': 'Na+',
+    'O_{2}': 'O2',
+}
+
+#===============================================================================
+
 class LatexMaker:
     def __init__(self):
         self.__latex = []
@@ -72,7 +85,10 @@ class LatexMaker:
     def latex(self) -> str:
     #======================
         self.__make_latex()
-        return ''.join(self.__latex)
+        latex = ''.join(self.__latex)
+        if (chem := CHEMICAL_SYMBOLS.get(latex)) is not None:
+            latex = f'\\ce{{{chem}}}'
+        return latex
 
     def add_text(self, text: str, state: int):
     #=========================================
