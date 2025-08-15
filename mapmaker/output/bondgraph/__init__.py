@@ -167,7 +167,7 @@ class BondgraphModel:
                         stroke = shape.get_property('stroke')
                         component_type = str(NODE_BORDER_TYPES.lookup(stroke, 'unknown'))
                     elif shape.name.startswith('$q^'):
-                        component_type = 'bgf:StorageNode'
+                        component_type = 'bgf:ZeroStorage'
                     elif shape.name.startswith('$u^'):
                         component_type = 'bgf:ZeroNode'
                     elif shape.name.startswith('$v^'):
