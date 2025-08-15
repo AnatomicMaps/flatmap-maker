@@ -117,11 +117,11 @@ def latex_to_symbol(name: str) -> str:
             text.append(super_text)
         return '_'.join(text)
 
-def name_to_symbol(name: str) -> str:
-#====================================
+def name_to_symbols(name: str) -> tuple[str]:
+#============================================
     if name.startswith('$') and name.endswith('$'):
-        return ', '.join([latex_to_symbol(latex) for latex in name[1:-1].split(',')])
-    return name
+        (latex_to_symbol(latex) for latex in name[1:-1].split(','))
+    return (name,)
 
 #===============================================================================
 #===============================================================================
@@ -156,7 +156,7 @@ class BondgraphModel:
 
     def __process_shape_list(self, shapes: list[Shape]):
     #===================================================
-        nodes: dict[str, tuple[str, str]] = {}
+        nodes: dict[str, tuple[str, tuple[str]]] = {}
         connections: dict[str, tuple[str, str]] = {}
         for shape in shapes:
             if not shape.properties.get('exclude', False):
@@ -174,23 +174,26 @@ class BondgraphModel:
                         component_type = 'unknown'
                     #
                     if component_type != 'unknown':
-                        nodes[shape.id] = (component_type, name_to_symbol(shape.name))
+                        names = name_to_symbols(shape.name)
+                        if component_type in ['bgf:OneNode', 'bgf:ZeroNode']:
+                            self.__graph.add((MODEL[names[0]], RDF.type, BGF[component_type[4:]]))
+                        nodes[shape.id] = (component_type, name_to_symbols(shape.name))
                 elif shape.shape_type == SHAPE_TYPE.CONNECTION:
                     connections[shape.id] = (shape.source, shape.target)
                 elif shape.shape_type == SHAPE_TYPE.ANNOTATION:
                     pass
-        for type, name in nodes.values():
+        for type, names in nodes.values():
             if type.startswith('bgf:'):
-                self.__graph.add((MODEL[name], RDF.type, BGF[type[4:]]))
+                self.__graph.add((MODEL[names[0]], RDF.type, BGF[type[4:]]))
         missing_node = MODEL.MISSING
         for shape_id, connection in connections.items():
             if connection[0] in nodes:
-                source = MODEL[nodes[connection[0]][1]]
+                source = MODEL[nodes[connection[0]][1][0]]
             else:
                 log.warning(f'Missing source node shape `{connection[0]}/` for connection')
                 source = missing_node
             if connection[1] in nodes:
-                target = MODEL[nodes[connection[1]][1]]
+                target = MODEL[nodes[connection[1]][1][0]]
             else:
                 log.warning(f'Missing target node shape `{connection[1]}` for connection')
                 target = missing_node
