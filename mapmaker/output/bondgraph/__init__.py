@@ -45,9 +45,11 @@ BG_FRAMEWORK_VERSION = "1.0"
 NODE_BORDER_TYPES = ColourMatcherDict({
     '#042433': 'bgf:OneNode',       # dark green
     '#00B050': 'bgf:OneResistance', # green
+    '#061B27': 'bgf:OneReaction',   # navy blue
     '#FF0000': 'bgf:ZeroStorage',   # red
 })
 
+#===============================================================================
 #===============================================================================
 
 LATEX_GRAMMAR = """
