@@ -168,7 +168,7 @@ class PropertiesStore(object):
     #============================================
         if isinstance(features, dict):
             for id, properties in features.items():
-                id = id.replace(" ", "_")
+                id = id.replace(' ', '_')
                 if (associated_details := properties.get('associated-details')) is not None:
                     if isinstance(associated_details, str):
                         properties['associated-details'] = [associated_details]
@@ -222,8 +222,8 @@ class PropertiesStore(object):
         id = feature_properties.get('id')
         if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL and id not in self.__properties_by_id:
             # Use the feature's name to lookup properties when the feature has no ID
-            if (name := feature_properties.get('name', '').replace(" ", "_")) != '':
-                id = f'{feature_properties.get("layer", "")}/{name}'
+            if (name := feature_properties.get('name', '').replace(' ', '_')) != '':
+                id = f'{feature_properties.get('layer', '')}/{name}'
         if id is not None:
             classes.extend(self.__properties_by_id.get(id, {}).get('class', '').split())
         for cls in classes:
