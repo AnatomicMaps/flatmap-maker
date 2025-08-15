@@ -1,6 +1,6 @@
 #===============================================================================
 #
-#  Flatmap viewer and annotation tools
+#  Flatmap maker and annotation tools
 #
 #  Copyright (c) 2019 - 2023  David Brooks
 #
@@ -42,11 +42,15 @@ class CD_CLASS:
     UNKNOWN    = 'celldl:Unknown'
     LAYER      = 'celldl:Layer'
 
+    ANNOTATION = 'celldl:Annotation'
+
     COMPONENT  = 'celldl:Component'     # What has CONNECTORs
 
     CONNECTOR  = 'celldl:Connector'     # What a CONNECTION connects to
     CONNECTION = 'celldl:Connection'    # The path between CONNECTORS
     CONDUIT    = 'celldl:Conduit'       # A container for CONNECTIONs
+
+    PORT       = 'celldl:UnconnectedPort'
 
     MEMBRANE   = 'celldl:Membrane'      # A boundary around a collection of COMPONENTS
 
@@ -132,10 +136,12 @@ KNOWN_NAMESPACES = {
 #===============================================================================
 
 CELLDL_TYPE_FROM_CLASS = {
+    CD_CLASS.ANNOTATION: CELLDL_NS.Annotation,
     CD_CLASS.CONDUIT: CELLDL_NS.Conduit,
     CD_CLASS.CONNECTION: CELLDL_NS.Connection,
     CD_CLASS.CONNECTOR: CELLDL_NS.Connector,
     CD_CLASS.COMPONENT: CELLDL_NS.Component,
+    CD_CLASS.PORT: CELLDL_NS.UnconnectedPort,
 }
 
 #===============================================================================
@@ -145,9 +151,11 @@ GZIP_BASE64_DATA_URI = 'data:application/gzip;base64,'
 #===============================================================================
 
 CELLDL_CLASS_FROM_SHAPE_TYPE = {
+    SHAPE_TYPE.ANNOTATION: CD_CLASS.ANNOTATION,
     SHAPE_TYPE.COMPONENT: CD_CLASS.COMPONENT,
     SHAPE_TYPE.CONNECTION: CD_CLASS.CONNECTION,
-    SHAPE_TYPE.CONTAINER: CD_CLASS.COMPONENT
+    SHAPE_TYPE.CONTAINER: CD_CLASS.COMPONENT,
+    SHAPE_TYPE.PORT: CD_CLASS.PORT,
 }
 
 #===============================================================================
