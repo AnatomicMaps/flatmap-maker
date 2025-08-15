@@ -126,13 +126,13 @@ def name_to_symbol(name: str) -> str:
 #===============================================================================
 
 class BondgraphModel:
-    def __init__(self, shapes: list[Shape]):
+    def __init__(self, id: str, shapes: TreeList[Shape]):
         self.__graph = rdflib.Graph()
 
         ## This could be embedded into a CellDL diagram, separate to its
         ## CellDL structure.
 
-        self.__uri = MODEL_NS['']
+        self.__uri = MODEL[id]
         for (prefix, ns) in NAMESPACES.items():
             self.__graph.bind(prefix, str(ns))
         self.__graph.add((self.__uri, RDF_NS.type, BG_NS.BondGraph))

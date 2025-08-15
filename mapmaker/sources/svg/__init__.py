@@ -238,7 +238,7 @@ class SVGLayer(MapLayer):
             if settings.get('exportBondgraphs', False):
                 bondgraph_file = pathlib_path(self.source.href).with_suffix('.bondgraph.ttl')
                 log.info(f'Exporting layer `{self.id}` to `{str(bondgraph_file)}`...')
-                bondgraph = BondgraphModel(shapes)
+                bondgraph = BondgraphModel(self.id, shapes)
                 with open(bondgraph_file, 'wb') as fp:
                     fp.write(bondgraph.as_turtle())
         # Add a background shape behind a detailed functional map
