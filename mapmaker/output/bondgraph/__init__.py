@@ -110,10 +110,10 @@ def latex_to_symbol(name: str) -> str:
         return name
     else:
         text = [base]
-        if super_text is not None:
-            text.append(super_text)
         if sub_text is not None:
             text.append(sub_text)
+        if super_text is not None:
+            text.append(super_text)
         return '_'.join(text)
 
 def name_to_symbol(name: str) -> str:
