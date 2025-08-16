@@ -67,11 +67,12 @@ class ColourMatcherDict:
                 for key, value in lookup_table.items()
         }
 
-    def lookup(self, colour: Optional[str]) -> Optional[Any]:
+    def lookup(self, colour: Optional[str], default: Optional[Any]=None) -> Optional[Any]:
         if colour is not None and colour != 'none':
             lab_colour = convert_color(sRGBColor.new_from_rgb_hex(colour), LabColor)
             for key, value in self.__lookup_table.items():
                 if delta_e_cie2000(lab_colour, key) < CLOSE_COLOUR_DISTANCE:
                     return value
+        return default
 
 #===============================================================================
