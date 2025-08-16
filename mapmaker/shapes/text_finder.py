@@ -24,7 +24,7 @@ from typing import Optional
 #===============================================================================
 
 from . import Shape, SHAPE_TYPE
-from .constants import MAX_TEXT_VERTICAL_OFFSET, TEXT_BASELINE_OFFSET
+from .constants import MAX_TEXT_VERTICAL_OFFSET, TEXT_BASELINE_OFFSET, TEXT_COMPONENT_HEIGHT
 
 #===============================================================================
 
@@ -122,13 +122,15 @@ class TextFinder:
         self.__sub_superscript_re = re.compile(f'{SUBSCRIPT_CHAR}|\\{SUPERSCRIPT_CHAR}')
         self.__max_text_vertical_offset = scaling * MAX_TEXT_VERTICAL_OFFSET
         self.__text_baseline_offset = scaling * TEXT_BASELINE_OFFSET
+        self.__shape_scaling = 1.0
 
     def get_text(self, shape: Shape) -> Optional[tuple[str, list[Shape]]]:
     #=====================================================================
+        self.__shape_scaling = shape.height/TEXT_COMPONENT_HEIGHT
         text_shapes = [s for s in shape.children if s.shape_type == SHAPE_TYPE.TEXT]
         text_clusters = self.__cluster_text(text_shapes)
-        offset = self.__max_text_vertical_offset
         baseline = (shape.geometry.bounds[1] + shape.geometry.bounds[3])/2 + self.__text_baseline_offset
+        offset = self.__shape_scaling*self.__max_text_vertical_offset
         state = 0
         clusters = []
         latex = LatexMaker()
@@ -169,7 +171,7 @@ class TextFinder:
     def __text_clusters_to_text(self, text_clusters: list[TextShapeCluster]) -> str:
     #===============================================================================
         baseline = text_clusters[0].baseline
-        offset = 0.9*self.__max_text_vertical_offset
+        offset = 0.9*self.__shape_scaling*self.__max_text_vertical_offset
         latex = LatexMaker()
         for cluster in text_clusters:
             if cluster.baseline < (baseline - offset):
@@ -182,7 +184,7 @@ class TextFinder:
 
     def __cluster_text(self, text_shapes: list[Shape]) -> list[TextShapeCluster]:
     #============================================================================
-        offset = self.__max_text_vertical_offset
+        offset = self.__shape_scaling*self.__max_text_vertical_offset
         shapes_seen_order = sorted(text_shapes, key=lambda s: s.number)
         clusters: list[TextShapeCluster] = []
         current_cluster = None

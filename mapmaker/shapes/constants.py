@@ -45,6 +45,8 @@ MAX_LINE_WIDTH = 20             # Close together parallel edges a polygons are c
 MAX_TEXT_VERTICAL_OFFSET = 3    # Between cluster baseline and baselines of text in the cluster
 TEXT_BASELINE_OFFSET = -14.5    # From vertical centre of a component
 
+TEXT_COMPONENT_HEIGHT = 75000   # World metres height of an "average" component
+
 # Text shapes need at least 80% containment in their parent
 MIN_TEXT_INSIDE = 0.8
 
