@@ -258,7 +258,9 @@ class ShapeClassifier:
         joined_connection_graph = nx.Graph()
         for joiner in connection_joiners:
             ends = connection_index.query_nearest(joiner.geometry)
-            if len(ends) == 2:
+            if len(ends) == 1:
+                continue
+            elif len(ends) == 2:
                 joiner.properties['exclude'] = True
                 (connection_0, connection_1) = self.__extend_joined_connections(ends)
                 joined_connection_graph.add_edge(connection_0, connection_1)
