@@ -212,8 +212,6 @@ class ShapeClassifier:
             shape.properties['colour'] = colour
         if (kind := VASCULAR_KINDS.lookup(colour)) is not None:
             shape.properties['kind'] = kind
-        else:
-            print(shape.id, 'COLOUR ?', colour)
         shape.properties['shape-type'] = SHAPE_TYPE.CONNECTION
         shape.properties['tile-layer'] = PATHWAYS_TILE_LAYER
         shape.properties['stroke-width'] = CONNECTION_STROKE_WIDTH
