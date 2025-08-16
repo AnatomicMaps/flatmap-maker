@@ -181,12 +181,12 @@ class ShapeClassifier:
                     shape.properties['name'] = name_and_shapes[0]
                     shape.properties['text-shapes'] = name_and_shapes[1]
                 # Although we do want their text, we don't want annotations to be active features
-                if shape.shape_type == SHAPE_TYPE.ANNOTATION:
-                    shape.properties['exclude'] = True
             elif shape.shape_type == SHAPE_TYPE.CONNECTION:
                 line_ends: shapely.geometry.base.GeometrySequence[shapely.MultiPoint] = shape.geometry.boundary.geoms  # type: ignore
                 self.__connect_line_end(shape, line_ends[0], 'source')
                 self.__connect_line_end(shape, line_ends[1], 'target')
+            elif shape.shape_type == SHAPE_TYPE.CONTAINER:
+                shape.properties['exclude'] = True
 
     @property
     def shapes(self) -> list[Shape]:
