@@ -37,7 +37,7 @@ class TextShapeCluster:
 
     @property
     def baseline(self) -> float:
-        return self.__baselines/len(self.__shapes) if len(self.__shapes) else 0
+        return self.__shapes[0].baseline
 
     @property
     def left(self) -> float:
@@ -129,8 +129,10 @@ class TextFinder:
         self.__shape_scaling = shape.height/TEXT_COMPONENT_HEIGHT
         text_shapes = [s for s in shape.children if s.shape_type == SHAPE_TYPE.TEXT]
         text_clusters = self.__cluster_text(text_shapes)
-        baseline = (shape.geometry.bounds[1] + shape.geometry.bounds[3])/2 + self.__text_baseline_offset
+        if len(text_clusters) == 0:
+            return None
         offset = self.__shape_scaling*self.__max_text_vertical_offset
+        baseline = text_clusters[0].baseline
         state = 0
         clusters = []
         latex = LatexMaker()
