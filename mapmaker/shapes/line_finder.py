@@ -285,7 +285,7 @@ class LineFinder:
 
         shapely.prepare(shape.geometry)
         boundary_line_coord_pairs = zip(boundary_coords, boundary_coords[1:])
-        boundary_lines = [Line.from_coords(coords) for coords in boundary_line_coord_pairs]
+        boundary_lines = [Line.from_coords(coords) for coords in boundary_line_coord_pairs]     # pyright: ignore[reportArgumentType]
         unused_boundary_lines = set(boundary_lines)
         for (line0, line1) in itertools.combinations(boundary_lines, 2):
             # Iterate over all pairs of line segments that make up the shape's boundary
