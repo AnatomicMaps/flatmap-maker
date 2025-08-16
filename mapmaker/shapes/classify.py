@@ -38,7 +38,7 @@ from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.utils import log
 
 from .constants import COMPONENT_BORDER_WIDTH, CONNECTION_STROKE_WIDTH, MAX_LINE_WIDTH
-from .constants import SHAPE_ERROR_COLOUR, SHAPE_ERROR_BORDER
+from .constants import MIN_TEXT_INSIDE, SHAPE_ERROR_COLOUR, SHAPE_ERROR_BORDER
 
 from .line_finder import Line, LineFinder, XYPair
 from .text_finder import TextFinder
