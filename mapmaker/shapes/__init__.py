@@ -25,7 +25,6 @@ from shapely.geometry.base import BaseGeometry      # type: ignore
 
 #===============================================================================
 
-from mapmaker.settings import settings
 from mapmaker.utils import log, PropertyMixin
 
 #===============================================================================
@@ -51,7 +50,6 @@ HiddenProperties = [
     'coverage',
     'fill',
     'geometry',
-    'stroke',
     'stroke-width',
     'svg-element',
     'tile-layer',
