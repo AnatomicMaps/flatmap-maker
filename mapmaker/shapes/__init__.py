@@ -70,7 +70,7 @@ class Shape(PropertyMixin):
         Shape.__last_shape_number += 1
         self.__number: int = Shape.__last_shape_number
         if self.has_property('id'):
-            id = self.get_property('id')
+            id = self.get_property('id', '')
             if Shape.__shape_id_prefix == '':
                 self.__id = id
             else:
@@ -157,8 +157,8 @@ class Shape(PropertyMixin):
         return abs(self.__bounds[3] - self.__bounds[1])
 
     @property
-    def id(self) -> Optional[str]:
-        return self.__id
+    def id(self) -> str:
+        return self.__id                            # pyright: ignore[reportReturnType]
 
     @property
     def kind(self) -> Optional[str]:                # The geometric name of the shape or, for an image,
