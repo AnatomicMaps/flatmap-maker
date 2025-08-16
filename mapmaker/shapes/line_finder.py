@@ -288,20 +288,24 @@ class LineFinder:
         boundary_lines = [Line.from_coords(coords) for coords in boundary_line_coord_pairs]
         unused_boundary_lines = set(boundary_lines)
         for (line0, line1) in itertools.combinations(boundary_lines, 2):
+            # Iterate over all pairs of line segments that make up the shape's boundary
             if line0.parallel(line1):
+                # Two line segments are parallel -- are they adjacent sides of a centreline?
                 p0 = HorizontalLine.from_line(line0)
                 p1 = p0.project(line1)
                 # reject if centroid of overlapping region isn't inside the shape's polygon
                 if ((pt := p0.mid_point(p1)) is not None
-                 and shapely.contains_xy(shape.geometry, pt.x, pt.y)):
-                    if ((w := p0.separation(p1)) <= self.__max_line_width
-                     and p0.overlap(p1, True) > MIN_LINE_ASPECT_RATIO*w
-                     and p0.overlap(p1, False)/p0.overlap(p1, True) >= LINE_OVERLAP_RATIO):
+                 and shapely.contains_xy(shape.geometry, pt.x, pt.y)
+                 and p0.separation(p1)) <= self.__max_line_width:
+                    # Centroid of overlapping region is inside the shape's polygon
+                    # and distance between lines is less than scaled MAX_LINE_WIDTH
+                    if p0.overlap(p1, False)/p0.overlap(p1, True) >= LINE_OVERLAP_RATIO:
                         mid_lines.append(p0.mid_line(p1))
                         used_lines.update([line0, line1])
                         unused_boundary_lines.remove(line0)
                         unused_boundary_lines.remove(line1)
             elif (pt := line0.intersection(line1)) is not None:
+                # Non parallel line pair that intersect without extension
                 ends_graph.add_edge(line0, line1, intersection=pt)
 
         # ``Use`` any boundary line parallel to a mid-line and within
