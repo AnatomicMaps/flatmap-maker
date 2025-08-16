@@ -37,6 +37,7 @@ class SHAPE_TYPE(str, Enum):   ## Or IntEnum ??
     CONTAINER  = 'container'
     GROUP      = 'group'
     IMAGE      = 'image'
+    PORT       = 'port'
     TEXT       = 'text'
     UNKNOWN    = 'unknown'
 

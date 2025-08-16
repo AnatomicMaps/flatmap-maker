@@ -137,14 +137,15 @@ class ShapeClassifier:
                 elif 'LineString' in geometry.geom_type or coverage < 0.4 and 'Multi' not in geometry.geom_type:
                     if not self.__add_connection(shape):
                         log.warning('Cannot extract line from polygon', shape=shape.id)
+                elif 'Multi' not in geometry.boundary.geom_type and len(shape.geometry.boundary.coords) == 4:      # A triangle
+                    connection_joiners.append(shape)
+                    shape.properties['shape-type'] = SHAPE_TYPE.PORT
                 elif bbox_coverage > 0.001 and coverage > 0.9:
                     shape.properties['shape-type'] = SHAPE_TYPE.CONTAINER if bbox_coverage > 0.2 else SHAPE_TYPE.COMPONENT
                 elif bbox_coverage < 0.0003 and 0.7 < coverage <= 0.8:
                     shape.properties['shape-type'] = SHAPE_TYPE.ANNOTATION
                 elif bbox_coverage < 0.001 and coverage > 0.75:
                     shape.properties['shape-type'] = SHAPE_TYPE.COMPONENT
-                elif 'Multi' not in geometry.boundary.geom_type and len(shape.geometry.boundary.coords) == 4:      # A triangle
-                    connection_joiners.append(shape)
                 elif not self.__add_connection(shape):
                     log.warning('Unclassifiable shape', shape=shape.id)
                     if settings.get('authoring', False):
@@ -155,9 +156,12 @@ class ShapeClassifier:
                 self.__shapes_by_type[shape.shape_type].append(shape)
                 if shape.shape_type in [SHAPE_TYPE.ANNOTATION,
                                         SHAPE_TYPE.COMPONENT,
+                                        SHAPE_TYPE.PORT,
                                         SHAPE_TYPE.TEXT]:
                     self.__geometry_to_shape[id(shape.geometry)] = shape
                     component_geometries.append(shape.geometry)
+                if shape.shape_type in [SHAPE_TYPE.COMPONENT,
+                                        SHAPE_TYPE.PORT]:
                     shape.properties['stroke-width'] = COMPONENT_BORDER_WIDTH
 
         # An index for component geometries
@@ -231,7 +235,8 @@ class ShapeClassifier:
         for child in [self.__geometry_to_shape[id(self.__component_geometries[c])]
                         for c in self.__component_index.query(end.buffer(self.__max_line_width), predicate='intersects')
                             if self.__component_geometries[c].area > 0]:
-            if not child.exclude:
+            child.append_property('connections', shape.id)
+            if not child.exclude and child.shape_type in [SHAPE_TYPE.COMPONENT, SHAPE_TYPE.PORT]:
                 shape.set_property(property, child.id)
                 return
 
