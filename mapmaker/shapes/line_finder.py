@@ -299,7 +299,8 @@ class LineFinder:
                  and p0.separation(p1)) <= self.__max_line_width:
                     # Centroid of overlapping region is inside the shape's polygon
                     # and distance between lines is less than scaled MAX_LINE_WIDTH
-                    if p0.overlap(p1, False)/p0.overlap(p1, True) >= LINE_OVERLAP_RATIO:
+                    if (p0.overlap(p1, False) > 0
+                    and p0.overlap(p1, False)/p0.overlap(p1, True) >= LINE_OVERLAP_RATIO):
                         mid_lines.append(p0.mid_line(p1))
                         used_lines.update([line0, line1])
                         unused_boundary_lines.remove(line0)
