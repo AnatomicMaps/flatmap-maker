@@ -338,9 +338,6 @@ class LineFinder:
                         if connecting_line:
                             i0 = l0.intersection(connecting_line, True)
                             i1 = l1.intersection(connecting_line, True)
-                            if trace:
-                                print(i0, l0.string, connecting_line.string)
-                                print(i1, connecting_line.string, l1.string)
                             if i0 is not None and i1 is not None:
                                 G.add_edge(l0, connecting_line, intersection=i0)
                                 G.add_edge(connecting_line, l1, intersection=i1)
