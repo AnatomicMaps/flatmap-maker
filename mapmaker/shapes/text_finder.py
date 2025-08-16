@@ -119,7 +119,7 @@ class LatexMaker:
 
 class TextFinder:
     def __init__(self, scaling: float):
-        self.__sub_superscript_re = re.compile(f'{SUBSCRIPT_CHAR}|\\{SUPERSCRIPT_CHAR}')
+        self.__latex_re = re.compile(f'{SUBSCRIPT_CHAR}|\\{SUPERSCRIPT_CHAR}|{{')
         self.__max_text_vertical_offset = scaling * MAX_TEXT_VERTICAL_OFFSET
         self.__text_baseline_offset = scaling * TEXT_BASELINE_OFFSET
         self.__shape_scaling = 1.0
@@ -161,7 +161,7 @@ class TextFinder:
                 used_text_shapes.extend(cluster.shapes)
         if len(clusters):
             latex.add_text(self.__text_clusters_to_text(clusters), state)
-        text = f'${text}$' if self.__sub_superscript_re.search(text:=latex.latex) is not None else text
+        text = f'${text}$' if self.__latex_re.search(text:=latex.latex) else text.replace('\\ ', ' ')
         return (text, used_text_shapes) if text != '' else None
 
     def __text_block_to_text(self, text_block: list[Shape]) -> str:
