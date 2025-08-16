@@ -88,9 +88,9 @@ class LineString:
 
     def end_line(self, end: int) -> Line:
         if end == 0:
-            return Line.from_coords((self.__coords[0], self.__coords[1]))
+            return Line.from_coords((self.__coords[0], self.__coords[1]))       # pyright: ignore[reportArgumentType]
         else:
-            return Line.from_coords((self.__coords[-2], self.__coords[-1]))
+            return Line.from_coords((self.__coords[-2], self.__coords[-1]))     # pyright: ignore[reportArgumentType]
 
 #===============================================================================
 
