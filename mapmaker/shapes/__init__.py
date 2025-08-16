@@ -88,6 +88,7 @@ class Shape(PropertyMixin):
         self.__geometry = geometry
         if geometry is not None:
             self.set_property('geometry', geometry.geom_type)
+            self.__bounds = geometry.bounds
         self.__children: list[Shape] = []
         self.__parents: list[Shape] = []
         self.__metadata: dict[str, str] = {}  # kw_only=True field for Python 3.10
@@ -154,6 +155,10 @@ class Shape(PropertyMixin):
         return self.get_property('global-shape', self)
 
     @property
+    def height(self) -> float:
+        return abs(self.__bounds[3] - self.__bounds[1])
+
+    @property
     def id(self) -> Optional[str]:
         return self.__id
 
@@ -192,6 +197,10 @@ class Shape(PropertyMixin):
     @property
     def shape_type(self) -> SHAPE_TYPE:
         return self.get_property('shape-type', SHAPE_TYPE.UNKNOWN)
+
+    @property
+    def width(self) -> float:
+        return abs(self.__bounds[2] - self.__bounds[0])
 
     def add_parent(self, parent):
         self.parents.append(parent)
