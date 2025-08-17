@@ -165,6 +165,7 @@ class MapMaker:
 
         # Make sure our top-level directory exists
         map_base = options.get('output')
+        assert map_base is not None
         if not os.path.exists(map_base):
             os.makedirs(map_base)
 

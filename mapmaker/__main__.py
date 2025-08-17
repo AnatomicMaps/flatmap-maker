@@ -34,7 +34,7 @@ def arg_parser():
 
     log_options = parser.add_argument_group('Logging')
     log_options.add_argument('--log', dest='logFile', metavar='LOG_FILE',
-                        help="Append messages to a log file")
+                        help="Append messages to a log file as JSON")
     log_options.add_argument('--silent', action='store_true',
                         help='Suppress all messages to screen')
     log_options.add_argument('--verbose', action='store_true',
