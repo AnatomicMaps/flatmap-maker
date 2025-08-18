@@ -26,7 +26,7 @@ import multiprocessing.connection
 import shutil
 import subprocess
 import uuid
-from typing import Any
+from typing import Any, Optional
 
 #===============================================================================
 
@@ -80,7 +80,7 @@ INVALID_PUBLISHING_OPTIONS = [
 #===============================================================================
 
 class MapMaker:
-    def __init__(self, options: dict[str, Any]):
+    def __init__(self, options: dict[str, Any], process_log_queue: Optional[multiprocessing.Queue]=None):
         # ``silent`` implies not ``verbose``
         if options.get('silent', False):
             options['verbose'] = False
@@ -88,9 +88,10 @@ class MapMaker:
         if options.get('sckanVersion') is not None and not options.get('ignoreGit', False):
             raise ValueError('`--ignore-git` must be set when `--sckan-version` is used')
 
-        # For when we try to make() an invalid configuration
-        process_log_queue = options.pop('logQueue', None)
+        # Do we have a manager that log records are sent to?
         self.__tell_manager = process_log_queue is not None
+
+        # For when we try to make() an invalid configuration
         self.__valid_configuration = False
 
         # Setup logging
