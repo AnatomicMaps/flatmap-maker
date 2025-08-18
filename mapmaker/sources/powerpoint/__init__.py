@@ -175,13 +175,14 @@ class PowerpointSource(MapSource):
         if 'exportSVG' in settings:
             self.__make_svg()
 
-    def get_raster_source(self):
-    #===========================
+    def get_raster_sources(self) -> list[RasterSource]:
+    #==================================================
         if self.kind == 'base':  # Only rasterise base source layer
-            return RasterSource('svg', self.get_raster_data)
+            return [RasterSource(f'{self.id}_image', 'svg', self.__get_raster_data, self)]
+        return []
 
-    def get_raster_data(self):
-    #=========================
+    def __get_raster_data(self) -> bytes:
+    #====================================
         svg_maker = SvgMaker(self.__powerpoint)
         svg_maker.add_slides(self.__slides)
         svg_data = BytesIO(svg_maker.svg_bytes())

@@ -37,6 +37,25 @@ from .treelist import TreeList
 
 #===============================================================================
 
+"""
+For generating ``lxml`` element tags
+"""
+class XmlNamespace:
+    def __init__(self, ns: str):
+        self.__ns = ns
+
+    def __str__(self):
+        return self.__ns
+
+    def __getattr__(self, attr: str) -> str:
+        return f'{{{self.__ns}}}{attr}'
+
+#===============================================================================
+
+SVG_NS = XmlNamespace('http://www.w3.org/2000/svg')
+
+#===============================================================================
+
 def relative_path(path: str | pathlib.Path) -> bool:
     return str(path).split(':', 1)[0] not in ['file', 'http', 'https']
 

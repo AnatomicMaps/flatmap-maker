@@ -34,7 +34,7 @@ def arg_parser():
 
     log_options = parser.add_argument_group('Logging')
     log_options.add_argument('--log', dest='logFile', metavar='LOG_FILE',
-                        help="Append messages to a log file")
+                        help="Append messages to a log file as JSON")
     log_options.add_argument('--silent', action='store_true',
                         help='Suppress all messages to screen')
     log_options.add_argument('--verbose', action='store_true',
@@ -93,6 +93,8 @@ def arg_parser():
     misc_options = parser.add_argument_group('Miscellaneous')
     misc_options.add_argument('--commit', metavar='GIT_COMMIT',
                         help='The branch/tag/commit to use when the source is a Git repository')
+    misc_options.add_argument('--export-bondgraphs', dest='exportBondgraphs', action='store_true',
+                        help='Export functional modelling components as CellDL bondgraphs')
     misc_options.add_argument('--export-features', dest='exportFeatures', metavar='EXPORT_FILE',
                         help='Export identifiers and anatomical terms of labelled features as JSON')
     misc_options.add_argument('--export-neurons', dest='exportNeurons', metavar='EXPORT_FILE',

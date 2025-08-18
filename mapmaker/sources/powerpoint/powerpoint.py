@@ -48,11 +48,10 @@ from pptx.slide import Slide as PptxSlide
 from mapmaker.geometry import MapBounds, Transform
 from mapmaker.properties.markup import parse_layer_directive, parse_markup
 from mapmaker.shapes import Shape, SHAPE_TYPE
+from mapmaker.shapes.colours import ColourMatcher
+from mapmaker.shapes.types import is_system_name
 from mapmaker.sources import WORLD_METRES_PER_EMU
 from mapmaker.utils import FilePath, log, ProgressBar, TreeList
-
-from ..fc_powerpoint.colours import ColourMatcher
-from ..fc_powerpoint.components import is_system_name
 
 from .colour import ColourMap, ColourTheme
 from .geometry import get_shape_geometry

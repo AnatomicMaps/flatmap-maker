@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from datetime import datetime, timezone
 import os
 from typing import Optional, TYPE_CHECKING
@@ -45,7 +45,7 @@ from .feature import Feature, FeatureAnatomicalNodeMap
 from .layers import FEATURES_TILE_LAYER, MapLayer
 
 # Exports
-from .manifest import Manifest, SourceManifest
+from .manifest import Manifest, SourceBackground, SourceManifest
 
 if TYPE_CHECKING:
     from mapmaker.annotation import Annotator
@@ -63,9 +63,7 @@ class FlatMap(object):
         self.__id = maker.id
         self.__uuid = maker.uuid
         self.__map_dir = maker.map_dir
-        self.__map_kind = (MAP_KIND.FUNCTIONAL if manifest.kind == 'functional'
-                      else MAP_KIND.CENTRELINE if manifest.kind == 'centreline'
-                      else MAP_KIND.ANATOMICAL)
+        self.__map_kind = manifest.map_kind
         self.__manifest = manifest
         self.__local_id = manifest.id
         self.__models = manifest.models
@@ -195,6 +193,13 @@ class FlatMap(object):
             knowledge = get_knowledge(self.__models)
             if 'label' in knowledge:
                 self.__metadata['describes'] = knowledge['label']
+        if self.map_kind == MAP_KIND.FUNCTIONAL:
+            self.__metadata['style'] = 'functional'
+        elif self.map_kind == MAP_KIND.CENTRELINE:
+            self.__metadata['style'] = 'centreline'
+        else:
+            self.__metadata['style'] = 'anatomical'
+        self.__metadata['map-kinds'] = self.__manifest.map_kinds
 
         self.__entities = set()
 
@@ -211,6 +216,7 @@ class FlatMap(object):
         self.__features_with_name: dict[str, Feature] = {}
         self.__last_geojson_id = 0
         self.__features_by_geojson_id: dict[int, Feature] = {}
+        self.__associated_layers: defaultdict[str, list[int]] = defaultdict(list)
 
         # Used to find annotated features containing a region
         self.__feature_search = None
@@ -272,11 +278,11 @@ class FlatMap(object):
 
     def get_feature(self, feature_id: str) -> Optional[Feature]:
     #===========================================================
-        return self.__features_with_id.get(feature_id)
-
-    def get_feature_by_name(self, full_name: str) -> Optional[Feature]:
-    #==================================================================
-        return self.__features_with_name.get(full_name.replace(" ", "_"))
+        if self.map_kind == MAP_KIND.FUNCTIONAL:
+            return self.__features_with_name.get(feature_id.replace(" ", "_"),
+                self.__features_with_id.get(feature_id))
+        else:
+            return self.__features_with_id.get(feature_id)
 
     def get_feature_by_geojson_id(self, geojson_id: int) -> Optional[Feature]:
     #=========================================================================
@@ -285,17 +291,21 @@ class FlatMap(object):
     def new_feature(self, layer_id: str, geometry, properties, is_group=False) -> Feature:
     #=====================================================================================
         self.__last_geojson_id += 1
+        properties['layer'] = layer_id
         self.properties_store.update_properties(properties)   # Update from JSON properties file
         feature = Feature(self.__last_geojson_id, geometry, properties, is_group=is_group)
-        feature.set_property('layer', layer_id)
-        if (name := properties.get('name', properties.get('label', ''))) != '':
-            self.__features_with_name[f'{layer_id}/{name.replace(" ", "_")}'] = feature
         self.__features_by_geojson_id[feature.geojson_id] = feature
         if feature.id:
             if feature.id in self.__features_with_id:
                 pass
             else:
                 self.__features_with_id[feature.id] = feature
+        if self.map_kind == MAP_KIND.FUNCTIONAL:
+            if (name := properties.get('name', '')) != '':
+                self.__features_with_name[f'{layer_id}/{name.replace(" ", "_")}'] = feature
+        if (associated_layers := properties.get('associated-details')) is not None:
+            for layer in associated_layers:
+                self.__associated_layers[layer].append(feature.geojson_id)
         return feature
 
     def network_feature(self, feature: Feature) -> bool:
@@ -364,7 +374,7 @@ class FlatMap(object):
         for layer in source.layers:
             self.add_layer(layer)
             if layer.exported:
-                layer.add_raster_layer(layer.id, source.extent, source)
+                layer.add_raster_layers(source.extent, source)
         # The first layer is used as the base map
         if layer_number == 0:
             if source.kind == 'details':
@@ -376,6 +386,38 @@ class FlatMap(object):
         elif (source.kind not in ['details', 'image', 'layer']
           and source.kind not in SOURCE_DETAIL_KINDS):
             raise ValueError('Can only have a single base map')
+
+    """
+    The ``feature`` has details that appear when zoomed.
+    """
+    def add_details_layer(self, feature: Feature, details_layer: str, description: Optional[str]=None) -> Optional[int]:
+    #===================================================================================================================
+        if feature.layer is not None:
+            feature.set_property('details-layer', details_layer)
+            zoom_point = self.add_zoom_point(feature, description)
+            if zoom_point is not None:
+                zoom_point.set_property('details-layer', details_layer)
+            # Set the ``associated-details`` property for connections to features associated with the details layer
+            for geojson_id in self.__associated_layers.get(details_layer, []):
+                if (associated_feature := self.get_feature_by_geojson_id(geojson_id)) is not None:
+                    for connection_id in associated_feature.get_property('connections', []):
+                        if (connection := self.get_feature(connection_id)) is not None:
+                            connection.append_property('associated-details', details_layer)
+            return zoom_point.geojson_id if zoom_point else None
+
+    def add_zoom_point(self, feature: Feature, description: Optional[str]=None) -> Optional[Feature]:
+    #================================================================================================
+        if feature.layer is not None:
+            zoom_point = self.new_feature(feature.properties['layer'], feature.geometry.centroid, {
+                'kind': 'zoom-point',
+                'tile-layer': feature.properties['tile-layer']
+            })
+            if description is not None:
+                zoom_point.set_property('label', description)
+            if (models := feature.models) is not None:
+                zoom_point.set_property('models', models)
+            feature.layer.add_feature(zoom_point)
+            return zoom_point
 
     def layer_metadata(self):
     #========================
@@ -390,7 +432,9 @@ class FlatMap(object):
                         {   'id': raster_layer.id,
                             'options': {
                                 'max-zoom': raster_layer.max_zoom,
-                                'min-zoom': raster_layer.min_zoom
+                                'min-zoom': raster_layer.min_zoom,
+                                'background': raster_layer.background_layer,
+                                'detail-layer': layer.detail_layer
                             }
                         } for raster_layer in layer.raster_layers
                     ]
@@ -399,6 +443,10 @@ class FlatMap(object):
                     map_layer['min-zoom'] = layer.min_zoom
                 if layer.max_zoom is not None:
                     map_layer['max-zoom'] = layer.max_zoom
+                if layer.parent_layer is not None:
+                    map_layer['extent'] = layer.extent
+                    map_layer['parent-layer'] = layer.parent_layer
+                    map_layer['zoom-point'] = layer.zoom_point_id
                 metadata.append(map_layer)
         return metadata
 
@@ -482,11 +530,11 @@ class FlatMap(object):
             else:                             # nerve
                 feature.pop_property('maxzoom')
 
-            if hires_layer.source.raster_source is not None:
+            if len(hires_layer.source.raster_sources):
                 extent = transform.transform_extent(hires_layer.source.extent)
-                layer.add_raster_layer('{}_{}'.format(detail_layer.id, hires_layer.id),
-                                        extent, hires_layer.source, minzoom,
-                                        local_world_to_base=transform)
+                layer.add_raster_layers(extent, hires_layer.source,
+                                        id=f'{detail_layer.id}_{hires_layer.id}',
+                                        min_zoom=minzoom, local_world_to_base=transform)
 
             # The detail layer gets a scaled copy of each high-resolution feature
             for hires_feature in hires_layer.features:

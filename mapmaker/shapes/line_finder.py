@@ -34,8 +34,10 @@ from shapely.geometry import LineString
 from mapmaker.utils import log
 
 from mapmaker.shapes import Shape
-from mapmaker.shapes.constants import EPSILON, LINE_OVERLAP_RATIO
+from mapmaker.shapes.constants import ARROW_POINT_EPSILON, EPSILON, LINE_OVERLAP_RATIO
 from mapmaker.shapes.constants import MAX_PARALLEL_SKEW, MAX_LINE_WIDTH, MIN_LINE_ASPECT_RATIO
+
+from mapmaker.shapes.constants import SHAPE_ERROR_COLOUR
 
 #===============================================================================
 
@@ -273,35 +275,53 @@ class LineFinder:
 
     def get_line(self, shape: Shape) -> Optional[LineString]:
     #========================================================
+        if 'Multi' in shape.geometry.boundary.geom_type:
+            return
         ends_graph = nx.Graph()
         used_lines: set[Line] = set()
         mid_lines: list[Line] = []
+        unused_boundary_lines: set[Line] = set()
         boundary_coords = shape.geometry.boundary.simplify(self.__epsilon).coords
+
         shapely.prepare(shape.geometry)
-        boundary_line_coords = zip(boundary_coords, boundary_coords[1:])
-        for (line0, line1) in itertools.combinations(boundary_line_coords, 2):
-            l0 = Line.from_coords(line0)
-            l1 = Line.from_coords(line1)
-            if l0.parallel(l1):
-                p0 = HorizontalLine.from_line(l0)
-                p1 = p0.project(l1)
-
-                if trace:
-                    print('PAR', p0.separation(p1), self.__max_line_width, p0.overlap(p1), shape.id, p0, p1)
-
+        boundary_line_coord_pairs = zip(boundary_coords, boundary_coords[1:])
+        boundary_lines = [Line.from_coords(coords) for coords in boundary_line_coord_pairs]     # pyright: ignore[reportArgumentType]
+        unused_boundary_lines = set(boundary_lines)
+        for (line0, line1) in itertools.combinations(boundary_lines, 2):
+            # Iterate over all pairs of line segments that make up the shape's boundary
+            if line0.parallel(line1):
+                # Two line segments are parallel -- are they adjacent sides of a centreline?
+                p0 = HorizontalLine.from_line(line0)
+                p1 = p0.project(line1)
                 # reject if centroid of overlapping region isn't inside the shape's polygon
                 if ((pt := p0.mid_point(p1)) is not None
-                 and shapely.contains_xy(shape.geometry, pt.x, pt.y)):
-                    if ((w := p0.separation(p1)) <= self.__max_line_width
-                     and p0.overlap(p1, True) > MIN_LINE_ASPECT_RATIO*w
-                     and p0.overlap(p1, False)/p0.overlap(p1, True) >= LINE_OVERLAP_RATIO):
+                 and shapely.contains_xy(shape.geometry, pt.x, pt.y)
+                 and p0.separation(p1)) <= self.__max_line_width:
+                    # Centroid of overlapping region is inside the shape's polygon
+                    # and distance between lines is less than scaled MAX_LINE_WIDTH
+                    if (p0.overlap(p1, False) > 0
+                    and p0.overlap(p1, False)/p0.overlap(p1, True) >= LINE_OVERLAP_RATIO):
                         mid_lines.append(p0.mid_line(p1))
-                        used_lines.update([l0, l1])
-            elif (pt := l0.intersection(l1)) is not None:
-                ends_graph.add_edge(l0, l1, intersection=pt)
+                        used_lines.update([line0, line1])
+                        unused_boundary_lines.remove(line0)
+                        unused_boundary_lines.remove(line1)
+            elif (pt := line0.intersection(line1)) is not None:
+                # Non parallel line pair that intersect without extension
+                ends_graph.add_edge(line0, line1, intersection=pt)
+
+        # ``Use`` any boundary line parallel to a mid-line and within
+        # MAX_LINE_WIDTH/2 of it
+        for ml in mid_lines:
+            for ul in unused_boundary_lines:
+                if ul.parallel(ml):
+                    mh = HorizontalLine.from_line(ml)
+                    uh = mh.project(ul)
+                    if (uh.separation(mh) < self.__max_line_width/2
+                    and uh.overlap(mh, False) > self.__epsilon):
+                        used_lines.add(ul)
+
         ends_graph.remove_nodes_from(used_lines)
-        if len(mid_lines) == 1:
-            # Only a single line segment
+        if len(mid_lines) == 1:     # Only a single line segment
             line_points = [mid_lines[0].p0, mid_lines[0].p1]
         elif len(mid_lines) == 0:
             line_points = []
@@ -319,9 +339,6 @@ class LineFinder:
                         if connecting_line:
                             i0 = l0.intersection(connecting_line, True)
                             i1 = l1.intersection(connecting_line, True)
-                            if trace:
-                                print(i0, l0.string, connecting_line.string)
-                                print(i1, connecting_line.string, l1.string)
                             if i0 is not None and i1 is not None:
                                 G.add_edge(l0, connecting_line, intersection=i0)
                                 G.add_edge(connecting_line, l1, intersection=i1)
@@ -362,7 +379,7 @@ class LineFinder:
                     distances = [ p0.distance(p1)
                                     for (p0, p1) in itertools.pairwise(points + [points[0]])]
                     for (n, (d0, d1)) in enumerate(itertools.pairwise([distances[-1]] + distances)):
-                        if abs(d0 - d1) <= EPSILON:
+                        if abs(d0 - d1)/(d0 + d1) <= ARROW_POINT_EPSILON:
                             arrow_line = Line(points[n-2].midpoint(points[n-1]), points[n])
                             if arrow_line.p0.distance(line_points[0]) < arrow_line.p0.distance(line_points[-1]):
                                 line_points[0] = arrow_line.p1
@@ -371,6 +388,9 @@ class LineFinder:
                                 line_points[-1] = arrow_line.p1
                             shape.properties['directional'] = True
                             break
+                elif len(end_nodes) != 1:
+                    shape.properties['stroke'] = SHAPE_ERROR_COLOUR
+                    log.warning('Bad arrow shape?', shape=shape.id, nodes=len(end_nodes))
 
         return LineString([pt.coords for pt in line_points]) if len(line_points) >= 2 else None
 

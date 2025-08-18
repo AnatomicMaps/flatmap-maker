@@ -2,7 +2,7 @@
 #
 #  Flatmap viewer and annotation tools
 #
-#  Copyright (c) 2020  David Brooks
+#  Copyright (c) 2020 - 2025 David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -42,13 +42,15 @@ from mapmaker.exceptions import MakerException
 from mapmaker.flatmap import Feature, FlatMap, SourceManifest, SOURCE_DETAIL_KINDS
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
-from mapmaker.settings import MAP_KIND
+from mapmaker.output.bondgraph import BondgraphModel
+from mapmaker.settings import MAP_KIND, settings
 from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.classify import ShapeClassifier
-from mapmaker.utils import FilePath, ProgressBar, log, TreeList
+from mapmaker.utils import FilePath, pathlib_path, ProgressBar, log, TreeList
 
 from .. import MapSource, RasterSource
 from .. import WORLD_METRES_PER_PIXEL
+from ..celldl import CellDLExporter
 
 from .cleaner import SVGCleaner
 from .definitions import DefinitionStore, ObjectStore
@@ -59,7 +61,8 @@ from .utils import length_as_points, svg_markup, parse_svg_path, SVG_TAG
 
 #===============================================================================
 
-FUNCTIONAL_MAP_MARGIN = 200     # pixels
+DETAILED_MAP_BORDER = 50        # pixels
+FUNCTIONAL_MAP_MARGIN = 500     # pixels in SVG source space
 
 #===============================================================================
 
@@ -90,7 +93,7 @@ class SVGSource(MapSource):
         super().__init__(flatmap, source_manifest)
         self.__source_file = FilePath(source_manifest.href)
         self.__exported = (self.kind == 'base' or self.kind in SOURCE_DETAIL_KINDS)
-        svg = etree.parse(self.__source_file.get_fp()).getroot()
+        svg: etree.Element = etree.parse(self.__source_file.get_fp()).getroot()
         if 'viewBox' in svg.attrib:
             viewbox = [float(x) for x in svg.attrib.get('viewBox').split()]
             (left, top) = tuple(viewbox[:2])
@@ -114,16 +117,18 @@ class SVGSource(MapSource):
                 scale = max(scale_x, scale_y)
             self.__transform = (Transform([[1,  0, bounds[0]+(bounds[2]-bounds[0])/2],
                                            [0,  1, bounds[1]+(bounds[3]-bounds[1])/2],
-                                           [0,  0,         1]])
+                                           [0,  0,                                 1]])
                                @np.array([[scale,     0,  0],
                                           [    0, scale,  0],
                                           [    0,     0,  1]])
                                @np.array([[1.0,  0.0, -left-width/2],
-                                          [0.0, -1.0,   top+height/2],
-                                          [0.0,  0.0,            1.0]]))
+                                          [0.0, -1.0,  top+height/2],
+                                          [0.0,  0.0,           1.0]]))
             self.__metres_per_pixel = scale
         else:
-            if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
+            # Add a margin around the base layer of a functional map
+            if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL
+            and self.kind == 'base'):
                 left -= FUNCTIONAL_MAP_MARGIN
                 top -= FUNCTIONAL_MAP_MARGIN
                 width += 2*FUNCTIONAL_MAP_MARGIN
@@ -142,7 +147,6 @@ class SVGSource(MapSource):
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
         self.__layer = SVGLayer(self.id, self, svg, exported=self.__exported, min_zoom=self.min_zoom)
-        self.add_layer(self.__layer)
         self.__boundary_geometry = None
 
     @property
@@ -162,11 +166,12 @@ class SVGSource(MapSource):
         self.__layer.process()
         if self.__layer.boundary_feature is not None:
             self.__boundary_geometry = self.__layer.boundary_feature.geometry
+        self.add_layer(self.__layer)
 
     def create_preview(self):
     #========================
         # Save a cleaned copy of the SVG in the map's output directory. Call after
-        # connectivity has been generated otherwise thno paths will be in the saved SVG
+        # connectivity has been generated otherwise no paths will be in the saved SVG
         cleaner = SVGCleaner(self.__source_file, self.flatmap.properties_store, all_layers=True)
         cleaner.clean()
         cleaner.add_connectivity_group(self.flatmap, self.__transform)
@@ -175,9 +180,17 @@ class SVGSource(MapSource):
         with open(cleaned_svg, 'wb') as fp:
             cleaner.save(fp)
 
-    def get_raster_source(self):
-    #===========================
-        return RasterSource('svg', self.__get_raster_data, source_path=self.__source_file)
+    def get_raster_sources(self) -> list[RasterSource]:
+    #==================================================
+        raster_sources = []
+        if (background := self.background_raster_source) is not None:
+            background_path = FilePath(background.href)
+            raster_sources.append(RasterSource(f'{self.id}_background', 'svg', background_path.get_data, self,
+                                               source_path=background_path, background_layer=True,
+                                               transform=Transform.Translate(background.translate)@Transform.Scale(background.scale)))
+        raster_sources.append(RasterSource(f'{self.id}_image', 'svg', self.__get_raster_data, self,
+                                           source_path=self.__source_file))
+        return raster_sources
 
     def __get_raster_data(self) -> bytes:
     #====================================
@@ -213,20 +226,31 @@ class SVGLayer(MapLayer):
                                              self.__transform,
                                              properties,
                                              None, show_progress=True)
-        features = self.__process_shapes(shapes)
+        self.__process_shapes(shapes)
 
     def __process_shapes(self, shapes: TreeList[Shape]) -> list[Feature]:
     #====================================================================
-        if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL and not self.source.kind == 'anatomical'):
+        if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL
+        and not self.source.kind == 'anatomical'):
             # CellDL conversion mode...
-            sc = ShapeClassifier(shapes.flatten(), self.source.map_area(), self.source.metres_per_pixel)
-            shapes = TreeList(sc.classify())
-        if self.source.base_feature is not None:
+            shape_classifier = ShapeClassifier(shapes.flatten(), self.source.map_area(), self.source.metres_per_pixel)
+            shapes = TreeList(shape_classifier.shapes)
+            if settings.get('exportBondgraphs', False):
+                bondgraph_file = pathlib_path(self.source.href).with_suffix('.bondgraph.ttl')
+                log.info(f'Exporting layer `{self.id}` to `{str(bondgraph_file)}`...')
+                bondgraph = BondgraphModel(self.id, shapes)
+                with open(bondgraph_file, 'wb') as fp:
+                    fp.write(bondgraph.as_turtle())
+        # Add a background shape behind a detailed functional map
+        if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL
+        and self.source.kind == 'functional'):
             bounds = self.source.bounds
-            margin = 0.02*(abs(bounds[2]-bounds[0])
-                         + abs(bounds[3]-bounds[1]))
-            bbox = shapely.geometry.box(*bounds).buffer(margin)
-            shapes.insert(0, Shape('background', bbox, {
+            margin = self.source.metres_per_pixel*DETAILED_MAP_BORDER
+            bounds = (bounds[0] + margin, bounds[1] - margin,
+                      bounds[2] - margin, bounds[3] - margin)
+            bbox = shapely.geometry.box(*bounds).buffer(2*margin)
+            shapes.insert(0, Shape(None, bbox, {
+                'id': 'background',
                 'tooltip': False,
                 'colour': 'white',
                 'kind': 'background'
@@ -353,6 +377,9 @@ class SVGLayer(MapLayer):
         and (geometry := self.__get_clip_geometry(clip_path_element, transform)) is not None):
             self.__clip_geometries.add(clip_id, geometry)
 
+    """
+    Get the geometry described by the children of a ``clipPath`` element
+    """
     def __get_clip_geometry(self, clip_path_element, transform) -> Optional[BaseGeometry]:
     #====================================================================================
         geometries = []
@@ -378,6 +405,8 @@ class SVGLayer(MapLayer):
         properties = parent_properties.copy()
         for name in NON_INHERITED_PROPERTIES:
             properties.pop(name, None)
+        if 'id' in element.attrib:
+            properties['id'] = element.attrib.get('id')
         properties.update(properties_from_markup)
         shape_id = properties.get('id')  ## versus element.attrib.get('id')
         if 'path' in properties:
@@ -414,7 +443,6 @@ class SVGLayer(MapLayer):
             return self.__process_group(wrapped_element, properties, transform, parent_style)
         elif element.tag == SVG_TAG('text'):
             geometry = self.__process_text(element, properties, transform)
-
             if geometry is not None:
                 return Shape(shape_id, geometry, properties, shape_type=SHAPE_TYPE.TEXT, svg_element=element)
         else:
@@ -541,12 +569,21 @@ class SVGLayer(MapLayer):
         if element_text == '':
             element_text = ' '
         font_manager = skia.FontMgr()
-        for font_family in style_rules.get('font-family', 'Calibri').split(','):
+        font_families = style_rules.get('font-family', 'Calibri')
+        for font_family in font_families.split(','):
             type_face = font_manager.matchFamilyStyle(font_family, font_style)
             if type_face is not None:
                 break
         if type_face is None:
-            type_face = font_manager.matchFamilyStyle(None, font_style)
+            if 'Calibri' not in font_families:
+                log.warning('Cannot get font information (missing fonts?), trying Calibri', font=font_families, text=element_text)
+                type_face = font_manager.matchFamilyStyle('Calibri', font_style)
+                if type_face is None:
+                    log.warning('Cannot get font information for Calibri', font='Calibri')
+                    type_face = font_manager.matchFamilyStyle(None, font_style)
+            else:
+                log.warning('Cannot get font information (missing fonts?)', font=font_families)
+                type_face = font_manager.matchFamilyStyle(None, font_style)
         font = skia.Font(type_face, length_as_points(style_rules.get('font-size', 10)))
         bounds = skia.Rect()
         width = font.measureText(element_text, skia.TextEncoding.kUTF8, bounds)

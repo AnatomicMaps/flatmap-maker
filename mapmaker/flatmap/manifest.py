@@ -20,6 +20,7 @@
 
 from collections import namedtuple
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 import multiprocessing
@@ -59,6 +60,7 @@ def clone_from_with_timeout(repo_path: str, working_directory: str) -> git.Repo:
 
 #===============================================================================
 
+from mapmaker.settings import MAP_KIND
 from mapmaker.utils import log, FilePath
 
 #===============================================================================
@@ -166,30 +168,64 @@ class MapRepository:
 
 #===============================================================================
 
+@dataclass
+class SourceBackground:
+    href: str
+    scale: float
+    translate: tuple[float, float]
+
+#===============================================================================
+
 class SourceManifest:
     def __init__(self, description: dict, manifest: 'Manifest'):
         self.__id = description['id']
-        href = manifest.check_and_normalise_path(description['href'], 'Flatmap source file')
-        if href is None:
-            raise ValueError('Source in manifest has no `href`')
+        if (href := manifest.check_and_normalise_path(description.get('href'), 'Flatmap source file')) is None:
+            raise ValueError(f'Source {self.__id} in manifest has no `href`')
         self.__href = href
         self.__kind = description.get('kind', '')
         self.__boundary = description.get('boundary')
+        self.__description = description.get('description')
         self.__detail_fit = description.get('detail-fit')
+        self.__details = description.get('details')
         self.__feature = description.get('feature')
+        self.__alignment = [(features[0], features[1]) for features in description.get('alignment', [])]
         self.__source_range = (([int(n) for n in source_range] if isinstance(source_range, list)
                                                                else [int(source_range)])
                                     if (source_range := description.get('slides')) is not None
                                     else None)
         self.__zoom = description['zoom'] if self.__feature is not None else 0
+        if (background := description.get('background')) is not None:
+            if (href := manifest.check_and_normalise_path(background.get('href'), 'Background source file')) is None:
+                raise ValueError(f'Background for source {self.__id} has no `href`')
+            self.__background_source = SourceBackground(href,
+                                            float(background.get('scale', 1.0)),
+                                            tuple(float(t) for t in background.get('translate', [0, 0]))[0:2])   # type: ignore
+        else:
+            self.__background_source = None
+
+    @property
+    def alignment(self) -> list[tuple[str, str]]:
+        return self.__alignment
+
+    @property
+    def background_source(self) -> Optional[SourceBackground]:
+        return self.__background_source
 
     @property
     def boundary(self) -> Optional[str]:
         return self.__boundary
 
     @property
+    def description(self) -> Optional[str]:
+        return self.__description
+
+    @property
     def detail_fit(self) -> Optional[str]:
         return self.__detail_fit
+
+    @property
+    def details(self) -> Optional[str]:
+        return self.__details
 
     @property
     def feature(self) -> Optional[str]:
@@ -301,6 +337,11 @@ class Manifest:
             if not ignore_git and self.__uncommitted:
                 raise ValueError("Not all sources are commited into git -- was the '--authoring' or '--ignore-git' option intended?")
 
+        self.__map_kinds = self.__manifest.get('kind', 'anatomical').split()
+        self.__map_kind = (MAP_KIND.FUNCTIONAL if 'functional' in self.__map_kinds
+                      else MAP_KIND.CENTRELINE if 'centreline' in self.__map_kinds
+                      else MAP_KIND.ANATOMICAL)
+
     @property
     def anatomical_map(self):
         return self.__manifest.get('anatomicalMap')
@@ -358,8 +399,12 @@ class Manifest:
         return self.__manifest['id']
 
     @property
-    def kind(self):                 #! Either ``anatomical`` or ``functional``
-        return self.__manifest.get('kind', 'anatomical')
+    def map_kinds(self) -> list[str]:
+        return self.__map_kinds
+
+    @property
+    def map_kind(self) -> MAP_KIND:
+        return self.__map_kind
 
     @property
     def raw_manifest(self):
@@ -397,9 +442,9 @@ class Manifest:
         if self.__temp_directory is not None:
             shutil.rmtree(self.__temp_directory)
 
-    def check_and_normalise_path(self, path: str, desc: str='') -> str|None:
-    #=======================================================================
-        if path.strip() == '':
+    def check_and_normalise_path(self, path: Optional[str], desc: str='') -> str|None:
+    #=================================================================================
+        if path is None or path.strip() == '':
             return None
         normalised_path = self.__path.join_url(path)
         if not self.__ignore_git:

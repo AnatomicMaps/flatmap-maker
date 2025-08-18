@@ -109,6 +109,16 @@ class PropertiesStore(object):
                            if manifest.proxy_features is not None
                            else [])
 
+        # Feature groups by layer
+        self.__feature_groups: dict[str, dict[str, list[str]]] = {}
+        for group_defns in properties_dict.get('feature-groups', []):
+            if 'layer' in group_defns:
+                feature_groups: dict[str, list[str]] = {}
+                for group in group_defns.get('groups', []):
+                    if 'id' in group:
+                        feature_groups[group['id']] = group.get('features', [])
+                self.__feature_groups[group_defns['layer']] = feature_groups
+
     @property
     def connectivity(self):
         return self.__pathways.connectivity
@@ -133,6 +143,13 @@ class PropertiesStore(object):
     def node_hierarchy(self):
         return self.__pathways.node_hierarchy
 
+    """
+    Get the feature group definitions for a layer
+    """
+    def feature_groups(self, layer_id: str) -> dict[str, list[str]]:
+    #==============================================================
+        return self.__feature_groups.get(layer_id, {})
+
     def network_feature(self, feature):
     #==================================
         # Is the ``feature`` included in some network?
@@ -151,6 +168,10 @@ class PropertiesStore(object):
     #============================================
         if isinstance(features, dict):
             for id, properties in features.items():
+                id = id.replace(' ', '_')
+                if (associated_details := properties.get('associated-details')) is not None:
+                    if isinstance(associated_details, str):
+                        properties['associated-details'] = [associated_details]
                 self.__properties_by_id[id].update(properties)
                 if (properties.get('type') == 'nerve'
                 and (entity := properties.get('models')) is not None):
@@ -199,6 +220,10 @@ class PropertiesStore(object):
     #===============================================
         classes = feature_properties.get('class', '').split()
         id = feature_properties.get('id')
+        if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL and id not in self.__properties_by_id:
+            # Use the feature's name to lookup properties when the feature has no ID
+            if (name := feature_properties.get('name', '').replace(' ', '_')) != '':
+                id = f'{feature_properties.get('layer', '')}/{name}'
         if id is not None:
             classes.extend(self.__properties_by_id.get(id, {}).get('class', '').split())
         for cls in classes:

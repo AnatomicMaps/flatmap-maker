@@ -19,6 +19,7 @@
 #===============================================================================
 
 from math import acos, cos, sin, sqrt, pi as PI
+from typing import Self
 import warnings
 
 #===============================================================================
@@ -67,31 +68,45 @@ mercator_transformer = pyproj.Transformer.from_proj(
 
 warnings.simplefilter(action='default', category=FutureWarning)
 
-# (SE, NW) bounds as decimal coordinates
+# (SW, NE) bounds as decimal coordinates
 MapBounds = tuple[float, float, float, float]
+
+# (SW, NE) bounds as lng/lat coordinates
+MapExtent = tuple[float, float, float, float]
 
 #===============================================================================
 
-def bounds_to_extent(bounds):
-#============================
+def bounds_centroid(bounds: MapBounds) -> tuple[float, float]:
+#=============================================================
+    return ((bounds[0] + bounds[2])/2, (bounds[1] + bounds[3])/2)
+
+def bounds_to_extent(bounds: MapBounds) -> MapExtent:
+#====================================================
     sw = mercator_transformer.transform(*bounds[:2])
     ne = mercator_transformer.transform(*bounds[2:])
     return (sw[0], sw[1], ne[0], ne[1])
 
-def extent_to_bounds(extent):
-#============================
+def extent_to_bounds(extent: MapExtent) -> MapBounds:
+#====================================================
     sw = mercator_transformer.transform(*extent[:2], direction=pyproj.enums.TransformDirection.INVERSE)     # type: ignore
     ne = mercator_transformer.transform(*extent[2:], direction=pyproj.enums.TransformDirection.INVERSE)     # type: ignore
     return (sw[0], sw[1], ne[0], ne[1])
 
-def mercator_transform(geometry):
-#================================
+def mercator_transform(geometry: BaseGeometry) -> BaseGeometry:
+#==============================================================
     return shapely.ops.transform(mercator_transformer.transform, geometry)
 
 def merge_bounds(bounds_0: MapBounds, bounds_1: MapBounds) -> MapBounds:
 #=======================================================================
     return (min(bounds_0[0], bounds_1[0]), min(bounds_0[1], bounds_1[1]),
             max(bounds_0[2], bounds_1[2]), max(bounds_0[3], bounds_1[3]))
+
+def translate_extent(extent: MapExtent, offset: tuple[float, float]) -> MapBounds:
+#=================================================================================
+    bounds = extent_to_bounds(extent)
+    bds = (bounds[0] + offset[0], bounds[1] + offset[1],
+           bounds[2] + offset[0], bounds[3] + offset[1])
+    return bounds_to_extent(bds)
 
 #===============================================================================
 
@@ -102,7 +117,7 @@ class Transform(object):
                                                 self.__matrix[1, 0:2],
                                                 self.__matrix[0:2, 2]), axis=None).tolist()
 
-    def __matmul__(self, transform):
+    def __matmul__(self, transform) -> 'Transform':
         if isinstance(transform, Transform):
             return Transform(self.__matrix@np.array(transform.__matrix))
         else:
@@ -112,33 +127,39 @@ class Transform(object):
         return str(self.__matrix)
 
     @classmethod
-    def Identity(cls):
+    def Identity(cls) -> Self:
         return cls(np.identity(3))
 
     @classmethod
-    def scale(cls, scale: float):
+    def Scale(cls, scale: float) -> Self:
         return cls([[scale, 0, 0], [0, scale, 0], [0, 0, 1]])
 
     @classmethod
-    def translate(cls, tx: float, ty: float):
-        return cls([[1, 0, tx], [0, 1, ty], [0, 0, 1]])
+    def Translate(cls, translate: tuple[float, float]) -> Self:
+        return cls([[1, 0, translate[0]],
+                    [0, 1, translate[1]],
+                    [0, 0,            1]])
 
     @property
-    def matrix(self):
+    def is_identity(self) -> bool:
+        return np.allclose(self.__matrix, np.identity(3))
+
+    @property
+    def matrix(self) -> np.ndarray:
         return self.__matrix
 
     @property
-    def svg_matrix(self):
+    def svg_matrix(self) -> np.ndarray:
         return np.array([self.__matrix[0, 0], self.__matrix[1, 0],
                          self.__matrix[0, 1], self.__matrix[1, 1],
                          self.__matrix[0, 2], self.__matrix[1, 2]])
 
-    def flatten(self):
-    #=================
+    def flatten(self) -> np.ndarray:
+    #===============================
         return self.__matrix.flatten()
 
-    def inverse(self):
-    #=================
+    def inverse(self) -> 'Transform':
+    #================================
         return Transform(np.linalg.inv(self.__matrix))
 
     def rotate_angle(self, angle):
@@ -151,6 +172,12 @@ class Transform(object):
         while angle >= 2*PI:
             angle -= 2*PI
         return angle
+
+    def scale(self, scale: float) -> 'Transform':
+    #================================
+        return Transform([[scale*self.__matrix[0, 0],       self.__matrix[0, 1], self.__matrix[0, 2]],
+                          [      self.__matrix[1, 0], scale*self.__matrix[1, 1], self.__matrix[1, 2]],
+                          [      self.__matrix[2, 0],       self.__matrix[2, 1], self.__matrix[2, 2]]])
 
     def scale_length(self, length):
     #==============================
@@ -171,6 +198,12 @@ class Transform(object):
     def transform_point(self, point) -> tuple[float, float]:
     #=======================================================
         return tuple(self.__matrix@[point[0], point[1], 1.0])[:2]
+
+    def translate(self, translation: tuple[float, float]) -> 'Transform':
+    #====================================================================
+        return Transform([[self.__matrix[0, 0], self.__matrix[0, 1], translation[0] + self.__matrix[0, 2]],
+                          [self.__matrix[1, 0], self.__matrix[1, 1], translation[1] + self.__matrix[1, 2]],
+                          [self.__matrix[2, 0], self.__matrix[2, 1],                  self.__matrix[2, 2]]])
 
 #===============================================================================
 

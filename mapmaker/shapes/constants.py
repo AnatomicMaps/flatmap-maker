@@ -23,6 +23,11 @@ MAX_PARALLEL_SKEW = 0.001
 
 #===============================================================================
 
+# The ratio of the difference between the lengths of a candidate arrow's point
+# edges and their sum must be less than 0.001
+
+ARROW_POINT_EPSILON = 1e-3
+
 # The ratio of the actual overlap to the combined length of parallel edges needs
 # to be at least 0.6 for them to be candidates for merging into a line
 
@@ -37,8 +42,13 @@ MIN_LINE_ASPECT_RATIO = 1.5     #
 
 MAX_LINE_WIDTH = 20             # Close together parallel edges a polygons are converted to lines
 
-MAX_TEXT_VERTICAL_OFFSET = 5    # Between cluster baseline and baselines of text in the cluster
+MAX_TEXT_VERTICAL_OFFSET = 3    # Between cluster baseline and baselines of text in the cluster
 TEXT_BASELINE_OFFSET = -14.5    # From vertical centre of a component
+
+TEXT_COMPONENT_HEIGHT = 75000   # World metres height of an "average" component
+
+# Text shapes need at least 80% containment in their parent
+MIN_TEXT_INSIDE = 0.8
 
 #===============================================================================
 
@@ -46,5 +56,10 @@ TEXT_BASELINE_OFFSET = -14.5    # From vertical centre of a component
 
 COMPONENT_BORDER_WIDTH = 2
 CONNECTION_STROKE_WIDTH = 2
+
+#===============================================================================
+
+SHAPE_ERROR_COLOUR = 'yellow'
+SHAPE_ERROR_BORDER = 'red'
 
 #===============================================================================

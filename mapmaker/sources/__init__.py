@@ -18,7 +18,6 @@
 #
 #===============================================================================
 
-from io import BytesIO
 from typing import Callable, Optional, TYPE_CHECKING
 
 #===============================================================================
@@ -29,13 +28,14 @@ import numpy as np
 #===============================================================================
 
 from mapmaker.geometry import bounds_to_extent, MapBounds, Transform
-from mapmaker.flatmap import SourceManifest, SOURCE_DETAIL_KINDS
-from mapmaker.flatmap.layers import PATHWAYS_TILE_LAYER
+from mapmaker.flatmap import SourceBackground, SourceManifest, SOURCE_DETAIL_KINDS
+from mapmaker.flatmap.layers import MapLayer, PATHWAYS_TILE_LAYER
 from mapmaker.properties.markup import parse_markup
+from mapmaker.shapes import Shape
 from mapmaker.utils import FilePath
 
 if TYPE_CHECKING:
-    from mapmaker.flatmap import FlatMap, MapLayer
+    from mapmaker.flatmap import FlatMap
 
 #===============================================================================
 
@@ -113,7 +113,7 @@ def mask_image(image, mask_polygon):
     if image.shape[2] == 4:
         mask[:, :, 3] = 0
     mask_color = (0,)*image.shape[2]
-    cv2.fillPoly(mask, np.array([mask_polygon.exterior.coords], dtype=np.int32),
+    cv2.fillPoly(mask, np.array([mask_polygon.exterior.coords], dtype=np.int32),    # type: ignore
                  color=mask_color, lineType=cv2.LINE_AA)
     return cv2.bitwise_or(image, mask)
 
@@ -131,28 +131,38 @@ class MapSource(object):
         self.__kind = source_manifest.kind
         self.__source_range = source_manifest.source_range
         self.__errors: list[tuple[str, str]] = []
-        self.__layers: list['MapLayer'] = []
+        self.__layers: list[MapLayer] = []
         self.__bounds: MapBounds = (0, 0, 0, 0)
-        self.__raster_source = None
+        self.__raster_sources = None
+        self.__background_raster_source = source_manifest.background_source
+        self.__zoom_point_id = None
         if self.__kind in SOURCE_DETAIL_KINDS:
             if source_manifest.feature is None:
                 raise ValueError('A `detail` source must specify an existing `feature`')
             if source_manifest.zoom < 1:
                 raise ValueError('A `detail` source must specify `zoom`')
-            if ((feature := flatmap.get_feature_by_name(source_manifest.feature)) is None
-            and (feature := flatmap.get_feature(source_manifest.feature)) is None):
+            if (feature := flatmap.get_feature(source_manifest.feature)) is None:
                 raise ValueError(f'Unknown source feature: {source_manifest.feature}')
             feature.set_property('maxzoom', source_manifest.zoom-1)
-            feature.set_property('kind', 'expandable')
+            if source_manifest.kind == 'functional':
+                details_for = source_manifest.details if source_manifest.details is not None else source_manifest.feature
+                if (detail_feature := flatmap.get_feature(details_for)) is None:
+                    raise ValueError(f'Unknown source feature: {details_for}')
+                self.__zoom_point_id = flatmap.add_details_layer(detail_feature, self.id, source_manifest.description)
             self.__min_zoom = source_manifest.zoom
             self.__base_feature = feature
         else:
             self.__min_zoom = flatmap.min_zoom
             self.__base_feature = None
+        self.__feature_alignment = source_manifest.alignment
 
     @property
     def annotator(self):
         return None
+
+    @property
+    def background_raster_source(self) -> Optional[SourceBackground]:
+        return self.__background_raster_source
 
     @property
     def base_feature(self):
@@ -195,7 +205,7 @@ class MapSource(object):
         return self.__kind
 
     @property
-    def layers(self) -> list['MapLayer']:
+    def layers(self) -> list[MapLayer]:
         return self.__layers
 
     @property
@@ -207,10 +217,10 @@ class MapSource(object):
         return self.__min_zoom
 
     @property
-    def raster_source(self) -> 'RasterSource':
-        if self.__raster_source is None:
-            self.__raster_source = self.get_raster_source()
-        return self.__raster_source     # type: ignore
+    def raster_sources(self) -> list['RasterSource']:
+        if self.__raster_sources is None:
+            self.__raster_sources = self.get_raster_sources()
+        return self.__raster_sources     # type: ignore
 
     @property
     def href(self):
@@ -224,8 +234,15 @@ class MapSource(object):
     def transform(self) -> Optional[Transform]:
         return None
 
-    def add_layer(self, layer: 'MapLayer'):
-    #======================================
+    @property
+    def zoom_point_id(self):
+        return self.__zoom_point_id
+
+    def add_layer(self, layer: MapLayer):
+    #====================================
+        layer.create_feature_groups()
+        if len(self.__feature_alignment):
+            layer.align_layer(self.__feature_alignment)
         self.__layers.append(layer)
 
     def create_preview(self):
@@ -236,8 +253,8 @@ class MapSource(object):
     #====================================
         self.__errors.append((kind, msg))
 
-    def filter_map_shape(self, shape):
-    #=================================
+    def filter_map_shape(self, shape: Shape):
+    #========================================
         return
 
     def map_area(self) -> float:
@@ -272,18 +289,28 @@ class MapSource(object):
     #=========================
         raise TypeError('`process()` must be implemented by `MapSource` sub-class')
 
-    def get_raster_source(self) -> Optional['RasterSource']:
-    #=======================================================
-        return None
+    def get_raster_sources(self) -> list['RasterSource']:
+    #====================================================
+        return []
 
 #===============================================================================
 
 class RasterSource(object):
-    def __init__(self, kind: str, get_data: Callable[[], bytes], source_path: Optional[FilePath]=None):
+    def __init__(self, id: str, kind: str, get_data: Callable[[], bytes],
+                 map_source: MapSource, source_path: Optional[FilePath]=None,
+                 background_layer: bool=False, transform: Optional[Transform]=None):
+        self.__id = id
         self.__kind = kind
         self.__get_data = get_data
         self.__data = None
+        self.__map_source = map_source
         self.__source_path = source_path
+        self.__background_layer = background_layer
+        self.__transform = transform
+
+    @property
+    def background_layer(self):
+        return self.__background_layer
 
     @property
     def data(self) -> bytes:
@@ -292,12 +319,24 @@ class RasterSource(object):
         return self.__data
 
     @property
+    def id(self) -> str:
+        return self.__id
+
+    @property
     def kind(self) -> str:
         return self.__kind
 
     @property
+    def map_source(self):
+        return self.__map_source
+
+    @property
     def source_path(self) -> Optional[FilePath]:
         return self.__source_path
+
+    @property
+    def transform(self) -> Optional[Transform]:
+        return self.__transform
 
 #===============================================================================
 

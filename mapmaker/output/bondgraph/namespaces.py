@@ -1,8 +1,8 @@
 #===============================================================================
 #
-#  Flatmap viewer and annotation tools
+#  Flatmap maker and annotation tools
 #
-#  Copyright (c) 2020 - 2023 David Brooks
+#  Copyright (c) 2019 - 2025  David Brooks
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -18,27 +18,30 @@
 #
 #===============================================================================
 
-"""
-Slashes aren't valid in SVG (XML) IDs so we replace them with periods (``.``)
-
-In practice, feature IDs are have the form ``LAYER_NAME/Slide-N/NNNNN`` and
-won't contain any embedded periods.
-"""
-def svg_id(shape_id: str) -> str:
-#================================
-    shape_id = shape_id.split('/')[-1]
-    if shape_id.startswith('SHAPE_'):
-        shape_id = f'ID-{shape_id[6:].zfill(8)}'
-    return shape_id
-
-def name_from_id(id):
-#====================
-    return id.capitalize().replace('/', ' - ').replace('_', ' ')
+import rdflib
 
 #===============================================================================
 
-def css_class(cls):
-#==================
-    return cls.replace(':', '-')
+DCT = rdflib.Namespace('http://purl.org/dc/terms/')
+CDT = rdflib.Namespace('https://w3id.org/cdt/')
+RDF = rdflib.Namespace('http://www.w3.org/1999/02/22-rdf-syntax-ns#')
+RDFS = rdflib.Namespace('http://www.w3.org/2000/01/rdf-schema#')
+
+#===============================================================================
+
+BG = rdflib.Namespace('http://celldl.org/ontologies/bondgraph#')
+BGF = rdflib.Namespace('http://celldl.org/ontologies/bondgraph-framework#')
+MODEL = rdflib.Namespace('#')
+
+#===============================================================================
+
+NAMESPACES = {
+    'bg': BG,
+    'bgf': BGF,
+    'cdt': CDT,
+    'dct': DCT,
+    'rdfs': RDFS,
+    '': MODEL
+}
 
 #===============================================================================

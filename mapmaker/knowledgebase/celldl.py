@@ -1,6 +1,6 @@
 #===============================================================================
 #
-#  Flatmap viewer and annotation tools
+#  Flatmap maker and annotation tools
 #
 #  Copyright (c) 2019 - 2023  David Brooks
 #
@@ -19,6 +19,8 @@
 #===============================================================================
 
 import base64
+from datetime import datetime, UTC
+from typing import Optional
 import zlib
 
 #===============================================================================
@@ -27,12 +29,12 @@ import rdflib                                                   # type: ignore
 
 #===============================================================================
 
-from mapmaker.shapes import Shape
+from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.utils.svg import svg_id
 
 #===============================================================================
 
-CELLDL_SCHEMA_VERSION = '1.0'
+CELLDL_SCHEMA_VERSION = '2.0'
 
 #===============================================================================
 
@@ -40,11 +42,15 @@ class CD_CLASS:
     UNKNOWN    = 'celldl:Unknown'
     LAYER      = 'celldl:Layer'
 
+    ANNOTATION = 'celldl:Annotation'
+
     COMPONENT  = 'celldl:Component'     # What has CONNECTORs
 
     CONNECTOR  = 'celldl:Connector'     # What a CONNECTION connects to
     CONNECTION = 'celldl:Connection'    # The path between CONNECTORS
     CONDUIT    = 'celldl:Conduit'       # A container for CONNECTIONs
+
+    PORT       = 'celldl:UnconnectedPort'
 
     MEMBRANE   = 'celldl:Membrane'      # A boundary around a collection of COMPONENTS
 
@@ -107,21 +113,35 @@ class FC_KIND:
 
 #===============================================================================
 
-RDF = rdflib.Namespace('http://www.w3.org/1999/02/22-rdf-syntax-ns#')
-RDFS = rdflib.Namespace('http://www.w3.org/2000/01/rdf-schema#')
-
-CELLDL = rdflib.Namespace('http://celldl.org/ontologies/celldl#')
-FC = rdflib.Namespace('http://celldl.org/ontologies/functional-connectivity#')
-
-FLATMAP = rdflib.Namespace('#')
+DCT_NS = rdflib.Namespace('http://purl.org/dc/terms/')
+RDF_NS = rdflib.Namespace('http://www.w3.org/1999/02/22-rdf-syntax-ns#')
+RDFS_NS = rdflib.Namespace('http://www.w3.org/2000/01/rdf-schema#')
 
 #===============================================================================
 
-CELLDL_TYPE = {
-    CD_CLASS.CONDUIT: CELLDL.Conduit,
-    CD_CLASS.CONNECTION: CELLDL.Connection,
-    CD_CLASS.CONNECTOR: CELLDL.Connector,
-    CD_CLASS.COMPONENT: CELLDL.Component,
+BG_NS = rdflib.Namespace('http://celldl.org/ontologies/bond-graph#')
+CELLDL_NS = rdflib.Namespace('http://celldl.org/ontologies/celldl#')
+FC_NS = rdflib.Namespace('http://celldl.org/ontologies/functional-connectivity#')
+
+STANDARD_NAMESPACES = {
+    'celldl': CELLDL_NS,
+    'dct': DCT_NS
+}
+
+KNOWN_NAMESPACES = {
+    'bg': BG_NS,
+    'fc': FC_NS,
+}
+
+#===============================================================================
+
+CELLDL_TYPE_FROM_CLASS = {
+    CD_CLASS.ANNOTATION: CELLDL_NS.Annotation,
+    CD_CLASS.CONDUIT: CELLDL_NS.Conduit,
+    CD_CLASS.CONNECTION: CELLDL_NS.Connection,
+    CD_CLASS.CONNECTOR: CELLDL_NS.Connector,
+    CD_CLASS.COMPONENT: CELLDL_NS.Component,
+    CD_CLASS.PORT: CELLDL_NS.UnconnectedPort,
 }
 
 #===============================================================================
@@ -130,47 +150,76 @@ GZIP_BASE64_DATA_URI = 'data:application/gzip;base64,'
 
 #===============================================================================
 
-class CellDLGraph:
-    def __init__(self):
-        self.__graph = rdflib.Graph()
-        self.__graph.bind('celldl', str(CELLDL))
-        self.__graph.bind('fc', str(FC))
-        this = FLATMAP['']
-        self.__graph.add((this, RDF.type, CELLDL.Document))
-        self.__graph.add((this, CELLDL.schema, rdflib.Literal(CELLDL_SCHEMA_VERSION)))
-        self.__graph.add((this, RDF.type, FC.Diagram))
+CELLDL_CLASS_FROM_SHAPE_TYPE = {
+    SHAPE_TYPE.ANNOTATION: CD_CLASS.ANNOTATION,
+    SHAPE_TYPE.COMPONENT: CD_CLASS.COMPONENT,
+    SHAPE_TYPE.CONNECTION: CD_CLASS.CONNECTION,
+    SHAPE_TYPE.CONTAINER: CD_CLASS.COMPONENT,
+    SHAPE_TYPE.PORT: CD_CLASS.PORT,
+}
 
-    def add_metadata(self, shape: Shape):
-    #====================================
-        if shape.exclude or shape.cd_class not in CELLDL_TYPE:
+#===============================================================================
+
+DIAGRAM_NS = rdflib.Namespace('#')
+
+def make_uri(shape_id: str) -> rdflib.URIRef:
+    return DIAGRAM_NS[svg_id(shape_id)]
+
+#===============================================================================
+
+class CellDLGraph:
+    def __init__(self, diagram_type: Optional[rdflib.URIRef]=None):
+        self.__graph = rdflib.Graph()
+        self.__diagram = make_uri('')
+        self.__graph.bind('', str(DIAGRAM_NS))
+        for (prefix, ns) in STANDARD_NAMESPACES.items():
+            self.__graph.bind(prefix, str(ns))
+        self.__graph.add((self.__diagram, RDF_NS.type, CELLDL_NS.Document))
+        self.__graph.add((self.__diagram, CELLDL_NS.schema, rdflib.Literal(CELLDL_SCHEMA_VERSION)))
+        if diagram_type is not None:
+            for (prefix, ns) in KNOWN_NAMESPACES.items():
+                if str(diagram_type).startswith(str(ns)):
+                    self.__graph.bind(prefix, str(ns))
+            self.__graph.add((self.__diagram, RDF_NS.type, diagram_type))
+        self.__graph.add((self.__diagram, DCT_NS.created, rdflib.Literal(datetime.now(UTC).isoformat())))
+
+    def add_shape(self, shape: Shape) -> Optional[str]:
+    #==================================================
+        if (shape.exclude
+         or shape.shape_type not in CELLDL_CLASS_FROM_SHAPE_TYPE
+         or shape.id is None):
             return
-        this = FLATMAP[svg_id(shape.id)]
-        self.__graph.add((this, RDF.type, CELLDL_TYPE[shape.cd_class]))
-        self.__graph.add((this, RDF.type, FC[shape.fc_class.split(':')[-1]]))
+        this = make_uri(shape.id)
+        celldl_class = CELLDL_CLASS_FROM_SHAPE_TYPE[shape.shape_type]
+        self.__graph.add((this, RDF_NS.type, CELLDL_TYPE_FROM_CLASS[celldl_class]))
         if shape.label:
-            self.__graph.add((this, RDFS.label, rdflib.Literal(shape.label))) ## add port/node in XXX ??
+            self.__graph.add((this, RDFS_NS.label, rdflib.Literal(shape.label))) ## add port/node in XXX ??
         if (shape.name
             and (shape.label is None
               or shape.name.lower() != shape.label.lower())):
-            self.__graph.add((this, RDFS.comment, rdflib.Literal(shape.name)))
-        ## models (layers...)
-        if shape.cd_class == CD_CLASS.CONNECTION:
-            if shape.fc_class == FC_CLASS.NEURAL:
-                self.__graph.add((this, FC.connectionType, rdflib.Literal(shape.path_type.name)))
-            for id in shape.connector_ids:
-                self.__graph.add((this, CELLDL.hasConnector, FLATMAP[svg_id(id)]))
-            for id in shape.intermediate_connectors:
-                self.__graph.add((this, CELLDL.hasIntermediate, FLATMAP[svg_id(id)]))
-            for id in shape.intermediate_components:
-                self.__graph.add((this, CELLDL.hasIntermediate, FLATMAP[svg_id(id)]))
+            self.__graph.add((this, RDFS_NS.comment, rdflib.Literal(shape.name)))
+        if celldl_class == CD_CLASS.CONNECTION:
+            if (source := shape.get_property('source')) is not None:
+                self.__graph.add((this, CELLDL_NS.hasSource, make_uri(source)))
+            if (target := shape.get_property('target')) is not None:
+                self.__graph.add((this, CELLDL_NS.hasTarget, make_uri(target)))
+        return celldl_class.replace(':', '-')
 
     def as_encoded_turtle(self):
     #===========================
         turtle = self.__graph.serialize(format='turtle', encoding='utf-8')
         return f'{GZIP_BASE64_DATA_URI}{base64.b64encode(zlib.compress(turtle)).decode()}'
 
-    def as_xml(self):
-    #================
+    def as_turtle(self) -> bytes:
+    #============================
+        return self.__graph.serialize(format='turtle', encoding='utf-8')
+
+    def as_xml(self) -> bytes:
+    #=========================
         return self.__graph.serialize(format='xml', encoding='utf-8')
+
+    def set_property(self, property: rdflib.URIRef, value: rdflib.Literal|rdflib.URIRef):
+    #====================================================================================
+        self.__graph.add((self.__diagram, property, value))
 
 #===============================================================================

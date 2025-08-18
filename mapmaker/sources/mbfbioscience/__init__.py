@@ -159,8 +159,8 @@ class MBFSource(MapSource):
             self.__image = mask_image(self.__image,
                                       self.__world_to_image.transform_geometry(boundary_geometry))
 
-    def get_raster_source(self):
-    #============================
-        return RasterSource('image', lambda: self.__image)
+    def get_raster_sources(self) -> list[RasterSource]:
+    #==================================================
+        return [RasterSource(f'{self.id}_image', 'image', lambda: self.__image.tobytes(), self)]
 
 #===============================================================================

@@ -21,10 +21,12 @@
 import json
 import os
 import pathlib
+import multiprocessing
 import multiprocessing.connection
 import shutil
 import subprocess
 import uuid
+from typing import Any
 
 #===============================================================================
 
@@ -77,14 +79,19 @@ INVALID_PUBLISHING_OPTIONS = [
 
 #===============================================================================
 
-class MapMaker(object):
-    def __init__(self, options):
+class MapMaker:
+    def __init__(self, options: dict[str, Any]):
         # ``silent`` implies not ``verbose``
         if options.get('silent', False):
             options['verbose'] = False
 
         if options.get('sckanVersion') is not None and not options.get('ignoreGit', False):
             raise ValueError('`--ignore-git` must be set when `--sckan-version` is used')
+
+        # For when we try to make() an invalid configuration
+        process_log_queue = options.pop('logQueue', None)
+        self.__tell_manager = process_log_queue is not None
+        self.__valid_configuration = False
 
         # Setup logging
         if (log_file := options.get('logFile')) is None:
@@ -93,10 +100,12 @@ class MapMaker(object):
 
         if options.get('silent', False) and log_file is None:
             raise ValueError('`--silent` option requires `--log LOG_FILE` to be given')
-        self.__file_log = configure_logging(log_file,
+        self.__file_log = configure_logging(
+            log_json_file=log_file,
             verbose=options.get('verbose', False),
             silent=options.get('silent', False),
-            debug=options.get('debug', False))
+            debug=options.get('debug', False),
+            log_queue=process_log_queue)
         log.info('Mapmaker', version=__version__)
 
         # Default base output directory to ``./flatmaps``.
@@ -156,6 +165,7 @@ class MapMaker(object):
 
         # Make sure our top-level directory exists
         map_base = options.get('output')
+        assert map_base is not None
         if not os.path.exists(map_base):
             os.makedirs(map_base)
 
@@ -214,11 +224,12 @@ class MapMaker(object):
         if os.path.exists(self.__map_dir):
             if os.path.exists(self.__maker_sentinel):
                 self.__clean_up(remove_sentinel=False)
-                raise MakerException('Last making of map failed -- use `--force` to re-make')
-            log.info('Map already exists -- use `--force` to re-make', id=self.id, uuid=self.uuid, path=self.__map_dir)
-            self.__clean_up()
-            exit(0)
+                log.error('Last making of map failed -- use `--force` to re-make', id=self.id, uuid=self.uuid, path=self.__map_dir)
+            else:
+                log.info('Map already exists -- use `--force` to re-make', id=self.id, uuid=self.uuid, path=self.__map_dir)
+            return
         else:
+            self.__valid_configuration = True
             os.makedirs(self.__map_dir)
 
         # Create an empty sentinel
@@ -266,6 +277,10 @@ class MapMaker(object):
 
     def make(self):
     #==============
+        if self.__tell_manager and not self.__valid_configuration:
+            log.critical('Mapmaker failed')
+            return
+
         self.__begin_make()
 
         # Process flatmap's sources to create MapLayers
@@ -298,6 +313,14 @@ class MapMaker(object):
         # Save the flatmap's metadata
         self.__save_metadata()
 
+        # We now have successfully generated the flatmap
+        generated_map = {'id': self.id, 'uuid': self.uuid, 'path': self.__map_dir}
+        if self.__flatmap.models is not None:
+            generated_map['models'] = self.__flatmap.models
+        log.info('Generated map', **generated_map)
+        if self.__tell_manager:
+            log.critical('Mapmaker succeeded', **generated_map)
+
         # Write out details of FC neurons if option set
         if (export_file := settings.get('exportNeurons')) is not None:
             with open(export_file, 'w') as fp:
@@ -317,12 +340,6 @@ class MapMaker(object):
             sparc_dataset = SparcDataset(self.__flatmap)
             sparc_dataset.generate()
             sparc_dataset.save(sds_output)
-
-        # Show what the map is about
-        log_details = {'id': self.id, 'uuid': self.uuid, 'path': self.__map_dir}
-        if self.__flatmap.models is not None:
-            log_details['models'] = self.__flatmap.models
-        log.info('Generated map', **log_details)
 
         # Tidy up
         self.__clean_up()
@@ -351,6 +368,7 @@ class MapMaker(object):
         # Remove any temporary directory created for the map's sources
         self.__manifest.clean_up()
 
+        # Copy the log file into the generated map's directory
         if self.__file_log is not None:
             maker_log = os.path.join(self.__map_dir, MAKER_LOG)
             if not os.path.exists(maker_log):
@@ -417,8 +435,11 @@ class MapMaker(object):
         tilemakers = []
         for layer in self.__flatmap.layers:
             for raster_layer in layer.raster_layers:
-                tilemaker = RasterTileMaker(raster_layer, self.__map_dir,
-                                            settings.get('maxRasterZoom', layer.max_zoom))
+                max_zoom = layer.max_zoom
+                if layer.source.kind == 'base':
+                    # maxRasterZoom is only for base maps
+                    max_zoom = settings.get('maxRasterZoom', max_zoom)
+                tilemaker = RasterTileMaker(raster_layer, self.__map_dir, max_zoom)
                 tilemakers.append(tilemaker)
                 if settings.get('backgroundTiles', False):
                     tilemaker_process = tilemaker.make_tiles()
@@ -550,6 +571,8 @@ class MapMaker(object):
             'bounds': self.__flatmap.extent,
             'version': FLATMAP_VERSION,
             'image-layers': len(self.__raster_layers) > 0,
+            'style': metadata['style'],
+            'map-kinds': metadata['map-kinds'],
             'created': metadata['created']
         }
         if self.__uuid is not None:
@@ -559,12 +582,6 @@ class MapMaker(object):
         if self.__manifest.biological_sex is not None:
             map_index['biologicalSex'] = self.__manifest.biological_sex
         map_index['authoring'] = settings.get('authoring', False)
-        if self.__flatmap.map_kind == MAP_KIND.FUNCTIONAL:
-            map_index['style'] = 'functional'
-        elif self.__flatmap.map_kind == MAP_KIND.CENTRELINE:
-            map_index['style'] = 'centreline'
-        else:
-            map_index['style'] = 'anatomical'
         if git_status is not None:
             map_index['git-status'] = git_status
         if len(self.__sckan_provenance):

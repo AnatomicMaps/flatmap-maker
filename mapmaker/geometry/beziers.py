@@ -32,14 +32,18 @@ import numpy as np
 from shapely.coords import CoordinateSequence
 from shapely.geometry import LineString, MultiLineString
 from shapely.geometry.base import BaseGeometry
-import shapely.geometry
+import shapely
 
 #===============================================================================
 
-def coords_to_point(pt: tuple[float, float]) -> BezierPoint:
+type Coordinate = tuple[float, float]
+
+#===============================================================================
+
+def coords_to_point(pt: Coordinate) -> BezierPoint:
     return BezierPoint(*pt)
 
-def point_to_coords(pt: BezierPoint) -> tuple[float, float]:
+def point_to_coords(pt: BezierPoint) -> Coordinate:
     return (pt.x, pt.y)
 
 #===============================================================================
@@ -51,12 +55,12 @@ def width_along_line(geometry: BaseGeometry, point: BezierPoint, dirn: BezierPoi
     point in a given direction.
     """
     bounds = geometry.bounds
-    max_width = shapely.geometry.Point(*bounds[0:2]).distance(shapely.geometry.Point(*bounds[2:4]))
-    line = shapely.geometry.LineString([point_to_coords(point - dirn*max_width),
+    max_width = shapely.Point(*bounds[0:2]).distance(shapely.Point(*bounds[2:4]))
+    line = shapely.LineString([point_to_coords(point - dirn*max_width),
                                         point_to_coords(point + dirn*max_width)])
     if geometry.intersects(line):
         intersection = geometry.boundary.intersection(line)
-        if isinstance(intersection, shapely.geometry.MultiPoint):
+        if isinstance(intersection, shapely.MultiPoint):
             intersecting_points = intersection.geoms
             if len(intersecting_points) == 2:
                 return intersecting_points[0].distance(intersecting_points[1])
@@ -64,17 +68,19 @@ def width_along_line(geometry: BaseGeometry, point: BezierPoint, dirn: BezierPoi
 
 #===============================================================================
 
-def bezier_sample(bz, num_points=100):
-#=====================================
+def bezier_sample(bz, num_points=100) -> list[Coordinate]:
+#=========================================================
     return [(pt.x, pt.y) for pt in bz.sample(num_points)]
 
 def bezier_to_linestring(bz, num_points=100, offset=0) -> LineString|MultiLineString:
 #====================================================================================
-    line = shapely.geometry.LineString(bezier_sample(bz, num_points))
+    line = LineString(bezier_sample(bz, num_points))
     if offset == 0:
         return line
     else:
         return line.parallel_offset(abs(offset), 'left' if offset >= 0 else 'right')
+
+#===============================================================================
 
 def bezier_to_line_coords(bz, num_points=100, offset=0) -> CoordinateSequence:
 #=============================================================================
@@ -102,7 +108,7 @@ def bezier_connect(a: BezierPoint, b: BezierPoint,
 
 #===============================================================================
 
-def closest_time_distance(bz: BezierPath|BezierSegment, pt: BezierPoint, steps: int=100) -> tuple[float, float]:
+def closest_time_distance(bz: BezierPath|BezierSegment, pt: BezierPoint, steps: int=100) -> Coordinate:
     def subdivide_search(t0: float, t1: float, steps: int) -> tuple[float, float, float]:
         closest_d = -1
         closest_t = t0
@@ -141,7 +147,7 @@ def set_bezier_path_end_to_point(bz_path: BezierPath, point: BezierPoint) -> flo
 
 #===============================================================================
 
-def split_bezier_path_at_point(bz_path: BezierPath, point: BezierPoint):
+def split_bezier_path_at_point(bz_path: BezierPath, point: BezierPoint) -> tuple[BezierPath, BezierPath]:
     segments = bz_path.asSegments()
     # Find segment that is closest to the point
     closest_distance = None

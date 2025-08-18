@@ -37,20 +37,21 @@ from mapmaker.knowledgebase.sckan import SckanNeuronPopulations
 from mapmaker.settings import settings
 from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.shapefilter import ShapeFilter
+from mapmaker.shapes.types import make_annotation, make_component, make_connection, make_connector
+from mapmaker.shapes.types import is_annotation, is_component, is_connector, is_system_name
+from mapmaker.shapes.types import ensure_parent_system
+from mapmaker.shapes.types import HYPERLINK_KINDS, HYPERLINK_IDENTIFIERS
+from mapmaker.shapes.types import NERVE_FEATURE_KINDS, NEURON_PATH_TYPES
+from mapmaker.shapes.types import ORGAN_COLOUR, ORGAN_KINDS
+from mapmaker.shapes.types import VASCULAR_KINDS, VASCULAR_REGION_COLOUR, VASCULAR_VESSEL_KINDS
 from mapmaker.utils import log
-
-from ..powerpoint import PowerpointSource, Slide
-from ..powerpoint.colour import ColourTheme
 
 #===============================================================================
 
-from .components import make_annotation, make_component, make_connection, make_connector
-from .components import is_annotation, is_component, is_connector, is_system_name
-from .components import ensure_parent_system
-from .components import HYPERLINK_KINDS, HYPERLINK_IDENTIFIERS
-from .components import NERVE_FEATURE_KINDS, NEURON_PATH_TYPES
-from .components import ORGAN_COLOUR, ORGAN_KINDS
-from .components import VASCULAR_KINDS, VASCULAR_REGION_COLOUR, VASCULAR_VESSEL_KINDS
+from ..import RasterSource
+from ..powerpoint import PowerpointSource, Slide
+from ..powerpoint.colour import ColourTheme
+
 from .connections import ConnectionClassifier
 
 if TYPE_CHECKING:
@@ -84,9 +85,9 @@ class FCPowerpointSource(PowerpointSource):
                          ),
                          **kwds)
 
-    def get_raster_source(self):
-    #===========================
-        return None                 # We don't rasterise FC maps
+    def get_raster_sources(self) -> list[RasterSource]:
+    #==================================================
+        return []                 # We don't rasterise FC maps
 
 #===============================================================================
 

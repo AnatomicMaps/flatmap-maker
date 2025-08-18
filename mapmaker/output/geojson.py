@@ -25,6 +25,7 @@ import os
 
 #===============================================================================
 
+import shapely.affinity
 import shapely.geometry
 
 #===============================================================================
@@ -89,10 +90,6 @@ class GeoJSONOutput(object):
                     if (value := feature.get_property(name)) is not None
                     and value != ''
             }
-            properties.update({
-                name: json.dumps(value) for (name, value) in properties.items()
-                    if name in ENCODED_FEATURE_PROPERTIES
-            })
             geometry = feature.geometry
             area = geometry.area
             mercator_geometry = mercator_transform(geometry)
@@ -139,6 +136,13 @@ class GeoJSONOutput(object):
                     properties['pathEndPosition'] = shapely.geometry.mapping(geoms[1])['coordinates']
                 if self.__flatmap.map_kind == MAP_KIND.CENTRELINE and feature.properties.get('kind') == 'centreline':
                     properties['coordinates'] = geojson['geometry']['coordinates']
+
+            # We don't want encoded JSON in ``geojson['properties']`` so ``properties`` encoding has to be
+            # after GeoJSON has been updated
+            properties.update({
+                name: json.dumps(value) for (name, value) in properties.items()
+                    if name in ENCODED_FEATURE_PROPERTIES
+            })
 
             # Output the anatomical nodes associated with the feature
             if len(feature.anatomical_nodes):

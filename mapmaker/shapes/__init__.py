@@ -25,7 +25,6 @@ from shapely.geometry.base import BaseGeometry      # type: ignore
 
 #===============================================================================
 
-from mapmaker.settings import settings
 from mapmaker.utils import log, PropertyMixin
 
 #===============================================================================
@@ -38,26 +37,41 @@ class SHAPE_TYPE(str, Enum):   ## Or IntEnum ??
     CONTAINER  = 'container'
     GROUP      = 'group'
     IMAGE      = 'image'
+    PORT       = 'port'
     TEXT       = 'text'
     UNKNOWN    = 'unknown'
 
 #===============================================================================
 
 KnownProperties = ['name', 'cd-class', 'fc-class', 'fc-kind']
+HiddenProperties = [
+    'area',
+    'aspect',
+    'bbox-coverage',
+    'coverage',
+    'fill',
+    'geometry',
+    'stroke-width',
+    'svg-element',
+    'tile-layer',
+]
 
 class Shape(PropertyMixin):
     __attributes = ['id', 'geometry', 'parents', 'children']
 
     __shape_id_prefix: str = ''
     __last_shape_id: int = 0
+    __last_shape_number: int = 0
 
     def __init__(self, id: Optional[str], geometry: BaseGeometry, properties=None, **kwds):
         self.__initialising = True
         super().__init__(properties)
         for key, value in kwds.items():
             self.set_property(key.replace('_', '-'), value)
+        Shape.__last_shape_number += 1
+        self.__number: int = Shape.__last_shape_number
         if self.has_property('id'):
-            id = self.get_property('id')
+            id = self.get_property('id', '')
             if Shape.__shape_id_prefix == '':
                 self.__id = id
             else:
@@ -73,6 +87,7 @@ class Shape(PropertyMixin):
         self.__geometry = geometry
         if geometry is not None:
             self.set_property('geometry', geometry.geom_type)
+            self.__bounds = geometry.bounds
         self.__children: list[Shape] = []
         self.__parents: list[Shape] = []
         self.__metadata: dict[str, str] = {}  # kw_only=True field for Python 3.10
@@ -93,7 +108,7 @@ class Shape(PropertyMixin):
 
     def __str__(self):
         properties = {key: value for key, value in self.properties.items()
-                                    if key in KnownProperties}
+                        if key != 'id' and key not in HiddenProperties}
         return f'Shape {self.id}: {properties}'
 
     @staticmethod
@@ -139,8 +154,12 @@ class Shape(PropertyMixin):
         return self.get_property('global-shape', self)
 
     @property
+    def height(self) -> float:
+        return abs(self.__bounds[3] - self.__bounds[1])
+
+    @property
     def id(self) -> str:
-        return self.__id
+        return self.__id                            # pyright: ignore[reportReturnType]
 
     @property
     def kind(self) -> Optional[str]:                # The geometric name of the shape or, for an image,
@@ -153,6 +172,10 @@ class Shape(PropertyMixin):
     @property
     def name(self) -> str:                          # Any text content associated with the shape: e.g. ``Bladder``
         return self.get_property('name', '')
+
+    @property
+    def number(self) -> int:
+        return self.__number
 
     @property
     def opacity(self) -> float:
@@ -173,6 +196,10 @@ class Shape(PropertyMixin):
     @property
     def shape_type(self) -> SHAPE_TYPE:
         return self.get_property('shape-type', SHAPE_TYPE.UNKNOWN)
+
+    @property
+    def width(self) -> float:
+        return abs(self.__bounds[2] - self.__bounds[0])
 
     def add_parent(self, parent):
         self.parents.append(parent)
