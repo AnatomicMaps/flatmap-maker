@@ -114,11 +114,6 @@ def configure_logging(log_json_file=None, verbose=False, silent=False, debug=Fal
         json_handler.setFormatter(json_formatter)
         logger.addHandler(json_handler)
 
-    # For when mapmaker is run as a process by a flatmap server.
-    if logger_port is not None:
-        socket_handler = JSONSocketHandler('localhost', logger_port)
-        logger.addHandler(socket_handler)
-
     if log_queue is not None:
         queue_handler = logging.handlers.QueueHandler(log_queue)
         queue_handler.setFormatter(json_formatter)
@@ -139,6 +134,12 @@ def configure_logging(log_json_file=None, verbose=False, silent=False, debug=Fal
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
+
+    # For when mapmaker is run as a process by a flatmap server.
+    # This handler has to be added after structlog is configured.
+    if logger_port is not None:
+        socket_handler = JSONSocketHandler('localhost', logger_port)
+        logger.addHandler(socket_handler)
 
     return json_handler
 
