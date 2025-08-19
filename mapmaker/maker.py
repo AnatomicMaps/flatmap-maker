@@ -92,9 +92,6 @@ class MapMaker:
         # Do we have a manager that log records are sent to?
         self.__tell_manager = (logger_port is not None) or (process_log_queue is not None)
 
-        # For when we try to make() an invalid configuration
-        self.__valid_configuration = False
-
         # Setup logging
         if (log_file := options.get('logFile')) is None:
             if (log_path := options.get('logPath')) is not None:
@@ -230,9 +227,9 @@ class MapMaker:
                 log.error('Last making of map failed -- use `--force` to re-make', id=self.id, uuid=self.uuid, path=self.__map_dir)
             else:
                 log.info('Map already exists -- use `--force` to re-make', id=self.id, uuid=self.uuid, path=self.__map_dir)
+            self.__flatmap = None
             return
         else:
-            self.__valid_configuration = True
             os.makedirs(self.__map_dir)
 
         # Create an empty sentinel
@@ -280,8 +277,9 @@ class MapMaker:
 
     def make(self):
     #==============
-        if self.__tell_manager and not self.__valid_configuration:
-            log.critical('Mapmaker failed')
+        if self.__flatmap is None:
+            if self.__tell_manager:
+                log.critical('Mapmaker failed')
             return
 
         self.__begin_make()
