@@ -478,6 +478,7 @@ class RasterTileMaker(object):
         mbtiles.close(compress=True)
 
     def __extract_tile__process(self, tiles: list[mercantile.Tile], tile_extractor, image_queue):
+    #============================================================================================
         tile_process = mp.Process(target=self.__extract_tile,               # pyright: ignore[reportAttributeAccessIssue]
             args=(tiles, tile_extractor, image_queue),
             name=f'{self.__id}/{tiles[0].z}/{tiles[0].x}/{tiles[0].y}')
@@ -485,6 +486,7 @@ class RasterTileMaker(object):
         return tile_process
 
     def __extract_tile(self, tiles: list[mercantile.Tile], tile_extractor, image_queue):
+    #===================================================================================
         for tile in tiles:
             tile_image = tile_extractor.get_tile(tile)
             if tile_image is not None:
