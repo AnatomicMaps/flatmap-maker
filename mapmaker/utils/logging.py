@@ -37,11 +37,11 @@ from mapmaker.settings import settings
 
 #===============================================================================
 
-class QueueHandlerJSON(logging.handlers.QueueHandler):
-    def prepare(self, record: logging.LogRecord) -> logging.LogRecord:
-        record = super().prepare(record)
+class JSONSocketHandler(logging.handlers.SocketHandler):
+    def makePickle(self, record: logging.LogRecord) -> bytes:
+    #========================================================
         record.msg = json.dumps(record.msg)
-        return record
+        return super().makePickle(record)
 
 #===============================================================================
 
@@ -59,7 +59,7 @@ class RenameJSONRenderer:
 
 def configure_logging(log_json_file=None, verbose=False, silent=False, debug=False,
 #==================================================================================
-                      log_queue: Optional[multiprocessing.Queue]=None) -> Optional[logging.FileHandler]:
+                      logger_port: Optional[int]=None, log_queue: Optional[multiprocessing.Queue]=None) -> Optional[logging.FileHandler]:
 
     log_level = logging.DEBUG if debug else logging.INFO
 
@@ -115,6 +115,10 @@ def configure_logging(log_json_file=None, verbose=False, silent=False, debug=Fal
         logger.addHandler(json_handler)
 
     # For when mapmaker is run as a process by a flatmap server.
+    if logger_port is not None:
+        socket_handler = JSONSocketHandler('localhost', logger_port)
+        logger.addHandler(socket_handler)
+
     if log_queue is not None:
         queue_handler = logging.handlers.QueueHandler(log_queue)
         queue_handler.setFormatter(json_formatter)

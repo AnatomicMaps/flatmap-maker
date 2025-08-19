@@ -80,7 +80,8 @@ INVALID_PUBLISHING_OPTIONS = [
 #===============================================================================
 
 class MapMaker:
-    def __init__(self, options: dict[str, Any], process_log_queue: Optional[multiprocessing.Queue]=None):
+    def __init__(self, options: dict[str, Any], logger_port: Optional[int]=None,
+                                                process_log_queue: Optional[multiprocessing.Queue]=None):
         # ``silent`` implies not ``verbose``
         if options.get('silent', False):
             options['verbose'] = False
@@ -89,7 +90,7 @@ class MapMaker:
             raise ValueError('`--ignore-git` must be set when `--sckan-version` is used')
 
         # Do we have a manager that log records are sent to?
-        self.__tell_manager = process_log_queue is not None
+        self.__tell_manager = (logger_port is not None) or (process_log_queue is not None)
 
         # For when we try to make() an invalid configuration
         self.__valid_configuration = False
@@ -106,6 +107,7 @@ class MapMaker:
             verbose=options.get('verbose', False),
             silent=options.get('silent', False),
             debug=options.get('debug', False),
+            logger_port=logger_port,
             log_queue=process_log_queue)
         log.info('Mapmaker', version=__version__)
 
