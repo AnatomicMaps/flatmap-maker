@@ -204,6 +204,9 @@ class Shape(PropertyMixin):
     def add_parent(self, parent):
         self.parents.append(parent)
         parent.children.append(self)
+        # Parents with component or container children are containers
+        if self.shape_type in [SHAPE_TYPE.COMPONENT, SHAPE_TYPE.CONTAINER]:
+            parent.set_property('shape-type', SHAPE_TYPE.CONTAINER)
 
     def get_metadata(self, name: str, default: Optional[str]=None) -> Optional[str]:
         return self.__metadata.get(name, default)

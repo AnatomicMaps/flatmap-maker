@@ -141,7 +141,7 @@ class ShapeClassifier:
                     connection_joiners.append(shape)
                     shape.properties['shape-type'] = SHAPE_TYPE.PORT
                 elif bbox_coverage > 0.001 and coverage > 0.9:
-                    shape.properties['shape-type'] = SHAPE_TYPE.CONTAINER if bbox_coverage > 0.2 else SHAPE_TYPE.COMPONENT
+                    shape.properties['shape-type'] = SHAPE_TYPE.COMPONENT
                 elif bbox_coverage < 0.0003 and 0.7 < coverage <= 0.8:
                     shape.properties['shape-type'] = SHAPE_TYPE.ANNOTATION
                 elif bbox_coverage < 0.001 and coverage > 0.75:
@@ -183,8 +183,6 @@ class ShapeClassifier:
                 line_ends: shapely.geometry.base.GeometrySequence[shapely.MultiPoint] = shape.geometry.boundary.geoms  # type: ignore
                 self.__connect_line_end(shape, line_ends[0], 'source')
                 self.__connect_line_end(shape, line_ends[1], 'target')
-            elif shape.shape_type == SHAPE_TYPE.CONTAINER:
-                shape.properties['exclude'] = True
 
     @property
     def shapes(self) -> list[Shape]:
