@@ -149,8 +149,6 @@ class ShapeClassifier:
                 elif not self.__add_connection(shape):
                     log.warning('Unclassifiable shape', shape=shape.id)
                     if settings.get('authoring', False):
-                        shape.properties['exclude'] = True
-                    else:
                         shape.properties['colour'] = SHAPE_ERROR_COLOUR
             if not shape.properties.get('exclude', False):
                 self.__shapes_by_type[shape.shape_type].append(shape)
@@ -200,8 +198,6 @@ class ShapeClassifier:
         elif 'Polygon' in shape.geometry.geom_type:
             if (line := self.__line_finder.get_line(shape)) is None:
                 if settings.get('authoring', False):
-                    shape.properties['exclude'] = True
-                else:
                     shape.properties['colour'] = SHAPE_ERROR_COLOUR
                 return False
             shape.geometry = line
@@ -268,8 +264,9 @@ class ShapeClassifier:
                 (connection_0, connection_1) = self.__extend_joined_connections(ends)
                 joined_connection_graph.add_edge(connection_0, connection_1)
             else:
-                joiner.properties['colour'] = SHAPE_ERROR_COLOUR
-                joiner.properties['stroke'] = SHAPE_ERROR_BORDER
+                if settings.get('authoring', False):
+                    joiner.properties['colour'] = SHAPE_ERROR_COLOUR
+                    joiner.properties['stroke'] = SHAPE_ERROR_BORDER
                 joiner.properties['stroke-width'] = COMPONENT_BORDER_WIDTH
                 joiner.geometry = joiner.geometry.buffer(self.__max_line_width)
         for joined_connection in nx.connected_components(joined_connection_graph):
