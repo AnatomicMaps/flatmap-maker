@@ -89,9 +89,6 @@ class MapMaker:
         if options.get('sckanVersion') is not None and not options.get('ignoreGit', False):
             raise ValueError('`--ignore-git` must be set when `--sckan-version` is used')
 
-        # Do we have a manager that log records are sent to?
-        self.__tell_manager = (logger_port is not None) or (process_log_queue is not None)
-
         # Setup logging
         if (log_file := options.get('logFile')) is None:
             if (log_path := options.get('logPath')) is not None:
@@ -278,8 +275,7 @@ class MapMaker:
     def make(self):
     #==============
         if self.__flatmap is None:
-            if self.__tell_manager:
-                log.critical('Mapmaker failed')
+            log.critical('Mapmaker failed')
             return
 
         self.__begin_make()
@@ -319,8 +315,7 @@ class MapMaker:
         if self.__flatmap.models is not None:
             generated_map['models'] = self.__flatmap.models
         log.info('Generated map', **generated_map)
-        if self.__tell_manager:
-            log.critical('Mapmaker succeeded', **generated_map)
+        log.critical('Mapmaker succeeded', **generated_map)
 
         # Write out details of FC neurons if option set
         if (export_file := settings.get('exportNeurons')) is not None:
