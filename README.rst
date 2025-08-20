@@ -44,6 +44,11 @@ Debian/Ubuntu::
 
   $ apt-get install libfontconfig1 libgl1-mesa-glx libgl1-mesa-dri
 
+
+Ubuntu 24::
+
+  $ apt-get install libfontconfig1 libegl1 libgl1
+
 RHEL/Fedora::
 
   $ yum install fontconfig mesa-libGL mesa-dri-drivers
