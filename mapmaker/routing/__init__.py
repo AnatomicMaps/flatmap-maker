@@ -1067,8 +1067,12 @@ class Network(object):
                     if se_dict.get('type') == 'segment' and \
                         len(se_dict.get('used', {})) > 0 and \
                         len(se_dict.get('used', {}) & set(properties['subgraph'].nodes)) == 0:
-                            candidates= {(n, s):self.__flatmap.get_feature(n).geometry.centroid.distance(self.__flatmap.get_feature(s).geometry.centroid)
-                                         for n, s in itertools.product(se_dict.get('used', set()), properties['subgraph'].nodes)}
+                            candidates = {
+                                (n, s): f_n.geometry.centroid.distance(f_s.geometry.centroid)
+                                for n, s in itertools.product(se_dict.get('used', set()), properties['subgraph'].nodes)
+                                if (f_n := self.__flatmap.get_feature(n)) is not None
+                                and (f_s := self.__flatmap.get_feature(s)) is not None
+                            }
                             if len(candidates) > 0:
                                 if len(selected:=min(candidates, key=lambda k: candidates[k])) == 2:
                                     for n, s in itertools.product([se_dict['node']], used_nodes):
