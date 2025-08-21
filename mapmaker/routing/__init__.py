@@ -986,7 +986,7 @@ class Network(object):
                                 candidates[(n,s)] = nf.geometry.centroid.distance(sf.geometry.centroid)
                             tmp_edge_dicts[(n,s)] = edge_dict
                         if len(candidates) > 0:
-                            selected_c = min(candidates, key=candidates.get)    # type: ignore
+                            selected_c = min(candidates, key=lambda k: candidates[k])
                             neighbouring_ids.update([selected_c[0]])
                             closest_feature_dict[selected_c[0]] = selected_c[1]
                 for n_id in neighbouring_ids:
@@ -1067,16 +1067,20 @@ class Network(object):
                     if se_dict.get('type') == 'segment' and \
                         len(se_dict.get('used', {})) > 0 and \
                         len(se_dict.get('used', {}) & set(properties['subgraph'].nodes)) == 0:
-                            candidates= {(n, s):self.__flatmap.get_feature(n).geometry.centroid.distance(self.__flatmap.get_feature(s).geometry.centroid)
-                                         for n, s in itertools.product(se_dict.get('used', set()), properties['subgraph'].nodes)}
-                            if len(candidates) > 0:
-                                if len(selected:=min(candidates, key=candidates.get)) == 2:
-                                    for n, s in itertools.product([se_dict['node']], used_nodes):
-                                        if (n, s) in connectivity_graph.edges:
-                                            edge_dict = connectivity_graph.edges[(n, s)]
-                                            tmp_edge_dicts[selected] = edge_dict
-                                            new_direct_edges.update([selected])
-                                            break
+                            candidates = {
+                                (n, s): f_n.geometry.centroid.distance(f_s.geometry.centroid)
+                                for n, s in itertools.product(se_dict.get('used', set()), properties['subgraph'].nodes)
+                                if (f_n := self.__flatmap.get_feature(n)) is not None
+                                and (f_s := self.__flatmap.get_feature(s)) is not None
+                            }
+                            if candidates:
+                                selected = min(candidates, key=lambda k: candidates[k])
+                                for n, s in itertools.product([se_dict['node']], used_nodes):
+                                    if (n, s) in connectivity_graph.edges:
+                                        edge_dict = connectivity_graph.edges[(n, s)]
+                                        tmp_edge_dicts[selected] = edge_dict
+                                        new_direct_edges.update([selected])
+                                        break
 
         for ends, list_path_nodes in graph_utils.connected_paths(connectivity_graph).items():
             for path_nodes in list_path_nodes:
@@ -1107,7 +1111,7 @@ class Network(object):
                                         candidates[(n,s)] = nf.geometry.centroid.distance(sf.geometry.centroid)
                                     tmp_edge_dicts[(n,s)] = edge_dict
                                 if len(candidates) > 0:
-                                    new_direct_edges.update([min(candidates, key=candidates.get)])  # type: ignore
+                                    new_direct_edges.update([min(candidates, key=lambda k: candidates[k])])
                         elif ((p_dict:=connectivity_graph.nodes[prev_node])['type'] == 'feature' and
                               (n_dict:=connectivity_graph.nodes[node])['type'] == 'feature'):
                             if ((pf:=list(p_dict.get('features'))[0].id) in route_graph.nodes and
@@ -1173,7 +1177,7 @@ class Network(object):
                             for nf in neighbour_features:
                                 distances += [nf.geometry.centroid.distance(f.geometry.centroid)]
                             feature_distances[f] = sum(distances)/len(distances)
-                        selected_feature = min(feature_distances, key=feature_distances.get)    # type: ignore
+                        selected_feature = min(feature_distances, key=lambda k: feature_distances[k])
                 else:
                     prev_features = [feature for features in used_features.values() for feature in features]
                     if len(prev_features) > 0 and len(features) > 1:
