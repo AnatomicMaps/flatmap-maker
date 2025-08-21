@@ -1073,14 +1073,14 @@ class Network(object):
                                 if (f_n := self.__flatmap.get_feature(n)) is not None
                                 and (f_s := self.__flatmap.get_feature(s)) is not None
                             }
-                            if len(candidates) > 0:
-                                if len(selected:=min(candidates, key=lambda k: candidates[k])) == 2:
-                                    for n, s in itertools.product([se_dict['node']], used_nodes):
-                                        if (n, s) in connectivity_graph.edges:
-                                            edge_dict = connectivity_graph.edges[(n, s)]
-                                            tmp_edge_dicts[selected] = edge_dict
-                                            new_direct_edges.update([selected])
-                                            break
+                            if candidates:
+                                selected = min(candidates, key=lambda k: candidates[k])
+                                for n, s in itertools.product([se_dict['node']], used_nodes):
+                                    if (n, s) in connectivity_graph.edges:
+                                        edge_dict = connectivity_graph.edges[(n, s)]
+                                        tmp_edge_dicts[selected] = edge_dict
+                                        new_direct_edges.update([selected])
+                                        break
 
         for ends, list_path_nodes in graph_utils.connected_paths(connectivity_graph).items():
             for path_nodes in list_path_nodes:
