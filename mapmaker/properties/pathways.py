@@ -19,8 +19,8 @@
 #===============================================================================
 
 from collections import defaultdict
-from typing import Any, Iterable, Optional, TYPE_CHECKING
 import json
+from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING
 
 #===============================================================================
 
@@ -522,7 +522,7 @@ class ConnectivityModel:
         self.__network = description.get('network')
         self.__publications = description.get('publications', [])
         self.__source = description.get('source')
-        traced_paths = description.get('traced-paths', [])
+        traced_paths = description.get('traced-paths', set())
         self.__paths = { path['id']: Path(self.__source, path, path['id'] in traced_paths)
                             for path in description.get('paths', []) }
 
@@ -596,7 +596,8 @@ class ConnectionSet:
 #===============================================================================
 
 class Pathways:
-    def __init__(self, flatmap, paths_list):
+    def __init__(self, flatmap, paths_list: list[str],
+                 path_filter: Optional[Callable[[str], bool]], traced_paths: Optional[set[str]]=None):
         self.__flatmap = flatmap
         self.__layer_paths = set()
         self.__lines_by_path_id = defaultdict(list)
@@ -614,6 +615,8 @@ class Pathways:
         self.__node_hierarchy = defaultdict(set)
         if len(paths_list):
             self.add_connectivity({'paths': paths_list})
+        self.__path_filter = path_filter
+        self.__traced_paths: set[str] = traced_paths if traced_paths is not None else set()
 
     @staticmethod
     def make_list(lst):
@@ -712,8 +715,8 @@ class Pathways:
                 properties['tile-layer'] = PATHWAYS_TILE_LAYER
                 self.__layer_paths.add(path_id)
 
-    def add_connectivity_model(self, model_uri, properties_data, path_filter=None, traced_paths=None):
-    #=================================================================================================
+    def add_connectivity_model(self, model_uri: str, properties_data):
+    #=================================================================
         connectivity = {
             'id': model_uri.rsplit('/', 1)[-1],
             'source': model_uri,
@@ -721,10 +724,12 @@ class Pathways:
             'paths': []
         }
         connectivity.update(get_knowledge(model_uri))
-        self.__add_connectivity_paths(connectivity, properties_data, path_filter, traced_paths)
+        if self.__path_filter is not None:
+            connectivity['paths'] = list(filter(self.__path_filter, connectivity['paths']))
+        self.__add_connectivity_paths(connectivity, properties_data)
 
-    def add_connectivity_path(self, path_uri, properties_data, path_filter=None, traced_paths=None):
-    #===============================================================================================
+    def add_connectivity_path(self, path_uri: str, properties_data):
+    #===============================================================
         connectivity = {
             'id': path_uri,
             'source': path_uri,
@@ -734,21 +739,21 @@ class Pathways:
                 'models': path_uri
             }]
         }
-        self.__add_connectivity_paths(connectivity, properties_data, path_filter, traced_paths)
+        self.__add_connectivity_paths(connectivity, properties_data)
 
-    def __add_connectivity_paths(self, connectivity, properties_data, path_filter, traced_paths):
-    #============================================================================================
-        if path_filter is not None:
-            connectivity['paths'] = list(filter(lambda path: path_filter(path['id']), connectivity['paths']))
-        if traced_paths is not None:
-            connectivity['traced-paths'] = traced_paths
-        # External properties overrides knowledge base
-        for path in connectivity['paths']:
-            path.update(properties_data.properties(path.get('models')))
-        self.add_connectivity(connectivity)
+    def __add_connectivity_paths(self, connectivity: dict, properties_data):
+    #=======================================================================
+        if len(connectivity['paths']):
+            if len(self.__traced_paths):
+                connectivity['traced-paths'] = self.__traced_paths
+            # External properties overrides knowledge base
+            for path in connectivity['paths']:
+                path.update(properties_data.properties(path.get('models')))
+            self.add_connectivity(connectivity)
 
     def add_connectivity(self, connectivity):
     #========================================
+        ## This gets a Path instance for each path (and hence the path's knowledge)
         connectivity_model = ConnectivityModel(connectivity)
         self.__connectivity_models.append(connectivity_model)
 

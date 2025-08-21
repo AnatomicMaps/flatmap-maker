@@ -53,8 +53,29 @@ class PropertiesStore(object):
         self.__set_class_properties(properties_dict.get('classes'))
         self.__set_feature_properties(properties_dict.get('features'))
 
+        include_ids: set[str] = set()
+        exclude_ids: set[str] = set()
+        traced_paths: set[str] = set()
+        for connectivity_source in manifest.neuron_connectivity:
+            if isinstance(connectivity_source, dict):
+                model_source = connectivity_source['uri']
+                if (filter_lists := connectivity_source.get('filter')) is not None:
+                    if 'include' in filter_lists:
+                        include_ids.update(filter_lists['include'])
+                    if 'exclude' in filter_lists:
+                        exclude_ids.update(filter_lists['exclude'])
+                    if 'trace' in filter_lists:
+                        traced_paths.update(filter_lists['trace'])
+        include_ids.update(traced_paths)
+        if len(include_ids) or len(exclude_ids):
+            self.__path_filter = lambda path_id: ((len(include_ids) == 0 or path_id in include_ids)
+                                              and (len(exclude_ids) == 0 or path_id not in exclude_ids))
+        else:
+            self.__path_filter = None
+
         # Load path definitions in properties' file
-        self.__pathways = Pathways(flatmap, properties_dict.get('paths', []))
+        self.__pathways = Pathways(flatmap, properties_dict.get('paths', []),
+                                   path_filter=self.__path_filter, traced_paths=traced_paths)
 
         # Connectivity defined in JSON
         for connectivity_source in manifest.connectivity:
@@ -65,23 +86,12 @@ class PropertiesStore(object):
         connectivity_models = knowledgebase.connectivity_models()
         seen_npo = False
         for connectivity_source in manifest.neuron_connectivity:
-            path_filter = None
-            traced_paths = None
             if isinstance(connectivity_source, dict):
                 model_source = connectivity_source['uri']
-                if (filter_lists := connectivity_source.get('filter')) is not None:
-                    include_ids = filter_lists['include'] if 'include' in filter_lists else None
-                    exclude_ids = filter_lists['exclude'] if 'exclude' in filter_lists else None
-                    if 'trace' in filter_lists:
-                        traced_paths = filter_lists['trace']
-                        include_ids = traced_paths if include_ids is None else (include_ids + traced_paths)
-                    path_filter = lambda path_id: ((include_ids is None or include_ids is not None and path_id in include_ids)
-                                               and (exclude_ids is None or exclude_ids is not None and path_id not in exclude_ids))
             else:
                 model_source = connectivity_source
             if model_source in connectivity_models:
-                self.__pathways.add_connectivity_model(model_source, self,
-                    path_filter=path_filter, traced_paths=traced_paths)
+                self.__pathways.add_connectivity_model(model_source, self)
             elif model_source == 'NPO':
                 # NPO connectivity paths
                 if seen_npo:
@@ -90,14 +100,19 @@ class PropertiesStore(object):
                     seen_npo = True
                     settings['NPO'] = True
                     for connectivity_path in knowledgebase.connectivity_paths():
+                        # Filter out paths if the manifest's connectivity defines a filter.
+                        if self.__path_filter is not None and not self.__path_filter(connectivity_path):
+                            continue
+                        # We also get path knowledge when creating a Path instance
+                        # Can it only be got once?
                         path_knowledge =  knowledgebase.get_knowledge(connectivity_path)
+                        ## maybe when authoring instead of another option??
                         if (path_knowledge.get('pathDisconnected', False) and not settings.get('disconnectedPaths', False)):
                             continue
                         phenotype_sex = path_knowledge.get('biologicalSex')
                         if (manifest.biological_sex is None or phenotype_sex is None
                          or manifest.biological_sex == phenotype_sex):
-                            self.__pathways.add_connectivity_path(connectivity_path,
-                                self, path_filter=path_filter, traced_paths=traced_paths)
+                            self.__pathways.add_connectivity_path(connectivity_path, self)
 
         # Load network centreline definitions
         self.__networks = { network.get('id'): Network(flatmap, network, self)
@@ -130,6 +145,10 @@ class PropertiesStore(object):
     @property
     def nerve_models_by_id(self):
         return self.__nerve_models_by_id
+
+    @property
+    def path_filter(self):
+        return self.__path_filter
 
     @property
     def pathways(self):

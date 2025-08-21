@@ -252,7 +252,10 @@ class SckanNeuronChecker:
             model_knowledege = kb.get_knowledge(model)
             connectivity_paths.update([path['id'] for path in model_knowledege.get('paths', [])])
         connectivity_paths.update(kb.connectivity_paths())
+        path_filter = flatmap.properties_store.path_filter
         for path_id in connectivity_paths:
+            if path_filter is not None and not path_filter(path_id):
+                continue
             path_knowledge = kb.get_knowledge(path_id)
             self.__paths_by_id[path_id] = path_knowledge
             G = connectivity_graph_from_knowledge(path_knowledge)
@@ -270,7 +273,6 @@ class SckanNeuronChecker:
             for node in single_nodes:
                 G.remove_node(node)
             self.__trim_non_existent_features(G)
-
 
     def valid_sckan_paths(self, path_type, end_node_terms):
     #======================================================
