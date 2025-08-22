@@ -18,13 +18,14 @@ Documentation
 Installation
 ------------
 
-We recommend that ``mapmaker`` is run in a Conda environment on a Linux or macOS system. This includes
+We recommend that ``mapmaker`` is run in a Python environment on a Linux or macOS system. This includes
 `Windows Subsystem for Linux <https://learn.microsoft.com/en-us/windows/wsl/install>`_ (WSL) for Microsoft
 Windows systems.
 
 Prerequisites
 ~~~~~~~~~~~~~
-Install a ``miniforge`` environment as descibed `here <https://github.com/conda-forge/miniforge>`_.
+
+Install the ``uv`` Python package manager as descibed `here <https://docs.astral.sh/uv/getting-started/installation/>`_.
 
 macOS
 ^^^^^
@@ -68,17 +69,17 @@ Installation
 Setup the environment
 ^^^^^^^^^^^^^^^^^^^^^
 
-*   Change into the ``mapmaker`` directory and install dependencies using Conda::
+*   Change into the ``mapmaker`` directory and install dependencies using ``uv``::
 
-        $ conda env create -f envs/mapmaker.yaml
+        $ uv sync
 
 
 Running
 -------
 
-*   Activate ``mapmaker``'s Conda environment::
+*   Activate ``mapmaker``'s Python environment::
 
-        $ conda activate mapmaker
+        $ source .venv/bin/activate
 
 
 *   From the ``mapmaker`` directory use ``python`` to execute ``runmaker.py``::
@@ -96,9 +97,9 @@ Updating
 
 *   Download and extract the archive of the latest release as above, overwriting the existing
     ``mapmaker`` installation directory.
-*   With the Conda environment active, and within the ``mapmaker`` directory::
+*   Within the ``mapmaker`` directory::
 
-        $  conda env update -f envs/mapmaker.yaml
+        $  uv sync
 
 
 Command line help
