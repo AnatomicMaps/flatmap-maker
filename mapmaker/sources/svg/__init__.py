@@ -405,7 +405,7 @@ class SVGLayer(MapLayer):
         properties = parent_properties.copy()
         for name in NON_INHERITED_PROPERTIES:
             properties.pop(name, None)
-        if 'id' in element.attrib:
+        if 'id' in element.attrib and element.tag != SVG_TAG('g'):
             properties['id'] = element.attrib.get('id')
         properties.update(properties_from_markup)
         shape_id = properties.get('id')  ## versus element.attrib.get('id')
