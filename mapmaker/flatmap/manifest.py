@@ -328,6 +328,8 @@ class Manifest:
                 self.__manifest['description'] = self.check_and_normalise_path(self.__manifest['description'], 'Flatmap description')
             if 'connectivityTerms' in self.__manifest:
                 self.__manifest['connectivityTerms'] = self.check_and_normalise_path(self.__manifest['connectivityTerms'], 'Flatmap connectivity terms')
+            if 'legend' in self.__manifest:
+                self.__manifest['legend'] = self.check_and_normalise_path(self.__manifest['legend'], 'Flatmap legend')
             if 'properties' in self.__manifest:
                 self.__manifest['properties'] = self.check_and_normalise_path(self.__manifest['properties'], 'Flatmap properties')
             if 'proxyFeatures' in self.__manifest:
@@ -341,6 +343,9 @@ class Manifest:
         self.__map_kind = (MAP_KIND.FUNCTIONAL if 'functional' in self.__map_kinds
                       else MAP_KIND.CENTRELINE if 'centreline' in self.__map_kinds
                       else MAP_KIND.ANATOMICAL)
+        if 'legend' in self.__manifest:
+            legend_file = FilePath(self.__manifest['legend'])
+            self.__manifest['legend'] = legend_file.get_json()
 
     @property
     def anatomical_map(self):
@@ -369,6 +374,10 @@ class Manifest:
     @property
     def description(self):
         return self.__manifest.get('description')
+
+    @property
+    def legend(self):
+        return self.__manifest.get('legend')
 
     @property
     def proxy_features(self):

@@ -539,6 +539,9 @@ class MapMaker:
         if (git_status := self.__manifest.git_status) is not None:
             metadata['git-status'] = git_status
             metadata['git-status']['committed'] = metadata['git-status']['committed'].isoformat(timespec='milliseconds')
+        # Save any legend with the map's metadata
+        if (legend := self.__manifest.legend) is not None:
+            metadata['legend'] = legend
         tile_db.add_metadata(metadata=json.dumps(metadata))
 
         # Save layer details in metadata
