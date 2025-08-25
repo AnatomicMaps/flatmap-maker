@@ -218,13 +218,14 @@ class MapMaker:
 
         self.__maker_sentinel = os.path.join(self.__map_dir, MAKER_SENTINEL)
 
+        self.__flatmap: FlatMap
         if os.path.exists(self.__map_dir):
             if os.path.exists(self.__maker_sentinel):
                 self.__clean_up(remove_sentinel=False)
                 log.error('Last making of map failed -- use `--force` to re-make', id=self.id, uuid=self.uuid, path=self.__map_dir)
             else:
                 log.info('Map already exists -- use `--force` to re-make', id=self.id, uuid=self.uuid, path=self.__map_dir)
-            self.__flatmap = None
+            self.__flatmap = None                   # pyright: ignore[reportAttributeAccessIssue]
             return
         else:
             os.makedirs(self.__map_dir)
