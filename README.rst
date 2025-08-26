@@ -1,13 +1,13 @@
 .. highlight:: sh
 
-========
-Mapmaker
-========
+============
+FlatmapMaker
+============
 
 Overview
 --------
 
-Mapmaker is a Python application for generating `MapLibre <https://maplibre.org>`_ compatible tilesets from
+FlatmapMaker is a Python application for generating `MapLibre <https://maplibre.org>`_ compatible tilesets from
 a range of sources, currently Powerpoint slides, SVG diagrams, and segmented image files from MBF Biosciences.
 
 Documentation
@@ -18,7 +18,7 @@ Documentation
 Installation
 ------------
 
-We recommend that ``mapmaker`` is run in a Python environment on a Linux or macOS system. This includes
+We recommend that FlatmapMaker is run in a Python environment on a Linux or macOS system. This includes
 `Windows Subsystem for Linux <https://learn.microsoft.com/en-us/windows/wsl/install>`_ (WSL) for Microsoft
 Windows systems.
 
@@ -60,16 +60,16 @@ Installation
 
 *   At a CLI prompt, and in a suitable directory,
     `download the latest release <https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.22.0.tar.gz>`_
-    in ``tar.gz`` format and extract it, renaming the top-level directory in the archive to ``mapmaker``::
+    in ``tar.gz`` format and extract it, renaming the top-level directory in the archive to ``flatmapmaker``::
 
         $ curl -L https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.22.0.tar.gz \
-        | tar xz -s /v1.22.0.tar.gz/mapmaker/
+        | tar xz -s /v1.22.0.tar.gz/flatmapmaker/
 
 
 Setup the environment
 ^^^^^^^^^^^^^^^^^^^^^
 
-*   Change into the ``mapmaker`` directory and install dependencies using ``uv``::
+*   Change into the ``flatmapmaker`` directory and install dependencies using ``uv``::
 
         $ uv sync
 
@@ -77,12 +77,12 @@ Setup the environment
 Running
 -------
 
-*   Activate ``mapmaker``'s Python environment::
+*   Activate ``flatmapmaker``'s Python environment::
 
         $ source .venv/bin/activate
 
 
-*   From the ``mapmaker`` directory use ``python`` to execute ``runmaker.py``::
+*   From the ``flatmapmaker`` directory use ``python`` to execute ``runmaker.py``::
 
         $ python runmaker.py ARGUMENTS
 
@@ -96,8 +96,8 @@ Updating
 --------
 
 *   Download and extract the archive of the latest release as above, overwriting the existing
-    ``mapmaker`` installation directory.
-*   Within the ``mapmaker`` directory::
+    ``flatmapmaker`` installation directory.
+*   Within the ``flatmapmaker`` directory::
 
         $  uv sync
 
@@ -111,7 +111,7 @@ Command line help
 
 .. code-block:: text
 
-    usage: mapmaker [-h] [-v]
+    usage: runmaker [-h] [-v]
                     [--log LOG_FILE] [--silent] [--verbose]
                     [--background-tiles] [--clean-connectivity] [--disconnected-paths] [--force]
                     [--id ID] [--ignore-git] [--ignore-sckan] [--invalid-neurons] [--no-path-layout]
@@ -219,12 +219,13 @@ TODO...
 Development
 -----------
 
-``mapmaker`` uses `poetry <https://python-poetry.org/docs/#installation>`_ for dependency management and packaging.
+``flatmapmaker`` uses `uv <https://docs.astral.sh/uv/>`_ for dependency management and packaging.
 To create a development environment::
 
-    $ git clone https://github.com/AnatomicMaps/flatmap-maker.git mapmaker
-    $ cd mapmaker
-    $ poetry install
+    $ git clone https://github.com/AnatomicMaps/flatmap-maker.git flatmapmaker
+    $ cd flatmapmaker
+    $ uv sync --dev
+    $ source .venv/bin/activate
 
 
 Building documentation
