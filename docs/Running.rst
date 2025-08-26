@@ -1,6 +1,6 @@
-================
-Running mapmaker
-================
+====================
+Running FlatmapMaker
+====================
 
 .. argparse::
    :ref: mapmaker.__main__.arg_parser
