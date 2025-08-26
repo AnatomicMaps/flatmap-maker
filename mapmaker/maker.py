@@ -184,9 +184,6 @@ class MapMaker:
         # Ignoring SCKAN implies accepting invalid neurons
         if options.get('ignoreSckan', False):
             options['invalidNeurons'] = True
-            store_params.update({
-                'use_sckan': False
-            })
 
         # Save options to add to map's metadata
         self.__options = options
