@@ -329,8 +329,8 @@ class ResolvedPathways:
 
         # remove the missing nodes:
         removed_nodes = []
-        for node in connectivity_graph.nodes:
-            if node not in available_nodes:
+        for node, node_dict in connectivity_graph.nodes(data=True):
+            if node not in available_nodes and node_dict['node'] not in available_nodes:
                 removed_nodes += [node]
                 neighbors = list(connectivity_graph.neighbors(node))
                 predecessors = [n for n in neighbors if n == connectivity_graph.edges[(node, n)]['predecessor']]
