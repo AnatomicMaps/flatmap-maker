@@ -289,7 +289,7 @@ class FlatMap(object):
         return self.__features_by_geojson_id.get(geojson_id)
 
     def new_feature(self, layer_id: str, geometry, properties, is_group=False, update_feature_with_id=False) -> Feature:
-    #======================================================================================================================
+    #===================================================================================================================
         self.__last_geojson_id += 1
         properties['layer'] = layer_id
         self.properties_store.update_properties(properties)   # Update from JSON properties file
