@@ -402,7 +402,7 @@ class MapLayer(FeatureLayer):
                     region_properties = base_properties.copy()
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_properties.update(region.properties)
-                        layer_features.append(self.flatmap.new_feature(self.id, polygon, region_properties))
+                        layer_features.append(self.flatmap.new_feature(self.id, polygon, region_properties, update_feature_with_id=True))
                         break
         else:
             for feature in features:
@@ -442,7 +442,7 @@ class MapLayer(FeatureLayer):
                 feature_group = self.flatmap.new_feature(
                         self.id,
                         shapely.MultiPolygon(grouped_polygons).buffer(0),
-                        grouped_properties, is_group=True)
+                        grouped_properties, is_group=True, update_feature_with_id=True)
                 layer_features.append(feature_group)
                 # So that any grouped lines don't have a duplicate id
                 grouped_properties.pop('id', None)
@@ -459,7 +459,7 @@ class MapLayer(FeatureLayer):
                 feature_group = self.flatmap.new_feature(
                       self.id,
                       shapely.MultiLineString(grouped_lines),
-                      grouped_properties, is_group=True)
+                      grouped_properties, is_group=True, update_feature_with_id=True)
                 layer_features.append(feature_group)
 
         # Feature specific properties have precedence over group's

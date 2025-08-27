@@ -288,18 +288,15 @@ class FlatMap(object):
     #=========================================================================
         return self.__features_by_geojson_id.get(geojson_id)
 
-    def new_feature(self, layer_id: str, geometry, properties, is_group=False) -> Feature:
-    #=====================================================================================
+    def new_feature(self, layer_id: str, geometry, properties, is_group=False, update_feature_with_id=False) -> Feature:
+    #======================================================================================================================
         self.__last_geojson_id += 1
         properties['layer'] = layer_id
         self.properties_store.update_properties(properties)   # Update from JSON properties file
         feature = Feature(self.__last_geojson_id, geometry, properties, is_group=is_group)
         self.__features_by_geojson_id[feature.geojson_id] = feature
         if feature.id:
-            if (
-                feature.id not in self.__features_with_id
-                or (feature.get_property('group') and feature.get_property('interior'))
-            ):
+            if update_feature_with_id or feature.id not in self.__features_with_id:
                 self.__features_with_id[feature.id] = feature
         if self.map_kind == MAP_KIND.FUNCTIONAL:
             if (name := properties.get('name', '')) != '':
