@@ -128,9 +128,10 @@ class PowerpointLayer(MapLayer):
                     pass
                 elif not properties.get('exclude', False):
                     feature = self.flatmap.new_feature(self.id, shape.geometry, properties)
-                    features.append(feature)
-                    shape.set_property('geojson_id', feature.geojson_id)
-                    shape.set_property('feature', feature)
+                    if feature is not None:
+                        features.append(feature)
+                        shape.set_property('geojson_id', feature.geojson_id)
+                        shape.set_property('feature', feature)
         return features
 
 #===============================================================================
