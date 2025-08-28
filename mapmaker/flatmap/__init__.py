@@ -292,8 +292,8 @@ class FlatMap(object):
     #===============================================================================================
         properties['layer'] = layer_id
         self.properties_store.update_properties(properties)   # Update from JSON properties file
-        if properties.id in self.__features_with_id:
-            log.error('Duplicate feature id', id=properties.id)
+        if (id:=properties.get('id')) is not None and id in self.__features_with_id:
+            log.error('Duplicate feature id', id=id)
             return None
         self.__last_geojson_id += 1
         feature = Feature(self.__last_geojson_id, geometry, properties, is_group=is_group)
