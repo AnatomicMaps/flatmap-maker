@@ -340,7 +340,10 @@ class MapLayer(FeatureLayer):
                 child_class = feature.pop_property('children')
                 grouped_properties.update(feature.properties)
             elif feature.get_property('region'):
-                region = self.flatmap.new_feature(self.id, feature.geometry.representative_point(), feature.properties)
+                region_properties = feature.properties.copy()
+                # So that any region doesn't have a duplicate id
+                region_properties.pop('id', None)
+                region = self.flatmap.new_feature(self.id, feature.geometry.representative_point(), region_properties)
                 if region is not None:
                     regions.append(region)
             elif feature.get_property('divider'):

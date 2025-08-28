@@ -839,8 +839,6 @@ class Pathways:
                             properties['label'] = '\n'.join(labels)
                         elif path_model is not None:
                             properties['label'] = path.label
-                        if 'id' not in properties and path_model is not None:
-                            properties['id'] = path_model.replace(':', '_').replace('/', '_')
                         feature = self.__flatmap.new_feature('pathways', geometric_shape.geometry, properties)
                         if feature is not None:
                             path_geojson_ids.append(feature.geojson_id)
