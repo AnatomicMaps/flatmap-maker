@@ -265,7 +265,9 @@ class SVGLayer(MapLayer):
             if isinstance(shape, TreeList):
                 self.__process_shape_list(shape, depth+1)
             elif not shape.properties.get('exclude', False):
-                features.append(self.flatmap.new_feature(self.id, shape.geometry, shape.properties))
+                feature = self.flatmap.new_feature(self.id, shape.geometry, shape.properties)
+                if feature is not None:
+                    features.append(feature)
         self.add_group_features(f'SVG_{depth}', features, outermost=(depth==0))
         return features
 

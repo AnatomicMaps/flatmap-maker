@@ -294,7 +294,7 @@ class MapLayer(FeatureLayer):
             'tile-layer': tile_layer
             }
 
-        layer_features = []    # Features that will be added to the layer
+        layer_features: list[Feature] = []    # Features that will be added to the layer
         grouped_properties = {
             'group': True,
             'interior': True,
@@ -305,8 +305,8 @@ class MapLayer(FeatureLayer):
         boundary_class = None
         boundary_lines = []
         boundary_polygon = None
-        dividers = []
-        regions = []
+        dividers: list[shapely.LineString] = []
+        regions: list[Feature] = []
 
         debug_group = False
         child_class = None
@@ -340,12 +340,17 @@ class MapLayer(FeatureLayer):
                 child_class = feature.pop_property('children')
                 grouped_properties.update(feature.properties)
             elif feature.get_property('region'):
-                regions.append(self.flatmap.new_feature(self.id, feature.geometry.representative_point(), feature.properties))
+                region_properties = feature.properties.copy()
+                # So that any region doesn't have a duplicate id
+                region_properties.pop('id', None)
+                region = self.flatmap.new_feature(self.id, feature.geometry.representative_point(), region_properties)
+                if region is not None:
+                    regions.append(region)
             elif feature.get_property('divider'):
                 if feature.geom_type == 'LineString':
-                    dividers.append(feature.geometry)
+                    dividers.append(feature.geometry)           # pyright: ignore[reportArgumentType]
                 elif feature.geom_type == 'Polygon':
-                    dividers.append(feature.geometry.boundary)
+                    dividers.append(feature.geometry.boundary)  # pyright: ignore[reportArgumentType]
                 if feature.visible():
                     layer_features.append(feature)
             elif not feature.get_property('interior'):
@@ -367,11 +372,9 @@ class MapLayer(FeatureLayer):
                 raise GroupValueError('{}: {}'.format(group_name, str(err)), features) from None
 
         if boundary_polygon is not None:
-            layer_features.append(
-                self.flatmap.new_feature(
-                    self.id,
-                    boundary_polygon,
-                    base_properties))
+            feature = self.flatmap.new_feature(self.id, boundary_polygon, base_properties)
+            if feature is not None:
+                layer_features.append(feature)
 
             if len(dividers):
                 # For all line dividers, if the end of a line is 'close to' another line
@@ -382,7 +385,7 @@ class MapLayer(FeatureLayer):
 
                 if debug_group:
                     save_geometry(shapely.MultiLineString(dividers), 'dividers.wkt')
-                dividers.append(boundary_polygon.boundary)
+                dividers.append(boundary_polygon.boundary)      # pyright: ignore[reportArgumentType]
 
                 divider_lines = connect_dividers(dividers, debug_group)
                 if debug_group:
@@ -398,11 +401,14 @@ class MapLayer(FeatureLayer):
                     if debug_group:
                         save_geometry(polygon, f'polygon_{n}.wkt')
                     prepared_polygon = shapely.prepared.prep(polygon)
-                    region_id = None
                     region_properties = base_properties.copy()
+                    # So that any region doesn't have a duplicate id
+                    region_properties.pop('id', None)
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_properties.update(region.properties)
-                        layer_features.append(self.flatmap.new_feature(self.id, polygon, region_properties))
+                        feature = self.flatmap.new_feature(self.id, polygon, region_properties)
+                        if feature is not None:
+                            layer_features.append(feature)
                         break
         else:
             for feature in features:
@@ -426,6 +432,8 @@ class MapLayer(FeatureLayer):
         # Construct a MultiPolygon containing all of the group's polygons
         # But only if the group contains a `.group` element...
 
+        # So that any grouped features don't have duplicate ids
+        grouped_properties.pop('id', None)
         feature_group = None  # Our returned Feature
         if generate_group:
             grouped_polygon_features = [ feature for feature in features if feature.is_group ]
@@ -443,9 +451,8 @@ class MapLayer(FeatureLayer):
                         self.id,
                         shapely.MultiPolygon(grouped_polygons).buffer(0),
                         grouped_properties, is_group=True)
-                layer_features.append(feature_group)
-                # So that any grouped lines don't have a duplicate id
-                grouped_properties.pop('id', None)
+                if feature_group is not None:
+                    layer_features.append(feature_group)
 
             grouped_lines = []
             for feature in grouped_polygon_features:
@@ -460,7 +467,8 @@ class MapLayer(FeatureLayer):
                       self.id,
                       shapely.MultiLineString(grouped_lines),
                       grouped_properties, is_group=True)
-                layer_features.append(feature_group)
+                if feature_group is not None:
+                    layer_features.append(feature_group)
 
         # Feature specific properties have precedence over group's
         default_properties = base_properties.copy()

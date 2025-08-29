@@ -839,13 +839,12 @@ class Pathways:
                             properties['label'] = '\n'.join(labels)
                         elif path_model is not None:
                             properties['label'] = path.label
-                        if 'id' not in properties and path_model is not None:
-                            properties['id'] = path_model.replace(':', '_').replace('/', '_')
                         feature = self.__flatmap.new_feature('pathways', geometric_shape.geometry, properties)
-                        path_geojson_ids.append(feature.geojson_id)
-                        layer.add_feature(feature)
-                        if path_taxons is None:
-                            path_taxons = feature.get_property('taxons')
+                        if feature is not None:
+                            path_geojson_ids.append(feature.geojson_id)
+                            layer.add_feature(feature)
+                            if path_taxons is None:
+                                path_taxons = feature.get_property('taxons')
 
                 for geometric_shape in geometric_shapes:
                     properties = DEFAULT_PATH_PROPERTIES.copy() | added_properties
@@ -858,8 +857,9 @@ class Pathways:
                         if path_taxons is not None:
                             properties['taxons'] = path_taxons
                         feature = self.__flatmap.new_feature('pathways', geometric_shape.geometry, properties)
-                        path_geojson_ids.append(feature.geojson_id)
-                        layer.add_feature(feature)
+                        if feature is not None:
+                            path_geojson_ids.append(feature.geojson_id)
+                            layer.add_feature(feature)
 
                 nerve_feature_ids = routed_path.nerve_feature_ids
                 nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
@@ -896,7 +896,8 @@ class Pathways:
                 nerve_polygon_feature = self.__flatmap.new_feature(
                     'pathways',
                     shapely.geometry.Polygon(feature.geometry.coords).buffer(0), properties)
-                layer.features.append(nerve_polygon_feature)
+                if nerve_polygon_feature is not None:
+                    layer.features.append(nerve_polygon_feature)
 
     def generate_connectivity(self, networks: Iterable[Network]):
     #============================================================

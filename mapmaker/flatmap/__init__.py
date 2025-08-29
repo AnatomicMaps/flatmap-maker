@@ -288,18 +288,18 @@ class FlatMap(object):
     #=========================================================================
         return self.__features_by_geojson_id.get(geojson_id)
 
-    def new_feature(self, layer_id: str, geometry, properties, is_group=False) -> Feature:
-    #=====================================================================================
-        self.__last_geojson_id += 1
+    def new_feature(self, layer_id: str, geometry, properties, is_group=False) -> Optional[Feature]:
+    #===============================================================================================
         properties['layer'] = layer_id
         self.properties_store.update_properties(properties)   # Update from JSON properties file
+        if (id:=properties.get('id')) is not None and id in self.__features_with_id:
+            log.error('Duplicate feature id', id=id)
+            return None
+        self.__last_geojson_id += 1
         feature = Feature(self.__last_geojson_id, geometry, properties, is_group=is_group)
         self.__features_by_geojson_id[feature.geojson_id] = feature
         if feature.id:
-            if feature.id in self.__features_with_id:
-                pass
-            else:
-                self.__features_with_id[feature.id] = feature
+            self.__features_with_id[feature.id] = feature
         if self.map_kind == MAP_KIND.FUNCTIONAL:
             if (name := properties.get('name', '')) != '':
                 self.__features_with_name[f'{layer_id}/{name.replace(" ", "_")}'] = feature
@@ -335,14 +335,14 @@ class FlatMap(object):
         if 'Polygon' not in feature.geometry.geom_type:
             log.warning('Proxy feature must have a polygon shape', type='proxy', models=feature_model, feature=feature)
         elif self.__bottom_exported_layer is not None:
-            self.__bottom_exported_layer.add_feature(
-                self.new_feature(self.__bottom_exported_layer.id, proxy_dot(feature.geometry, proxy_seq), {   # type: ignore
-                    'id': f'proxy_{proxy_seq}_on_{feature.id}',
-                    'tile-layer': FEATURES_TILE_LAYER,
-                    'models': feature_model,
-                    'kind': 'proxy'
-                })
-            )
+            proxy_feature = self.new_feature(self.__bottom_exported_layer.id, proxy_dot(feature.geometry, proxy_seq), {   # type: ignore
+                'id': f'proxy_{proxy_seq}_on_{feature.id}',
+                'tile-layer': FEATURES_TILE_LAYER,
+                'models': feature_model,
+                'kind': 'proxy'
+            })
+            if proxy_feature is not None:
+                self.__bottom_exported_layer.add_feature(proxy_feature)
 
     def add_layer(self, layer: MapLayer):
     #====================================
@@ -412,6 +412,8 @@ class FlatMap(object):
                 'kind': 'zoom-point',
                 'tile-layer': feature.properties['tile-layer']
             })
+            if zoom_point is None:
+                return
             if description is not None:
                 zoom_point.set_property('label', description)
             if (models := feature.models) is not None:
@@ -487,9 +489,11 @@ class FlatMap(object):
             self.add_layer(layer)
 
 ## Put all this into 'features.py' as a function??
-    def __new_detail_feature(self, layer_id, detail_layer, minzoom, geometry, properties):
-    #=====================================================================================
+    def __new_detail_feature(self, layer_id, detail_layer, minzoom, geometry, properties) -> Optional[Feature]:
+    #==========================================================================================================
         new_feature = self.new_feature(layer_id, geometry, properties)
+        if new_feature is None:
+            return
         new_feature.set_property('minzoom', minzoom)
         if properties.get('type') == 'nerve':
             new_feature.set_property('type', 'nerve-section')
@@ -541,7 +545,7 @@ class FlatMap(object):
                 new_feature = self.__new_detail_feature(layer.id, detail_layer, minzoom,
                                                         transform.transform_geometry(hires_feature.geometry),
                                                         hires_feature.properties)
-                if new_feature.has_property('details'):
+                if new_feature is not None and new_feature.has_property('details'):
                     extra_details.append(new_feature)
 
         # If hires features that we've just added also have details then add them

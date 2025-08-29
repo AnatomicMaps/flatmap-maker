@@ -146,12 +146,13 @@ class MBFSource(MapSource):
             if anatomical_id is not None:
                 properties['models'] = anatomical_id
             feature = self.flatmap.new_feature(self.id, geometry, properties)
-            feature.set_property('dataset', self.__sparc_dataset)
-            feature.set_property('source', self.href)
-            self.__layer.add_feature(feature)
-            if anatomical_id == self.__boundary_id:
-                boundary_geometry = feature.geometry
-                self.__layer.boundary_feature = feature
+            if feature is not None:
+                feature.set_property('dataset', self.__sparc_dataset)
+                feature.set_property('source', self.href)
+                self.__layer.add_feature(feature)
+                if anatomical_id == self.__boundary_id:
+                    boundary_geometry = feature.geometry
+                    self.__layer.boundary_feature = feature
         if boundary_geometry is not None and boundary_geometry.geom_type == 'Polygon':
             # Save boundary in case transformed image is used for details
             self.__boundary_geometry = boundary_geometry
