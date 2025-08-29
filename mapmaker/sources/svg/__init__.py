@@ -81,6 +81,7 @@ IGNORED_SVG_TAGS = [
 NON_INHERITED_PROPERTIES = [
     'id',
     'class',
+    'group',
     'markup',
     'models',
     'tooltip',

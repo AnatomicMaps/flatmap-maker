@@ -430,15 +430,11 @@ class MapLayer(FeatureLayer):
                     feature.geometry = feature.geometry.buffer(0).difference(interior_polygon)
 
         # Construct a MultiPolygon containing all of the group's polygons
-        # But only if the group contains a `.group` element...
-
-        # So that any grouped features don't have duplicate ids
-        grouped_properties.pop('id', None)
+        # But only if the group contained a `.group` element...
         feature_group = None  # Our returned Feature
         if generate_group:
-            grouped_polygon_features = [ feature for feature in features if feature.is_group ]
-            for feature in layer_features:
-                grouped_polygon_features.append(feature)
+            grouped_polygon_features = []
+            grouped_polygon_features.extend(layer_features)
 
             grouped_polygons = []
             for feature in grouped_polygon_features:

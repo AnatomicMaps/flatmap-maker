@@ -298,7 +298,7 @@ class FlatMap(object):
         self.__last_geojson_id += 1
         feature = Feature(self.__last_geojson_id, geometry, properties, is_group=is_group)
         self.__features_by_geojson_id[feature.geojson_id] = feature
-        if feature.id:
+        if feature.id and (not properties.get('group', False) or is_group):
             self.__features_with_id[feature.id] = feature
         if self.map_kind == MAP_KIND.FUNCTIONAL:
             if (name := properties.get('name', '')) != '':
