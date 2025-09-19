@@ -346,6 +346,7 @@ class Manifest:
         if 'legend' in self.__manifest:
             legend_file = FilePath(self.__manifest['legend'])
             self.__manifest['legend'] = legend_file.get_json()
+        self.__name = self.__manifest.get('name')
 
     @property
     def anatomical_map(self):
@@ -378,6 +379,10 @@ class Manifest:
     @property
     def legend(self):
         return self.__manifest.get('legend')
+
+    @property
+    def name(self) -> Optional[str]:
+        return self.__name
 
     @property
     def proxy_features(self):

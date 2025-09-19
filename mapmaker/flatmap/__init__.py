@@ -60,12 +60,12 @@ SOURCE_DETAIL_KINDS = ['anatomical', 'detail', 'functional']
 
 class FlatMap(object):
     def __init__(self, manifest: Manifest, maker: 'MapMaker', annotator: Optional['Annotator']=None):
-        self.__id = maker.id
+        self.__id = manifest.id
         self.__uuid = maker.uuid
         self.__map_dir = maker.map_dir
         self.__map_kind = manifest.map_kind
         self.__manifest = manifest
-        self.__local_id = manifest.id
+        self.__name = name if (name := manifest.name) is not None else self.__id
         self.__models = manifest.models
         self.__extent = None
         self.__centre = None
@@ -127,10 +127,6 @@ class FlatMap(object):
         return self.__layer_dict.values()
 
     @property
-    def local_id(self):
-        return self.__local_id
-
-    @property
     def manifest(self):
         return self.__manifest
 
@@ -175,7 +171,7 @@ class FlatMap(object):
         self.__created = None   # Set when map closed
         self.__metadata = {
             'id': self.__id,
-            'name': self.__local_id,
+            'name': self.__name,
             # Who made the map
             'creator': 'mapmaker {}'.format(__version__),
             # The URL of the map's manifest

@@ -251,10 +251,6 @@ class MapMaker:
         self.__flatmap = FlatMap(self.__manifest, self, self.__annotator)
 
     @property
-    def id(self):
-        return self.__id
-
-    @property
     def map_dir(self):
         return self.__map_dir
 
@@ -309,7 +305,7 @@ class MapMaker:
         self.__save_metadata()
 
         # We now have successfully generated the flatmap
-        generated_map = {'id': self.id, 'uuid': self.uuid, 'path': self.__map_dir}
+        generated_map = {'id': self.__id, 'uuid': self.uuid, 'path': self.__map_dir}
         if self.__flatmap.models is not None:
             generated_map['models'] = self.__flatmap.models
         log.info('Generated map', **generated_map)
