@@ -343,6 +343,7 @@ class MapLayer(FeatureLayer):
                 region_properties = feature.properties.copy()
                 # So that any region doesn't have a duplicate id
                 region_properties.pop('id', None)
+                region_properties.pop('userdata', None)
                 region = self.flatmap.new_feature(self.id, feature.geometry.representative_point(), region_properties)
                 if region is not None:
                     regions.append(region)
@@ -404,6 +405,7 @@ class MapLayer(FeatureLayer):
                     region_properties = base_properties.copy()
                     # So that any region doesn't have a duplicate id
                     region_properties.pop('id', None)
+                    region_properties.pop('userdata', None)
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_properties.update(region.properties)
                         feature = self.flatmap.new_feature(self.id, polygon, region_properties)

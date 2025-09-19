@@ -66,7 +66,8 @@ EXPORTED_FEATURE_PROPERTIES = [
     'missing-nodes',
     'alert',
     'biological-sex',
-    'anatomical-nodes' # list[[str, list[str]]]
+    'anatomical-nodes', # list[[str, list[str]]]
+    'userdata',         # Arbitrary, user supplied feature property
 ]
 
 #===============================================================================
@@ -74,6 +75,7 @@ EXPORTED_FEATURE_PROPERTIES = [
 ENCODED_FEATURE_PROPERTIES = [
     'associated-details',   # Optional[str|list[str]]
     'hyperlinks',           # Optional[list[dict[str, str]]]    # id, url
+    'userdata',
 ]
 
 #===============================================================================
