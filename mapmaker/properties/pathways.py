@@ -889,15 +889,16 @@ class Pathways:
                 feature.pop_property('exclude')
                 feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                 feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
-                # Add a polygon feature for a nerve cuff
-                properties = feature.properties.copy()
-                feature.properties.pop('models', None)  # Otherwise we can two markers on the feature
-                properties.pop('id', None)   # Otherwise we will have a duplicate id...
-                nerve_polygon_feature = self.__flatmap.new_feature(
-                    'pathways',
-                    shapely.geometry.Polygon(feature.geometry.coords).buffer(0), properties)
-                if nerve_polygon_feature is not None:
-                    layer.features.append(nerve_polygon_feature)
+                if feature.layer is not None:
+                    # Add a polygon feature for a nerve cuff
+                    properties = feature.properties.copy()
+                    feature.properties.pop('models', None)  # Otherwise we can get two markers on the feature
+                    properties.pop('id', None)   # Otherwise we will have a duplicate id...
+                    nerve_polygon_feature = self.__flatmap.new_feature(
+                        'pathways',
+                        shapely.geometry.Polygon(feature.geometry.coords).buffer(0), properties)
+                    if nerve_polygon_feature is not None:
+                        feature.layer.features.append(nerve_polygon_feature)
 
     def generate_connectivity(self, networks: Iterable[Network]):
     #============================================================
