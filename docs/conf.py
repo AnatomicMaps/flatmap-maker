@@ -17,9 +17,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'Flatmap Maker'
-copyright = '2020, David Brooks'
+copyright = '2020-2025, David Brooks'
 author = 'David Brooks'
-release = '1.4'
 
 # -- General configuration ---------------------------------------------------
 
