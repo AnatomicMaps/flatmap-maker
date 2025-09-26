@@ -87,7 +87,7 @@ def run_apidoc(app, config):
         "--force",
         "--separate",
         "--output-dir", "_source",
-        "../mapmaker"
+        "./mapmaker"
     ]
     sphinx.ext.apidoc.main(args)
 
