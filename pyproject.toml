@@ -54,9 +54,9 @@ dependencies = [
 dev = [
     "attribution<=1.7.1",
     "sphinx<=8.1",
-    "sphinx-rtd-theme<=3.0.1",
     "sphinx-argparse<=0.5.2",
     "pyright>=1.1.403",
+    "furo>=2025.9.25",
 ]
 
 [tool.poetry.group.alignments]
