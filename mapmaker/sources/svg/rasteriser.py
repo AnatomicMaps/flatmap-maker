@@ -44,7 +44,7 @@ from mapmaker.properties.markup import parse_markup
 from mapmaker.settings import MAP_KIND
 from mapmaker.utils import FilePath, ProgressBar, log
 
-from . import DETAILED_MAP_BORDER, FUNCTIONAL_MAP_MARGIN, SVGSource
+from . import DETAILED_MAP_BORDER, SVGSource
 from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
@@ -317,16 +317,9 @@ class SVGTiler(object):
                            length_as_pixels(self.__svg.attrib['height']))
         self.__add_background_rect = False
         if raster_layer.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
-            margin = 0
-            if raster_layer.map_source.kind == 'base':
-                if not raster_layer.background_layer:
-                    margin = FUNCTIONAL_MAP_MARGIN
-            elif raster_layer.map_source.kind == 'functional':
+            if (raster_layer.map_source.kind != 'base'
+            and raster_layer.map_source.kind == 'functional'):
                 self.__add_background_rect = (raster_layer.map_source.base_feature is not None)
-            if margin:
-                left -= margin
-                top -= margin
-                self.__size = (self.__size[0] + 2*margin, self.__size[1] + 2*margin)
         self.__left_top = (left, top)
         self.__scaling = (tile_set.pixel_rect.width/self.__size[0],
                           tile_set.pixel_rect.height/self.__size[1])

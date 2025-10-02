@@ -62,7 +62,6 @@ from .utils import length_as_points, svg_markup, parse_svg_path, SVG_TAG
 #===============================================================================
 
 DETAILED_MAP_BORDER = 50        # pixels
-FUNCTIONAL_MAP_MARGIN = 500     # pixels in SVG source space
 
 #===============================================================================
 
@@ -127,13 +126,6 @@ class SVGSource(MapSource):
                                           [0.0,  0.0,           1.0]]))
             self.__metres_per_pixel = scale
         else:
-            # Add a margin around the base layer of a functional map
-            if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL
-            and self.kind == 'base'):
-                left -= FUNCTIONAL_MAP_MARGIN
-                top -= FUNCTIONAL_MAP_MARGIN
-                width += 2*FUNCTIONAL_MAP_MARGIN
-                height += 2*FUNCTIONAL_MAP_MARGIN
             # Transform from SVG pixels to world coordinates
             self.__transform = (Transform([[WORLD_METRES_PER_PIXEL,                      0, 0],
                                            [                     0, WORLD_METRES_PER_PIXEL, 0],
