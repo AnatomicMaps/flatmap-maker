@@ -1,6 +1,6 @@
 [project]
 name = "mapmaker"
-version = "1.22.2"
+version = "1.22.3"
 description = "Generate MapLibre compatible tilesets for flatmaps."
 authors = [
     { name = "David Brooks", email = "d.brooks@auckland.ac.nz"}
