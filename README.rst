@@ -59,11 +59,11 @@ Installation
 ~~~~~~~~~~~~
 
 *   At a CLI prompt, and in a suitable directory,
-    `download the latest release <https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.22.3.tar.gz>`_
+    `download the latest release <https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.22.4.tar.gz>`_
     in ``tar.gz`` format and extract it, renaming the top-level directory in the archive to ``flatmapmaker``::
 
-        $ curl -L https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.22.3.tar.gz \
-        | tar xz -s /v1.22.3.tar.gz/flatmapmaker/
+        $ curl -L https://github.com/AnatomicMaps/flatmap-maker/archive/refs/tags/v1.22.4.tar.gz \
+        | tar xz -s /v1.22.4.tar.gz/flatmapmaker/
 
 
 Setup the environment
