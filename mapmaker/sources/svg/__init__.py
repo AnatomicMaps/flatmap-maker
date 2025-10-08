@@ -57,7 +57,7 @@ from .definitions import DefinitionStore, ObjectStore
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import circle_from_bounds, geometry_from_svg_path, length_as_pixels
-from .utils import length_as_points, svg_markup, parse_svg_path, SVG_TAG
+from .utils import check_non_negative, length_as_points, svg_markup, parse_svg_path, SVG_TAG
 
 #===============================================================================
 
@@ -451,6 +451,7 @@ class SVGLayer(MapLayer):
     ##
     ## Returns path element as a `shapely` object.
     ##
+        element_id = properties.get('id')
         path_tokens = []
         if element.tag == SVG_TAG('path'):
             path_tokens = list(parse_svg_path(element.attrib.get('d', '')))
@@ -460,18 +461,20 @@ class SVGLayer(MapLayer):
             y = length_as_pixels(element.attrib.get('y', 0))
             width = length_as_pixels(element.attrib.get('width', 0))
             height = length_as_pixels(element.attrib.get('height', 0))
-            rx = length_as_pixels(element.attrib.get('rx'))
-            ry = length_as_pixels(element.attrib.get('ry'))
+            width = check_non_negative(width, 'rect', 'width', element_id)
+            height = check_non_negative(height, 'rect', 'height', element_id)
             if width == 0 or height == 0: return None
 
+            rx = length_as_pixels(element.attrib.get('rx'))
+            ry = length_as_pixels(element.attrib.get('ry'))
             if rx is None and ry is None:
                 rx = ry = 0
             elif ry is None:
                 ry = rx
             elif rx is None:
                 rx = ry
-            rx = min(rx, width/2)
-            ry = min(ry, height/2)
+            rx = check_non_negative(rx, 'rect', 'x-radius', element_id)
+            ry = check_non_negative(ry, 'rect', 'y-radius', element_id)
             if rx == 0 and ry == 0:
                 path_tokens = ['M', x, y,
                                'H', x+width,
@@ -480,6 +483,8 @@ class SVGLayer(MapLayer):
                                'V', y,
                                'Z']
             else:
+                rx = min(rx, width/2)
+                ry = min(ry, height/2)
                 path_tokens = ['M', x+rx, y,
                                'H', x+width-rx,
                                'A', rx, ry, 0, 0, 1, x+width, y+ry,
@@ -510,6 +515,7 @@ class SVGLayer(MapLayer):
             cx = length_as_pixels(element.attrib.get('cx', 0))
             cy = length_as_pixels(element.attrib.get('cy', 0))
             r = length_as_pixels(element.attrib.get('r', 0))
+            r = check_non_negative(r, 'circle', 'radius', element_id)
             if r == 0: return None
             path_tokens = ['M', cx+r, cy,
                            'A', r, r, 0, 0, 0, cx, cy-r,
@@ -523,6 +529,8 @@ class SVGLayer(MapLayer):
             cy = length_as_pixels(element.attrib.get('cy', 0))
             rx = length_as_pixels(element.attrib.get('rx', 0))
             ry = length_as_pixels(element.attrib.get('ry', 0))
+            rx = check_non_negative(rx, 'ellipse', 'x-radius', element_id)
+            ry = check_non_negative(ry, 'ellipse', 'y-radius', element_id)
             if rx == 0 or ry == 0: return None
             path_tokens = ['M', cx+rx, cy,
                            'A', rx, ry, 0, 0, 0, cx, cy-ry,

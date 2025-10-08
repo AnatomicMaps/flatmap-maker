@@ -81,6 +81,13 @@ __unit_scaling = {
     'ex': None,      # ex/pt depends on current font size
     }
 
+def check_non_negative(length: float, element: str, what: str, id: Optional[str]) -> float:
+#==========================================================================================
+    if length < 0:
+        length = 0
+        log.warning(f'Unexpected negative {what} for `{element}` element', id=id)
+    return length
+
 def length_as_pixels(length: str | float) -> float:
 #==================================================
     if not isinstance(length, str):
