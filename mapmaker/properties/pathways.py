@@ -40,6 +40,7 @@ from mapmaker.knowledgebase.sckan import PATH_TYPE
 from mapmaker.routing import Network
 from mapmaker.settings import settings
 from mapmaker.utils import log
+from mapmaker.geometry.cuff_circle import cuff_circle
 
 from .markup import ID_TEXT
 
@@ -807,6 +808,7 @@ class Pathways:
         layer = FeatureLayer(f'{network.id}-routes', self.__flatmap, exported=True)
         self.__flatmap.add_layer(layer)
         rendered_route_graphs = [id for id, route_graph in route_graphs.items() if route_graph.nodes]
+        nerve_passed_by_paths = defaultdict(set)
         for route_number, routed_path in routed_paths.items():
             for path_id, geometric_shapes in routed_path.path_geometry().items():
                 path = paths_by_id[path_id]
@@ -863,6 +865,8 @@ class Pathways:
 
                 nerve_feature_ids = routed_path.nerve_feature_ids
                 nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
+                for nerve in nerve_features:
+                    nerve_passed_by_paths[nerve.properties.get('featureId')].add(path_id)
                 active_nerve_features.update(nerve_features)
                 connectivity_graph = route_graphs[path_id].graph['connectivity']
                 self.__resolved_pathways.add_connectivity(path_id,
@@ -889,6 +893,9 @@ class Pathways:
                 feature.pop_property('exclude')
                 feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                 feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
+                cx = feature.geometry.centroid.x
+                cy = feature.geometry.centroid.y
+                feature.geometry = cuff_circle(cx, cy, len(nerve_passed_by_paths.get(feature.geojson_id, [])))
                 if feature.layer is not None:
                     # Add a polygon feature for a nerve cuff
                     properties = feature.properties.copy()
