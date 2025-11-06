@@ -879,7 +879,6 @@ class Pathways:
                                                           connectivity_graph,
                                                           rendered_route_graphs,
                                                           centrelines=routed_path.centrelines)
-
                 # extract hierarchy
                 for node_dict in connectivity_graph.nodes.values():
                     self.__node_hierarchy['nodes'].add(source := node_dict['node'])
@@ -887,7 +886,6 @@ class Pathways:
                         target = (target[0], target[1:])
                         self.__node_hierarchy['links'].add((source, target))
                         self.__node_hierarchy['nodes'].add(source := target)
-
 
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
