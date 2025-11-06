@@ -25,6 +25,7 @@ from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING
 #===============================================================================
 
 import networkx as nx
+import numpy as np
 from pyparsing import delimitedList, Group, ParseException, ParseResults, Suppress
 import shapely.geometry
 
@@ -40,7 +41,7 @@ from mapmaker.knowledgebase.sckan import PATH_TYPE
 from mapmaker.routing import Network
 from mapmaker.settings import settings
 from mapmaker.utils import log
-from mapmaker.geometry.cuff_circle import cuff_circle
+from mapmaker.geometry.shapes import GeometricShape
 
 from .markup import ID_TEXT
 
@@ -893,9 +894,13 @@ class Pathways:
                 feature.pop_property('exclude')
                 feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                 feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
-                cx = feature.geometry.centroid.x
-                cy = feature.geometry.centroid.y
-                feature.geometry = cuff_circle(cx, cy, len(nerve_passed_by_paths.get(feature.geojson_id, [])))
+                # Replace the feature's drawn nerve cuff with a dashed circle, with radius proportional
+                # to the number of paths passing through the cuff
+                path_count = len(nerve_passed_by_paths.get(feature.geojson_id, []))
+                cuff_circle = GeometricShape.dashed_circle(
+                    (feature.geometry.centroid.x, feature.geometry.centroid.y),
+                    radius=5000*(1 + np.log(path_count + 1)))
+                feature.geometry = cuff_circle.geometry
                 if feature.layer is not None:
                     # Add a polygon feature for a nerve cuff
                     properties = feature.properties.copy()
