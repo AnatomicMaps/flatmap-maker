@@ -38,6 +38,7 @@ Requirements:
 
 from collections import defaultdict
 import json
+import sys
 import networkx as nx
 import rdflib
 from mapknowledge.namespaces import NAMESPACES
@@ -45,6 +46,9 @@ from mapknowledge import KnowledgeStore
 from pathlib import Path
 from lxml import etree
 import re
+import subprocess
+import tempfile
+from urllib.parse import urlparse
 
 #===============================================================================
 
@@ -72,6 +76,13 @@ q_superclasses = """
     PREFIX rdfs: <{rdfs}>
     SELECT ?superclass WHERE {{
     {cls} rdfs:subClassOf+ ?superclass .
+    }}
+"""
+
+q_subclasses = """
+    PREFIX rdfs: <{rdfs}>
+    SELECT ?subclass WHERE {{
+    ?subclass rdfs:subClassOf+ {cls} .
     }}
 """
 
@@ -121,34 +132,35 @@ class SourceValidation:
                 for p in point.split('/')
             ]
             self.__properties['terms'] = defaultdict(list)
-            for feature_id, feature in self.__properties.get('features', {}).items():
-                if (term := feature.get('models')) or (term := self.__anatomical_map.get(feature['class'], {}).get('term')):
-                    self.__properties['terms'][term].append(feature_id)
             self.__properties['a_classes'] = defaultdict(list)
             for feature_id, feature in self.__properties.get('features', {}).items():
+                if (term := feature.get('models')) or (term := self.__anatomical_map.get(feature.get('class'), {}).get('term')):
+                    self.__properties['terms'][term].append(feature_id)
                 if (class_name := feature.get('class')) and (class_name != 'auto-hide'):
                     self.__properties['a_classes'][class_name].append(feature_id)
 
         # alias info
         self.__have_aliases, self.__alias_of = {}, {}
-        with open(manifest_file.with_name(self.__manifest['connectivityTerms']), 'r') as fp:
-            for alias in json.load(fp):
-                id = alias.get('id') if isinstance(alias.get('id'), str) else (alias.get('id')[0], tuple(alias.get('id')[1]))
-                self.__have_aliases[id] = []
-                for aliased in alias['aliases']:
-                    aliased = aliased if isinstance(aliased, str) else (aliased[0], tuple(aliased[1]))
-                    self.__have_aliases[id].append(aliased)
-                    self.__alias_of[aliased] = self.__alias_of.get(aliased, []) + [id]
+        if self.__manifest['connectivityTerms']:
+            with open(manifest_file.with_name(self.__manifest['connectivityTerms']), 'r') as fp:
+                for alias in json.load(fp):
+                    id = alias.get('id') if isinstance(alias.get('id'), str) else (alias.get('id')[0], tuple(alias.get('id')[1]))
+                    self.__have_aliases[id] = []
+                    for aliased in alias['aliases']:
+                        aliased = aliased if isinstance(aliased, str) else (aliased[0], tuple(aliased[1]))
+                        self.__have_aliases[id].append(aliased)
+                        self.__alias_of[aliased] = self.__alias_of.get(aliased, []) + [id]
 
         # proxy info
         self.__have_proxies, self.__proxy_of = {}, {}
-        with open(manifest_file.with_name(self.__manifest['proxyFeatures']), 'r') as fp:
-            proxies = json.load(fp)
-            for proxy in proxies:
-                self.__have_proxies[proxy['feature']] = []
-                for proxied in proxy['proxies']:
-                    self.__have_proxies[proxy['feature']].append(proxied)
-                    self.__proxy_of[proxied] = self.__proxy_of.get(proxied, []) + [proxy['feature']]
+        if self.__manifest['proxyFeatures']:
+            with open(manifest_file.with_name(self.__manifest['proxyFeatures']), 'r') as fp:
+                proxies = json.load(fp)
+                for proxy in proxies:
+                    self.__have_proxies[proxy['feature']] = []
+                    for proxied in proxy['proxies']:
+                        self.__have_proxies[proxy['feature']].append(proxied)
+                        self.__proxy_of[proxied] = self.__proxy_of.get(proxied, []) + [proxy['feature']]
 
     def __record_issue(self, type, object_code, object_location, issue):
         self.__issues.add((type, object_code, object_location, issue))
@@ -182,12 +194,8 @@ class SourceValidation:
         for k, v in self.__alias_of.items():
             if len(v) > 1:
                 self.__record_issue('alias', k, 'Connectivity Terms', f'Alias term maps to multiple ids: {v}')
-            if isinstance(k, tuple):
-                if k not in self.__sckan_knowledge['nodes']:
-                    self.__record_issue('alias', k, 'Connectivity Terms', f'Alias term not in sckan knowledge nodes')
-            elif k not in self.__sckan_knowledge['terms']:
-                self.__record_issue('alias', k, 'Connectivity Terms', f'Alias term not in sckan knowledge terms')
-
+            if k not in self.__sckan_knowledge['nodes'] and k not in self.__sckan_knowledge['terms']:
+                self.__record_issue('alias', k, 'Connectivity Terms', f'Alias term not in sckan knowledge nodes or terms')
         # validating have_aliases to properties and anatomical_map
         for k in self.__have_aliases:
             if not self.__is_node_or_term_in_property_or_proxy(k):
@@ -221,8 +229,8 @@ class SourceValidation:
 
         # validating anatomical classes in properties
         for k in self.__properties['a_classes']:
-            if k not in self.__anatomical_map and k not in self.__svg_tags['class'] and k not in self.__properties['classes']:
-                self.__record_issue('feature class', k, 'Properties', 'Properties anatomical class not in anatomical map, SVG, and property classes')
+            if k not in self.__anatomical_map and k not in self.__properties['classes']:
+                self.__record_issue('feature class', k, 'Properties', 'Properties anatomical class not in anatomical map, and property classes')
 
         # validating networks in properties
         for k in self.__properties['networks']:
@@ -237,7 +245,9 @@ class SourceValidation:
         # validating features in properties
         for k in self.__properties['features']:
             if k not in self.__svg_tags['id']:
-                self.__record_issue('feature', k, 'Properties', 'Properties feature id not in SVG')
+                self.__record_issue('id', k, 'Properties', 'Properties feature id not in SVG')
+            if not self.__properties['features'][k].get('models') and self.__anatomical_map.get(self.__properties['features'][k].get('class'), {}).get('term') is None:
+                self.__record_issue('id', k, 'Properties', 'Properties feature id has no models and its class has no term in anatomical map')
 
     def analize(self):
         self.__svg_validation()
@@ -259,10 +269,39 @@ def analyse_flatmap_source(manifest_files, sckan_knowledge, output_dir='.'):
     svs = []
     manifest_ids = []
     for manifest_file in manifest_files:
-        sv = SourceValidation(manifest_file, sckan_knowledge)
-        sv.analize()
-        manifest_ids.append(sv.get_manifest_id())
-        svs.append(sv)
+        parsed = urlparse(manifest_file)
+        if parsed.scheme in ("http", "https"):
+            # github url
+            parts = urlparse(manifest_file).path.strip("/").split("/")
+            user, repo, _, commit, *file_parts = parts
+            repo_url = f"https://github.com/{user}/{repo}.git"
+            file_relative = "/".join(file_parts)
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tmp_path = Path(tmpdir)
+
+                try:
+                # Clone specific commit
+                    subprocess.run(["git", "init"], cwd=tmp_path, check=True)
+                    subprocess.run(["git", "remote", "add", "origin", repo_url], cwd=tmp_path, check=True)
+                    subprocess.run(["git", "fetch", "--depth", "1", "origin", commit], cwd=tmp_path, check=True)
+                    subprocess.run(["git", "checkout", "FETCH_HEAD"], cwd=tmp_path, check=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"Error: Could not clone or checkout {repo_url} at commit {commit}")
+                    print("Specify the manifest file locally instead.")
+                    sys.exit(1)
+
+                # Path to the file
+                file_path = tmp_path / file_relative
+                sv = SourceValidation(file_path, sckan_knowledge)
+                sv.analize()
+                manifest_ids.append(sv.get_manifest_id())
+                svs.append(sv)
+        else:
+            # local file
+            sv = SourceValidation(manifest_file, sckan_knowledge)
+            sv.analize()
+            manifest_ids.append(sv.get_manifest_id())
+            svs.append(sv)
 
     output_dir = Path(output_dir)
     with open(output_dir / f"{'-'.join(manifest_ids)}-source_check.csv", 'w') as fp:
@@ -271,6 +310,7 @@ def analyse_flatmap_source(manifest_files, sckan_knowledge, output_dir='.'):
         for issue in svs[0].get_issues():
             if all(issue in sv.get_issues() for sv in svs):
                 fp.write(f"{','.join([f'\"{str(term)}\"' if "'" in str(term) else str(term) for term in issue])},{';'.join(sources)}\n")
+        print(f"Written {output_dir / f'{'-'.join(manifest_ids)}-source_check.csv'}")
 
 #===============================================================================
 
@@ -304,8 +344,9 @@ def identify_missing_nodes(sckan_knowledge, log_data_list, map_type, g_rdf, outp
             }
 
     for node, node_dict in missing_nodes.items():
-        types = []
+        types, children = [], []
         for term_id in [node[0], *node[1]]:
+            # superclass info
             superclasses = [
                 NAMESPACES.curie(str(row.superclass))
                 for row in g_rdf.query(q_superclasses.format(rdfs=RDFS, cls=term_id))
@@ -316,43 +357,65 @@ def identify_missing_nodes(sckan_knowledge, log_data_list, map_type, g_rdf, outp
                 types += [superclasses[0]]
             else:
                 types += ['']
+            # subclass info
+            subclasses = [
+                NAMESPACES.curie(str(row.subclass))
+                for row in g_rdf.query(q_subclasses.format(rdfs=RDFS, cls=term_id))
+            ]
+            if subclasses:
+                children.extend([subclasses[0]])
+            else:
+                children.extend([])
         node_dict['superclasses'] = tuple(types)
         node_dict['superclass labels'] = tuple(
-            SUPERCLASSES_CHECK.get(sp, labels[0] if (labels:=[str(l) for l in g_rdf.objects(NAMESPACES.uri(sp), RDFS.label)]) else '-') for sp in types
+            SUPERCLASSES_CHECK.get(sp, labels[0] if (labels:=[str(l) for l in g_rdf.objects(rdflib.URIRef(NAMESPACES.uri(sp)), RDFS.label)]) else '-')
+            for sp in types
+        )
+        node_dict['subclasses'] = tuple(children)
+        node_dict['subclass labels'] = tuple(
+            tuple(
+                labels[0] if (labels:=[str(l) for l in g_rdf.objects(rdflib.URIRef(NAMESPACES.uri(sc)), RDFS.label)]) else '-'
+                for sc in children
+            )
         )
 
     # check missing_paths', missing terminals minimal completion
     output_dir = Path(output_dir)
 
-    path_minimal_columns = ['Path', 'Phenotypes', 'Needed node', 'Node label', 'Superclass', 'Superclass label', 'Maps']
+    path_minimal_columns = ['Path', 'Phenotypes', 'Needed node', 'Node label', 'Superclass', 'Superclass label', 'Subclass', 'Subclass label', 'Maps']
     path_minimal_nodes = []
     for path_id in missing_paths:
         if path_id not in path_dicts:
             continue
         # check terminals
-        terminal_needed, terminal_label, terminal_superclass, superclass_label, maps = [], [], [], [], []
+        terminal_needed, terminal_label, terminal_superclass, superclass_label, terminal_subclass, subclass_label, maps = [], [], [], [], [], [], []
         for node in path_dicts[path_id]['terminals'] & set(missing_nodes.keys()):
             terminal_needed += [node]
             terminal_label += [missing_nodes[node]['name']]
             terminal_superclass += [missing_nodes[node]['superclasses']]
             superclass_label += [missing_nodes[node]['superclass labels']]
+            terminal_subclass += [missing_nodes[node]['subclasses']]
+            subclass_label += [missing_nodes[node]['subclass labels']]
             maps += [missing_nodes[node]['map']]
-        path_minimal_nodes.append([path_id, path_dicts[path_id]['phenotypes'], terminal_needed, terminal_label, terminal_superclass, superclass_label, maps])
+        path_minimal_nodes.append([path_id, path_dicts[path_id]['phenotypes'], terminal_needed, terminal_label, terminal_superclass, superclass_label, terminal_subclass, subclass_label, maps])
 
     with open(output_dir / (map_type + '-paths_minimal.csv'), 'w') as fp:
         fp.write(f"{','.join(path_minimal_columns)}\n")
         for row in path_minimal_nodes:
-            fp.write(f"{row[0]},\"{row[1]}\",\"{row[2]}\",\"{row[3]}\",\"{row[4]}\",\"{row[5]}\",\"{str(row[6])}\"\n")
+            fp.write(f"{row[0]},\"{row[1]}\",\"{row[2]}\",\"{row[3]}\",\"{row[4]}\",\"{row[5]}\",\"{row[6]}\",\"{row[7]}\",\"{str(row[8])}\"\n")
+        print(f"Written {output_dir / (map_type + '-paths_minimal.csv')}")
 
     # check minimal nodes
-    node_minimal_columns = ['Needed node', 'Node label', 'Superclass', 'Superclass label', 'Paths', 'Phenotypes', 'Maps']
+    node_minimal_columns = ['Needed node', 'Node label', 'Superclass', 'Superclass label', 'Subclass', 'Subclass label', 'Paths', 'Phenotypes', 'Maps']
     node_minimal_dict = defaultdict(lambda: {'Paths': [], 'Phenotypes': [], 'Maps': []})
-    for path_id, phenotypes, needed_nodes, node_labels, superclasses, superclass_labels, maps_list in path_minimal_nodes:
+    for path_id, phenotypes, needed_nodes, node_labels, superclasses, superclass_labels, subclasses, subclass_labels, maps_list in path_minimal_nodes:
         for i, needed_node in enumerate(needed_nodes):
             node_minimal_dict[needed_node]['Needed node'] = needed_node
             node_minimal_dict[needed_node]['Node label'] = node_labels[i]
             node_minimal_dict[needed_node]['Superclass'] = superclasses[i]
             node_minimal_dict[needed_node]['Superclass label'] = superclass_labels[i]
+            node_minimal_dict[needed_node]['Subclass'] = subclasses[i]
+            node_minimal_dict[needed_node]['Subclass label'] = subclass_labels[i]
             node_minimal_dict[needed_node]['Paths'] += [path_id]
             node_minimal_dict[needed_node]['Phenotypes'] += [phenotypes]
             node_minimal_dict[needed_node]['Maps'].extend(maps_list)
@@ -361,10 +424,11 @@ def identify_missing_nodes(sckan_knowledge, log_data_list, map_type, g_rdf, outp
         fp.write(f"{','.join(node_minimal_columns)}\n")
         for node, data in node_minimal_dict.items():
             unique_maps = list(set(data['Maps']))
-            fp.write(f"\"{data['Needed node']}\",\"{data['Node label']}\",\"{data['Superclass']}\",\"{data['Superclass label']}\",\"{data['Paths']}\",\"{data['Phenotypes']}\",\"{unique_maps}\"\n")
+            fp.write(f"\"{data['Needed node']}\",\"{data['Node label']}\",\"{data['Superclass']}\",\"{data['Superclass label']}\",\"{data['Subclass']}\",\"{data['Subclass label']}\",\"{data['Paths']}\",\"{data['Phenotypes']}\",\"{unique_maps}\"\n")
+        print(f"Written {output_dir / (map_type + '-node_minimal.csv')}")
 
     # check complete nodes
-    node_complete_columns = ['Needed node', 'Node label', 'Superclass', 'Superclass label', 'Paths', 'Phenotypes']
+    node_complete_columns = ['Needed node', 'Node label', 'Superclass', 'Superclass label', 'Subclass', 'Subclass label', 'Paths', 'Phenotypes']
     node_complete_dicts = defaultdict(lambda: {'Paths': [], 'Phenotypes': []})
     for path_id in path_dicts:
         for node in path_dicts[path_id]['nodes'] & set(missing_nodes.keys()):
@@ -372,24 +436,30 @@ def identify_missing_nodes(sckan_knowledge, log_data_list, map_type, g_rdf, outp
             node_complete_dicts[node]['Node label'] = missing_nodes[node]['name']
             node_complete_dicts[node]['Superclass'] = missing_nodes[node]['superclasses']
             node_complete_dicts[node]['Superclass label'] = missing_nodes[node]['superclass labels']
+            node_complete_dicts[node]['Subclass'] = missing_nodes[node]['subclasses']
+            node_complete_dicts[node]['Subclass label'] = missing_nodes[node]['subclass labels']
             node_complete_dicts[node]['Paths'] += [path_id]
             node_complete_dicts[node]['Phenotypes'] += [path_dicts[path_id]['phenotypes']]
 
     with open(output_dir / (map_type + '-node_complete.csv'), 'w') as fp:
         fp.write(f"{','.join(node_complete_columns)}\n")
         for node, data in node_complete_dicts.items():
-            fp.write(f"\"{data['Needed node']}\",\"{data['Node label']}\",\"{data['Superclass']}\",\"{data['Superclass label']}\",\"{data['Paths']}\",\"{data['Phenotypes']}\"\n")
+            fp.write(f"\"{data['Needed node']}\",\"{data['Node label']}\",\"{data['Superclass']}\",\"{data['Superclass label']}\",\"{data['Subclass']}\",\"{data['Subclass label']}\",\"{data['Paths']}\",\"{data['Phenotypes']}\"\n")
+        print(f"Written {output_dir / (map_type + '-node_complete.csv')}")
 
 #===============================================================================
 
-def loading_sources(log_files):
+def loading_sources(generated_folders):
     # Load log files into a list of dictionaries
 
     log_data_list = []
     map_type = []
     sckan_version = None
     store_directory = '.'
-    for log_file in log_files:
+    map_sources = []
+    for generated_folder in generated_folders:
+        generated_folder = Path(generated_folder)
+        log_file = generated_folder / 'mapmaker.log.json'
         with open(log_file, 'r') as f:
             log_data = [json.loads(line) for line in f]
             # Extract map type
@@ -406,6 +476,11 @@ def loading_sources(log_files):
                 if log_entry['msg'].startswith('Map Knowledge version') and ' cache ' in log_entry['msg']:
                     store_directory = log_entry['msg'].split(' cache ')[-1]
         log_data_list.extend(log_data)
+
+        # Collect map sources
+        with open(generated_folder / 'index.json', 'r') as f:
+            index_data = json.load(f)
+            map_sources.append(index_data.get('source', 'unknown'))
 
     map_type = '-'.join(map_type)
 
@@ -431,7 +506,9 @@ def loading_sources(log_files):
                 sckan_knowledge['terms'].update([node[0], *node[1]])
     store.close()
 
-    return sckan_knowledge, log_data_list, map_type, g
+
+
+    return sckan_knowledge, log_data_list, map_type, g, map_sources
 
 #===============================================================================
 
@@ -441,24 +518,26 @@ def main():
 
     import argparse
     parser = argparse.ArgumentParser(description='Extract missing nodes and paths for the rendered map.')
-    parser.add_argument('--manifest-files', required=True, nargs='+', help='The manifest files of a flatmap source')
-    parser.add_argument('--log-files', required=True, nargs='+', help='Log files of the generated map')
+    parser.add_argument('--manifest-files', nargs='*', default=None, help='Optional manifest file(s) of a flatmap source')
+    parser.add_argument('--map-folders', required=True, nargs='+', help='Folders containing log files of the generated map')
     parser.add_argument('--output-dir', help='Output directory for the results', default='.')
     args = parser.parse_args()
 
     # load sources
-    sckan_knowledge, log_data_list, map_type, g_rdf = loading_sources(args.log_files)
+    sckan_knowledge, log_data_list, map_type, g_rdf, map_sources = loading_sources(args.map_folders)
 
     # identify missing nodes and paths
     identify_missing_nodes(sckan_knowledge, log_data_list, map_type, g_rdf, args.output_dir)
 
     # analyse flatmap source
-    analyse_flatmap_source(args.manifest_files, sckan_knowledge, args.output_dir)
+    if args.manifest_files:
+        analyse_flatmap_source(args.manifest_files, sckan_knowledge, args.output_dir)
+    else:
+        analyse_flatmap_source(map_sources, sckan_knowledge, args.output_dir)
 
 #===============================================================================
 
 if __name__ == '__main__':
 #=========================
     main()
-
 #===============================================================================
