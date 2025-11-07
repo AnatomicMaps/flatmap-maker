@@ -17,7 +17,7 @@ python tools/flatmap_diagnostic.py \
     --output-dir output/
 
 Arguments:
-    --manifest-files  One or more JSON manifest files of the map source
+    --manifest-files  One or more JSON manifest files of the map source (optional)
     --log-files       One or more log files from the generated map
     --output-dir      Directory to save the output CSV files (default: current directory)
 
