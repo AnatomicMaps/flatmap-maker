@@ -13,12 +13,12 @@ reasons for the missing elements. It then produces four CSV reports:
 Usage:
 python tools/flatmap_diagnostic.py \
     --manifest-files manifest.json [manifest2.json ...] \
-    --log-files map.log [map2.log ...] \
+    --map-folders path/to/map/folder1 [path/to/map/folder2 ...] \
     --output-dir output/
 
 Arguments:
     --manifest-files  One or more JSON manifest files of the map source (optional)
-    --log-files       One or more log files from the generated map
+    --map-folders      One or more folders containing log files from the generated map
     --output-dir      Directory to save the output CSV files (default: current directory)
 
 Output files:
