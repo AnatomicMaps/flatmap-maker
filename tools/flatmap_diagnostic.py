@@ -282,6 +282,7 @@ def analyse_flatmap_source(manifest_files, sckan_knowledge, output_dir='.'):
                 try:
                 # Clone specific commit
                     subprocess.run(["git", "init"], cwd=tmp_path, check=True)
+                    subprocess.run(["git", "config", "advice.detachedHead", "false"], cwd=tmp_path, check=True)
                     subprocess.run(["git", "remote", "add", "origin", repo_url], cwd=tmp_path, check=True)
                     subprocess.run(["git", "fetch", "--depth", "1", "origin", commit], cwd=tmp_path, check=True)
                     subprocess.run(["git", "checkout", "FETCH_HEAD"], cwd=tmp_path, check=True)
