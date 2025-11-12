@@ -281,17 +281,17 @@ wheels = [
 
 [[package]]
 name = "flatmapknowledge"
-version = "2.6.1"
-source = { url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.6.1/flatmapknowledge-2.6.1-py3-none-any.whl" }
+version = "2.7.0"
+source = { url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.7.0/flatmapknowledge-2.7.0-py3-none-any.whl" }
 dependencies = [
     { name = "mapknowledge" },
 ]
 wheels = [
-    { url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.6.1/flatmapknowledge-2.6.1-py3-none-any.whl", hash = "sha256:f69ed58e4e6af827d451c2b0fb4675b64c95aec81e2e064ca92dc69e68e16d9a" },
+    { url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.7.0/flatmapknowledge-2.7.0-py3-none-any.whl", hash = "sha256:136c3cc38ab7c2b6446030c64e3456ceedf32a4fc7faa02139d836853fee4bdb" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "mapknowledge", url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.4.1/mapknowledge-1.4.1-py3-none-any.whl" }]
+requires-dist = [{ name = "mapknowledge", url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.5.0/mapknowledge-1.5.0-py3-none-any.whl" }]
 
 [[package]]
 name = "frozendict"
@@ -587,8 +587,8 @@ wheels = [
 
 [[package]]
 name = "mapknowledge"
-version = "1.4.1"
-source = { url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.4.1/mapknowledge-1.4.1-py3-none-any.whl" }
+version = "1.5.0"
+source = { url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.5.0/mapknowledge-1.5.0-py3-none-any.whl" }
 dependencies = [
     { name = "networkx" },
     { name = "neurondm" },
@@ -600,15 +600,15 @@ dependencies = [
     { name = "structlog" },
 ]
 wheels = [
-    { url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.4.1/mapknowledge-1.4.1-py3-none-any.whl", hash = "sha256:3f1730b4556d164e789e19ad141f6bc03e32bfcdb96930a340f497e8e41a2df5" },
+    { url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.5.0/mapknowledge-1.5.0-py3-none-any.whl", hash = "sha256:75293794f160c373c9994265d83d8541337727eb719c891031adc1dc5d3ad153" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "networkx", specifier = ">=3.3" },
-    { name = "neurondm", url = "https://github.com/tgbugs/pyontutils/releases/download/neurondm-0.1.8/neurondm-0.1.8-py2.py3-none-any.whl" },
+    { name = "neurondm", specifier = "==0.1.9" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" },
-    { name = "pyontutils", url = "https://github.com/tgbugs/pyontutils/releases/download/0.1.38/pyontutils-0.1.38-py2.py3-none-any.whl" },
+    { name = "pyontutils", specifier = "==0.1.39" },
     { name = "rdflib", specifier = ">=7.1.4" },
     { name = "requests", specifier = ">=2.28.1" },
     { name = "sparqlwrapper", specifier = ">=2.0.0" },
@@ -619,7 +619,7 @@ provides-extras = ["tools"]
 
 [[package]]
 name = "mapmaker"
-version = "1.22.5"
+version = "1.22.6"
 source = { editable = "." }
 dependencies = [
     { name = "beziers" },
@@ -678,12 +678,12 @@ requires-dist = [
     { name = "beziers", specifier = ">=0.5.0" },
     { name = "colormath", specifier = ">=3.0.0" },
     { name = "cssselect2", specifier = ">=0.6.0" },
-    { name = "flatmapknowledge", url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.6.1/flatmapknowledge-2.6.1-py3-none-any.whl" },
+    { name = "flatmapknowledge", url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.7.0/flatmapknowledge-2.7.0-py3-none-any.whl" },
     { name = "gitpython", specifier = ">=3.1.41" },
     { name = "giturlparse", specifier = ">=0.12.0" },
     { name = "lark", specifier = ">=1.2.2" },
     { name = "lxml", specifier = ">=5.2.2" },
-    { name = "mapknowledge", url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.4.1/mapknowledge-1.4.1-py3-none-any.whl" },
+    { name = "mapknowledge", url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.5.0/mapknowledge-1.5.0-py3-none-any.whl" },
     { name = "mbutil", specifier = ">=0.3.0" },
     { name = "mercantile", specifier = ">=1.2.1" },
     { name = "multiprocess", specifier = ">=0.70.13" },
@@ -822,30 +822,16 @@ wheels = [
 
 [[package]]
 name = "neurondm"
-version = "0.1.8"
-source = { url = "https://github.com/tgbugs/pyontutils/releases/download/neurondm-0.1.8/neurondm-0.1.8-py2.py3-none-any.whl" }
+version = "0.1.9"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "hyputils" },
     { name = "pyontutils" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/20/1d/c79fd768fdb18dde24a84876bebe9623d96680692c300aea8b9c3a1e7653/neurondm-0.1.9.tar.gz", hash = "sha256:960af602c26c5238670b6a938fb4d08e629d9c070d7f50bf48ea1ae109c26222", size = 201964 }
 wheels = [
-    { url = "https://github.com/tgbugs/pyontutils/releases/download/neurondm-0.1.8/neurondm-0.1.8-py2.py3-none-any.whl", hash = "sha256:d795c44d1402bc9d2f152fd51cbe313cfe983f8147d04a34180580cdd6f3cc68" },
+    { url = "https://files.pythonhosted.org/packages/21/6f/fd5ad2c6677c518e55332ad7bca599ff5f6f0ebebdf823de5859cf3ca4fd/neurondm-0.1.9-py2.py3-none-any.whl", hash = "sha256:d76bd0600939b59cdd9d992b49ad3c1e9f2c0a992d0d5964f9025c72fc55a016", size = 177576 },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "anytree", marker = "extra == 'tasic'" },
-    { name = "hyputils", specifier = ">=0.0.8" },
-    { name = "jupyter", marker = "extra == 'notebook'" },
-    { name = "nifstd-tools", marker = "extra == 'models'", specifier = ">=0.0.6" },
-    { name = "nifstd-tools", marker = "extra == 'test'", specifier = ">=0.0.6" },
-    { name = "pandas", marker = "extra == 'tasic'" },
-    { name = "pyontutils", specifier = ">=0.1.31" },
-    { name = "pytest", marker = "extra == 'test'" },
-    { name = "pytest-cov", marker = "extra == 'dev'" },
-    { name = "wheel", marker = "extra == 'dev'" },
-]
-provides-extras = ["dev", "models", "notebook", "tasic", "test"]
 
 [[package]]
 name = "nodeenv"
@@ -1184,8 +1170,8 @@ wheels = [
 
 [[package]]
 name = "pyontutils"
-version = "0.1.38"
-source = { url = "https://github.com/tgbugs/pyontutils/releases/download/0.1.38/pyontutils-0.1.38-py2.py3-none-any.whl" }
+version = "0.1.39"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "augpathlib" },
     { name = "clifn" },
@@ -1204,43 +1190,15 @@ dependencies = [
     { name = "orthauth", extra = ["sxpr"] },
     { name = "pyld" },
     { name = "pyyaml" },
+    { name = "rdflib" },
     { name = "requests" },
     { name = "terminaltables3" },
     { name = "ttlser" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/ba/2e/2a079df85c70b561636c2e32bed826a95895306ed4cd97b014eb2198e02f/pyontutils-0.1.39.tar.gz", hash = "sha256:4fc7853a07a4d1b8a3348df00210af190710b9c3dbbee7c87fb1771893894ee6", size = 329178 }
 wheels = [
-    { url = "https://github.com/tgbugs/pyontutils/releases/download/0.1.38/pyontutils-0.1.38-py2.py3-none-any.whl", hash = "sha256:70ac4c0be3031e44bcd4cd50f09f48145ba901f4e43491353168daa953650e4b" },
+    { url = "https://files.pythonhosted.org/packages/db/49/c4324b62ed9b6b319c3ffc513aee51bb103a13d8ada96c89d57be63b91a4/pyontutils-0.1.39-py2.py3-none-any.whl", hash = "sha256:730c99198b1918d57d8e2c31c267a0808fbfd472f266baa3f13fc52da7b1de97", size = 232376 },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "augpathlib", specifier = ">=0.0.33" },
-    { name = "clifn" },
-    { name = "colorlog" },
-    { name = "docopt" },
-    { name = "funowl", marker = "python_full_version >= '3.8'" },
-    { name = "gitpython" },
-    { name = "google-api-python-client" },
-    { name = "google-auth-oauthlib" },
-    { name = "htmlfn" },
-    { name = "hunspell", marker = "extra == 'spell'" },
-    { name = "idlib", specifier = ">=0.0.1.dev22" },
-    { name = "ipython", marker = "python_full_version < '3.7'" },
-    { name = "joblib", specifier = ">=1.1.0" },
-    { name = "lxml" },
-    { name = "nest-asyncio" },
-    { name = "ontquery", specifier = ">=0.2.11" },
-    { name = "orthauth", extras = ["sxpr"], specifier = ">=0.0.18" },
-    { name = "pyld" },
-    { name = "pytest", marker = "extra == 'test'" },
-    { name = "pytest-cov", marker = "extra == 'dev'" },
-    { name = "pyyaml" },
-    { name = "requests" },
-    { name = "terminaltables3" },
-    { name = "ttlser", specifier = ">=1.1.6" },
-    { name = "wheel", marker = "extra == 'dev'" },
-]
-provides-extras = ["dev", "spell", "test"]
 
 [[package]]
 name = "pyparsing"

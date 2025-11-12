@@ -25,6 +25,7 @@ from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING
 #===============================================================================
 
 import networkx as nx
+import numpy as np
 from pyparsing import delimitedList, Group, ParseException, ParseResults, Suppress
 import shapely.geometry
 
@@ -40,6 +41,7 @@ from mapmaker.knowledgebase.sckan import PATH_TYPE
 from mapmaker.routing import Network
 from mapmaker.settings import settings
 from mapmaker.utils import log
+from mapmaker.geometry.shapes import GeometricShape
 
 from .markup import ID_TEXT
 
@@ -807,6 +809,7 @@ class Pathways:
         layer = FeatureLayer(f'{network.id}-routes', self.__flatmap, exported=True)
         self.__flatmap.add_layer(layer)
         rendered_route_graphs = [id for id, route_graph in route_graphs.items() if route_graph.nodes]
+        nerve_passed_by_paths = defaultdict(set)
         for route_number, routed_path in routed_paths.items():
             for path_id, geometric_shapes in routed_path.path_geometry().items():
                 path = paths_by_id[path_id]
@@ -863,6 +866,8 @@ class Pathways:
 
                 nerve_feature_ids = routed_path.nerve_feature_ids
                 nerve_features = [self.__flatmap.get_feature(nerve_id) for nerve_id in nerve_feature_ids]
+                for nerve in nerve_features:
+                    nerve_passed_by_paths[nerve.properties.get('featureId')].add(path_id)
                 active_nerve_features.update(nerve_features)
                 connectivity_graph = route_graphs[path_id].graph['connectivity']
                 self.__resolved_pathways.add_connectivity(path_id,
@@ -874,7 +879,6 @@ class Pathways:
                                                           connectivity_graph,
                                                           rendered_route_graphs,
                                                           centrelines=routed_path.centrelines)
-
                 # extract hierarchy
                 for node_dict in connectivity_graph.nodes.values():
                     self.__node_hierarchy['nodes'].add(source := node_dict['node'])
@@ -883,12 +887,18 @@ class Pathways:
                         self.__node_hierarchy['links'].add((source, target))
                         self.__node_hierarchy['nodes'].add(source := target)
 
-
         for feature in active_nerve_features:
             if feature.get_property('type') == 'nerve' and feature.geom_type == 'LineString':
                 feature.pop_property('exclude')
                 feature.set_property('nerveId', feature.geojson_id)  # Used in map viewer
                 feature.set_property('tile-layer', PATHWAYS_TILE_LAYER)
+                # Replace the feature's drawn nerve cuff with a dashed circle, with radius proportional
+                # to the number of paths passing through the cuff
+                path_count = len(nerve_passed_by_paths.get(feature.geojson_id, []))
+                cuff_circle = GeometricShape.dashed_circle(
+                    (feature.geometry.centroid.x, feature.geometry.centroid.y),
+                    radius=5000*(1 + np.log(path_count + 1)))
+                feature.geometry = cuff_circle.geometry
                 if feature.layer is not None:
                     # Add a polygon feature for a nerve cuff
                     properties = feature.properties.copy()

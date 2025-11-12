@@ -24,6 +24,7 @@ from typing import Optional
 #===============================================================================
 
 from beziers.point import Point as BezierPoint
+import numpy as np
 import shapely.geometry
 from shapely.geometry.base import BaseGeometry
 
@@ -49,6 +50,19 @@ class GeometricShape(object):
     @classmethod
     def circle(cls, centre: tuple[float, float], radius: float = 2000, properties: Optional[dict] = None):
         return cls(shapely.geometry.Point(centre).buffer(radius), properties)
+
+    @classmethod
+    def dashed_circle(cls, centre: tuple[float, float], radius: float=2000, num_dashes=20, dash_ratio=0.5, properties: Optional[dict] = None):
+        angles = np.linspace(0, 2 * np.pi, num_dashes + 1)
+        coords = []
+        for i in range(num_dashes):
+            start_angle = angles[i]
+            end_angle = angles[i] + (angles[i+1] - angles[i]) * dash_ratio
+            start = (centre[0] + radius * np.cos(start_angle), centre[1] + radius * np.sin(start_angle))
+            end = (centre[0] + radius * np.cos(end_angle), centre[1] + radius * np.sin(end_angle))
+            coords.append(start)
+            coords.append(end)
+        return cls(shapely.geometry.LineString(coords), properties)
 
     @classmethod
     def line(cls, start: tuple[float, float], end: tuple[float, float], properties: Optional[dict] = None):
