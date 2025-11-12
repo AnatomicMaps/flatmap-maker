@@ -471,7 +471,8 @@ def loading_sources(generated_folders):
             map_type.append(str(map_name))
 
             # Standardize log entries, add 'map' field and convert 'node' lists to tuples
-            for log_entry in log_data:
+            last_idx_version = max(i for i, line in enumerate(log_data) if 'Using knowledge source' in line.get('msg', ''))
+            for log_entry in log_data[last_idx_version:]:
                 log_entry['map'] = map_name
                 if 'node' in log_entry and isinstance(log_entry['node'], list):
                     log_entry['node'] = (log_entry['node'][0], tuple(log_entry['node'][1]))
