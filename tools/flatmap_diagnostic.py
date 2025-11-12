@@ -134,7 +134,7 @@ class SourceValidation:
             self.__properties['terms'] = defaultdict(list)
             self.__properties['a_classes'] = defaultdict(list)
             for feature_id, feature in self.__properties.get('features', {}).items():
-                if (term := feature.get('models')) or (term := self.__anatomical_map.get(feature.get('class'), {}).get('term')):
+                if (term := feature.get('models')) or (term := (data := self.__anatomical_map.get(feature.get('class'), {})).get('term') or data.get('models')):
                     self.__properties['terms'][term].append(feature_id)
                 if (class_name := feature.get('class')) and (class_name != 'auto-hide'):
                     self.__properties['a_classes'][class_name].append(feature_id)
@@ -170,6 +170,8 @@ class SourceValidation:
             return node_or_term in self.__properties['terms'] or node_or_term in self.__have_proxies
         elif isinstance(node_or_term, tuple):
             for term in [node_or_term[0]] + list(node_or_term[1]):
+                if term == 'ILX:0771304':
+                    print('. debug', term in self.__properties['terms'])
                 if term not in self.__properties['terms'] and term not in self.__have_proxies:
                     return False
             return True
