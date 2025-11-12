@@ -267,7 +267,6 @@ class SourceValidation:
 
 def analyse_flatmap_source(manifest_files, sckan_knowledge, output_dir='.'):
     svs = []
-    manifest_ids = []
     for manifest_file in manifest_files:
         parsed = urlparse(manifest_file)
         if parsed.scheme in ("http", "https"):
@@ -295,23 +294,27 @@ def analyse_flatmap_source(manifest_files, sckan_knowledge, output_dir='.'):
                 file_path = tmp_path / file_relative
                 sv = SourceValidation(file_path, sckan_knowledge)
                 sv.analize()
-                manifest_ids.append(sv.get_manifest_id())
                 svs.append(sv)
         else:
             # local file
             sv = SourceValidation(manifest_file, sckan_knowledge)
             sv.analize()
-            manifest_ids.append(sv.get_manifest_id())
             svs.append(sv)
 
+    sources = [sv.get_manifest_id() for sv in svs]
+    common_issues = set.intersection(*[set(sv.get_issues()) for sv in svs])
+    print(len(common_issues), "common issues found across all sources.")
+
     output_dir = Path(output_dir)
-    with open(output_dir / f"{'-'.join(manifest_ids)}-source_check.csv", 'w') as fp:
+    with open(output_dir / f"{'-'.join(sources)}-source_check.csv", 'w') as fp:
         fp.write(f"{','.join(svs[0].issue_header)},Source\n")
-        sources = [sv.get_manifest_id() for sv in svs]
-        for issue in svs[0].get_issues():
-            if all(issue in sv.get_issues() for sv in svs):
-                fp.write(f"{','.join([f'\"{str(term)}\"' if "'" in str(term) else str(term) for term in issue])},{';'.join(sources)}\n")
-        print(f"Written {output_dir / f'{'-'.join(manifest_ids)}-source_check.csv'}")
+        for issue in common_issues:
+            fp.write(f"{','.join([f'\"{str(term)}\"' if "'" in str(term) else str(term) for term in issue])},{';'.join(sources)}\n")
+        for sv in svs:
+            for issue in sv.get_issues():
+                if issue[2] in ['Connectivity Terms', 'SVG'] and issue not in common_issues:
+                    fp.write(f"{','.join([f'\"{str(term)}\"' if "'" in str(term) else str(term) for term in issue])},{sv.get_manifest_id()}\n")
+        print(f"Written {output_dir / f'{'-'.join(sources)}-source_check.csv'}")
 
 #===============================================================================
 
