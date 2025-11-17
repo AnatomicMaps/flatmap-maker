@@ -101,16 +101,32 @@ class SourceValidation:
         self.__issues = set()
 
         # svg info
-        # check class, id
-        self.__svg_tags = {'id':[], 'class':[]}
+        # check class, id, type
+        self.__svg_tags = {'id':{}, 'class':[]}
         for svg_source in self.__manifest['sources']:
             tree = etree.parse(manifest_file.with_name(svg_source['href']))
             root = tree.getroot()
             ns = {'svg': 'http://www.w3.org/2000/svg'}
+            parent_map = {c: p for p in root.iter() for c in p}
             for t in root.findall('.//svg:title', namespaces=ns):
                 for tag in self.__svg_tags:
                     if(matched := re.search(fr'{tag}\(([^)]+)\)', t.text.strip())):
-                        self.__svg_tags[tag].append(matched.group(1))
+                        if matched.group(1) in self.__svg_tags[tag]:
+                            self.__svg_tags[tag][matched.group(1)]['appearance'] += 1
+                        else:
+                            parent = parent_map[t]
+                            id_type = 'ganglia' if parent.get('fill') == "#B2F074" else \
+                                    'tissue region' if parent.get('fill') == "#FF33CC" or parent.get('fill') == "#66FFFF" else \
+                                    'brain nuclei' if parent.get('fill') == "#F15A24" else \
+                                    'plexus' if parent.get('fill') == "#E4E417" else \
+                                    'nerve cuff' if parent.get('stroke-dasharray') == "3,3" else 'common'
+                            tag_properties = {
+                                'id': matched.group(1),
+                                'type': id_type,
+                                'appearance': 1
+                            }
+                            self.__svg_tags[tag][matched.group(1)] = tag_properties
+
 
         # anatomical_map info
         with open(manifest_file.with_name(self.__manifest['anatomicalMap']), 'r') as fp:
@@ -170,21 +186,33 @@ class SourceValidation:
             return node_or_term in self.__properties['terms'] or node_or_term in self.__have_proxies
         elif isinstance(node_or_term, tuple):
             for term in [node_or_term[0]] + list(node_or_term[1]):
-                if term == 'ILX:0771304':
-                    print('. debug', term in self.__properties['terms'])
                 if term not in self.__properties['terms'] and term not in self.__have_proxies:
                     return False
             return True
+
+    def __get_term_by_id(self, id):
+        if id in (dt:=self.__properties['features']) or id in (dt:=self.__properties['networks']):
+            if 'models' in dt[id]:
+                return dt[id]['models'] in self.__sckan_knowledge['terms']
+            elif 'class' in dt[id]:
+                if (data := self.__anatomical_map.get(dt[id]['class'], {})).get('term'):
+                    return data['term'] in self.__sckan_knowledge['terms']
+                elif data.get('models'):
+                    return data['models'] in self.__sckan_knowledge['terms']
+        return None
 
     def __svg_validation(self):
         for id in set(self.__svg_tags['id']):
             if (id in self.__properties['features']
                 or id in self.__properties['networks']
                 or id in self.__properties['points']):
-                continue
+
+                if (id_type := self.__svg_tags['id'][id]['type']) != 'common':
+                    if id in self.__properties['features'] and not self.__get_term_by_id(id):
+                        self.__record_issue('id', id, 'SVG', f'{id_type} - SVG id in properties but not in sckan knowledge terms')
             else:
                 self.__record_issue('id', id, 'SVG', 'SVG id not in properties')
-            if self.__svg_tags['id'].count(id) > 1:
+            if self.__svg_tags['id'][id]['appearance'] > 1:
                 self.__record_issue('id', id, 'SVG', 'Multiple SVG ids found')
 
         for c in set(self.__svg_tags['class']):
