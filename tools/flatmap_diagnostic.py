@@ -203,17 +203,18 @@ class SourceValidation:
 
     def __svg_validation(self):
         for id in set(self.__svg_tags['id']):
+            id_type = self.__svg_tags['id'][id]['type']
             if (id in self.__properties['features']
                 or id in self.__properties['networks']
                 or id in self.__properties['points']):
 
-                if (id_type := self.__svg_tags['id'][id]['type']) != 'common':
+                if id_type != 'common':
                     if id in self.__properties['features'] and not self.__get_term_by_id(id):
-                        self.__record_issue('id', id, 'SVG', f'{id_type} - SVG id in properties but not in sckan knowledge terms')
+                        self.__record_issue('id', id, 'SVG', f'SVG id in properties but not in sckan knowledge terms - {id_type}')
             else:
-                self.__record_issue('id', id, 'SVG', 'SVG id not in properties')
+                self.__record_issue('id', id, 'SVG', f'SVG id not in properties - {id_type}')
             if self.__svg_tags['id'][id]['appearance'] > 1:
-                self.__record_issue('id', id, 'SVG', 'Multiple SVG ids found')
+                self.__record_issue('id', id, 'SVG', f'Multiple SVG ids found - {id_type}')
 
         for c in set(self.__svg_tags['class']):
             if c not in self.__anatomical_map:
