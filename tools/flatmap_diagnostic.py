@@ -261,7 +261,7 @@ class SourceValidation:
         # validating anatomical classes in properties
         for k in self.__properties['a_classes']:
             if k not in self.__anatomical_map and k not in self.__properties['classes']:
-                self.__record_issue('feature class', k, 'Properties', 'Properties anatomical class not in anatomical map, and property classes')
+                self.__record_issue('feature class', k, 'Properties', 'Properties anatomical class not in anatomical map and property classes')
 
         # validating networks in properties
         for k in self.__properties['networks']:
