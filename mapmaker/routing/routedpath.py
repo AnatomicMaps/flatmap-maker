@@ -143,8 +143,10 @@ class PathRouter(object):
             edge_order = layout.results()
         else:
             edge_order = { edge: list(route) for edge, route in shared_paths.items() }
-
-        term_ups_edge_order = {edge: list(route) for edge, route in term_ups_shared_paths.items()}
+        term_ups_edge_order = {}
+        for edge, route in term_ups_shared_paths.items():
+            key = tuple(sorted(edge))
+            term_ups_edge_order.setdefault(key, []).extend(route)
 
         for route_number, (_, route_graph) in enumerate(routes):
             for _, node_dict in route_graph.nodes(data=True):
