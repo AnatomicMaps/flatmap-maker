@@ -440,6 +440,8 @@ class RoutedPath(object):
             end_point = coords_to_point(end_coords)
             if end_point.distanceFrom(start_point) == 0:
                 return
+            if not settings.get('bezierSmoothing'):
+                tolerance = 0
             angle = (end_point - start_point).angle + tolerance * (end_point - start_point).angle
             heading = angle
             bz = bezier_connect(start_point, end_point, angle, heading)
