@@ -442,9 +442,9 @@ class RoutedPath(object):
             ny = dy / dist
             return (p_from.x + nx * trim, p_from.y + ny * trim)
 
-        def connect_centre(connected_point, center_point, angle):
-            if connected_point.distanceFrom(center_point) > 0:
-                bz = bezier_connect(connected_point, center_point, angle, (connected_point - center_point).angle)
+        def connect_centre(connected_point, centre_point, angle):
+            if connected_point.distanceFrom(centre_point) > 0:
+                bz = bezier_connect(connected_point, centre_point, angle, (centre_point - connected_point).angle)
                 path_geometry[self.__path_id].append(GeometricShape(
                         bezier_to_linestring(bz), {
                             'path-id': path_id,
