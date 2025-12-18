@@ -32,6 +32,91 @@ Requirements:
     - rdflib
     - mapknowledge
     All dependencies except pandas are installable using standard `uv sync` when installing mapmaker.
+
+Running the script:
+    # If the map sources is available in remote repository
+    python tools/flatmap_diagnostic.py \
+        --map-folders \
+            {FLATMAP_ROOT}/{UUID1} \
+            {FLATMAP_ROOT}/{UUID2}
+        --output-dir {REPORT_OUTPUT_DIR}
+
+    # If the map sources is not available in remote repository
+    python tools/flatmap_diagnostic.py \
+        --manifest-files manifest.json \
+            {SOURCE_DIR}/human-flatmap/female.manifest.json \
+            {SOURCE_DIR}/human-flatmap/male.manifest.json \
+        --map-folders \
+            {FLATMAP_ROOT}/{UUID1} \
+            {FLATMAP_ROOT}/{UUID2}
+        --output-dir {REPORT_OUTPUT_DIR}
+
+Output example `{map-ids}-node_minimal.csv`:
+    Needed node         Node label                        Superclass          Superclass label Paths                              Phenotypes                              Maps
+    ('ILX:0793626', ()) ventrolateral periaqueductal gray ('UBERON:0001062',) ('-',)           ['ilxtr:neuron-type-keast-19', …]  [['ilxtr:ProjectionPhenotype']]         ['human-flatmap_male']
+    ('ILX:0786933', ()) Second lumbar ganglion            ('UBERON:0001062',) ('-',)           ['ilxtr:sparc-nlp/swglnd/162', …]  [['ilxtr:neuron-phenotype-sym-pre'], …] [('human-flatmap_male', 'human-flatmap_female')]
+    ('ILX:0726402', ()) prostate gland smooth muscle      ('',)               ('-',)           ['ilxtr:sparc-nlp/prostate/24', …] [['ilxtr:neuron-phenotype-sym-post'], …]['human-flatmap_male']
+    ('ILX:0739297', ()) sixth lumbar sympathetic ganglion ('UBERON:0001062',) ('-',)           ['ilxtr:neuron-type-keast-8', …]   [['ilxtr:PreGanglionicPhenotype', …]    [('human-flatmap_male', 'human-flatmap_female')]
+
+Possible actions for missing nodes for the the specified maps:
+    1. Add object to map
+        - Add the anatomical node directly to the flatmap source if it is missing but required for rendering.
+        - Example:
+            - Node: ('ILX:0793626', ()) — ventrolateral periaqueductal gray
+            - Action: Add to map to render ilxtr:neuron-type-keast-19.
+    2. Add entries in proxy
+        - Link the missing node to a more specific/detailed annotation already present in the map.
+        - Example:
+            {
+                "feature": "ILX:0786933",
+                "name": "Second lumbar ganglion",
+                "proxies": [
+                    "ILX:0792386"
+                ]
+            }
+            Proxing: ILX:0786933 — Second lumbar ganglion to ILX:0792386 — Right second lumbar ganglion
+
+    3. Add entries in alias
+        - Link the missing node to a more general/parent node in the map.
+        - Example:
+            {
+                "id": [
+                        "UBERON:0002367",
+                        []
+                ],
+                "name": "prostate gland",
+                "aliases": [
+                    [
+                        "ILX:0726402",
+                        []
+                    ]
+                ]
+            }
+            Aliasing: ILX:0726402 — Prostate gland smooth muscle as UBERON:0002367 — Prostate gland
+    4. Nothing to do
+        - When the missing node is legitimately absent in the species being mapped.
+        - Example:
+            - Node: ('ILX:0739297', ()) — sixth lumbar sympathetic ganglion
+            - Notes: Not present in humans; unrendered neuron type ilxtr:neuron-type-keast-8 is valid.
+
+Output example `{manifest-ids}-source_check.csv`:
+    Type  Object code                           Object location Issue                                                   Source
+    id    digestive_41                          SVG             Multiple SVG ids found                                  human-flatmap_male;human-flatmap_female
+    class digestive_43                          Anatomical Map  Anatomical map class not in properties features and SVG human-flatmap_male;human-flatmap_female
+    id    glossopharyngeal_afferent_nerve_cn_ix SVG             SVG id not in properties                                human-flatmap_male;human-flatmap_female
+
+Possible actions for source inconsistencies:
+    1. Duplicate SVG IDs (critical issue)
+        - The same ID is used more than once in the SVG file. Action:
+            - If both refer to the same anatomical term, create a new entry in properties.json with a unique ID pointing to the same term, and assign it in SVG.
+            - If they refer to different terms, assign a new unique ID for the new term and update the SVG.
+    2. Anatomical class has been defined but not used (warning)
+        - Action:
+            - Remove the unused class from anatomical_map.json or add it to properties.json features with appropriate models.
+    3. SVG ID not defined in properties (critical issue)
+        - Action:
+            - Add the missing ID to properties.json with appropriate class or models. Add to anatomical_map.json if necessary.
+            - Remove the SVG element if it is not needed.
 """
 
 #===============================================================================
