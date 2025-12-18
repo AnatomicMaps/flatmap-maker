@@ -51,6 +51,12 @@ Running the script:
             {FLATMAP_ROOT}/{UUID2}
         --output-dir {REPORT_OUTPUT_DIR}
 
+Running message example:
+    Written {REPORT_OUTPUT_DIR}/{map-ids}-paths_minimal.csv
+    Written {REPORT_OUTPUT_DIR}/{map-ids}-node_minimal.csv
+    Written {REPORT_OUTPUT_DIR}/{map-ids}-node_complete.csv
+    Written {REPORT_OUTPUT_DIR}/{manifest-ids}-source_check.csv
+
 Output example `{map-ids}-node_minimal.csv`:
     Needed node         Node label                        Superclass          Superclass label Paths                              Phenotypes                              Maps
     ('ILX:0793626', ()) ventrolateral periaqueductal gray ('UBERON:0001062',) ('-',)           ['ilxtr:neuron-type-keast-19', …]  [['ilxtr:ProjectionPhenotype']]         ['human-flatmap_male']
