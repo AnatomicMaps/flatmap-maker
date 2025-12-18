@@ -429,6 +429,29 @@ class RoutedPath(object):
                     'label': self.__graph.graph.get('label')
                 }))
 
+        def trim_point_toward(c_from, c_to, r):
+            p_from = shapely.geometry.Point(c_from)
+            p_to = shapely.geometry.Point(c_to)
+            dx = p_to.x - p_from.x
+            dy = p_to.y - p_from.y
+            dist = math.hypot(dx, dy)
+            if dist == 0 or r <= 0:
+                return c_from
+            trim = min(r, dist / 3)
+            nx = dx / dist
+            ny = dy / dist
+            return (p_from.x + nx * trim, p_from.y + ny * trim)
+
+        def connect_centre(connected_point, center_point, angle):
+            if connected_point.distanceFrom(center_point) > 0:
+                bz = bezier_connect(connected_point, center_point, angle, (connected_point - center_point).angle)
+                path_geometry[self.__path_id].append(GeometricShape(
+                        bezier_to_linestring(bz), {
+                            'path-id': path_id,
+                            'source': path_source,
+                            'label': self.__graph.graph.get('label')
+                        }))
+
         def draw_line(node_0, node_1, tolerance=0.1, separation=2000):
             start_coords = (g.centroid.coords[0] if (g:=self.__graph.nodes[node_0]['geometry']).geom_type=='LineString'
                             else g.representative_point().coords[0])
@@ -436,8 +459,8 @@ class RoutedPath(object):
                           else g.representative_point().coords[0])
             offset = self.__graph.nodes[node_0]['offsets'][node_1]
             path_offset = separation * offset
-            start_point = coords_to_point(start_coords)
-            end_point = coords_to_point(end_coords)
+            start_point = coords_to_point(trim_point_toward(start_coords, end_coords, 3 * PATH_SEPARATION))
+            end_point = coords_to_point(trim_point_toward(end_coords, start_coords, 3 * PATH_SEPARATION))
             if end_point.distanceFrom(start_point) == 0:
                 return
             if not settings.get('bezierSmoothing'):
@@ -455,8 +478,8 @@ class RoutedPath(object):
                 draw_arrow(coords_to_point(bz_line_coord[-1]), coords_to_point(bz_line_coord[0]), path_id, path_source) # pyright: ignore[reportArgumentType]
             if self.__graph.degree(node_1) == 1:
                 draw_arrow(coords_to_point(bz_line_coord[0]), coords_to_point(bz_line_coord[-1]), path_id, path_source) # pyright: ignore[reportArgumentType]
-            connect_gap(node_0, [coords_to_point(bz_line_coord[0])])        # pyright: ignore[reportArgumentType]
-            connect_gap(node_1, [coords_to_point(bz_line_coord[-1])])       # pyright: ignore[reportArgumentType]
+            connect_centre(BezierPoint(*bz_line_coord[0]), coords_to_point(start_coords), angle + math.pi)
+            connect_centre(BezierPoint(*bz_line_coord[-1]), coords_to_point(end_coords), heading)
 
         terminal_nodes = set()
         for node_0, node_1, edge_dict in self.__graph.edges(data=True):    ## This assumes node_1 is the terminal...
