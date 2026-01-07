@@ -37,6 +37,7 @@ from beziers.point import Point as BezierPoint
 
 import networkx as nx
 import shapely.geometry
+import shapely.ops
 
 #===============================================================================
 
@@ -452,11 +453,21 @@ class RoutedPath(object):
                             'label': self.__graph.graph.get('label')
                         }))
 
+        def get_representative_coord(node_data, push_eps=1e-3):
+            g = node_data['geometry']
+            c = g.centroid
+            parts = getattr(g, "geoms", [g])
+            if g.contains(c):
+                return c.coords[0]
+            if g.geom_type in ['Point', 'LineString'] or len(parts) == 1:
+                return parts[0].representative_point().coords[0]
+            main_part = min(parts, key=lambda p: p.centroid.distance(c))
+            _, p_boundary = shapely.ops.nearest_points(c, main_part)
+            return p_boundary.coords[0]
+
         def draw_line(node_0, node_1, tolerance=0.1, separation=2000):
-            start_coords = (g.centroid.coords[0] if (g:=self.__graph.nodes[node_0]['geometry']).geom_type=='LineString'
-                            else g.representative_point().coords[0])
-            end_coords = (g.centroid.coords[0] if (g:=self.__graph.nodes[node_1]['geometry']).geom_type=='LineString'
-                          else g.representative_point().coords[0])
+            start_coords = get_representative_coord(self.__graph.nodes[node_0])
+            end_coords = get_representative_coord(self.__graph.nodes[node_1])
             offset = self.__graph.nodes[node_0]['offsets'][node_1]
             path_offset = separation * offset
             start_point = coords_to_point(trim_point_toward(start_coords, end_coords, 3 * PATH_SEPARATION))
