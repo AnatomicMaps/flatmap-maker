@@ -37,6 +37,7 @@ from beziers.point import Point as BezierPoint
 
 import networkx as nx
 import shapely.geometry
+import shapely.ops
 
 #===============================================================================
 
@@ -143,8 +144,10 @@ class PathRouter(object):
             edge_order = layout.results()
         else:
             edge_order = { edge: list(route) for edge, route in shared_paths.items() }
-
-        term_ups_edge_order = {edge: list(route) for edge, route in term_ups_shared_paths.items()}
+        term_ups_edge_order = {}
+        for edge, route in term_ups_shared_paths.items():
+            key = tuple(sorted(edge))
+            term_ups_edge_order.setdefault(key, []).extend(route)
 
         for route_number, (_, route_graph) in enumerate(routes):
             for _, node_dict in route_graph.nodes(data=True):
@@ -427,17 +430,51 @@ class RoutedPath(object):
                     'label': self.__graph.graph.get('label')
                 }))
 
+        def trim_point_toward(c_from, c_to, r):
+            p_from = shapely.geometry.Point(c_from)
+            p_to = shapely.geometry.Point(c_to)
+            dx = p_to.x - p_from.x
+            dy = p_to.y - p_from.y
+            dist = math.hypot(dx, dy)
+            if dist == 0 or r <= 0:
+                return c_from
+            trim = min(r, dist / 3)
+            nx = dx / dist
+            ny = dy / dist
+            return (p_from.x + nx * trim, p_from.y + ny * trim)
+
+        def connect_centre(connected_point, centre_point, angle):
+            if connected_point.distanceFrom(centre_point) > 0:
+                bz = bezier_connect(connected_point, centre_point, angle, (centre_point - connected_point).angle)
+                path_geometry[self.__path_id].append(GeometricShape(
+                        bezier_to_linestring(bz), {
+                            'path-id': path_id,
+                            'source': path_source,
+                            'label': self.__graph.graph.get('label')
+                        }))
+
+        def get_representative_coord(node_data, push_eps=1e-3):
+            g = node_data['geometry']
+            c = g.centroid
+            if g.contains(c) or g.geom_type in ['Point', 'LineString']:
+                return c.coords[0]
+            if len(parts := getattr(g, "geoms", [g])) == 1:
+                return parts[0].representative_point().coords[0]
+            main_part = min(parts, key=lambda p: p.centroid.distance(c))
+            _, p_boundary = shapely.ops.nearest_points(c, main_part)
+            return p_boundary.coords[0]
+
         def draw_line(node_0, node_1, tolerance=0.1, separation=2000):
-            start_coords = (g.centroid.coords[0] if (g:=self.__graph.nodes[node_0]['geometry']).geom_type=='LineString'
-                            else g.representative_point().coords[0])
-            end_coords = (g.centroid.coords[0] if (g:=self.__graph.nodes[node_1]['geometry']).geom_type=='LineString'
-                          else g.representative_point().coords[0])
+            start_coords = get_representative_coord(self.__graph.nodes[node_0])
+            end_coords = get_representative_coord(self.__graph.nodes[node_1])
             offset = self.__graph.nodes[node_0]['offsets'][node_1]
             path_offset = separation * offset
-            start_point = coords_to_point(start_coords)
-            end_point = coords_to_point(end_coords)
+            start_point = coords_to_point(trim_point_toward(start_coords, end_coords, 3 * PATH_SEPARATION))
+            end_point = coords_to_point(trim_point_toward(end_coords, start_coords, 3 * PATH_SEPARATION))
             if end_point.distanceFrom(start_point) == 0:
                 return
+            if not settings.get('bezierSmoothing'):
+                tolerance = 0
             angle = (end_point - start_point).angle + tolerance * (end_point - start_point).angle
             heading = angle
             bz = bezier_connect(start_point, end_point, angle, heading)
@@ -451,8 +488,8 @@ class RoutedPath(object):
                 draw_arrow(coords_to_point(bz_line_coord[-1]), coords_to_point(bz_line_coord[0]), path_id, path_source) # pyright: ignore[reportArgumentType]
             if self.__graph.degree(node_1) == 1:
                 draw_arrow(coords_to_point(bz_line_coord[0]), coords_to_point(bz_line_coord[-1]), path_id, path_source) # pyright: ignore[reportArgumentType]
-            connect_gap(node_0, [coords_to_point(bz_line_coord[0])])        # pyright: ignore[reportArgumentType]
-            connect_gap(node_1, [coords_to_point(bz_line_coord[-1])])       # pyright: ignore[reportArgumentType]
+            connect_centre(BezierPoint(*bz_line_coord[0]), coords_to_point(start_coords), angle + math.pi)
+            connect_centre(BezierPoint(*bz_line_coord[-1]), coords_to_point(end_coords), heading)
 
         terminal_nodes = set()
         for node_0, node_1, edge_dict in self.__graph.edges(data=True):    ## This assumes node_1 is the terminal...
