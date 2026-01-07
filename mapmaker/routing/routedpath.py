@@ -460,7 +460,7 @@ class RoutedPath(object):
             if g.contains(c):
                 return c.coords[0]
             if g.geom_type in ['Point', 'LineString'] or len(parts) == 1:
-                return parts[0].representative_point().coords[0]
+                return c.coords[0]
             main_part = min(parts, key=lambda p: p.centroid.distance(c))
             _, p_boundary = shapely.ops.nearest_points(c, main_part)
             return p_boundary.coords[0]
