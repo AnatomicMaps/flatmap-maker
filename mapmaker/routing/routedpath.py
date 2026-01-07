@@ -456,11 +456,10 @@ class RoutedPath(object):
         def get_representative_coord(node_data, push_eps=1e-3):
             g = node_data['geometry']
             c = g.centroid
-            parts = getattr(g, "geoms", [g])
-            if g.contains(c):
+            if g.contains(c) or g.geom_type in ['Point', 'LineString']:
                 return c.coords[0]
-            if g.geom_type in ['Point', 'LineString'] or len(parts) == 1:
-                return c.coords[0]
+            if len(parts := getattr(g, "geoms", [g])) == 1:
+                return parts[0].representative_point().coords[0]
             main_part = min(parts, key=lambda p: p.centroid.distance(c))
             _, p_boundary = shapely.ops.nearest_points(c, main_part)
             return p_boundary.coords[0]
