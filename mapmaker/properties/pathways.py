@@ -370,7 +370,8 @@ class ResolvedPathways:
                 if conn_id in rendered_route_graphs
             ],
             'node_nerves': [
-                list_to_tuple(n) for n in connectivity_graph.graph.get('nerves', [])
+                list_to_tuple(connectivity_graph.nodes[list_to_tuple(n)]['node'])
+                for n in connectivity_graph.graph.get('nerves', [])
                 if list_to_tuple(n) in available_nodes
             ],
             'node_mappings': [
