@@ -352,7 +352,8 @@ class ResolvedPathways:
         available_nodes = {
             list_to_tuple(json.loads(an))
             for geojson_id in self.__paths[path_id].as_dict['nodes'] + self.__paths[path_id].as_dict['nerves']
-            for an in self.__flatmap.get_feature_by_geojson_id(geojson_id).anatomical_nodes
+            if (feature := self.__flatmap.get_feature_by_geojson_id(geojson_id)) is not None
+            for an in feature.anatomical_nodes
         }
 
         # remove the missing nodes:
@@ -376,7 +377,7 @@ class ResolvedPathways:
             ],
             'node_phenotypes': {
                 phenotype: [connectivity_graph.nodes[node]['node'] for node in nodes if node in connectivity_graph.nodes]
-                for phenotype, nodes in connectivity_graph.graph.get('node-phenotypes').items()
+                for phenotype, nodes in connectivity_graph.graph.get('node-phenotypes', {}).items()
             },
             'forward_connections': [
                 conn_id for conn_id in connectivity_graph.graph.get('forward-connections', [])
@@ -435,8 +436,8 @@ class ResolvedPathways:
             self.__resolve_nodes_for_path(path_id, route.start_nodes)
           + self.__resolve_nodes_for_path(path_id, route.through_nodes)
           + self.__resolve_nodes_for_path(path_id, route.end_nodes))
-        resolved_path.extend_lines(self.__flatmap.feature_ids_to_geojson_ids(lines))
-        resolved_path.extend_nerves(self.__flatmap.feature_ids_to_geojson_ids(nerves))
+        resolved_path.extend_lines(self.__flatmap.feature_to_geojson_ids(lines))
+        resolved_path.extend_nerves(self.__flatmap.feature_to_geojson_ids(nerves))
 
 #===============================================================================
 
