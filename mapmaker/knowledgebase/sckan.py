@@ -180,6 +180,7 @@ def connectivity_graph_from_knowledge(knowledge: dict) -> Optional[nx.Graph]:
         }
         G.graph['forward-connections'] = knowledge.get('forward-connections', [])
         G.graph['nerves'] = knowledge.get('nerves', [])
+        G.graph['expert-consultants'] = knowledge.get('expert-consultants', [])
         return G
 
 #===============================================================================
