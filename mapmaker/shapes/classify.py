@@ -210,7 +210,9 @@ class ShapeClassifier:
         shape.properties['tile-layer'] = PATHWAYS_TILE_LAYER
         shape.properties['stroke-width'] = CONNECTION_STROKE_WIDTH
         shape.properties['type'] = 'line-dash' if shape.get_property('dashed', False) else 'line'
-        assert shape.geometry.geom_type == 'LineString', f'Connection not a LineString: {shape.id}'
+        if shape.geometry.geom_type != 'LineString':
+            log.warning(f'Connection not a LineString: {shape.id}')
+            return False
         line_ends: shapely.geometry.base.GeometrySequence[shapely.MultiPoint] = shape.geometry.boundary.geoms  # type: ignore
         self.__append_connection_ends(line_ends[0], shape, 0)
         self.__append_connection_ends(line_ends[1], shape, -1)
@@ -270,7 +272,9 @@ class ShapeClassifier:
         for joined_connection in nx.connected_components(joined_connection_graph):
             connections = list(joined_connection)
             connected_line = shapely.line_merge(shapely.unary_union([conn.geometry for conn in connections]))
-            assert connected_line.geom_type == 'LineString', f'Cannot join connections: {[conn.id for conn in connections]}'
+            if connected_line.geom_type != 'LineString':
+                log.warning(f'Cannot join connections: {[conn.id for conn in connections]}')
+                continue
 
             # Need to check all segments have the same colour...
 
