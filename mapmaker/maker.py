@@ -31,7 +31,7 @@ from typing import Any, Optional
 #===============================================================================
 
 from . import FLATMAP_VERSION, __version__
-from .utils import configure_logging, log, set_as_list
+from .utils import configure_logging, FilePathError, log, set_as_list
 
 #===============================================================================
 
@@ -219,9 +219,9 @@ class MapMaker:
         if os.path.exists(self.__map_dir):
             if os.path.exists(self.__maker_sentinel):
                 self.__clean_up(remove_sentinel=False)
-                log.error('Last making of map failed -- use `--force` to re-make', id=self.id, uuid=self.uuid, path=self.__map_dir)
+                log.error('Last making of map failed -- use `--force` to re-make', id=self.__id, uuid=self.uuid, path=self.__map_dir)
             else:
-                log.info('Map already exists -- use `--force` to re-make', id=self.id, uuid=self.uuid, path=self.__map_dir)
+                log.info('Map already exists -- use `--force` to re-make', id=self.__id, uuid=self.uuid, path=self.__map_dir)
             self.__flatmap = None                   # pyright: ignore[reportAttributeAccessIssue]
             return
         else:
@@ -266,11 +266,11 @@ class MapMaker:
     def zoom(self):
         return self.__zoom
 
-    def make(self):
-    #==============
+    def make(self) -> bool:
+    #======================
         if self.__flatmap is None:
             log.critical('Mapmaker failed')
-            return
+            return False
 
         self.__begin_make()
 
@@ -282,7 +282,8 @@ class MapMaker:
 
         # Do we have any map layers?
         if len(self.__flatmap) == 0:
-            raise ValueError('No map layers in sources...')
+            log.error('No map layers in sources...')
+            return False
 
         # Save annotation
         if self.__annotator is not None:
@@ -333,6 +334,7 @@ class MapMaker:
 
         # Tidy up
         self.__clean_up()
+        return True
 
     def __begin_make(self):
     #======================
@@ -388,7 +390,7 @@ class MapMaker:
                 if href.endswith('.svg') or source_kind in SOURCE_DETAIL_KINDS:
                     try:
                         source = SVGSource(self.__flatmap, source_manifest)
-                    except ValueError as err:
+                    except (FilePathError, ValueError) as err:
                         log.error(f'Source layer skipped', file=href, error=err)
                         continue
                 elif source_kind in ['base', 'layer']:

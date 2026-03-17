@@ -120,18 +120,18 @@ def arg_parser():
 #===============================================================================
 
 def main():
-    import sys
     parser = arg_parser()
     args = parser.parse_args()
     if not args.pathLayout:
         args.noPathLayout = True
     try:
         mapmaker = MapMaker({k:v for k, v in vars(args).items() if not (v is None or isinstance(v, bool) and v == False)})
-        mapmaker.make()
+        if not mapmaker.make():
+            exit(1)
     except Exception as error:
         msg = str(error)
         log.exception(msg, exc_info=True)
-        sys.exit(1)
+        exit(1)
 
 #===============================================================================
 
