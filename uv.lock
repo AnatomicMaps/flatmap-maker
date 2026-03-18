@@ -281,17 +281,17 @@ wheels = [
 
 [[package]]
 name = "flatmapknowledge"
-version = "2.8.2"
-source = { url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.8.2/flatmapknowledge-2.8.2-py3-none-any.whl" }
+version = "2.8.3"
+source = { url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.8.3/flatmapknowledge-2.8.3-py3-none-any.whl" }
 dependencies = [
     { name = "mapknowledge" },
 ]
 wheels = [
-    { url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.8.2/flatmapknowledge-2.8.2-py3-none-any.whl", hash = "sha256:adbec548b08b13c406741aa4a764d14433f42ccf46e2c67e9205fbee3e8c3c62" },
+    { url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.8.3/flatmapknowledge-2.8.3-py3-none-any.whl", hash = "sha256:5e333673abf077f49a66c5ca5776e8fa12c8cb5f73dd1905a3a10b63eb7a1eda" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "mapknowledge", url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.6.2/mapknowledge-1.6.2-py3-none-any.whl" }]
+requires-dist = [{ name = "mapknowledge", url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.6.3/mapknowledge-1.6.3-py3-none-any.whl" }]
 
 [[package]]
 name = "frozendict"
@@ -587,8 +587,8 @@ wheels = [
 
 [[package]]
 name = "mapknowledge"
-version = "1.6.2"
-source = { url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.6.2/mapknowledge-1.6.2-py3-none-any.whl" }
+version = "1.6.3"
+source = { url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.6.3/mapknowledge-1.6.3-py3-none-any.whl" }
 dependencies = [
     { name = "networkx" },
     { name = "neurondm" },
@@ -600,7 +600,7 @@ dependencies = [
     { name = "structlog" },
 ]
 wheels = [
-    { url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.6.2/mapknowledge-1.6.2-py3-none-any.whl", hash = "sha256:612ad91a2d2007320109fc794529bffa297a429709e217e20670c0039e1e3d7e" },
+    { url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.6.3/mapknowledge-1.6.3-py3-none-any.whl", hash = "sha256:e4f5a4b7a7e6d9f3cc0827f21328b6fbf488d727a2787bedb9df140855ac63d7" },
 ]
 
 [package.metadata]
@@ -678,12 +678,12 @@ requires-dist = [
     { name = "beziers", specifier = ">=0.5.0" },
     { name = "colormath", specifier = ">=3.0.0" },
     { name = "cssselect2", specifier = ">=0.6.0" },
-    { name = "flatmapknowledge", url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.8.2/flatmapknowledge-2.8.2-py3-none-any.whl" },
+    { name = "flatmapknowledge", url = "https://github.com/AnatomicMaps/flatmap-knowledge/releases/download/v2.8.3/flatmapknowledge-2.8.3-py3-none-any.whl" },
     { name = "gitpython", specifier = ">=3.1.41" },
     { name = "giturlparse", specifier = ">=0.12.0" },
     { name = "lark", specifier = ">=1.2.2" },
     { name = "lxml", specifier = ">=5.2.2" },
-    { name = "mapknowledge", url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.6.2/mapknowledge-1.6.2-py3-none-any.whl" },
+    { name = "mapknowledge", url = "https://github.com/AnatomicMaps/map-knowledge/releases/download/v1.6.3/mapknowledge-1.6.3-py3-none-any.whl" },
     { name = "mbutil", specifier = ">=0.3.0" },
     { name = "mercantile", specifier = ">=1.2.1" },
     { name = "multiprocess", specifier = ">=0.70.13" },
