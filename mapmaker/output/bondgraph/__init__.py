@@ -130,7 +130,7 @@ def name_to_symbols(name: str) -> tuple[str]:
 
 class BondgraphModel:
     def __init__(self, id: str, shapes: TreeList[Shape]):
-        self.__graph = rdflib.Graph()
+        self.__graph = rdflib.Graph(store='Oxigraph')
 
         ## This could be embedded into a CellDL diagram, separate to its
         ## CellDL structure.

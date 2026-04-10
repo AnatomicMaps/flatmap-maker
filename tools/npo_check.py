@@ -80,8 +80,8 @@ class FlatMapCheck:
 
         # setup npo_graph to check term ancestor
         NPO_TURTLE = f'https://raw.githubusercontent.com/SciCrunch/NIF-Ontology/{self.__sckan_version}/ttl/npo.ttl'
-        self.__npo_graph = rdflib.Graph()
-        self.__npo_graph.parse(NPO_TURTLE, format='turtle')
+        self.__npo_graph = rdflib.Graph(store='Oxigraph')
+        self.__npo_graph.parse(NPO_TURTLE, format='ox-turtle')
 
 
         # delete artefact files when clean_connectivity

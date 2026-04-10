@@ -169,7 +169,7 @@ def make_uri(shape_id: str) -> rdflib.URIRef:
 
 class CellDLGraph:
     def __init__(self, diagram_type: Optional[rdflib.URIRef]=None):
-        self.__graph = rdflib.Graph()
+        self.__graph = rdflib.Graph(store='Oxigraph')
         self.__diagram = make_uri('')
         self.__graph.bind('', str(DIAGRAM_NS))
         for (prefix, ns) in STANDARD_NAMESPACES.items():
