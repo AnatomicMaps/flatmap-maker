@@ -44,13 +44,13 @@ import giturlparse
 
 GIT_CLONE_TIMEOUT = 300     # 5 minutes
 
-def __clone_repo(repo_path: str, working_directory: str, output_queue: multiprocessing.Queue):
+def _clone_repo(repo_path: str, working_directory: str, output_queue: multiprocessing.Queue):
     repo = git.Repo.clone_from(repo_path, working_directory)
     output_queue.put(repo)
 
-def clone_from_with_timeout(repo_path: str, working_directory: str) -> git.Repo:
+def _clone_from_with_timeout(repo_path: str, working_directory: str) -> git.Repo:
     repo_queue: multiprocessing.Queue[git.Repo] = multiprocessing.Queue()
-    clone_process = multiprocessing.Process(target=__clone_repo, args=(repo_path, working_directory, repo_queue))
+    clone_process = multiprocessing.Process(target=_clone_repo, args=(repo_path, working_directory, repo_queue))
     clone_process.start()
     if clone_process.join(GIT_CLONE_TIMEOUT) is None:
         if clone_process.exitcode is None:
@@ -267,7 +267,7 @@ class Manifest:
             working_directory = self.__temp_directory
             # An unknown GitHub repo prompts for password and doesn't timeout so we
             # run the clone in it's own process with a timeout
-            repo = clone_from_with_timeout(manifest_path, working_directory)
+            repo = _clone_from_with_timeout(manifest_path, working_directory)
             if commit is not None:
                 repo.git.checkout(commit)
             manifest_path = os.path.join(working_directory, manifest)   # type:ignore
