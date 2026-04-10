@@ -40,7 +40,7 @@ jobs:
 
       - name: Run mapmaker
         run: |
-          python runmaker.py \
+          uv run mapmaker \
             --output ./flatmaps \
             --source https://github.com/AnatomicMaps/rat-flatmap.git \
             --commit curation \
