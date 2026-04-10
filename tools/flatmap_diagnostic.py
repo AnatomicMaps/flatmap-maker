@@ -612,7 +612,7 @@ def loading_sources(generated_folders):
     map_type = '-'.join(map_type)
 
     # Load NPO ontology graph
-    g = rdflib.Graph(store='Oxigraph')
+    g = rdflib.Graph()
     try:
         g.parse(f'{RAW_URL}/{sckan_version}/{NPO_TTL}', format='turtle')
     except Exception as e:
