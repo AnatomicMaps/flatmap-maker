@@ -165,7 +165,7 @@ class SVGSource(MapSource):
     #========================
         # Save a cleaned copy of the SVG in the map's output directory. Call after
         # connectivity has been generated otherwise no paths will be in the saved SVG
-        cleaner = SVGCleaner(self.__source_file, self.flatmap.properties_store, all_layers=True)
+        cleaner = SVGCleaner(self.__source_file, self.id, self.flatmap.properties_store, all_layers=True)
         cleaner.clean()
         cleaner.add_connectivity_group(self.flatmap, self.__transform)
         cleaned_svg = self.flatmap.full_filename(f'images/{self.flatmap.id}.svg')
@@ -187,7 +187,7 @@ class SVGSource(MapSource):
 
     def __get_raster_data(self) -> bytes:
     #====================================
-        cleaner = SVGCleaner(self.__source_file, self.flatmap.properties_store, all_layers=False)
+        cleaner = SVGCleaner(self.__source_file, '', self.flatmap.properties_store, all_layers=False)
         cleaner.clean()
         cleaned_svg = tempfile.TemporaryFile()
         cleaner.save(cleaned_svg)

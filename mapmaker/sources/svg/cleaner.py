@@ -44,9 +44,10 @@ if TYPE_CHECKING:
 #===============================================================================
 
 class SVGCleaner(object):
-    def __init__(self, svg_file: FilePath, properties_store: 'PropertiesStore', all_layers: bool=True):
+    def __init__(self, svg_file: FilePath, map_layer_id: str, properties_store: 'PropertiesStore', all_layers: bool=True):
         self.__svg = etree.parse(svg_file.get_fp())
         self.__svg_root = self.__svg.getroot()
+        self.__map_layer_id = map_layer_id
 
         # Add a viewBox if it's missing
         if 'viewBox' not in self.__svg_root.attrib:
@@ -80,6 +81,13 @@ class SVGCleaner(object):
     def clean(self):
     #===============
         self.__filter(self.__svg_root)
+        # Update element IDs to include that of the map layer they are in
+        if self.__map_layer_id != '':
+            layer_prefix = f'{self.__map_layer_id}/'
+            for xml_element in self.__svg.findall('.//*[@id]'):
+                id = xml_element.attrib['id']
+                if not id.startswith(layer_prefix):
+                    xml_element.attrib['id'] = f'{layer_prefix}{id}'
 
     def save(self, file_object: BinaryIO):
     #=====================================
