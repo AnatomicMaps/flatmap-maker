@@ -328,6 +328,8 @@ class Manifest:
                 self.__manifest['description'] = self.check_and_normalise_path(self.__manifest['description'], 'Flatmap description')
             if 'connectivityTerms' in self.__manifest:
                 self.__manifest['connectivityTerms'] = self.check_and_normalise_path(self.__manifest['connectivityTerms'], 'Flatmap connectivity terms')
+            if 'knowledge' in self.__manifest:
+                self.__manifest['knowledge'] = self.check_and_normalise_path(self.__manifest['knowledge'], 'RDF knowledge')
             if 'legend' in self.__manifest:
                 self.__manifest['legend'] = self.check_and_normalise_path(self.__manifest['legend'], 'Flatmap legend')
             if 'properties' in self.__manifest:
@@ -379,6 +381,10 @@ class Manifest:
     @property
     def exported_properties(self) -> list[str]:
         return self.__manifest.get('exported-properties', [])
+
+    @property
+    def rdf_knowledge(self):
+        return self.__manifest.get('knowledge')
 
     @property
     def legend(self):

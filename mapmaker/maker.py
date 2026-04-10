@@ -31,7 +31,7 @@ from typing import Any, Optional
 #===============================================================================
 
 from . import FLATMAP_VERSION, __version__
-from .utils import configure_logging, FilePathError, log, set_as_list
+from .utils import configure_logging, FilePath, FilePathError, log, set_as_list
 
 #===============================================================================
 
@@ -594,5 +594,11 @@ class MapMaker:
             json.dump(style_dict, output_file)
 
         tile_db.close();
+
+        # Copy any local RDF knowledge to ``index.ttl`` in the generated map's directory
+        if (rdf_knowledge := self.__manifest.rdf_knowledge) is not None:
+            rdf = FilePath(rdf_knowledge).get_data().decode('utf-8')
+            with open(os.path.join(self.__map_dir, 'index.ttl'), 'w') as fp:
+                fp.write(rdf)
 
 #===============================================================================
