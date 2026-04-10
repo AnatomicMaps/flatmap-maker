@@ -15,13 +15,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu]
+        os: [ubuntu, macos]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Ubuntu packages
+      - if: matrix.os == 'ubuntu'
+        name: Install Ubuntu packages
         uses: ConorMacBride/install-package@v1
         with:
           apt: libfontconfig1 libegl1 libglx-mesa0 libgl1-mesa-dri
