@@ -76,7 +76,8 @@ class FlatMapCheck:
             self.__sckan_version = args.sckan_version
         else:
             self.__sckan_version = self.__manifest.get('sckan-version')
-        self.__store = KnowledgeStore(sckan_version=self.__sckan_version, use_npo=True, sckan_provenance=True,store_directory=self.__artefact_dir)
+        self.__store = KnowledgeStore(sckan_version=self.__sckan_version, use_npo=True,
+                                      sckan_provenance=True, store_directory=self.__artefact_dir)
 
         # setup npo_graph to check term ancestor
         NPO_TURTLE = f'https://raw.githubusercontent.com/SciCrunch/NIF-Ontology/{self.__sckan_version}/ttl/npo.ttl'

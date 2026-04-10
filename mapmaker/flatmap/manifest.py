@@ -324,10 +324,10 @@ class Manifest:
                 self.__manifest['anatomicalMap'] = self.check_and_normalise_path(self.__manifest['anatomicalMap'], 'Flatmap anatomical map')
             if 'annotation' in self.__manifest:
                 self.__manifest['annotation'] = self.check_and_normalise_path(self.__manifest['annotation'], 'Flatmap annotation')
-            if 'description' in self.__manifest:
-                self.__manifest['description'] = self.check_and_normalise_path(self.__manifest['description'], 'Flatmap description')
             if 'connectivityTerms' in self.__manifest:
                 self.__manifest['connectivityTerms'] = self.check_and_normalise_path(self.__manifest['connectivityTerms'], 'Flatmap connectivity terms')
+            if 'description' in self.__manifest:
+                self.__manifest['description'] = self.check_and_normalise_path(self.__manifest['description'], 'Flatmap description')
             if 'knowledge' in self.__manifest:
                 self.__manifest['knowledge'] = self.check_and_normalise_path(self.__manifest['knowledge'], 'RDF knowledge')
             if 'legend' in self.__manifest:

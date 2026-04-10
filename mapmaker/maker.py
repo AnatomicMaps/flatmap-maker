@@ -593,6 +593,7 @@ class MapMaker:
         with open(os.path.join(self.__map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
+        # We are finished with the MB Tiles database
         tile_db.close();
 
         # Copy any local RDF knowledge to ``index.ttl`` in the generated map's directory
