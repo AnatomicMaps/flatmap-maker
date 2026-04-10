@@ -45,6 +45,7 @@ jobs:
             --commit curation \
             --manifest manifest.json \
             --force \
+            --silent --log mapmaker.log \
             --no-path-layout \
             --background-tiles
         env:
