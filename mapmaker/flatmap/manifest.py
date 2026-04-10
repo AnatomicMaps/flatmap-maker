@@ -377,6 +377,10 @@ class Manifest:
         return self.__manifest.get('description')
 
     @property
+    def exported_properties(self) -> list[str]:
+        return self.__manifest.get('exported-properties', [])
+
+    @property
     def legend(self):
         return self.__manifest.get('legend')
 

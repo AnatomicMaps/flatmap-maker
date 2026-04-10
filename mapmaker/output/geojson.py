@@ -75,6 +75,7 @@ class GeoJSONOutput(object):
             unit='ftr', ncols=40,
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
 
+        exported_properties = set(EXPORTED_FEATURE_PROPERTIES + self.__flatmap.manifest.exported_properties)
         for feature in features:
             if not settings.get('authoring', False):
                 feature.properties.pop('warning', None)
@@ -86,7 +87,7 @@ class GeoJSONOutput(object):
                 progress_bar.update(1)
                 continue
             properties = {
-                name: value for name in EXPORTED_FEATURE_PROPERTIES
+                name: value for name in exported_properties
                     if (value := feature.get_property(name)) is not None
                     and value != ''
             }

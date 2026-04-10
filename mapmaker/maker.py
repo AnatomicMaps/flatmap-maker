@@ -538,6 +538,7 @@ class MapMaker:
         # Save any legend with the map's metadata
         if (legend := self.__manifest.legend) is not None:
             metadata['legend'] = legend
+        metadata['exported-properties'] = self.__manifest.exported_properties
         tile_db.add_metadata(metadata=json.dumps(metadata))
 
         # Save layer details in metadata
