@@ -31,7 +31,6 @@ import multiprocess as mp
 import multiprocess.connection as mp_connection
 import numpy as np
 import shapely.geometry
-from svglib.svglib import svg2rlg
 
 #===============================================================================
 
