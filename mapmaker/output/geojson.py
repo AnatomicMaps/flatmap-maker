@@ -39,6 +39,11 @@ from . import ENCODED_FEATURE_PROPERTIES, EXPORTED_FEATURE_PROPERTIES
 
 #===============================================================================
 
+# Earth circumference (WGS84 equatorial radius for Web Mercator EPSG:3857)
+EARTH_CIRCUMFERENCE = 2 * math.pi * 6378137.0  # meters
+
+#===============================================================================
+
 class GeoJSONOutput(object):
     def __init__(self, flatmap: FlatMap, layer: MapLayer, output_dir: str):
     #======================================================================
@@ -120,6 +125,10 @@ class GeoJSONOutput(object):
                 if scale > 6 and 'group' not in properties and 'minzoom' not in properties:
                     geojson['tippecanoe']['minzoom'] = 4
             else:
+                if (nodes:=self.__flatmap.connectivity()['paths'].get(feature.models)):
+                    zoom_range = self.__get_path_zoom_range(nodes)
+                    geojson['properties']['minzoom'] = zoom_range[0]
+                    geojson['properties']['maxzoom'] = zoom_range[1]
                 geojson['properties']['scale'] = 10
             geojson['properties'].update(properties)
 
@@ -158,3 +167,43 @@ class GeoJSONOutput(object):
             progress_bar.update(1)
 
         progress_bar.close()
+
+    def __get_path_zoom_range(self, nodes):
+        path_min_coverage = settings.get('pathMinCoverage', 0.7)
+        path_max_coverage = settings.get('pathMaxCoverage', 5.0)
+
+        points = [geom.centroid
+                    for node in nodes.get('nodes', [])
+                        if (f := self.__flatmap.get_feature_by_geojson_id(node)) is not None
+                            and (geom := f.geometry) is not None]
+
+        if len(points) > 1:
+            # extent
+            xs = [p.x for p in points]
+            ys = [p.y for p in points]
+            # World-space extents (meters, EPSG:3857)
+            x_extent = max(xs) - min(xs)
+            y_extent = max(ys) - min(ys)
+            max_dist = 0.0
+            for i, p1 in enumerate(points):
+                for p2 in points[i+1:]:
+                    dist = math.hypot(p2.x - p1.x, p2.y - p1.y)
+                    if dist > max_dist:
+                        max_dist = dist
+            extent = max(x_extent, y_extent, max_dist)
+            if not math.isfinite(extent) or extent <= 0:
+                return self.__flatmap.min_zoom, self.__flatmap.max_zoom
+
+            # minzoom and maxzoom
+            z_min = math.ceil(math.log2((path_min_coverage * EARTH_CIRCUMFERENCE) / extent))
+            z_max = math.floor(math.log2((path_max_coverage * EARTH_CIRCUMFERENCE) / extent))
+            if z_max < z_min:
+                z_max = z_min
+            z_min = max(self.__flatmap.min_zoom, z_min)
+            z_max = min(self.__flatmap.max_zoom, z_max)
+            if z_min >= self.__flatmap.max_zoom:
+                z_min = self.__flatmap.max_zoom - 1
+                z_max = self.__flatmap.max_zoom
+            return z_min, z_max
+
+        return self.__flatmap.min_zoom, self.__flatmap.max_zoom
