@@ -22,11 +22,13 @@ from collections import defaultdict
 import json
 import math
 import os
+from typing import cast
 
 #===============================================================================
 
 import shapely.affinity
 import shapely.geometry
+import shapely.ops
 
 #===============================================================================
 
@@ -125,7 +127,8 @@ class GeoJSONOutput(object):
 
             properties['bounds'] = geojson['properties']['bounds']
             if 'Polygon' in geometry.geom_type:
-                properties['markerPosition'] = list(list(mercator_geometry.representative_point().coords)[0])
+                representative_point = shapely.ops.polylabel(cast(shapely.geometry.Polygon, mercator_geometry), tolerance=0.1)
+                properties['markerPosition'] = list(list(representative_point.coords)[0])
             else:
                 properties['markerPosition'] = list(list(mercator_geometry.centroid.coords)[0])
             properties['geometry'] = geojson['geometry']['type']
