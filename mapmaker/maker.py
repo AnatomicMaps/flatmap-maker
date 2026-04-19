@@ -121,6 +121,14 @@ class MapMaker:
             raise ValueError(f'Max raster zoom cannot be greater than max zoom ({max_zoom})')
         if initial_zoom < min_zoom or initial_zoom > max_zoom:
             raise ValueError(f'Initial zoom cannot be greater than max zoom ({max_zoom})')
+
+        path_min_coverage = options.get('pathMinCoverage', 0.7)
+        path_max_coverage = options.get('pathMaxCoverage', 5.0)
+        if path_min_coverage <= 0 or path_max_coverage <= 0:
+            raise ValueError('Path coverage values must be greater than 0')
+        if path_max_coverage < path_min_coverage:
+            raise ValueError('Path max coverage cannot be less than path min coverage')
+
         self.__zoom = (min_zoom, max_zoom, initial_zoom)
 
         if options.get('publish'):
