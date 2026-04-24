@@ -308,17 +308,15 @@ class SVGLayer(MapLayer):
             properties.update(properties_from_markup)
         group_id = properties.get('id')
         group_style = self.__style_matcher.element_style(wrapped_group, parent_style)
+        group_transform = self.__get_transform(wrapped_group)
+        T = transform@group_transform
         group_clip_path = group_style.pop('clip-path', None)
         clipped = self.__clip_geometries.get_by_url(group_clip_path)
         if clipped is not None:
             # Replace any shapes inside a clipped group with just the clipped outline
-            shapes = Shape(group_id, clipped, properties, svg_element=group)
+            shapes = Shape(group_id, T.transform_geometry(clipped), properties, svg_element=group)
         else:
-            group_transform = self.__get_transform(wrapped_group)
-            shapes = self.__process_element_list(wrapped_group,
-                transform@group_transform,
-                properties,
-                group_style)
+            shapes = self.__process_element_list(wrapped_group, T, properties, group_style)
             properties.pop('tile-layer', None)  # Don't set ``tile-layer``
             if group_id and len(group_shapes := TreeList([s for s in shapes.flatten() if s.geometry.is_valid and not s.properties.get('exclude', False)])):
                 # If the group element has markup and contains geometry then add it as a shape
