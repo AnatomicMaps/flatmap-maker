@@ -26,15 +26,15 @@ from .utils import XLINK_HREF
 
 #===============================================================================
 
-class ObjectStore(object):
+class ObjectStore[T]:
     def __init__(self):
-        self.__objects = {}
+        self.__objects: dict[str|None, T] = {}
 
     def __str__(self):
         return '\n'.join(['{}: {}'.format(k, v) for k, v in self.__objects.items()])
 
     @staticmethod
-    def __id_from_url(url_id):
+    def __id_from_url(url_id: str|None) -> str|None:
         if url_id is not None:
             url_id = url_id.strip()
             if url_id[:4] == 'url(' and url_id[-1] == ')':
@@ -45,17 +45,17 @@ class ObjectStore(object):
                     return id[1:]
         return None
 
-    def add(self, id, obj):
-    #======================
+    def add(self, id: str, obj: T):
+    #==============================
         if id is not None:
             self.__objects[id] = obj
 
-    def get(self, id):
-    #=================
+    def get(self, id: str|None) -> T|None:
+    #================================
         return self.__objects.get(id)
 
-    def get_by_url(self, url_id):
-    #============================
+    def get_by_url(self, url_id: str|None):
+    #======================================
         return self.__objects.get(ObjectStore.__id_from_url(url_id))
 
 #===============================================================================

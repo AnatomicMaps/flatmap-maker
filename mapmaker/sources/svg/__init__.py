@@ -203,7 +203,7 @@ class SVGLayer(MapLayer):
         self.__style_matcher = StyleMatcher(svg.find(f'.//{SVG_TAG('style')}'))
         self.__transform = source.transform
         self.__definitions = DefinitionStore()
-        self.__clip_geometries = ObjectStore()
+        self.__clip_geometries = ObjectStore[BaseGeometry]()
         if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             # Include layer id with shape id when setting feature id
             Shape.reset_shape_id(prefix=f'{id}/')

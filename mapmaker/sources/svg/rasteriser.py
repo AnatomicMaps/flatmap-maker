@@ -325,7 +325,7 @@ class SVGTiler(object):
                           tile_set.pixel_rect.height/self.__size[1])
         self.__definitions = DefinitionStore()
         self.__style_matcher = StyleMatcher(self.__svg.find(f'.//{SVG_TAG('style')}'))
-        self.__clip_paths = ObjectStore()
+        self.__clip_paths = ObjectStore[BaseGeometry]()
 
         # Transform from SVG pixels to tile pixels
         svg_to_tile_transform = Transform([[self.__scaling[0],               0.0, 0.0],
