@@ -69,7 +69,7 @@ from mapmaker.geometry.beziers import coords_to_point
 from mapmaker.geometry.beziers import split_bezier_path_at_point
 from mapmaker.knowledgebase import AnatomicalNode
 from mapmaker.knowledgebase.celldl import FC_CLASS, FC_KIND
-from mapmaker.knowledgebase.sckan import PATH_TYPE
+from mapmaker.knowledgebase.sckan import NODE_TYPE_BY_PHENOTYPE, PATH_TYPE
 from mapmaker.settings import settings
 from mapmaker.utils import log
 import mapmaker.utils.graph as graph_utils
@@ -1522,10 +1522,24 @@ class Network(object):
 
         # Apply a filter to prevent incomplete paths from being rendered due to missing nodes in the flatmap.
         if len(connectivity_graph.nodes) > 0:
-            min_degree = min(dict(path.connectivity.degree()).values())
-            min_degree_nodes = set([node for node, degree in path.connectivity.degree() if degree == min_degree])
-            if len(min_degree_nodes & set(self.__missing_identifiers)):
-                self.__log.warning('Path is not rendered due to partial rendering', path=path.id)
+            node_phenotypes = path.connectivity.graph.get('node-phenotypes', {})
+            path_somas_axons = set(
+                node
+                for phenotype, node_type in NODE_TYPE_BY_PHENOTYPE.items()
+                    if node_type in ('source', 'destination')
+                        for node in node_phenotypes.get(phenotype, [])
+            )
+            covered_nodes = (
+                {(n[0], tuple(n[1])) for n in connectivity_graph.nodes}
+                | {
+                    (n[0], tuple(n[1]))
+                    for _, data in connectivity_graph.nodes(data=True)
+                        for n in data.get('contraction', {}).keys()
+                }
+            )
+            if len(path_somas_axons - covered_nodes) > 0:
+                self.__log.warning('Path suppressed: source/destination nodes are not in the connectivity graph',
+                                   path=path.id, missing=path_somas_axons - covered_nodes)
                 route_graph.remove_nodes_from(list(route_graph.nodes))
                 connectivity_graph.remove_nodes_from(list(connectivity_graph.nodes))
 
