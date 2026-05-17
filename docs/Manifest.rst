@@ -15,6 +15,7 @@ It MAY optionally have:
 *   a taxon identifier for what the flatmap ``"models"``.
 *   the ``"biological-sex"`` of what the flatmap represents.
 *   a ``"description"`` JSON file specifying a description of the map as a SPARC dataset.
+*   ``"enablePathZoomRange"`` to enable path-based minzoom/maxzoom calculation.
 *   the ``"kind"`` of map to generate. Allowable values are ``"anatomical"`` (the default) or
     ``"functional"``.
 *   a ``"properties"`` JSON file specifying properties of features.

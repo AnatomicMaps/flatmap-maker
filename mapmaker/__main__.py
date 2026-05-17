@@ -91,6 +91,10 @@ def arg_parser():
                         help='Maximum zoom level (defaults to 10)')
     zoom_options.add_argument('--max-raster-zoom', dest='maxRasterZoom', metavar='N', type=int,
                         help='Maximum zoom level of rasterised tiles (defaults to maximum zoom level)')
+    zoom_options.add_argument('--path-min-coverage', dest='pathMinCoverage', metavar='R', type=float, default=0.7,
+                        help='Lower coverage factor used to derive path minzoom (defaults to 0.7)')
+    zoom_options.add_argument('--path-max-coverage', dest='pathMaxCoverage', metavar='R', type=float, default=5.0,
+                        help='Upper coverage factor used to derive path maxzoom (defaults to 5.0)')
 
     misc_options = parser.add_argument_group('Miscellaneous')
     misc_options.add_argument('--commit', metavar='GIT_COMMIT',
