@@ -125,7 +125,8 @@ class GeoJSONOutput(object):
                 if scale > 6 and 'group' not in properties and 'minzoom' not in properties:
                     geojson['tippecanoe']['minzoom'] = 4
             else:
-                if (nodes:=self.__flatmap.connectivity()['paths'].get(feature.models)):
+                if (self.__flatmap.manifest.enable_path_zoom_range
+                and (nodes:=self.__flatmap.connectivity()['paths'].get(feature.models))):
                     zoom_range = self.__get_path_zoom_range(nodes)
                     geojson['properties']['minzoom'] = zoom_range[0]
                     geojson['properties']['maxzoom'] = zoom_range[1]

@@ -379,6 +379,10 @@ class Manifest:
         return self.__manifest.get('description')
 
     @property
+    def enable_path_zoom_range(self) -> bool:
+        return bool(self.__manifest.get('enablePathZoomRange', False))
+
+    @property
     def exported_properties(self) -> list[str]:
         return self.__manifest.get('exported-properties', [])
 
