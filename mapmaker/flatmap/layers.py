@@ -404,7 +404,6 @@ class MapLayer(FeatureLayer):
                     prepared_polygon = shapely.prepared.prep(polygon)
                     region_properties = base_properties.copy()
                     # So that any region doesn't have a duplicate id
-                    region_properties.pop('id', None)
                     region_properties.pop('userdata', None)
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_properties.update(region.properties)
