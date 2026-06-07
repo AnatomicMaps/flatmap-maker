@@ -15,7 +15,6 @@ It MAY optionally have:
 *   a taxon identifier for what the flatmap ``"models"``.
 *   the ``"biological-sex"`` of what the flatmap represents.
 *   a ``"description"`` JSON file specifying a description of the map as a SPARC dataset.
-*   ``"enablePathZoomRange"`` to enable path-based minzoom/maxzoom calculation.
 *   the ``"kind"`` of map to generate. Allowable values are ``"anatomical"`` (the default) or
     ``"functional"``.
 *   a ``"properties"`` JSON file specifying properties of features.
@@ -27,6 +26,12 @@ It MAY optionally have:
     identifiers to features. These are additional to any assigned by the ``properties`` file.
 *   for functional connectivity maps, an ``"annotation"`` JSON file assigning anatomical terms to
     features based on their label and anatomical type (System, Organ, FTU).
+*   ``"path-zoom-range"`` to enable path-based minzoom/maxzoom calculation (default ``true``).
+*   ``"initial-zoom"`` for the initial zoom level (default ``4``).
+*   ``"max-zoom"`` for the maximum zoom level (default ``10``).
+*   ``"max-raster-zoom"`` for the maximum zoom level for raster tiles (defaults to ``"max-zoom"``).
+*   ``"path-min-coverage"`` for path zoom range calculation lower coverage bound (default ``0.7``).
+*   ``"path-max-coverage"`` for path zoom range calculation upper coverage bound (default ``5.0``).
 *   a ``"connectivityTerms"`` JSON file specifying equvalences between historical anatomical terms
     used in SCKAN to standard terms (e.g. between FMA and ILX identifiers). **DEPRECATED**
 *   a ``"connectivity"`` JSON file specifying manually defined neuron paths. **DEPRECATED**

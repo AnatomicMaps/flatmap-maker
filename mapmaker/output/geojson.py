@@ -125,7 +125,7 @@ class GeoJSONOutput(object):
                 if scale > 6 and 'group' not in properties and 'minzoom' not in properties:
                     geojson['tippecanoe']['minzoom'] = 4
             else:
-                if (self.__flatmap.manifest.enable_path_zoom_range
+                if (self.__flatmap.manifest.path_zoom_range
                 and (nodes:=self.__flatmap.connectivity()['paths'].get(feature.models))):
                     zoom_range = self.__get_path_zoom_range(nodes)
                     geojson['properties']['minzoom'] = zoom_range[0]
@@ -170,8 +170,8 @@ class GeoJSONOutput(object):
         progress_bar.close()
 
     def __get_path_zoom_range(self, nodes):
-        path_min_coverage = settings.get('pathMinCoverage', 0.7)
-        path_max_coverage = settings.get('pathMaxCoverage', 5.0)
+        path_min_coverage = self.__flatmap.manifest.path_min_coverage
+        path_max_coverage = self.__flatmap.manifest.path_max_coverage
 
         points = [geom.centroid
                     for node in nodes.get('nodes', [])
