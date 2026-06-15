@@ -404,10 +404,11 @@ class MapLayer(FeatureLayer):
                     prepared_polygon = shapely.prepared.prep(polygon)
                     region_properties = base_properties.copy()
                     # So that any region doesn't have a duplicate id
-                    region_properties.pop('id', None)
                     region_properties.pop('userdata', None)
                     for region in filter(lambda p: prepared_polygon.contains(p.geometry), regions):
                         region_properties.update(region.properties)
+                        if 'id' not in region_properties:
+                            region_properties.update({'id': f'{self.id}_region_{region.geojson_id}'})
                         feature = self.flatmap.new_feature(self.id, polygon, region_properties)
                         if feature is not None:
                             layer_features.append(feature)

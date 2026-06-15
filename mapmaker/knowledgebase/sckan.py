@@ -140,6 +140,15 @@ PATH_ORDER_BY_PHENOTYPE = {
     'ilxtr:PreGanglionicPhenotype':     PATH_TYPE.PRE_GANGLIONIC,
 }
 
+NODE_TYPE_BY_PHENOTYPE = {
+    'ilxtr:hasSomaLocatedIn':                            'source',
+    'ilxtr:hasDendriteLocatedIn':                        'source',
+    'ilxtr:hasAxonPresynapticElementIn':                 'destination',
+    'ilxtr:hasAxonSensorySubcellularElementIn':          'destination',
+    'ilxtr:hasAxonLeadingToSensorySubcellularElementIn': 'via',
+    'ilxtr:hasAxonLocatedIn':                            'via'
+}
+
 def path_type_from_phenotypes(phenotypes) -> PATH_TYPE:
 #======================================================
     path_type = PATH_TYPE.UNKNOWN

@@ -69,7 +69,7 @@ from mapmaker.geometry.beziers import coords_to_point
 from mapmaker.geometry.beziers import split_bezier_path_at_point
 from mapmaker.knowledgebase import AnatomicalNode
 from mapmaker.knowledgebase.celldl import FC_CLASS, FC_KIND
-from mapmaker.knowledgebase.sckan import PATH_TYPE
+from mapmaker.knowledgebase.sckan import NODE_TYPE_BY_PHENOTYPE, PATH_TYPE
 from mapmaker.settings import settings
 from mapmaker.utils import log
 import mapmaker.utils.graph as graph_utils
@@ -199,7 +199,7 @@ class Network(object):
         self.__containers_by_segment: dict[str, set[str]] = defaultdict(set)        #! Segment id --> set of features that segment is contained in
         self.__centrelines_by_containing_feature = defaultdict(set)                 #! Feature id --> set of centrelines that are contained in feature
         self.__expanded_centreline_graph: Optional[nx.Graph] = None                 #! Expanded version of centreline graph
-        self.__segment_edge_by_segment: dict[str, tuple[str, str, str]] = {}        #! Segment id --> segment edge
+        self.__segment_edge_by_segment: dict[str, tuple[str, str, int]] = {}        #! Segment id --> segment edge
         self.__segment_ids_by_centreline: dict[str, list[str]] = defaultdict(list)  #! Centreline id --> segment ids of the centreline
 
         # Track how nodes are associated with centrelines
@@ -721,7 +721,7 @@ class Network(object):
                     # Save the id of the centreline's nerve cuff
                     nerve_ids.add(nerve_id)
             segment_ids.update(self.__segment_ids_by_centreline[centreline_id])
-        properties['subgraph'] = self.__centreline_graph.edge_subgraph([self.__segment_edge_by_segment[segment_id]
+        properties['subgraph'] = self.__centreline_graph.edge_subgraph([self.__segment_edge_by_segment[segment_id][:2]
                                                                             for segment_id in segment_ids]).copy()
         properties['subgraph'].graph['segment-ids'] = segment_ids
         properties['nerve-ids'] = nerve_ids
@@ -1113,12 +1113,14 @@ class Network(object):
                                 if len(candidates) > 0:
                                     new_direct_edges.update([min(candidates, key=lambda k: candidates[k])])
                         elif ((p_dict:=connectivity_graph.nodes[prev_node])['type'] == 'feature' and
-                              (n_dict:=connectivity_graph.nodes[node])['type'] == 'feature'):
-                            if ((pf:=list(p_dict.get('features'))[0].id) in route_graph.nodes and
-                                (nf:=list(n_dict.get('features'))[0].id) in route_graph.nodes):
-                                edge_dict = connectivity_graph.edges[(prev_node, node)]
-                                tmp_edge_dicts[(pf, nf)] = edge_dict
-                                new_direct_edges.update([(pf, nf)])
+                              (n_dict:=connectivity_graph.nodes[node])['type'] == 'feature' and
+                              (p_features:=list(p_dict.get('features') or [])) and
+                              (n_features:=list(n_dict.get('features') or [])) and
+                              (pf:=p_features[0].id) in route_graph.nodes and
+                              (nf:=n_features[0].id) in route_graph.nodes):
+                            edge_dict = connectivity_graph.edges[(prev_node, node)]
+                            tmp_edge_dicts[(pf, nf)] = edge_dict
+                            new_direct_edges.update([(pf, nf)])
                     prev_node = node
 
                 if len(feature_ids):
@@ -1506,7 +1508,7 @@ class Network(object):
                 if len(mn_keys:=list(matching_nodes.keys())) == 2:
                     simple_node_paths = list(nx.all_simple_edge_paths(connectivity_graph, source=mn_keys[0], target=mn_keys[1]))
                     while len(simple_paths) > len(simple_node_paths):
-                        route_graph.remove_edges_from([simple_paths.pop()])
+                        route_graph.remove_edges_from(list(pairwise(simple_paths.pop())))
 
         centreline_ids = set()
         for node_0, node_1, edge_dict in nx.Graph(route_graph).edges(data=True):
@@ -1522,10 +1524,24 @@ class Network(object):
 
         # Apply a filter to prevent incomplete paths from being rendered due to missing nodes in the flatmap.
         if len(connectivity_graph.nodes) > 0:
-            min_degree = min(dict(path.connectivity.degree()).values())
-            min_degree_nodes = set([node for node, degree in path.connectivity.degree() if degree == min_degree])
-            if len(min_degree_nodes & set(self.__missing_identifiers)):
-                self.__log.warning('Path is not rendered due to partial rendering', path=path.id)
+            node_phenotypes = path.connectivity.graph.get('node-phenotypes', {})
+            path_somas_axons = set(
+                node
+                for phenotype, node_type in NODE_TYPE_BY_PHENOTYPE.items()
+                    if node_type in ('source', 'destination')
+                        for node in node_phenotypes.get(phenotype, [])
+            )
+            covered_nodes = (
+                {(n[0], tuple(n[1])) for n in connectivity_graph.nodes}
+                | {
+                    (n[0], tuple(n[1]))
+                    for _, data in connectivity_graph.nodes(data=True)
+                        for n in data.get('contraction', {}).keys()
+                }
+            )
+            if len(path_somas_axons - covered_nodes) > 0:
+                self.__log.warning('Path suppressed: source/destination nodes are not in the connectivity graph',
+                                   path=path.id, missing=path_somas_axons - covered_nodes)
                 route_graph.remove_nodes_from(list(route_graph.nodes))
                 connectivity_graph.remove_nodes_from(list(connectivity_graph.nodes))
 
