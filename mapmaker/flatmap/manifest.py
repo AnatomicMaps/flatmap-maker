@@ -106,7 +106,7 @@ class MapRepository:
     def remotes(self) -> dict[str, str]:
         return {
             remote.name: giturlparse.parse(remote.url).url2https
-                for remote in self.__repo.remotes
+                for remote in self.__repo.remotes if remote.url.startswith('http')
             }
 
     @property
@@ -131,11 +131,12 @@ class MapRepository:
     def __get_upstream_base(self) -> Optional[str]:
         url = None
         for remote in self.__repo.remotes:
-            https_url = giturlparse.parse(remote.url).url2https
-            url = giturlparse.parse(https_url)
-            if (url.host.endswith(GITHUB_GIT_HOST)
-             or url.host.endswith(PHYSIOMEPROJECT_GIT_HOST)):
-                break
+            if remote.url.startswith('http'):
+                https_url = giturlparse.parse(remote.url).url2https
+                url = giturlparse.parse(https_url)
+                if (url.host.endswith(GITHUB_GIT_HOST)
+                or url.host.endswith(PHYSIOMEPROJECT_GIT_HOST)):
+                    break
         if url is not None:
             raw_folder = ('blob/' if url.host.endswith(GITHUB_GIT_HOST) else
                           'rawfile/' if url.host.endswith(PHYSIOMEPROJECT_GIT_HOST) else
