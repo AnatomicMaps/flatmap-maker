@@ -231,18 +231,20 @@ class SourceValidation:
         # property info
         with open(manifest_file.with_name(self.__manifest['properties']), 'r') as fp:
             self.__properties = json.load(fp)
+            self.__properties['points'] = [
+                p
+                for network in self.__properties.get('networks', [])
+                for nt in ['centrelines', 'no-centrelines'] if nt in network
+                for c in network[nt]
+                for point in c.get('connects', [])
+                for p in point.split('/')
+            ]
             self.__properties['networks'] = {
                 c['id']: c
                 for network in self.__properties.get('networks', [])
                 for nt in ['centrelines', 'no-centrelines'] if nt in network
                 for c in network[nt]
             }
-            self.__properties['points'] = [
-                p
-                for network in self.__properties.get('networks', {}).values()
-                for point in network['connects']
-                for p in point.split('/')
-            ]
             self.__properties['terms'] = defaultdict(list)
             self.__properties['a_classes'] = defaultdict(list)
             for feature_id, feature in self.__properties.get('features', {}).items():
@@ -281,10 +283,10 @@ class SourceValidation:
         if isinstance(node_or_term, str):
             return node_or_term in self.__properties['terms'] or node_or_term in self.__have_proxies
         elif isinstance(node_or_term, tuple):
-            for term in [node_or_term[0]] + list(node_or_term[1]):
-                if term not in self.__properties['terms'] and term not in self.__have_proxies:
-                    return False
-            return True
+            terms_to_check = [node_or_term[0]] + list(node_or_term[1])
+            props_terms = self.__properties['terms']
+            proxies = self.__have_proxies
+            return all(term in props_terms or term in proxies for term in terms_to_check)
 
     def __get_term_by_id(self, id):
         if id in (dt:=self.__properties['features']) or id in (dt:=self.__properties['networks']):
@@ -347,11 +349,12 @@ class SourceValidation:
     def __properties_validation(self):
         # validating classes in properties
         for k, v in self.__properties['classes'].items():
-            if (k in self.__anatomical_map or v.get('models')) and (k in self.__svg_tags['class'] or k in self.__properties['a_classes']):
-                continue
-            if k not in self.__svg_tags['class'] and k not in self.__properties['a_classes']:
+            in_anat_or_models = k in self.__anatomical_map or v.get('models')
+            in_svg_or_props = k in self.__svg_tags['class'] or k in self.__properties['a_classes']
+
+            if not in_svg_or_props:
                 self.__record_issue('class', k, 'Properties', 'Properties class not in SVG and property features')
-            elif k not in self.__anatomical_map and not v.get('models'):
+            elif not in_anat_or_models:
                 self.__record_issue('class', k, 'Properties', 'Properties class not in anatomical map and has no models')
 
         # validating anatomical classes in properties
@@ -373,10 +376,11 @@ class SourceValidation:
         for k in self.__properties['features']:
             if k not in self.__svg_tags['id']:
                 self.__record_issue('id', k, 'Properties', 'Properties feature id not in SVG')
-            if not self.__properties['features'][k].get('models') and self.__anatomical_map.get(self.__properties['features'][k].get('class'), {}).get('term') is None:
+            feature = self.__properties['features'][k]
+            if not feature.get('models') and self.__anatomical_map.get(feature.get('class'), {}).get('term') is None:
                 self.__record_issue('id', k, 'Properties', 'Properties feature id has no models and its class has no term in anatomical map')
 
-    def analize(self):
+    def analyze(self):
         self.__svg_validation()
         self.__alias_validation()
         self.__proxy_validation()
@@ -420,12 +424,12 @@ def analyse_flatmap_source(manifest_files, sckan_knowledge, output_dir='.'):
                 # Path to the file
                 file_path = tmp_path / file_relative
                 sv = SourceValidation(file_path, sckan_knowledge)
-                sv.analize()
+                sv.analyze()
                 svs.append(sv)
         else:
             # local file
             sv = SourceValidation(manifest_file, sckan_knowledge)
-            sv.analize()
+            sv.analyze()
             svs.append(sv)
 
     sources = [sv.get_manifest_id() for sv in svs]
@@ -461,7 +465,6 @@ def identify_missing_nodes(sckan_knowledge, log_data_list, map_type, g_rdf, outp
                 missing_nodes[node_key]['map'] += (log_data['map'],)
         elif (missings:=log_data.get('missing')):
             for node_key in ast.literal_eval(missings):
-                print(sckan_knowledge['terms'])
                 missing_nodes[node_key] = {
                     'name': '/'.join(sckan_knowledge['terms'].get(term) for term in [node_key[0]]+list(node_key[1])),
                     'map': tuple()
