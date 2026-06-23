@@ -140,6 +140,8 @@ import re
 import subprocess
 import tempfile
 from urllib.parse import urlparse
+from mapmaker.knowledgebase.sckan import NODE_TYPE_BY_PHENOTYPE
+import ast
 
 #===============================================================================
 
@@ -195,7 +197,7 @@ class SourceValidation:
         # check class, id, type
         self.__svg_tags = {'id': {}, 'class': {}}
         for svg_source in self.__manifest['sources']:
-            tree = etree.parse(manifest_file.with_name(svg_source['href']))
+            tree = etree.parse(manifest_file.parent / svg_source["href"])
             root = tree.getroot()
             ns = {'svg': 'http://www.w3.org/2000/svg'}
             parent_map = {c: p for p in root.iter() for c in p}
@@ -220,8 +222,11 @@ class SourceValidation:
 
 
         # anatomical_map info
-        with open(manifest_file.with_name(self.__manifest['anatomicalMap']), 'r') as fp:
-            self.__anatomical_map = json.load(fp)
+        if (anatomical_file:=self.__manifest.get('anatomicalMap')):
+            with open(manifest_file.with_name(anatomical_file), 'r') as fp:
+                self.__anatomical_map = json.load(fp)
+        else:
+            self.__anatomical_map = dict()
 
         # property info
         with open(manifest_file.with_name(self.__manifest['properties']), 'r') as fp:
@@ -442,7 +447,7 @@ def analyse_flatmap_source(manifest_files, sckan_knowledge, output_dir='.'):
 
 def identify_missing_nodes(sckan_knowledge, log_data_list, map_type, g_rdf, output_dir='.'):
     # group and aggregate paths
-    missing_paths = {log_data['path'] for log_data in log_data_list if log_data.get('msg') == 'Path is not rendered due to partial rendering'}
+    missing_paths = {log_data['path'] for log_data in log_data_list if log_data.get('msg') == 'Path suppressed: source/destination nodes are not in the connectivity graph'}
     missing_nodes = defaultdict(dict)
     for log_data in log_data_list:
         if log_data.get('msg') == 'Cannot find feature for connectivity node':
@@ -454,6 +459,15 @@ def identify_missing_nodes(sckan_knowledge, log_data_list, map_type, g_rdf, outp
                 }
             if log_data.get('map'):
                 missing_nodes[node_key]['map'] += (log_data['map'],)
+        elif (missings:=log_data.get('missing')):
+            for node_key in ast.literal_eval(missings):
+                print(sckan_knowledge['terms'])
+                missing_nodes[node_key] = {
+                    'name': '/'.join(sckan_knowledge['terms'].get(term) for term in [node_key[0]]+list(node_key[1])),
+                    'map': tuple()
+                }
+                if log_data.get('map'):
+                    missing_nodes[node_key]['map'] += (log_data['map'],)
 
     path_dicts = {}
     for path_kn in sckan_knowledge['knowledge']:
@@ -462,9 +476,17 @@ def identify_missing_nodes(sckan_knowledge, log_data_list, map_type, g_rdf, outp
             G = nx.Graph()
             G.add_edges_from(conn)
             degrees = dict(G.degree())  # type: ignore
-            min_degree = min(degrees.values())
+
+            node_phenotypes = path_kn.get('node-phenotypes', {})
+            path_somas_axons = set(
+                (node[0], tuple(node[1]))
+                for phenotype, node_type in NODE_TYPE_BY_PHENOTYPE.items()
+                    if node_type in ('source', 'destination')
+                        for node in node_phenotypes.get(phenotype, [])
+            )
+
             path_dicts[path_kn['id']] = {
-                'terminals': set([node for node, deg in degrees.items() if deg == min_degree]),
+                'terminals': path_somas_axons,
                 'nodes': set(degrees.keys()),
                 'phenotypes': path_kn.get('phenotypes')
             }
@@ -594,7 +616,8 @@ def loading_sources(generated_folders):
 
             # Standardize log entries, add 'map' field and convert 'node' lists to tuples
             last_idx_version = max(i for i, line in enumerate(log_data) if 'Using knowledge source' in line.get('msg', ''))
-            for log_entry in log_data[last_idx_version:]:
+            log_data = log_data[last_idx_version:]
+            for log_entry in log_data:
                 log_entry['map'] = map_name
                 if 'node' in log_entry and isinstance(log_entry['node'], list):
                     log_entry['node'] = (log_entry['node'][0], tuple(log_entry['node'][1]))
@@ -623,14 +646,16 @@ def loading_sources(generated_folders):
         sckan_version=sckan_version,
         store_directory=Path(store_directory).parent
     )
-    sckan_knowledge = {'source': sckan_version, 'knowledge': [], 'nodes': set(), 'terms': set()}
+    sckan_knowledge = {'source': sckan_version, 'knowledge': [], 'nodes': set(), 'terms': dict()}
     for path in store.connectivity_paths():
         path_kn = store.entity_knowledge(path)
         sckan_knowledge['knowledge'].append(path_kn)
         for edge in path_kn['connectivity']:
             for node in edge:
                 sckan_knowledge['nodes'].add((node[0], tuple(node[1])))
-                sckan_knowledge['terms'].update([node[0], *node[1]])
+                for term in [node[0], *node[1]]:
+                    if term not in sckan_knowledge['terms']:
+                        sckan_knowledge['terms'][term] = store.entity_knowledge(term).get('label', term)
     store.close()
 
 
