@@ -299,7 +299,7 @@ class Manifest:
                 ]
             }
             self.__raw_manifest = deepcopy(self.__manifest)
-            self.__sources = [SourceManifest(self.__manifest['sources'], self)]
+            self.__sources = [SourceManifest(self.__manifest['sources'][0], self)]
         else:
             # Check the manifest itself is committed into the repository
             self.__check_committed(self.__url, 'Flatmap source manifest')
