@@ -109,20 +109,6 @@ class MapMaker:
         if 'output' not in options:
             options['output'] = './flatmaps'
 
-        # Check zoom settings are valid
-        min_zoom = 0
-        max_zoom = options.get('maxZoom', 10)
-        max_raster_zoom = options.get('maxRasterZoom', max_zoom)
-
-        initial_zoom = options.get('initialZoom', 4)
-        if max_zoom < min_zoom or max_zoom > 15:
-            raise ValueError('Max zoom must be between {} and 15'.format(min_zoom))
-        if max_raster_zoom > max_zoom:
-            raise ValueError(f'Max raster zoom cannot be greater than max zoom ({max_zoom})')
-        if initial_zoom < min_zoom or initial_zoom > max_zoom:
-            raise ValueError(f'Initial zoom cannot be greater than max zoom ({max_zoom})')
-        self.__zoom = (min_zoom, max_zoom, initial_zoom)
-
         if options.get('publish'):
             # Check the given options are compatible with SDS publishing
             errors = False
@@ -152,6 +138,28 @@ class MapMaker:
         self.__id = self.__manifest.id
         if self.__id is None:
             raise ValueError('No id given for map')
+
+        # Check zoom settings are valid
+        min_zoom = 0
+        max_zoom = self.__manifest.max_zoom
+        max_raster_zoom = self.__manifest.max_raster_zoom
+
+        initial_zoom = self.__manifest.initial_zoom
+        if max_zoom < min_zoom or max_zoom > 15:
+            raise ValueError('Max zoom must be between {} and 15'.format(min_zoom))
+        if max_raster_zoom > max_zoom:
+            raise ValueError(f'Max raster zoom cannot be greater than max zoom ({max_zoom})')
+        if initial_zoom < min_zoom or initial_zoom > max_zoom:
+            raise ValueError(f'Initial zoom cannot be greater than max zoom ({max_zoom})')
+
+        path_min_coverage = self.__manifest.path_min_coverage
+        path_max_coverage = self.__manifest.path_max_coverage
+        if path_min_coverage <= 0 or path_max_coverage <= 0:
+            raise ValueError('Path coverage values must be greater than 0')
+        if path_max_coverage < path_min_coverage:
+            raise ValueError('Path max coverage cannot be less than path min coverage')
+
+        self.__zoom = (min_zoom, max_zoom, initial_zoom)
 
         # Publishing requires a ``description.json``
         if options.get('publish') and self.__manifest.description is None:
