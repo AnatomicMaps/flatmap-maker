@@ -674,7 +674,7 @@ provides-extras = ["tools"]
 
 [[package]]
 name = "mapmaker"
-version = "1.25.0"
+version = "1.25.1"
 source = { editable = "." }
 dependencies = [
     { name = "beziers" },
