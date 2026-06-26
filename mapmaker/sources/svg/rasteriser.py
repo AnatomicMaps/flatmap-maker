@@ -305,49 +305,33 @@ class CanvasGroup(CanvasDrawingObject):
 class SVGTiler(object):
     def __init__(self, raster_layer: 'RasterLayer', tile_set: 'TileSet'):
         self.__bbox = shapely.geometry.box(*extent_to_bounds(raster_layer.extent))
-        self.__svg = etree.fromstring(raster_layer.source_data, parser=etree.XMLParser(huge_tree=True))
-        self.__source_path: Optional[FilePath] = raster_layer.source_path
-        if 'viewBox' in self.__svg.attrib:
-            viewbox = [float(x) for x in self.__svg.attrib.get('viewBox').split()]
-            (left, top) = tuple(viewbox[0:2])
-            self.__size = tuple(viewbox[2:4])
-        else:
-            (left, top) = (0, 0)
-            self.__size = (length_as_pixels(self.__svg.attrib['width']),
-                           length_as_pixels(self.__svg.attrib['height']))
-        self.__add_background_rect = False
+
+        background_rect = False
         if raster_layer.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             if (raster_layer.map_source.kind != 'base'
             and raster_layer.map_source.kind == 'functional'):
-                self.__add_background_rect = (raster_layer.map_source.base_feature is not None)
-        self.__left_top = (left, top)
-        self.__scaling = (tile_set.pixel_rect.width/self.__size[0],
-                          tile_set.pixel_rect.height/self.__size[1])
-        self.__definitions = DefinitionStore()
-        self.__style_matcher = StyleMatcher(self.__svg.find(f'.//{SVG_TAG('style')}'))
-        self.__clip_paths = ObjectStore[BaseGeometry]()
+                background_rect = (raster_layer.map_source.base_feature is not None)
 
-        # Transform from SVG pixels to tile pixels
-        svg_to_tile_transform = Transform([[self.__scaling[0],               0.0, 0.0],
-                                           [              0.0, self.__scaling[1], 0.0],
-                                           [              0.0,               0.0, 1.0]])@np.array([[1.0, 0.0, -left],
-                                                                                                   [0.0, 1.0, -top],
-                                                                                                   [0.0, 0.0,  1.0]])
-        self.__svg_source = typing.cast(SVGSource, raster_layer.map_source)
-        metres_per_pixel = self.__svg_source.metres_per_pixel
+        self.__rasteriser = SVGRasteriser(raster_layer.source_data,
+                                          (tile_set.pixel_rect.width, tile_set.pixel_rect.height),
+                                          background_rect=background_rect,
+                                          source_path=raster_layer.source_path)
+
+        svg_source = typing.cast(SVGSource, raster_layer.map_source)
+        metres_per_pixel = svg_source.metres_per_pixel
 
         # Transform from SVG pixels to world coordinates
         self.__image_to_world = (Transform([
-            [metres_per_pixel/self.__scaling[0],                                  0, 0],
-            [                                 0, metres_per_pixel/self.__scaling[1], 0],
-            [                                 0,                                  0, 1]])
-           @np.array([[1.0,  0.0, -self.__scaling[0]*self.__size[0]/2.0],
-                      [0.0, -1.0,  self.__scaling[1]*self.__size[1]/2.0],
-                      [0.0,  0.0,                                   1.0]]))
+            [metres_per_pixel/self.scaling[0],                                0, 0],
+            [                               0, metres_per_pixel/self.scaling[1], 0],
+            [                               0,                                0, 1]])
+           @np.array([[1.0,  0.0, -self.scaling[0]*self.size[0]/2.0],
+                      [0.0, -1.0,  self.scaling[1]*self.size[1]/2.0],
+                      [0.0,  0.0,                               1.0]]))
+
+        self.__pixel_offset = tuple(tile_set.pixel_rect)[0:2]
         self.__tile_size = tile_set.tile_size
         self.__tile_origin = tile_set.start_coords
-        self.__pixel_offset = tuple(tile_set.pixel_rect)[0:2]
-
         self.__tile_bboxes: dict[str, shapely.geometry.Polygon] = {}
         for tile in tile_set:
             tile_set.tile_coords_to_pixels.transform_point((tile.x, tile.y))
@@ -358,12 +342,13 @@ class SVGTiler(object):
                                                                    y0 + self.__tile_size[0])
             self.__tile_bboxes[mercantile.quadkey(tile)] = tile_bbox
 
-        # Render SVG onto a CanvasGroup
-        self.__svg_drawing = self.__draw_svg(svg_to_tile_transform)
+    @property
+    def scaling(self):
+        return self.__rasteriser.scaling
 
     @property
     def size(self):
-        return self.__size
+        return self.__rasteriser.size
 
     @property
     def image_to_world(self) -> Transform:
@@ -372,11 +357,11 @@ class SVGTiler(object):
     def get_image(self) -> np.ndarray:
     #=================================
         # Draw image to fit tile set's pixel rectangle
-        surface = skia.Surface(round(self.__scaling[0]*self.__size[0]),
-                               round(self.__scaling[1]*self.__size[1]))
+        surface = skia.Surface(round(self.scaling[0]*self.size[0]),
+                               round(self.scaling[1]*self.size[1]))
         canvas = surface.getCanvas()
         canvas.clear(skia.Color4f(0xFFFFFFFF))
-        self.__svg_drawing.draw_element(canvas, self.__bbox)
+        self.__rasteriser.draw_element(canvas, self.__bbox)
         log.info('Making image snapshot...')
         image = surface.makeImageSnapshot()
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
@@ -390,11 +375,57 @@ class SVGTiler(object):
                          self.__pixel_offset[1] + (self.__tile_origin[1] - tile.y)*self.__tile_size[1])
         quadkey = mercantile.quadkey(tile)
         if quadkey in self.__tile_bboxes:
-            drawn_elements = self.__svg_drawing.draw_element(canvas, self.__tile_bboxes[quadkey])
+            drawn_elements = self.__rasteriser.draw_element(canvas, self.__tile_bboxes[quadkey])
             if drawn_elements:
                 image = surface.makeImageSnapshot()
                 return image.toarray(colorType=skia.kBGRA_8888_ColorType)
         return None
+
+#===============================================================================
+
+class SVGRasteriser:
+    def __init__(self, svg_source: bytes, scaled_size: tuple[float, float], background_rect: bool=True, source_path: Optional[FilePath]=None):
+        self.__svg = etree.fromstring(svg_source, parser=etree.XMLParser(huge_tree=True))
+        if 'viewBox' in self.__svg.attrib:
+            viewbox = [float(x) for x in self.__svg.attrib.get('viewBox').split()]
+            (left, top) = tuple(viewbox[0:2])
+            self.__size = tuple(viewbox[2:4])
+        else:
+            (left, top) = (0, 0)
+            self.__size = (length_as_pixels(self.__svg.attrib['width']),
+                           length_as_pixels(self.__svg.attrib['height']))
+
+        self.__left_top = (left, top)
+        self.__scaling = (scaled_size[0]/self.__size[0],
+                          scaled_size[1]/self.__size[1])
+
+        # Transform from SVG pixels to tile pixels
+        svg_to_tile_transform = Transform([[self.__scaling[0],               0.0, 0.0],
+                                           [              0.0, self.__scaling[1], 0.0],
+                                           [              0.0,               0.0, 1.0]])@np.array([[1.0, 0.0, -left],
+                                                                                                   [0.0, 1.0, -top],
+                                                                                                   [0.0, 0.0,  1.0]])
+        self.__add_background_rect = background_rect
+        self.__clip_paths = ObjectStore[BaseGeometry]()
+        self.__definitions = DefinitionStore()
+        self.__source_path = source_path
+        self.__style_matcher = StyleMatcher(self.__svg.find(f'.//{SVG_TAG('style')}'))
+
+        # Render SVG onto a CanvasGroup
+        self.__svg_drawing = self.__draw_svg(svg_to_tile_transform)
+
+    @property
+    def scaling(self):
+        return self.__scaling
+
+    @property
+    def size(self):
+        return self.__size
+
+
+    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon) -> int:
+    #=======================================================================================
+        return self.__svg_drawing.draw_element(canvas, tile_bbox)
 
     def __get_transform(self, wrapped_element) -> Optional[Transform]:
     #=================================================================
@@ -407,7 +438,7 @@ class SVGTiler(object):
                 'transform-origin', wrapped_element.etree_element.attrib.get('transform-origin'))
             if transform_origin is None:
                 return T
-            translation = [length_as_pixels(l) for l in transform_origin.split()]
+            translation = [length_as_pixels(x) for x in transform_origin.split()]
             return (SVGTransform(f'translate({translation[0]}, {translation[1]})')
                    @T
                    @SVGTransform(f'translate({-translation[0]}, {-translation[1]})'))
@@ -505,7 +536,7 @@ class SVGTiler(object):
             and element.tag in [SVG_TAG('circle'), SVG_TAG('ellipse'), SVG_TAG('line'),
                                SVG_TAG('path'), SVG_TAG('polyline'), SVG_TAG('polygon'),
                                SVG_TAG('rect')]):
-                path = SVGTiler.__get_graphics_path(element)
+                path = SVGRasteriser.__get_graphics_path(element)
                 if path is not None:
                     if clip_path is None:
                         clip_path = path
@@ -541,8 +572,9 @@ class SVGTiler(object):
                              SVG_TAG('path'), SVG_TAG('polyline'), SVG_TAG('polygon'),
                              SVG_TAG('rect')]:
 
-            path = SVGTiler.__get_graphics_path(element)
-            if path is None: return []
+            path = SVGRasteriser.__get_graphics_path(element)
+            if path is None:
+                return []
 
             fill = element_style.get('fill', '#FFF').strip()
             if fill != 'none':
@@ -564,7 +596,7 @@ class SVGTiler(object):
                             points=points,
                             positions=gradient_stops.offsets,
                             colors=gradient_stops.colours,
-                            localMatrix=SVGTiler.__gradient_matrix(gradient, path)
+                            localMatrix=SVGRasteriser.__gradient_matrix(gradient, path)
                         ))
                     elif gradient.tag == SVG_TAG('radialGradient'):
                         gradient_stops = GradientStops(gradient)
@@ -579,7 +611,7 @@ class SVGTiler(object):
                             radius=radius,
                             positions=gradient_stops.offsets,
                             colors=gradient_stops.colours,
-                            localMatrix=SVGTiler.__gradient_matrix(gradient, path)
+                            localMatrix=SVGRasteriser.__gradient_matrix(gradient, path)
                         ))
                     else:
                         fill = '#008'     # Something's wrong so show show in image...
@@ -651,6 +683,10 @@ class SVGTiler(object):
                         media_type = parts[0].split(';', 1)[0]
                         if media_type in IMAGE_MEDIA_TYPES:
                             pixel_bytes = base64.b64decode(parts[1])
+
+                    ## need to allow for image/svg+xml and image/svg+xml;base64
+                    ##
+
                 elif self.__source_path is not None:
                     pixel_bytes = self.__source_path.join_path(image_href).get_data()
                 if pixel_bytes is not None:
@@ -699,11 +735,12 @@ class SVGTiler(object):
     #=============================================
         if element.tag == SVG_TAG('path'):
             tokens = list(parse_svg_path(element.attrib.get('d', '')))
-            path = SVGTiler.__path_from_tokens(tokens)
+            path = SVGRasteriser.__path_from_tokens(tokens)
         elif element.tag == SVG_TAG('rect'):
             (width, height) = (length_as_pixels(element.attrib.get('width', 0)),
                                length_as_pixels(element.attrib.get('height', 0)))
-            if width == 0 or height == 0: return None
+            if width == 0 or height == 0:
+                return None
             (rx, ry) = (length_as_pixels(element.attrib.get('rx', 0)),
                         length_as_pixels(element.attrib.get('ry', 0)))
             if rx is None and ry is None:
@@ -725,24 +762,26 @@ class SVGTiler(object):
             y1 = length_as_pixels(element.attrib.get('y1', 0))
             x2 = length_as_pixels(element.attrib.get('x2', 0))
             y2 = length_as_pixels(element.attrib.get('y2', 0))
-            path = SVGTiler.__path_from_tokens(['M', x1, y1, x2, y2])
+            path = SVGRasteriser.__path_from_tokens(['M', x1, y1, x2, y2])
         elif element.tag == SVG_TAG('polyline'):
             points = element.attrib.get('points', '').replace(',', ' ').split()
-            path = SVGTiler.__path_from_tokens(['M'] + points)
+            path = SVGRasteriser.__path_from_tokens(['M'] + points)
         elif element.tag == SVG_TAG('polygon'):
             points = [ float(p) for p in element.attrib.get('points', '').replace(',', ' ').split() ]
             skia_points = [skia.Point(*points[n:n+2]) for n in range(0, len(points), 2)]
             path = skia.Path.Polygon(skia_points, True)
         elif element.tag == SVG_TAG('circle'):
             r = length_as_pixels(element.attrib.get('r', 0))
-            if r == 0: return None
+            if r == 0:
+                return None
             (cx, cy) = (length_as_pixels(element.attrib.get('cx', 0)),
                         length_as_pixels(element.attrib.get('cy', 0)))
             path = skia.Path.Circle(cx, cy, r)
         elif element.tag == SVG_TAG('ellipse'):
             (rx, ry) = (length_as_pixels(element.attrib.get('rx', 0)),
                         length_as_pixels(element.attrib.get('ry', 0)))
-            if rx == 0 or ry == 0: return None
+            if rx == 0 or ry == 0:
+                return None
             (cx, cy) = (length_as_pixels(element.attrib.get('cx', 0)),
                         length_as_pixels(element.attrib.get('cy', 0)))
             path = skia.Path.Oval(skia.Rect(cx-rx, cy-ry, cx+rx, cy+ry))
