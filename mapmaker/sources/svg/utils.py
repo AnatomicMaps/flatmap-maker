@@ -69,6 +69,9 @@ PICAS_PER_INCH = 6
 
 #===============================================================================
 
+EM_SIZE = 16            # Pixels, from CellDL editor code
+EX_SIZE = EM_SIZE / 2
+
 __unit_scaling = {
     'px': 1,
     'in': PIXELS_PER_INCH,
@@ -77,8 +80,8 @@ __unit_scaling = {
     'pt': PIXELS_PER_INCH/POINTS_PER_INCH,
     'pc': PIXELS_PER_INCH/PICAS_PER_INCH,
     '%' : None,      # 1/100.0 of viewport dimension
-    'em': None,      # em/pt depends on current font size
-    'ex': None,      # ex/pt depends on current font size
+    'em': EM_SIZE,      # em/pt depends on current font size
+    'ex': EX_SIZE,      # ex/pt depends on current font size
     }
 
 def check_non_negative(length: float, element: str, what: str, id: Optional[str]) -> float:
@@ -447,4 +450,3 @@ def geometry_from_svg_path(path_tokens: list[str|float], transform: Transform,
     return (geometry, bezier_segments)
 
 #===============================================================================
-
