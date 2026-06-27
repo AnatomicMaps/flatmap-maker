@@ -746,8 +746,8 @@ class SVGRasteriser:
                                length_as_pixels(element.attrib.get('height', 0)))
             if width == 0 or height == 0:
                 return None
-            (rx, ry) = (length_as_pixels(element.attrib.get('rx', 0)),
-                        length_as_pixels(element.attrib.get('ry', 0)))
+            rx = length_as_pixels(element.attrib.get('rx'))
+            ry = length_as_pixels(element.attrib.get('ry'))
             if rx is None and ry is None:
                 rx = ry = 0
             elif ry is None:
