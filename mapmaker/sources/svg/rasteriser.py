@@ -57,6 +57,11 @@ if TYPE_CHECKING:
 
 #===============================================================================
 
+DEFAULT_FILL_COLOUR = 'black'
+DEFAULT_STROKE_COLOUR = 'black'
+
+#===============================================================================
+
 IMAGE_MEDIA_TYPES = ['image/jpeg', 'image/png']
 
 #===============================================================================
@@ -449,7 +454,7 @@ class SVGRasteriser:
         transform = self.__get_transform(wrapped_svg)
         drawing_objects = self.__draw_element_list(wrapped_svg,
             svg_to_tile_transform if transform is None else svg_to_tile_transform@transform,
-            None,
+            {'stroke': DEFAULT_STROKE_COLOUR, 'fill': DEFAULT_FILL_COLOUR},
             show_progress=show_progress)
         if self.__add_background_rect:
             path = skia.Path.RRect((self.__left_top[0], self.__left_top[1],

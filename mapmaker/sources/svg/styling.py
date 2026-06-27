@@ -75,15 +75,21 @@ class StyleMatcher(cssselect2.Matcher):
                     styling[declaration.lower_name] = declaration.value
         return styling
 
-    def element_style(self, wrapped_element, parent_style=None):
-    #===========================================================
+    def element_style(self, wrapped_element, parent_style=None) -> ElementStyleDict:
+    #===============================================================================
         element_style = parent_style.copy() if parent_style is not None else {}
         for key, value in self.__match(wrapped_element).items():
             if key in UNIMPLEMENTED_STYLES:
                 log.warning("'{}: {}' not implemented".format(key, value))
             else:
                 element_style[key] = ' '.join([t.serialize() for t in value])
-        return ElementStyleDict(wrapped_element.etree_element, element_style)
+        element_style = ElementStyleDict(wrapped_element.etree_element, element_style)
+        if parent_style is not None:
+            if element_style.get('fill') == 'currentColor':
+                element_style['fill'] = parent_style.get('fill')
+            if element_style.get('stroke') == 'currentColor':
+                element_style['stroke'] = parent_style.get('stroke')
+        return element_style
 
 #===============================================================================
 
