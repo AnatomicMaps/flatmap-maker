@@ -76,8 +76,14 @@ IGNORED_SVG_TAGS = [
 
 #===============================================================================
 
-PRESCALE_IMAGE_SIZES = [10, 100]        # If an image is too small we prescale it
-PRESCALE_FACTORS     = [100, 10]        # for skia and then scale it back in a transform
+PRESCALE_IMAGE_SIZES = [10,   20, 50, 100]  # If an image is too small we prescale it
+PRESCALE_FACTORS     = [200, 100, 40,  20]  # for skia and then scale it back in a transform
+
+def prescale_factor(width: float, height: float) -> int:
+    for n, prescale_size in enumerate(PRESCALE_IMAGE_SIZES):
+        if width < prescale_size or height < prescale_size:
+            return PRESCALE_FACTORS[n]
+    return 1
 
 #===============================================================================
 
@@ -754,10 +760,7 @@ class SVGRasteriser:
                     height = length_as_pixels(element.attrib.get('height'))
                     if width is None or height is None:
                         (width, height) = rasteriser.size
-                    for n, prescale_size in enumerate(PRESCALE_IMAGE_SIZES):
-                        if width < prescale_size or height < prescale_size:
-                            image_scale = PRESCALE_FACTORS[n]
-                            break
+                    image_scale = prescale_factor(width, height)
                     rasteriser.render(scaling=image_scale)
                     image = rasteriser.get_image()
 
@@ -781,12 +784,9 @@ class SVGRasteriser:
                                         percentage_dimension(element.attrib.get('height'), image.height()))
                         (x, y) = (length_as_pixels(element.attrib.get('x', 0)),
                                 length_as_pixels(element.attrib.get('y', 0)))
-                        for n, prescale_size in enumerate(PRESCALE_IMAGE_SIZES):
-                            if width < prescale_size or height < prescale_size:
-                                image_scale = PRESCALE_FACTORS[n]
-                                width *= image_scale
-                                height *= image_scale
-                                break
+                        image_scale = prescale_factor(width, height)
+                        width *= image_scale
+                        height *= image_scale
                         if round(width) != image.width() or round(height) != image.height():
                             image = image.resize(round(width), round(height), skia.SamplingOptions(skia.CubicResampler.Mitchell()))
 
