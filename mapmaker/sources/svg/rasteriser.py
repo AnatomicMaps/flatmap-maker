@@ -57,6 +57,8 @@ if TYPE_CHECKING:
 
 #===============================================================================
 
+BACKGROUND_COLOR = 'white'
+
 DEFAULT_FILL_COLOUR = 'black'
 DEFAULT_STROKE_COLOUR = 'black'
 
@@ -311,15 +313,16 @@ class SVGTiler(object):
     def __init__(self, raster_layer: 'RasterLayer', tile_set: 'TileSet'):
         self.__bounds = shapely.geometry.box(*extent_to_bounds(raster_layer.extent))
 
-        background_rect = False
-        if raster_layer.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
-            if (raster_layer.map_source.kind != 'base'
-            and raster_layer.map_source.kind == 'functional'):
-                background_rect = (raster_layer.map_source.base_feature is not None)
+        background = None
+        if (raster_layer.flatmap.map_kind == MAP_KIND.FUNCTIONAL
+        and raster_layer.map_source.kind != 'base'
+        and raster_layer.map_source.kind == 'functional'
+        and raster_layer.map_source.base_feature is not None):
+            background = BACKGROUND_COLOR
 
         self.__rasteriser = SVGRasteriser(raster_layer.source_data,
                                           (tile_set.pixel_rect.width, tile_set.pixel_rect.height),
-                                          background_rect=background_rect,
+                                          background=background,
                                           source_path=raster_layer.source_path)
         self.__rasteriser.render()
 
@@ -377,6 +380,17 @@ class SVGTiler(object):
 #===============================================================================
 
 class SVGRasteriser:
+    """
+    Rasterise a SVG.
+
+    :param source_svg: the SVG to be rasterised.
+    :param size: the size, in pixels, of the rasterised image. Defaults to
+                 the ``width`` and ``height`` attributes of the SVG if they
+                 are present, otherwise to the viewbox's width and height.
+    :param background: optionally add a background to the rasterised image with this colour.
+    :param source_path: the path of the SVG source, used to resolve
+                        relative ``href``s of any embedded images.
+    """
     def __init__(self, source_svg: bytes, size: tuple[float, float]|None=None,
                        background: str|None=None, source_path: Optional[FilePath]=None):
         self.__svg = etree.fromstring(source_svg, parser=etree.XMLParser(huge_tree=True))
@@ -419,11 +433,11 @@ class SVGRasteriser:
         self.__size = (width, height)
 
         # Transform from SVG pixels to tile pixels
-        self.__add_background_rect = background_rect
         self.__transform = Transform([[1.0, 0.0, -left],
                                       [0.0, 1.0, -top],
                                       [0.0, 0.0,  1.0]])
 
+        self.__background = background
         self.__clip_paths = ObjectStore[BaseGeometry]()
         self.__definitions = DefinitionStore()
         self.__source_path = source_path
@@ -502,11 +516,11 @@ class SVGRasteriser:
             svg_to_tile_transform if transform is None else svg_to_tile_transform@transform,
             {'stroke': DEFAULT_STROKE_COLOUR, 'fill': DEFAULT_FILL_COLOUR},
             show_progress=show_progress)
-        if self.__add_background_rect:
+        if self.__background is not None:
             path = skia.Path.RRect((self.__left_top[0], self.__left_top[1],
                                     self.__local_size[0], self.__local_size[1]),
                                     DETAILED_MAP_BORDER/2, DETAILED_MAP_BORDER/2)
-            paint = skia.Paint(AntiAlias=True, Color=make_colour('#FEFEFE', 1.0))
+            paint = skia.Paint(AntiAlias=True, Color=make_colour(self.__background, 1.0))
             drawing_objects.insert(0, CanvasPath(path, paint, svg_to_tile_transform, transform, None))
         return CanvasGroup(drawing_objects, svg_to_tile_transform, transform, None, outermost=True)
 
