@@ -59,15 +59,18 @@ from mapmaker.knowledgebase.celldl import CD_CLASS, FC_CLASS
 from mapmaker.knowledgebase.celldl import CellDLGraph
 from mapmaker.settings import settings
 from mapmaker.shapes import Shape, SHAPE_TYPE
-from mapmaker.sources import EMU_PER_METRE, WORLD_METRES_PER_PIXEL, POINTS_PER_PIXEL
+from mapmaker.sources import POINTS_PER_PIXEL
 from mapmaker.utils import log, TreeList
 from mapmaker.utils.svg import css_class, name_from_id, svg_id
 
 from .colour import ColourPair, ColourMap
 from .presets import DRAWINGML, PPTX_NAMESPACE, pptx_resolve, pptx_uri
-from .powerpoint import Powerpoint, Slide
+from .powerpoint import EMU_PER_METRE, EMU_PER_PIXEL, Powerpoint, Slide, WORLD_METRES_PER_EMU
 
 #===============================================================================
+
+# World metre scaling for generating SVGs from Powerpoint slides
+WORLD_METRES_PER_PIXEL = WORLD_METRES_PER_EMU*EMU_PER_PIXEL
 
 # Minimum width for a stroked path in points
 MIN_STROKE_WIDTH = 0.5

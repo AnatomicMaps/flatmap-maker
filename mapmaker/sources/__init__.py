@@ -41,24 +41,10 @@ if TYPE_CHECKING:
 
 POINTS_PER_INCH = 72
 
-# Internal PPT units are EMUs (English Metric Units)
-EMU_PER_INCH = 914400
-
-# EPSG:3857 Mercator projection meters
-WORLD_METRES_PER_EMU = 0.1   ## This to become a command line parameter...
-                             ## Or in a configuration file...
-
 # SVG pixel resolution
 PIXELS_PER_INCH = 96
-EMU_PER_PIXEL = EMU_PER_INCH/PIXELS_PER_INCH
-EMU_PER_METRE = 1.0/WORLD_METRES_PER_EMU
 
 POINTS_PER_PIXEL = POINTS_PER_INCH/PIXELS_PER_INCH
-
-WORLD_METRES_PER_PIXEL = WORLD_METRES_PER_EMU*EMU_PER_PIXEL
-
-# MBF Bioscience units to EPSG:3857 coordinates
-WORLD_METRES_PER_UM = 100
 
 #===============================================================================
 

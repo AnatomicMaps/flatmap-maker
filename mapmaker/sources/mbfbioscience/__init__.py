@@ -30,13 +30,17 @@ import shapely.geometry
 #===============================================================================
 
 from .. import MapSource, RasterSource
-from .. import WORLD_METRES_PER_UM
 
 from mapmaker.flatmap import FlatMap, SourceManifest
 from mapmaker.flatmap.layers import FEATURES_TILE_LAYER, MapLayer
 from mapmaker.geometry import Transform
 from mapmaker.sources import mask_image
 from mapmaker.utils import FilePath
+
+#===============================================================================
+
+# MBF Bioscience units to EPSG:3857 coordinates
+WORLD_METRES_PER_UM = 100
 
 #===============================================================================
 

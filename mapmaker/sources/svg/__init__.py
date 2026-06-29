@@ -49,7 +49,6 @@ from mapmaker.shapes.classify import ShapeClassifier
 from mapmaker.utils import FilePath, pathlib_path, ProgressBar, log, TreeList
 
 from .. import MapSource, RasterSource
-from .. import WORLD_METRES_PER_PIXEL
 from ..celldl import CellDLExporter
 
 from .cleaner import SVGCleaner
@@ -58,6 +57,11 @@ from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import circle_from_bounds, geometry_from_svg_path, length_as_pixels
 from .utils import check_non_negative, length_as_points, svg_markup, parse_svg_path, SVG_TAG
+
+#===============================================================================
+
+# Value computed from Powerpoint's WORLD_METRES_PER_EMU*EMU_PER_PIXEL
+WORLD_METRES_PER_PIXEL = 952.5
 
 #===============================================================================
 

@@ -50,7 +50,7 @@ from mapmaker.properties.markup import parse_layer_directive, parse_markup
 from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.colours import ColourMatcher
 from mapmaker.shapes.types import is_system_name
-from mapmaker.sources import WORLD_METRES_PER_EMU
+from mapmaker.sources import PIXELS_PER_INCH
 from mapmaker.utils import FilePath, log, ProgressBar, TreeList
 
 from .colour import ColourMap, ColourTheme
@@ -62,6 +62,18 @@ from .omml2latex import openmath2latex
 
 if TYPE_CHECKING:
     from mapmaker.annotation import Annotator
+
+#===============================================================================
+
+# Internal PPT units are EMUs (English Metric Units)
+EMU_PER_INCH = 914400
+
+# EPSG:3857 Mercator projection meters
+WORLD_METRES_PER_EMU = 0.1   ## This to become a command line parameter...
+                             ## Or in a configuration file...
+
+EMU_PER_PIXEL = EMU_PER_INCH/PIXELS_PER_INCH
+EMU_PER_METRE = 1.0/WORLD_METRES_PER_EMU
 
 #===============================================================================
 
