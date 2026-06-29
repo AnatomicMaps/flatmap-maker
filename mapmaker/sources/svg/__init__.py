@@ -55,7 +55,8 @@ from .definitions import DefinitionStore, ObjectStore
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import circle_from_bounds, geometry_from_svg_path, length_as_pixels
-from .utils import check_non_negative, length_as_points, svg_markup, parse_svg_path, SVG_TAG
+from .utils import check_non_negative, length_as_points, svg_markup, parse_svg_path
+from .utils import svg_from_image_element, SVG_TAG
 
 #===============================================================================
 
@@ -435,8 +436,10 @@ class SVGLayer(MapLayer):
                 and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
                     T = transform@self.__get_transform(wrapped_element)
                     geometry = self.__get_clip_geometry(clip_path_element, T)
-                if geometry is not None:
-                    return Shape(shape_id, geometry, properties, shape_type=SHAPE_TYPE.IMAGE, svg_element=element)
+            else:
+                geometry = self.__get_geometry(element, properties, transform)
+            if geometry is not None:
+                return Shape(shape_id, geometry, properties, shape_type=SHAPE_TYPE.IMAGE, svg_element=element)
         elif element.tag == SVG_TAG('g'):
             return self.__process_group(wrapped_element, properties, transform, parent_style)
         elif element.tag == SVG_TAG('text'):
@@ -462,10 +465,18 @@ class SVGLayer(MapLayer):
             y = length_as_pixels(element.attrib.get('y', 0))
             width = length_as_pixels(element.attrib.get('width', 0))
             height = length_as_pixels(element.attrib.get('height', 0))
-            width = check_non_negative(width, 'rect', 'width', element_id)
-            height = check_non_negative(height, 'rect', 'height', element_id)
-            if width == 0 or height == 0: return None
+            if ((width == 0 or height == 0)
+            and (image_source := svg_from_image_element(element)) is not None):
+                image_element = etree.fromstring(image_source)
+                ## style='vertical-align: -1.5ex;' width='3.5ex' height='4ex'
+                width = length_as_pixels(image_element.attrib.get('width', 0))
+                height = length_as_pixels(image_element.attrib.get('height', 0))
 
+            width = check_non_negative(width, str(element.tag), 'width', element_id)
+            height = check_non_negative(height, str(element.tag), 'height', element_id)
+            if width == 0 or height == 0:
+                ## log.warn(...)
+                return None
             rx = length_as_pixels(element.attrib.get('rx'))
             ry = length_as_pixels(element.attrib.get('ry'))
             if rx is None and ry is None:
@@ -474,8 +485,8 @@ class SVGLayer(MapLayer):
                 ry = rx
             elif rx is None:
                 rx = ry
-            rx = check_non_negative(rx, 'rect', 'x-radius', element_id)
-            ry = check_non_negative(ry, 'rect', 'y-radius', element_id)
+            rx = check_non_negative(rx, str(element.tag), 'x-radius', element_id)
+            ry = check_non_negative(ry, str(element.tag), 'y-radius', element_id)
             if rx == 0 and ry == 0:
                 path_tokens = ['M', x, y,
                                'H', x+width,

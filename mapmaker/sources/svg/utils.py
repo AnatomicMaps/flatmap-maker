@@ -18,10 +18,12 @@
 #
 #===============================================================================
 
+import base64
 import math
 import re
 import string
 from typing import Optional
+import urllib.parse
 
 #===============================================================================
 
@@ -183,6 +185,22 @@ def svg_markup(element):
         return markup
     else:
         return adobe_decode_markup(element)
+
+#===============================================================================
+
+DATA_URI_SVG_PREFIX = 'data:image/svg+xml'
+DATA_URI_BASE64_PREFIX = 'base64'
+
+def svg_from_image_element(element: etree.Element) -> bytes|None:
+#================================================================
+    if (element.tag == SVG_TAG('image')
+    and (href := element.attrib.get('href', '')).startswith(DATA_URI_SVG_PREFIX)):
+        href = href[len(DATA_URI_SVG_PREFIX):]
+        if href.startswith(','):
+            return urllib.parse.unquote(href[1:]).encode('utf-8')
+        elif href.startswith(f';{DATA_URI_BASE64_PREFIX},'):
+            image_base64 = href[len(DATA_URI_BASE64_PREFIX) + 2]
+            return base64.b64decode(image_base64)
 
 #===============================================================================
 

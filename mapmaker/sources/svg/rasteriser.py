@@ -49,7 +49,7 @@ from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import svg_markup, length_as_pixels, length_as_points, parse_svg_path, percentage_dimension
-from .utils import SVG_TAG, XLINK_HREF
+from .utils import svg_from_image_element, SVG_TAG, XLINK_HREF
 
 if TYPE_CHECKING:
     from mapmaker.flatmap.layers import RasterLayer
@@ -309,7 +309,7 @@ class CanvasGroup(CanvasDrawingObject):
 
 class SVGTiler(object):
     def __init__(self, raster_layer: 'RasterLayer', tile_set: 'TileSet'):
-        self.__bbox = shapely.geometry.box(*extent_to_bounds(raster_layer.extent))
+        self.__bounds = shapely.geometry.box(*extent_to_bounds(raster_layer.extent))
 
         background_rect = False
         if raster_layer.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
@@ -321,18 +321,21 @@ class SVGTiler(object):
                                           (tile_set.pixel_rect.width, tile_set.pixel_rect.height),
                                           background_rect=background_rect,
                                           source_path=raster_layer.source_path)
+        self.__rasteriser.render()
 
+        scaling = self.__rasteriser.scaling
+        local_size = self.__rasteriser.scaling
         svg_source = typing.cast(SVGSource, raster_layer.map_source)
         metres_per_pixel = svg_source.metres_per_pixel
 
         # Transform from SVG pixels to world coordinates
         self.__image_to_world = (Transform([
-            [metres_per_pixel/self.scaling[0],                                0, 0],
-            [                               0, metres_per_pixel/self.scaling[1], 0],
-            [                               0,                                0, 1]])
-           @np.array([[1.0,  0.0, -self.scaling[0]*self.size[0]/2.0],
-                      [0.0, -1.0,  self.scaling[1]*self.size[1]/2.0],
-                      [0.0,  0.0,                               1.0]]))
+            [metres_per_pixel/scaling[0],                                0, 0],
+            [                          0, metres_per_pixel/scaling[1], 0],
+            [                          0,                                0, 1]])
+           @np.array([[1.0,  0.0, -scaling[0]*local_size[0]/2.0],
+                      [0.0, -1.0,  scaling[1]*local_size[1]/2.0],
+                      [0.0,  0.0,                          1.0]]))
 
         self.__pixel_offset = tuple(tile_set.pixel_rect)[0:2]
         self.__tile_size = tile_set.tile_size
@@ -348,27 +351,12 @@ class SVGTiler(object):
             self.__tile_bboxes[mercantile.quadkey(tile)] = tile_bbox
 
     @property
-    def scaling(self):
-        return self.__rasteriser.scaling
-
-    @property
-    def size(self):
-        return self.__rasteriser.size
-
-    @property
     def image_to_world(self) -> Transform:
         return self.__image_to_world
 
     def get_image(self) -> np.ndarray:
     #=================================
-        # Draw image to fit tile set's pixel rectangle
-        surface = skia.Surface(round(self.scaling[0]*self.size[0]),
-                               round(self.scaling[1]*self.size[1]))
-        canvas = surface.getCanvas()
-        canvas.clear(skia.Color4f(0xFFFFFFFF))
-        self.__rasteriser.draw_element(canvas, self.__bbox)
-        log.info('Making image snapshot...')
-        image = surface.makeImageSnapshot()
+        image = self.__rasteriser.get_image(self.__bounds)
         return image.toarray(colorType=skia.kBGRA_8888_ColorType)
 
     def get_tile(self, tile: mercantile.Tile) -> Optional[np.ndarray]:
@@ -389,35 +377,59 @@ class SVGTiler(object):
 #===============================================================================
 
 class SVGRasteriser:
-    def __init__(self, svg_source: bytes, scaled_size: tuple[float, float], background_rect: bool=True, source_path: Optional[FilePath]=None):
-        self.__svg = etree.fromstring(svg_source, parser=etree.XMLParser(huge_tree=True))
-        if 'viewBox' in self.__svg.attrib:
-            viewbox = [float(x) for x in self.__svg.attrib.get('viewBox').split()]
-            (left, top) = tuple(viewbox[0:2])
-            self.__size = tuple(viewbox[2:4])
+    def __init__(self, source_svg: bytes, size: tuple[float, float]|None=None,
+                       background: str|None=None, source_path: Optional[FilePath]=None):
+        self.__svg = etree.fromstring(source_svg, parser=etree.XMLParser(huge_tree=True))
+        # Get any size specified in the <svg /> element
+        width = length_as_pixels(self.__svg.attrib.get('width'))
+        height = length_as_pixels(self.__svg.attrib.get('height'))
+        # Find the viewbox in which to render the SVG
+        if (viewBox := self.__svg.attrib.get('viewBox')) is not None:
+            viewbox = tuple(float(x) for x in viewBox.split())
         else:
-            (left, top) = (0, 0)
-            self.__size = (length_as_pixels(self.__svg.attrib['width']),
-                           length_as_pixels(self.__svg.attrib['height']))
-
+            assert width is not None
+            assert height is not None
+            viewbox = (0, 0, width, height)
+        # Separate out the position and size from the viewbox.
+        (left, top) = viewbox[0:2]
         self.__left_top = (left, top)
-        self.__scaling = (scaled_size[0]/self.__size[0],
-                          scaled_size[1]/self.__size[1])
+        self.__local_size = viewbox[2:4]
+        # Get the rendered size which preserves the viewbox's aspect ratio
+        check_aspect = False
+        if size is not None:
+            (width, height) = size
+            check_aspect = True
+        else:
+            if width is None and height is None:
+                (width, height) = viewbox[2:4]
+            elif width is None:
+                assert height is not None
+                width = height*viewbox[2]/viewbox[3]
+            elif height is None:
+                assert width is not None
+                height = width*viewbox[3]/viewbox[2]
+            else:
+                check_aspect = True
+        if check_aspect:
+            if width*viewbox[3] < height*viewbox[2]:
+                width = height*viewbox[2]/viewbox[3]
+            elif width*viewbox[3] > height*viewbox[2]:
+                height = width*viewbox[3]/viewbox[2]
+        # The rendered size
+        self.__size = (width, height)
 
         # Transform from SVG pixels to tile pixels
-        svg_to_tile_transform = Transform([[self.__scaling[0],               0.0, 0.0],
-                                           [              0.0, self.__scaling[1], 0.0],
-                                           [              0.0,               0.0, 1.0]])@np.array([[1.0, 0.0, -left],
-                                                                                                   [0.0, 1.0, -top],
-                                                                                                   [0.0, 0.0,  1.0]])
         self.__add_background_rect = background_rect
+        self.__transform = Transform([[1.0, 0.0, -left],
+                                      [0.0, 1.0, -top],
+                                      [0.0, 0.0,  1.0]])
+
         self.__clip_paths = ObjectStore[BaseGeometry]()
         self.__definitions = DefinitionStore()
         self.__source_path = source_path
         self.__style_matcher = StyleMatcher(self.__svg.find(f'.//{SVG_TAG('style')}'))
-
-        # Render SVG onto a CanvasGroup
-        self.__svg_drawing = self.__draw_svg(svg_to_tile_transform)
+        self.__scaling = None
+        self.__svg_drawing = None
 
     @property
     def scaling(self):
@@ -427,10 +439,44 @@ class SVGRasteriser:
     def size(self):
         return self.__size
 
+    # Render SVG onto a CanvasGroup
+    def render(self, scaling: tuple[float, float]|float|None=None):
+    #==============================================================
+        scale = ((1, 1) if scaling is None else
+                 scaling if isinstance(scaling, tuple) else
+                 (scaling, scaling))
+        self.__scaling = (scale[0]*self.size[0]/self.__local_size[0], scale[1]*self.size[1]/self.__local_size[1])
+        # Apply scaling
+        svg_to_tile_transform = Transform([[self.__scaling[0],               0.0, 0.0],
+                                           [              0.0, self.__scaling[1], 0.0],
+                                           [              0.0,               0.0, 1.0]])@self.__transform
+        self.__svg_drawing = self.__draw_svg(svg_to_tile_transform)
 
-    def draw_element(self, canvas: skia.Canvas, tile_bbox: shapely.geometry.Polygon) -> int:
-    #=======================================================================================
-        return self.__svg_drawing.draw_element(canvas, tile_bbox)
+    def get_image(self, bounds: shapely.Polygon|None=None) -> skia.Image:
+    #====================================================================
+        assert self.__svg_drawing is not None
+        # Draw image to fit the given bounds
+        if bounds is None:
+            bounds = self.__svg_drawing.bbox
+        surface = skia.Surface(round(self.scaling[0]*self.__local_size[0]),
+                               round(self.scaling[1]*self.__local_size[1]))
+        canvas = surface.getCanvas()
+        canvas.clear(skia.Color4f(0xFFFFFFFF))
+        self.draw_element(canvas, bounds)
+        return surface.makeImageSnapshot()
+
+    def save_image(self, png_output):
+    #================================
+        image = self.get_image()
+        png_data = image.encodeToData()
+        if png_data is not None:
+            with open(png_output, 'wb') as fp:
+                fp.write(png_data.bytes())
+
+    def draw_element(self, canvas: skia.Canvas, bounds: shapely.Polygon) -> int:
+    #===========================================================================
+        assert self.__svg_drawing is not None
+        return self.__svg_drawing.draw_element(canvas, bounds)
 
     def __get_transform(self, wrapped_element) -> Optional[Transform]:
     #=================================================================
@@ -458,8 +504,8 @@ class SVGRasteriser:
             show_progress=show_progress)
         if self.__add_background_rect:
             path = skia.Path.RRect((self.__left_top[0], self.__left_top[1],
-                                    self.__size[0], self.__size[1]),
-                                  DETAILED_MAP_BORDER/2, DETAILED_MAP_BORDER/2)
+                                    self.__local_size[0], self.__local_size[1]),
+                                    DETAILED_MAP_BORDER/2, DETAILED_MAP_BORDER/2)
             paint = skia.Paint(AntiAlias=True, Color=make_colour('#FEFEFE', 1.0))
             drawing_objects.insert(0, CanvasPath(path, paint, svg_to_tile_transform, transform, None))
         return CanvasGroup(drawing_objects, svg_to_tile_transform, transform, None, outermost=True)
@@ -680,39 +726,56 @@ class SVGRasteriser:
 
         elif element.tag == SVG_TAG('image'):
             image_href = element.attrib.get('href', element.attrib.get(XLINK_HREF))
-            pixel_bytes = None
+
             if image_href is not None:
-                if image_href.startswith('data:'):
+                pixel_bytes = None
+                image = None
+                image_scale = 1.0
+                if (svg_source := svg_from_image_element(element)) is not None:
+                    x = length_as_pixels(element.attrib.get('x', 0))
+                    y = length_as_pixels(element.attrib.get('y', 0))
+                    rasteriser = SVGRasteriser(svg_source)
+                    width = length_as_pixels(element.attrib.get('width'))
+                    height = length_as_pixels(element.attrib.get('height'))
+                    if width is None or height is None:
+                        (width, height) = rasteriser.size
+                    for n, prescale_size in enumerate(PRESCALE_IMAGE_SIZES):
+                        if width < prescale_size or height < prescale_size:
+                            image_scale = PRESCALE_FACTORS[n]
+                            break
+                    rasteriser.render(scaling=image_scale)
+                    image = rasteriser.get_image()
+
+                elif image_href.startswith('data:'):
                     parts = image_href[5:].split(',', 1)
                     if parts[0].endswith(';base64'):
                         media_type = parts[0].split(';', 1)[0]
                         if media_type in IMAGE_MEDIA_TYPES:
                             pixel_bytes = base64.b64decode(parts[1])
-
-                    ## need to allow for image/svg+xml and image/svg+xml;base64
-                    ##
-
                 elif self.__source_path is not None:
                     pixel_bytes = self.__source_path.join_path(image_href).get_data()
+
                 if pixel_bytes is not None:
                     pixel_array = np.frombuffer(pixel_bytes, dtype=np.uint8)
-                    pixels = cv2.imdecode(pixel_array, cv2.IMREAD_UNCHANGED)    # type: ignore
-                    if pixels.shape[2] == 3:
-                        pixels = cv2.cvtColor(pixels, cv2.COLOR_RGB2RGBA)       # type: ignore
-                    image = skia.Image.fromarray(pixels, colorType=skia.kBGRA_8888_ColorType)
-                    (width, height) = (percentage_dimension(element.attrib.get('width'), image.width()),
-                                       percentage_dimension(element.attrib.get('height'), image.height()))
-                    (x, y) = (length_as_pixels(element.attrib.get('x', 0)),
-                              length_as_pixels(element.attrib.get('y', 0)))
-                    scale = 1.0
-                    for n, prescale_size in enumerate(PRESCALE_IMAGE_SIZES):
-                        if width < prescale_size or height < prescale_size:
-                            scale = PRESCALE_FACTORS[n]
-                            width *= scale
-                            height *= scale
-                            break
-                    if round(width) != image.width() or round(height) != image.height():
-                        image = image.resize(round(width), round(height), skia.SamplingOptions(skia.CubicResampler.Mitchell()))
+                    image_data = cv2.imdecode(pixel_array, cv2.IMREAD_UNCHANGED)    # type: ignore
+                    if image_data.shape[2] == 3:
+                        image_data = cv2.cvtColor(image_data, cv2.COLOR_RGB2RGBA)   # type: ignore
+                    image = skia.Image.fromarray(image_data, colorType=skia.kBGRA_8888_ColorType)
+                    if image is not None:
+                        (width, height) = (percentage_dimension(element.attrib.get('width'), image.width()),
+                                        percentage_dimension(element.attrib.get('height'), image.height()))
+                        (x, y) = (length_as_pixels(element.attrib.get('x', 0)),
+                                length_as_pixels(element.attrib.get('y', 0)))
+                        for n, prescale_size in enumerate(PRESCALE_IMAGE_SIZES):
+                            if width < prescale_size or height < prescale_size:
+                                image_scale = PRESCALE_FACTORS[n]
+                                width *= image_scale
+                                height *= image_scale
+                                break
+                        if round(width) != image.width() or round(height) != image.height():
+                            image = image.resize(round(width), round(height), skia.SamplingOptions(skia.CubicResampler.Mitchell()))
+
+                if image is not None:
                     paint = skia.Paint()
                     opacity = float(element_style.get('opacity', 1.0))
                     paint.setAlpha(round(opacity * 255))
@@ -720,10 +783,8 @@ class SVGRasteriser:
                     if ((clip_path := self.__clip_paths.get_by_url(clip_path_url)) is None
                     and (clip_path_element := self.__definitions.get_by_url(clip_path_url)) is not None):
                         clip_path = self.__get_clip_path(clip_path_element)
-                    else:
-                        clip_path = skia.Path.Rect((x, y, width, height))
-                        clip_path.transform(skia.Matrix.Scale(scale, scale))
-                    drawing_objects.append(CanvasImage(image, paint, parent_transform, transform, clip_path, pos=(x, y), scale=scale))
+                    drawing_objects.append(
+                        CanvasImage(image, paint, parent_transform, transform, clip_path, pos=(x, y), scale=image_scale))
 
         elif element.tag == SVG_TAG('text'):
             drawing_objects.append(CanvasText(element.text, element.attrib, parent_transform, transform,
