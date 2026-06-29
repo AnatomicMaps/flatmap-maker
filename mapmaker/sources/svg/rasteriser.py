@@ -30,10 +30,8 @@ import cv2
 import lxml.etree as etree
 import numpy as np
 import mercantile
-import shapely.geometry
+import shapely
 from shapely.geometry.base import BaseGeometry
-import shapely.ops
-import shapely.prepared
 import skia
 import webcolors
 
@@ -144,7 +142,7 @@ class GradientStops(object):
 class CanvasDrawingObject(object):
     def __init__(self, paint: skia.Paint, bounds: skia.IRect, parent_transform: Transform,
                        local_transform: Optional[Transform],
-                       clip_path: Optional[skia.Path], bbox: Optional[shapely.geometry.Polygon]=None,
+                       clip_path: Optional[skia.Path], bbox: Optional[shapely.Polygon]=None,
                        root_object=False, scale=1.0):
         if root_object:
             T = parent_transform if local_transform is None else parent_transform@local_transform
@@ -163,8 +161,8 @@ class CanvasDrawingObject(object):
             self.__matrix = self.__matrix.preScale(1.0/scale, 1.0/scale)
 
         if bounds is not None and bbox is None:
-            bbox = typing.cast(Optional[shapely.geometry.Polygon],
-                               T.transform_geometry(shapely.geometry.box(*tuple(bounds))))
+            bbox = typing.cast(Optional[shapely.Polygon],
+                               T.transform_geometry(shapely.box(*tuple(bounds))))
         self.__bbox = bbox
         self.__clip_path = clip_path
         self.__paint = paint
@@ -172,7 +170,7 @@ class CanvasDrawingObject(object):
                           or self.__clip_path is not None)
 
     @property
-    def bbox(self) -> Optional[shapely.geometry.Polygon]:
+    def bbox(self) -> Optional[shapely.Polygon]:
         return self.__bbox
 
     @property
@@ -318,7 +316,7 @@ class CanvasGroup(CanvasDrawingObject):
 
 class SVGTiler(object):
     def __init__(self, raster_layer: 'RasterLayer', tile_set: 'TileSet'):
-        self.__bounds = shapely.geometry.box(*extent_to_bounds(raster_layer.extent))
+        self.__bounds = shapely.box(*extent_to_bounds(raster_layer.extent))
 
         background = None
         if (raster_layer.flatmap.map_kind == MAP_KIND.FUNCTIONAL
@@ -350,14 +348,12 @@ class SVGTiler(object):
         self.__pixel_offset = tuple(tile_set.pixel_rect)[0:2]
         self.__tile_size = tile_set.tile_size
         self.__tile_origin = tile_set.start_coords
-        self.__tile_bboxes: dict[str, shapely.geometry.Polygon] = {}
+        self.__tile_bboxes: dict[str, shapely.Polygon] = {}
         for tile in tile_set:
             tile_set.tile_coords_to_pixels.transform_point((tile.x, tile.y))
             x0 = (tile.x - self.__tile_origin[0])*self.__tile_size[0] - self.__pixel_offset[0]
             y0 = (tile.y - self.__tile_origin[1])*self.__tile_size[1] - self.__pixel_offset[1]
-            tile_bbox = shapely.geometry.box(x0, y0,
-                                                                   x0 + self.__tile_size[0],
-                                                                   y0 + self.__tile_size[0])
+            tile_bbox = shapely.box(x0, y0, x0 + self.__tile_size[0], y0 + self.__tile_size[0])
             self.__tile_bboxes[mercantile.quadkey(tile)] = tile_bbox
 
     @property
