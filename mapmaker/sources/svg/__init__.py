@@ -48,7 +48,7 @@ from mapmaker.shapes import Shape, SHAPE_TYPE
 from mapmaker.shapes.classify import ShapeClassifier
 from mapmaker.utils import FilePath, pathlib_path, ProgressBar, log, TreeList
 
-from .. import MapSource, RasterSource
+from .. import MapSource, MAX_MAP_DIMENSION, RasterSource
 
 from .cleaner import SVGCleaner
 from .definitions import DefinitionStore, ObjectStore
@@ -60,8 +60,20 @@ from .utils import svg_from_image_element, SVG_TAG
 
 #===============================================================================
 
-# Value computed from Powerpoint's WORLD_METRES_PER_EMU*EMU_PER_PIXEL
-WORLD_METRES_PER_PIXEL = 952.5
+# This needs to scale up for low pixel-dimensioned SVG base maps
+## human svg 4000 x 4000   4m x 4m
+## rat svg 4000 x 3000     4m x 3m
+#
+# RCL celldl 400 x 170  ==> 0.4m x 0.17m  ==> scale x 10
+
+PIXEL_STEPS = [50, 100, 200, 500, 1000, 2000, 5000, 10000]
+
+def world_meters_per_pixel(width: float, height: float) -> float:
+    max_dimension = max(width, height)
+    for pixel_step in PIXEL_STEPS:
+        if pixel_step > max_dimension:
+            return MAX_MAP_DIMENSION/pixel_step
+    return MAX_MAP_DIMENSION/20000
 
 #===============================================================================
 
@@ -107,6 +119,7 @@ class SVGSource(MapSource):
             (left, top) = (0, 0)
             width = length_as_pixels(svg.attrib.get('width'))
             height = length_as_pixels(svg.attrib.get('height'))
+        assert width is not None and height is not None
         if self.base_feature is not None:
             bounds = self.base_feature.bounds
             (scale_x, scale_y) = ((bounds[2]-bounds[0])/width, (bounds[3]-bounds[1])/height)
@@ -132,14 +145,13 @@ class SVGSource(MapSource):
             self.__metres_per_pixel = scale
         else:
             # Transform from SVG pixels to world coordinates
-            self.__transform = (Transform([[WORLD_METRES_PER_PIXEL,                      0, 0],
-                                           [                     0, WORLD_METRES_PER_PIXEL, 0],
-                                           [                     0,                      0, 1]])
+            self.__metres_per_pixel = world_meters_per_pixel(width, height)
+            self.__transform = (Transform([[self.__metres_per_pixel,                       0, 0],
+                                           [                      0, self.__metres_per_pixel, 0],
+                                           [                      0,                       0, 1]])
                                @np.array([[1.0,  0.0, -left-width/2.0],
                                           [0.0, -1.0,  top+height/2.0],
                                           [0.0,  0.0,             1.0]]))
-            self.__metres_per_pixel = WORLD_METRES_PER_PIXEL
-
         top_left = self.__transform.transform_point((left, top))
         bottom_right = self.__transform.transform_point((left+width, top+height))
         # southwest and northeast corners

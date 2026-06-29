@@ -48,6 +48,10 @@ POINTS_PER_PIXEL = POINTS_PER_INCH/PIXELS_PER_INCH
 
 #===============================================================================
 
+MAX_MAP_DIMENSION = 5000000         # World meters (5000km)
+
+#===============================================================================
+
 # Shapes/paths with these types are excluded from image tiling
 EXCLUDE_SHAPE_TYPES = [
     'centreline',
