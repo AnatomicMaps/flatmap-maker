@@ -18,8 +18,8 @@
 #
 #===============================================================================
 
-import os
 import math
+import os
 import tempfile
 import typing
 from typing import Optional
@@ -49,7 +49,6 @@ from mapmaker.shapes.classify import ShapeClassifier
 from mapmaker.utils import FilePath, pathlib_path, ProgressBar, log, TreeList
 
 from .. import MapSource, RasterSource
-from ..celldl import CellDLExporter
 
 from .cleaner import SVGCleaner
 from .definitions import DefinitionStore, ObjectStore
@@ -99,7 +98,7 @@ class SVGSource(MapSource):
         self.__exported = (self.kind == 'base' or self.kind in SOURCE_DETAIL_KINDS)
         svg: etree.Element = etree.parse(self.__source_file.get_fp()).getroot()
         if 'viewBox' in svg.attrib:
-            viewbox = [float(x) for x in svg.attrib.get('viewBox').split()]
+            viewbox = [float(x) for x in svg.attrib.get('viewBox', '').split()]
             (left, top) = tuple(viewbox[:2])
             (width, height) = tuple(viewbox[2:])
         else:
@@ -448,8 +447,8 @@ class SVGLayer(MapLayer):
             log.warning(f'SVG element {element.tag} "{markup}" not processed...')
         return None
 
-    def __get_geometry(self, element, properties, transform) -> Optional[BaseGeometry]:
-    #==================================================================================
+    def __get_geometry(self, element: etree.Element, properties, transform) -> Optional[BaseGeometry]:
+    #=================================================================================================
     ##
     ## Returns path element as a `shapely` object.
     ##

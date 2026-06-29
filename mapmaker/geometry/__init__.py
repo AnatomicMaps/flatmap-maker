@@ -94,7 +94,7 @@ def extent_to_bounds(extent: MapExtent) -> MapBounds:
 
 def mercator_transform(geometry: BaseGeometry) -> BaseGeometry:
 #==============================================================
-    return shapely.ops.transform(mercator_transformer.transform, geometry)
+    return shapely.ops.transform(mercator_transformer.transform, geometry)      # type: ignore
 
 def merge_bounds(bounds_0: MapBounds, bounds_1: MapBounds) -> MapBounds:
 #=======================================================================
@@ -174,7 +174,7 @@ class Transform(object):
         return angle
 
     def scale(self, scale: float) -> 'Transform':
-    #================================
+    #============================================
         return Transform([[scale*self.__matrix[0, 0],       self.__matrix[0, 1], self.__matrix[0, 2]],
                           [      self.__matrix[1, 0], scale*self.__matrix[1, 1], self.__matrix[1, 2]],
                           [      self.__matrix[2, 0],       self.__matrix[2, 1], self.__matrix[2, 2]]])

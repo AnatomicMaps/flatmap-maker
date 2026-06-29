@@ -91,8 +91,8 @@ def check_non_negative(length: float, element: str, what: str, id: Optional[str]
         log.warning(f'Unexpected negative {what} for `{element}` element', id=id)
     return length
 
-def length_as_pixels(length: str | float) -> float:
-#==================================================
+def length_as_pixels(length: str | float | None) -> float | None:
+#================================================================
     if not isinstance(length, str):
         return length
     match = re.search(r'(.*)(em|ex|px|in|cm|mm|pt|pc|%)', length)
