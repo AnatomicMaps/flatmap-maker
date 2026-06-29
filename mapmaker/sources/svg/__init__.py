@@ -74,6 +74,7 @@ DETAILED_MAP_BORDER = 50        # pixels
 IGNORED_SVG_TAGS = [
     SVG_TAG('font'),
     SVG_TAG('linearGradient'),
+    SVG_TAG('metadata'),
     SVG_TAG('radialGradient'),
     SVG_TAG('style'),
     SVG_TAG('title'),
