@@ -84,11 +84,13 @@ class StyleMatcher(cssselect2.Matcher):
             else:
                 element_style[key] = ' '.join([t.serialize() for t in value])
         element_style = ElementStyleDict(wrapped_element.etree_element, element_style)
+        if (color := element_style.get('color')) is not None:
+            element_style['currentColor'] = color
         if parent_style is not None:
             if element_style.get('fill') == 'currentColor':
-                element_style['fill'] = parent_style.get('fill')
+                element_style['fill'] = parent_style.get('fill', element_style.get('currentColor'))
             if element_style.get('stroke') == 'currentColor':
-                element_style['stroke'] = parent_style.get('stroke')
+                element_style['stroke'] = parent_style.get('stroke', element_style.get('currentColor'))
         return element_style
 
 #===============================================================================
