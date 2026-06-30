@@ -46,8 +46,8 @@ from . import DETAILED_MAP_BORDER, SVGSource
 from .definitions import DefinitionStore, ObjectStore
 from .styling import ElementStyleDict, StyleMatcher, wrap_element
 from .transform import SVGTransform
-from .utils import svg_markup, length_as_pixels, length_as_points, parse_svg_path, percentage_dimension
-from .utils import svg_from_image_element, SVG_TAG, XLINK_HREF
+from .utils import get_geometric_attribute, length_as_pixels, length_as_points, parse_svg_path
+from .utils import percentage_dimension, svg_from_image_element, svg_markup, SVG_TAG, XLINK_HREF
 
 if TYPE_CHECKING:
     from mapmaker.flatmap.layers import RasterLayer
@@ -638,8 +638,7 @@ class SVGRasteriser:
         elif element.tag in [SVG_TAG('circle'), SVG_TAG('ellipse'), SVG_TAG('line'),
                              SVG_TAG('path'), SVG_TAG('polyline'), SVG_TAG('polygon'),
                              SVG_TAG('rect')]:
-
-            path = SVGRasteriser.__get_graphics_path(element)
+            path = SVGRasteriser.__get_graphics_path(element, element_style)
             if path is None:
                 return []
 
@@ -748,11 +747,11 @@ class SVGRasteriser:
                 image = None
                 image_scale = 1.0
                 if (svg_source := svg_from_image_element(element)) is not None:
-                    x = length_as_pixels(element.attrib.get('x', 0))
-                    y = length_as_pixels(element.attrib.get('y', 0))
+                    x = length_as_pixels(get_geometric_attribute('x', element.attrib, element_style, 0))
+                    y = length_as_pixels(get_geometric_attribute('y', element.attrib, element_style, 0))
+                    width = length_as_pixels(get_geometric_attribute('width', element.attrib, element_style))
+                    height = length_as_pixels(get_geometric_attribute('height', element.attrib, element_style))
                     rasteriser = SVGRasteriser(svg_source)
-                    width = length_as_pixels(element.attrib.get('width'))
-                    height = length_as_pixels(element.attrib.get('height'))
                     if width is None or height is None:
                         (width, height) = rasteriser.size
                     image_scale = prescale_factor(width, height)
@@ -775,16 +774,15 @@ class SVGRasteriser:
                         image_data = cv2.cvtColor(image_data, cv2.COLOR_RGB2RGBA)   # type: ignore
                     image = skia.Image.fromarray(image_data, colorType=skia.kBGRA_8888_ColorType)
                     if image is not None:
-                        (width, height) = (percentage_dimension(element.attrib.get('width'), image.width()),
-                                        percentage_dimension(element.attrib.get('height'), image.height()))
-                        (x, y) = (length_as_pixels(element.attrib.get('x', 0)),
-                                length_as_pixels(element.attrib.get('y', 0)))
+                        width = percentage_dimension(get_geometric_attribute('width', element.attrib, element_style), image.width())
+                        height = percentage_dimension(get_geometric_attribute('height', element.attrib, element_style), image.height())
+                        x = length_as_pixels(get_geometric_attribute('x', element.attrib, element_style, 0))
+                        y = length_as_pixels(get_geometric_attribute('y', element.attrib, element_style, 0))
                         image_scale = prescale_factor(width, height)
                         width *= image_scale
                         height *= image_scale
                         if round(width) != image.width() or round(height) != image.height():
                             image = image.resize(round(width), round(height), skia.SamplingOptions(skia.CubicResampler.Mitchell()))
-
                 if image is not None:
                     paint = skia.Paint()
                     opacity = float(element_style.get('opacity', 1.0))
@@ -807,28 +805,30 @@ class SVGRasteriser:
         return drawing_objects
 
     @staticmethod
-    def __get_graphics_path(element) -> skia.Path:
-    #=============================================
+    def __get_graphics_path(element, element_style: dict|None=None) -> skia.Path:
+    #============================================================================
         if element.tag == SVG_TAG('path'):
-            tokens = list(parse_svg_path(element.attrib.get('d', '')))
+            tokens = list(parse_svg_path(get_geometric_attribute('d', element.attrib, element_style, '')))
             path = SVGRasteriser.__path_from_tokens(tokens)
         elif element.tag == SVG_TAG('rect'):
-            (width, height) = (length_as_pixels(element.attrib.get('width', 0)),
-                               length_as_pixels(element.attrib.get('height', 0)))
+            width = length_as_pixels(get_geometric_attribute('width', element.attrib, element_style, 0))
+            height = length_as_pixels(get_geometric_attribute('height', element.attrib, element_style, 0))
             if width == 0 or height == 0:
                 return None
-            rx = length_as_pixels(element.attrib.get('rx'))
-            ry = length_as_pixels(element.attrib.get('ry'))
+            assert width is not None and height is not None
+            rx = length_as_pixels(get_geometric_attribute('rx', element.attrib, element_style))
+            ry = length_as_pixels(get_geometric_attribute('ry', element.attrib, element_style))
             if rx is None and ry is None:
                 rx = ry = 0
             elif ry is None:
                 ry = rx
             elif rx is None:
                 rx = ry
+            assert rx is not None and ry is not None
             rx = min(rx, width/2)
             ry = min(ry, height/2)
-            (x, y) = (length_as_pixels(element.attrib.get('x', 0)),
-                      length_as_pixels(element.attrib.get('y', 0)))
+            x = length_as_pixels(get_geometric_attribute('x', element.attrib, element_style, 0))
+            y = length_as_pixels(get_geometric_attribute('y', element.attrib, element_style, 0))
             if rx == 0 and ry == 0:
                 path = skia.Path.Rect((x, y, width, height))
             else:
@@ -847,19 +847,21 @@ class SVGRasteriser:
             skia_points = [skia.Point(*points[n:n+2]) for n in range(0, len(points), 2)]
             path = skia.Path.Polygon(skia_points, True)
         elif element.tag == SVG_TAG('circle'):
-            r = length_as_pixels(element.attrib.get('r', 0))
+            r = length_as_pixels(get_geometric_attribute('r', element.attrib, element_style, 0))
             if r == 0:
                 return None
-            (cx, cy) = (length_as_pixels(element.attrib.get('cx', 0)),
-                        length_as_pixels(element.attrib.get('cy', 0)))
+            cx = length_as_pixels(get_geometric_attribute('cx', element.attrib, element_style, 0))
+            cy = length_as_pixels(get_geometric_attribute('cy', element.attrib, element_style, 0))
+            assert cx is not None and cy is not None and r is not None
             path = skia.Path.Circle(cx, cy, r)
         elif element.tag == SVG_TAG('ellipse'):
-            (rx, ry) = (length_as_pixels(element.attrib.get('rx', 0)),
-                        length_as_pixels(element.attrib.get('ry', 0)))
+            rx = length_as_pixels(get_geometric_attribute('rx', element.attrib, element_style, 0))
+            ry = length_as_pixels(get_geometric_attribute('ry', element.attrib, element_style, 0))
             if rx == 0 or ry == 0:
                 return None
-            (cx, cy) = (length_as_pixels(element.attrib.get('cx', 0)),
-                        length_as_pixels(element.attrib.get('cy', 0)))
+            cx = length_as_pixels(get_geometric_attribute('cx', element.attrib, element_style, 0))
+            cy = length_as_pixels(get_geometric_attribute('cy', element.attrib, element_style, 0))
+            assert cx is not None and cy is not None and rx is not None and ry is not None
             path = skia.Path.Oval(skia.Rect(cx-rx, cy-ry, cx+rx, cy+ry))
         else:
             path = skia.Path()

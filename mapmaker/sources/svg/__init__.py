@@ -52,11 +52,12 @@ from .. import MapSource, MAX_MAP_DIMENSION, RasterSource
 
 from .cleaner import SVGCleaner
 from .definitions import DefinitionStore, ObjectStore
+from .metadata import get_metadata_labels
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import circle_from_bounds, geometry_from_svg_path, length_as_pixels
-from .utils import check_non_negative, length_as_points, svg_markup, parse_svg_path
-from .utils import svg_from_image_element, SVG_TAG
+from .utils import check_non_negative, get_geometric_attribute, length_as_points
+from .utils import parse_svg_path, svg_from_image_element, svg_markup, SVG_TAG
 
 #===============================================================================
 
@@ -428,7 +429,7 @@ class SVGLayer(MapLayer):
         elif element.tag in [SVG_TAG('circle'), SVG_TAG('ellipse'),
                              SVG_TAG('line'), SVG_TAG('path'), SVG_TAG('polyline'),
                              SVG_TAG('polygon'), SVG_TAG('rect')]:
-            geometry = self.__get_geometry(element, properties, transform)
+            geometry = self.__get_geometry(element, properties, transform, element_style)
             if geometry is None:
                 return None
             # Ignore element if fill is none and no stroke is specified
@@ -450,7 +451,7 @@ class SVGLayer(MapLayer):
                     T = transform@self.__get_transform(wrapped_element)
                     geometry = self.__get_clip_geometry(clip_path_element, T)
             else:
-                geometry = self.__get_geometry(element, properties, transform)
+                geometry = self.__get_geometry(element, properties, transform, element_style)
             if geometry is not None:
                 return Shape(shape_id, geometry, properties, shape_type=SHAPE_TYPE.IMAGE, svg_element=element)
         elif element.tag == SVG_TAG('g'):
@@ -463,21 +464,22 @@ class SVGLayer(MapLayer):
             log.warning(f'SVG element {element.tag} "{markup}" not processed...')
         return None
 
-    def __get_geometry(self, element: etree.Element, properties, transform) -> Optional[BaseGeometry]:
-    #=================================================================================================
+    def __get_geometry(self, element: etree.Element, properties: dict, transform: Transform,
+                             element_style: dict|None=None) -> Optional[BaseGeometry]:
+    #=======================================================================================
     ##
     ## Returns path element as a `shapely` object.
     ##
         element_id = properties.get('id')
         path_tokens = []
         if element.tag == SVG_TAG('path'):
-            path_tokens = list(parse_svg_path(element.attrib.get('d', '')))
+            path_tokens = list(parse_svg_path(get_geometric_attribute('d', element.attrib, element_style, '')))
 
         elif element.tag in [SVG_TAG('rect'), SVG_TAG('image')]:
-            x = length_as_pixels(element.attrib.get('x', 0))
-            y = length_as_pixels(element.attrib.get('y', 0))
-            width = length_as_pixels(element.attrib.get('width', 0))
-            height = length_as_pixels(element.attrib.get('height', 0))
+            x = length_as_pixels(get_geometric_attribute('x', element.attrib, element_style, 0))
+            y = length_as_pixels(get_geometric_attribute('y', element.attrib, element_style, 0))
+            width = length_as_pixels(get_geometric_attribute('width', element.attrib, element_style, 0))
+            height = length_as_pixels(get_geometric_attribute('height', element.attrib, element_style, 0))
             if ((width == 0 or height == 0)
             and (image_source := svg_from_image_element(element)) is not None):
                 image_element = etree.fromstring(image_source)
@@ -485,21 +487,24 @@ class SVGLayer(MapLayer):
                 width = length_as_pixels(image_element.attrib.get('width', 0))
                 height = length_as_pixels(image_element.attrib.get('height', 0))
 
+            assert width is not None and height is not None
             width = check_non_negative(width, str(element.tag), 'width', element_id)
             height = check_non_negative(height, str(element.tag), 'height', element_id)
             if width == 0 or height == 0:
                 ## log.warn(...)
                 return None
-            rx = length_as_pixels(element.attrib.get('rx'))
-            ry = length_as_pixels(element.attrib.get('ry'))
+            rx = length_as_pixels(get_geometric_attribute('rx', element.attrib, element_style))
+            ry = length_as_pixels(get_geometric_attribute('ry', element.attrib, element_style))
             if rx is None and ry is None:
                 rx = ry = 0
             elif ry is None:
                 ry = rx
             elif rx is None:
                 rx = ry
+            assert rx is not None and ry is not None
             rx = check_non_negative(rx, str(element.tag), 'x-radius', element_id)
             ry = check_non_negative(ry, str(element.tag), 'y-radius', element_id)
+            assert x is not None and y is not None
             if rx == 0 and ry == 0:
                 path_tokens = ['M', x, y,
                                'H', x+width,
@@ -537,9 +542,10 @@ class SVGLayer(MapLayer):
             path_tokens = ['M'] + points + ['Z']
 
         elif element.tag == SVG_TAG('circle'):
-            cx = length_as_pixels(element.attrib.get('cx', 0))
-            cy = length_as_pixels(element.attrib.get('cy', 0))
-            r = length_as_pixels(element.attrib.get('r', 0))
+            cx = length_as_pixels(get_geometric_attribute('cx', element.attrib, element_style, 0))
+            cy = length_as_pixels(get_geometric_attribute('cy', element.attrib, element_style, 0))
+            r = length_as_pixels(get_geometric_attribute('r', element.attrib, element_style, 0))
+            assert cx is not None and cy is not None and r is not None
             r = check_non_negative(r, 'circle', 'radius', element_id)
             if r == 0: return None
             path_tokens = ['M', cx+r, cy,
@@ -550,11 +556,11 @@ class SVGLayer(MapLayer):
                            'Z']
 
         elif element.tag == SVG_TAG('ellipse'):
-            cx = length_as_pixels(element.attrib.get('cx', 0))
-            cy = length_as_pixels(element.attrib.get('cy', 0))
-            rx = length_as_pixels(element.attrib.get('rx', 0))
-            ry = length_as_pixels(element.attrib.get('ry', 0))
-            rx = check_non_negative(rx, 'ellipse', 'x-radius', element_id)
+            cx = length_as_pixels(get_geometric_attribute('cx', element.attrib, element_style, 0))
+            cy = length_as_pixels(get_geometric_attribute('cy', element.attrib, element_style, 0))
+            rx = length_as_pixels(get_geometric_attribute('rx', element.attrib, element_style, 0))
+            ry = length_as_pixels(get_geometric_attribute('ry', element.attrib, element_style, 0))
+            assert cx is not None and cy is not None and rx is not None and ry is not None
             ry = check_non_negative(ry, 'ellipse', 'y-radius', element_id)
             if rx == 0 or ry == 0: return None
             path_tokens = ['M', cx+rx, cy,

@@ -125,6 +125,13 @@ def percentage_dimension(percentage: Optional[str], max_size: float) -> float:
     else:
         return float(max_size)
 
+def get_geometric_attribute(key: str, attributes, style_dict: dict|None=None, default=None):
+#===========================================================================================
+    if style_dict is None:
+        return attributes.get(key, default)
+    else:
+        return style_dict.get(key, attributes.get(key, default))
+
 #===============================================================================
 
 # From https://codereview.stackexchange.com/questions/28502/svg-path-parsing

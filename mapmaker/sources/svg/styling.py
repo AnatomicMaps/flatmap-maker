@@ -27,7 +27,36 @@ from mapmaker.utils import log
 
 #===============================================================================
 
-UNIMPLEMENTED_STYLES = ['filter']
+UNIMPLEMENTED_STYLE_ATTRIBUTES = ['filter']
+
+# See https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/g#attributes
+GEOMETRIC_STYLE_ATTRIBUTES = [
+    'cx', 'cy', 'r',
+    'rx', 'ry',
+    'd',
+    'x', 'y', 'width', 'height'
+]
+
+NON_INHERITED_STYLE_ATTRIBUTES = GEOMETRIC_STYLE_ATTRIBUTES + [
+    'id', 'class'
+]
+
+# See https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute#presentation_attributes
+PRESENTATION_STYLE_ATTRIBUTES = [
+    'alignment-baseline', 'baseline-shift', 'clip', 'clip-path', 'clip-rule', 'color',
+    'color-interpolation', 'color-interpolation-filters', 'cursor', 'direction', 'display',
+    'dominant-baseline', 'fill', 'fill-opacity', 'fill-rule', 'filter', 'flood-color',
+    'flood-opacity', 'font-family', 'font-size', 'font-size-adjust', 'font-stretch',
+    'font-style', 'font-variant', 'font-weight', 'font-width', 'glyph-orientation-horizontal',
+    'glyph-orientation-vertical', 'image-rendering', 'letter-spacing', 'lighting-color',
+    'marker-end', 'marker-mid', 'marker-start', 'mask', 'mask-type', 'opacity', 'overflow',
+    'pointer-events', 'shape-rendering', 'stop-color', 'stop-opacity', 'stroke', 'stroke-dasharray',
+    'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit', 'stroke-opacity',
+    'stroke-width', 'text-anchor', 'text-decoration', 'text-overflow', 'text-rendering',
+    'transform', 'transform-origin', 'unicode-bidi', 'vector-effect', 'visibility', 'white-space',
+    'word-spacing', 'writing-mode'
+]
+
 
 #===============================================================================
 
@@ -44,7 +73,10 @@ class ElementStyleDict(dict):
                 local_style[declaration.lower_name] = ' '.join(
                     [t.serialize() for t in declaration.value])
             super().update(local_style)
-        super().update(attributes)
+        for key, value in attributes.items():
+            if key not in GEOMETRIC_STYLE_ATTRIBUTES:
+                if key not in PRESENTATION_STYLE_ATTRIBUTES or key not in self:
+                    self[key] = value
 
 #===============================================================================
 
@@ -77,9 +109,13 @@ class StyleMatcher(cssselect2.Matcher):
 
     def element_style(self, wrapped_element, parent_style=None) -> ElementStyleDict:
     #===============================================================================
-        element_style = parent_style.copy() if parent_style is not None else {}
+        if parent_style is None:
+            element_style = {}
+        else:
+            element_style = { key: value for key, value in parent_style.items()
+                                if key not in NON_INHERITED_STYLE_ATTRIBUTES}
         for key, value in self.__match(wrapped_element).items():
-            if key in UNIMPLEMENTED_STYLES:
+            if key in UNIMPLEMENTED_STYLE_ATTRIBUTES:
                 log.warning("'{}: {}' not implemented".format(key, value))
             else:
                 element_style[key] = ' '.join([t.serialize() for t in value])
