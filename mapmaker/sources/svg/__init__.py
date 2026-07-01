@@ -31,6 +31,7 @@ from cssselect2 import ElementWrapper
 import lxml.etree as etree
 import numpy as np
 
+import shapely
 from shapely.geometry.base import BaseGeometry
 import shapely.ops
 
@@ -259,7 +260,7 @@ class SVGLayer(MapLayer):
             margin = self.source.metres_per_pixel*DETAILED_MAP_BORDER
             bounds = (bounds[0] + margin, bounds[1] - margin,
                       bounds[2] - margin, bounds[3] - margin)
-            bbox = shapely.geometry.box(*bounds).buffer(2*margin)
+            bbox = shapely.box(*bounds).buffer(2*margin)
             shapes.insert(0, Shape(None, bbox, {
                 'id': 'background',
                 'tooltip': False,
