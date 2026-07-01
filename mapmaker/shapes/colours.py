@@ -69,6 +69,8 @@ class ColourMatcherDict:
 
     def lookup(self, colour: Optional[str], default: Optional[Any]=None) -> Optional[Any]:
         if colour is not None and colour != 'none':
+            if colour.startswith('#') and len(colour) == 4:
+                colour = '#{R}{R}{G}{G}{B}{B}'.format(R=colour[1], G=colour[2], B=colour[3])
             lab_colour = convert_color(sRGBColor.new_from_rgb_hex(colour), LabColor)
             for key, value in self.__lookup_table.items():
                 if delta_e_cie2000(lab_colour, key) < CLOSE_COLOUR_DISTANCE:
