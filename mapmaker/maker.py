@@ -191,7 +191,12 @@ class MapMaker:
         # Save options into global ``settings`` dict
         settings.update(options)
 
-        settings['KNOWLEDGE_STORE'] = knowledgebase.KnowledgeStore(map_base, **store_params)
+        # We only use the knowledge store if `sckan-version` in the map's manifest is set
+        # or the `--sckan-version` parameter is specified
+        if options.get('ignoreSckan', False):
+            settings['KNOWLEDGE_STORE'] = None
+        else:
+            settings['KNOWLEDGE_STORE'] = knowledgebase.KnowledgeStore(map_base, **store_params)
         self.__sckan_provenance = knowledgebase.sckan_provenance()
 
         # Our ``uuid`` depends on the source Git repository commit,
@@ -348,7 +353,8 @@ class MapMaker:
     def __clean_up(self, remove_sentinel=True):
     #==========================================
         # We are finished with the knowledge base
-        settings['KNOWLEDGE_STORE'].close()
+        if settings['KNOWLEDGE_STORE'] is not None:
+            settings['KNOWLEDGE_STORE'].close()
 
         # Remove any GeoJSON files (unless ``--save-geojson)
         for filename in self.__geojson_files:
@@ -554,7 +560,8 @@ class MapMaker:
         tile_db.execute("COMMIT")
 
         # Update our knowledge base
-        settings['KNOWLEDGE_STORE'].add_flatmap(self.__flatmap, self.__sckan_provenance.get('knowledge-source'))
+        if settings['KNOWLEDGE_STORE'] is not None:
+            settings['KNOWLEDGE_STORE'].add_flatmap(self.__flatmap, self.__sckan_provenance.get('knowledge-source'))
 
 #*        ## TODO: set ``layer.properties`` for annotations...
 #*        ##update_RDF(options['map_base'], options['map_id'], source, annotations)

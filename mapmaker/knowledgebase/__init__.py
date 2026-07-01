@@ -56,19 +56,27 @@ class AnatomicalNode(tuple):
 #===============================================================================
 
 def connectivity_models() -> list[str]:
-    return settings['KNOWLEDGE_STORE'].connectivity_models()
+    if settings['KNOWLEDGE_STORE'] is not None:
+        return settings['KNOWLEDGE_STORE'].connectivity_models()
+    return []
 
 def get_label(entity: str) -> str:
     return get_knowledge(entity).get('label', entity)
 
 def get_knowledge(entity: str) -> dict[str, Any]:
-    return settings['KNOWLEDGE_STORE'].entity_knowledge(entity)
+    if settings['KNOWLEDGE_STORE'] is not None:
+        return settings['KNOWLEDGE_STORE'].entity_knowledge(entity)
+    return {}
 
 def connectivity_paths() -> list[str]:
-    return settings['KNOWLEDGE_STORE'].connectivity_paths()
+    if settings['KNOWLEDGE_STORE'] is not None:
+        return settings['KNOWLEDGE_STORE'].connectivity_paths()
+    return []
 
 def sckan_provenance() -> dict:
-    return settings['KNOWLEDGE_STORE'].sckan_provenance
+    if settings['KNOWLEDGE_STORE'] is not None:
+        return settings['KNOWLEDGE_STORE'].sckan_provenance
+    return {}
 
 #===============================================================================
 
