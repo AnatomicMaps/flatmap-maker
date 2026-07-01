@@ -223,9 +223,17 @@ class SVGLayer(MapLayer):
         self.__transform = source.transform
         self.__definitions = DefinitionStore()
         self.__clip_geometries = ObjectStore[BaseGeometry]()
+        self.__celldl_source = True
         if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             # Include layer id with shape id when setting feature id
             Shape.reset_shape_id(prefix=f'{id}/')
+
+            metadata_labels = get_metadata_labels(svg_element)
+
+
+            ## get { id: label } dict
+            ## update properties `layer_id/curie_suffix(element_id)  -->  label`
+            ## replacing any label from properties file...
 
     @property
     def source(self) -> SVGSource:
@@ -243,7 +251,8 @@ class SVGLayer(MapLayer):
     def __process_shapes(self, shapes: TreeList[Shape]) -> list[Feature]:
     #====================================================================
         if (self.flatmap.map_kind == MAP_KIND.FUNCTIONAL
-        and not self.source.kind == 'anatomical'):
+        and not self.source.kind == 'anatomical'
+        and not self.__celldl_source):
             # CellDL conversion mode...
             shape_classifier = ShapeClassifier(shapes.flatten(), self.source.map_area(), self.source.metres_per_pixel)
             shapes = TreeList(shape_classifier.shapes)
@@ -418,9 +427,11 @@ class SVGLayer(MapLayer):
         for name in NON_INHERITED_PROPERTIES:
             properties.pop(name, None)
         if (self.source.flatmap.map_kind == MAP_KIND.FUNCTIONAL
-          and 'id' in element.attrib
-          and element.tag != SVG_TAG('g')):
-            properties['id'] = element.attrib.get('id')
+        and 'id' not in properties_from_markup
+        and (element_id := element.attrib.get('id')) is not None
+        and (element.tag != SVG_TAG('g')
+          or element_id.startswith('ID-'))):
+            properties['id'] = element_id
         properties.update(properties_from_markup)
         shape_id = properties.get('id')  ## versus element.attrib.get('id')
         if 'path' in properties:
