@@ -641,11 +641,10 @@ class SVGRasteriser:
             path = SVGRasteriser.__get_graphics_path(element, element_style)
             if path is None:
                 return []
-
             fill = element_style.get('fill', '#FFF').strip()
             if fill != 'none':
                 path.setFillType(skia.PathFillType.kWinding)
-                opacity = float(element_style.get('opacity', 1.0))
+                opacity = float(element_style.get('fill-opacity', 1.0))
                 paint = skia.Paint(AntiAlias=True)
                 if fill.startswith('url('):
                     gradient = self.__gradient_from_url(fill)
