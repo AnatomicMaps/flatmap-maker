@@ -255,7 +255,7 @@ class SourceManifest:
 #===============================================================================
 
 class Manifest:
-    def __init__(self, manifest_path, single_file=None, id=None, ignore_git=False, manifest:Optional[str]=None, commit=None):
+    def __init__(self, manifest_path, single_file=None, map_kind=None, id=None, ignore_git=False, manifest:Optional[str]=None, commit=None):
         self.__temp_directory = None
         if single_file is not None:
             ignore_git = True
@@ -298,6 +298,8 @@ class Manifest:
                     }
                 ]
             }
+            if map_kind is not None:
+                self.__manifest['kind'] = map_kind
             self.__raw_manifest = deepcopy(self.__manifest)
             self.__sources = [SourceManifest(self.__manifest['sources'][0], self)]
         else:

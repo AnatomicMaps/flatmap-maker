@@ -105,6 +105,8 @@ def arg_parser():
                         help='Export Powerpoint sources as SVG')
     misc_options.add_argument('--manifest', metavar='MANIFEST_PATH',
                         help='The relative path of the manifest when the source is a Git repository')
+    misc_options.add_argument('--map-kind', dest='mapKind', choices=['anatomical', 'functional'], default='anatomical',
+                        help='The `kind` of map to make when making a `--single-file` map')
     misc_options.add_argument('--single-file', dest='singleFile', choices=['celldl', 'svg'],
                         help='Source is a single file of the designated type, not a flatmap manifest')
 

@@ -73,6 +73,7 @@ INVALID_PUBLISHING_OPTIONS = [
     'ignoreGit',
     'ignoreSckan',
     'invalidNeurons',
+    'mapKind',
     'sckanVersion',
     'singleFile',
 ]
@@ -142,6 +143,7 @@ class MapMaker:
         # Check we have been given a map source and get our manifest
         if 'source' in options:
             self.__manifest = Manifest(options['source'], single_file=options.get('singleFile'),
+                                                          map_kind=options.get('mapKind'),
                                                           id=options.get('id'),
                                                           ignore_git=options.get('authoring', False)
                                                                   or options.get('ignoreGit', False),
