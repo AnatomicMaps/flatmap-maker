@@ -346,7 +346,7 @@ class SVGLayer(MapLayer):
         clipped = self.__clip_geometries.get_by_url(group_clip_path)
         if clipped is not None:
             # Replace any shapes inside a clipped group with just the clipped outline
-            shapes = Shape(group_id, T.transform_geometry(clipped), properties, svg_element=group_element)
+            shapes = Shape(group_id, clipped, properties, svg_element=group_element)
         else:
             shapes = self.__process_element_list(wrapped_group, T, properties, group_style)
             properties.pop('tile-layer', None)  # Don't set ``tile-layer``
