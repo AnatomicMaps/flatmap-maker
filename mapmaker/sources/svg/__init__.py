@@ -53,7 +53,7 @@ from .. import MapSource, MAX_MAP_DIMENSION, RasterSource
 
 from .cleaner import SVGCleaner
 from .definitions import DefinitionStore, ObjectStore
-from .metadata import get_metadata_labels
+from .metadata import get_metadata_names
 from .styling import StyleMatcher, wrap_element
 from .transform import SVGTransform
 from .utils import circle_from_bounds, geometry_from_svg_path, length_as_pixels
@@ -216,24 +216,28 @@ class SVGSource(MapSource):
 #===============================================================================
 
 class SVGLayer(MapLayer):
-    def __init__(self, id: str, source: SVGSource, svg_element: etree.Element, exported=True, min_zoom=None):
-        super().__init__(id, source, exported=exported, min_zoom=min_zoom)
+    def __init__(self, layer_id: str, source: SVGSource, svg_element: etree.Element, exported=True, min_zoom=None):
+        super().__init__(layer_id, source, exported=exported, min_zoom=min_zoom)
         self.__svg_element = svg_element
         self.__style_matcher = StyleMatcher(svg_element.find(f'.//{SVG_TAG('style')}'))
         self.__transform = source.transform
         self.__definitions = DefinitionStore()
         self.__clip_geometries = ObjectStore[BaseGeometry]()
-        self.__celldl_source = True
+        self.__celldl_source = False
         if self.flatmap.map_kind == MAP_KIND.FUNCTIONAL:
             # Include layer id with shape id when setting feature id
-            Shape.reset_shape_id(prefix=f'{id}/')
+            Shape.reset_shape_id(prefix=f'{layer_id}/')
 
-            metadata_labels = get_metadata_labels(svg_element)
-
-
-            ## get { id: label } dict
-            ## update properties `layer_id/curie_suffix(element_id)  -->  label`
-            ## replacing any label from properties file...
+            # See if the source is a CellDL SVG file and if so extract element
+            # labels and names from its metadata
+            metadata_names = get_metadata_names(source.href, layer_id, svg_element)
+            if len(metadata_names):
+                self.__celldl_source = True
+                for id, name_label in metadata_names.items():
+                    if name_label.label != '':
+                        source.flatmap.properties_store.set_property(id, 'label', name_label.label)
+                    if name_label.name != '':
+                        source.flatmap.properties_store.set_property(id, 'name', name_label.name)
 
     @property
     def source(self) -> SVGSource:
