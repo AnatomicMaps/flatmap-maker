@@ -382,6 +382,30 @@ class Manifest:
         return self.__manifest.get('description')
 
     @property
+    def path_zoom_range(self) -> bool:
+        return bool(self.__manifest.get('path-zoom-range', True))
+
+    @property
+    def initial_zoom(self):
+        return self.__manifest.get('initial-zoom', 4)
+
+    @property
+    def max_zoom(self):
+        return self.__manifest.get('max-zoom', 10)
+
+    @property
+    def max_raster_zoom(self):
+        return self.__manifest.get('max-raster-zoom', self.max_zoom)
+
+    @property
+    def path_min_coverage(self):
+        return self.__manifest.get('path-min-coverage', 0.7)
+
+    @property
+    def path_max_coverage(self):
+        return self.__manifest.get('path-max-coverage', 5.0)
+
+    @property
     def exported_properties(self) -> list[str]:
         return self.__manifest.get('exported-properties', [])
 
