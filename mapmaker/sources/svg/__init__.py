@@ -111,15 +111,15 @@ class SVGSource(MapSource):
         super().__init__(flatmap, source_manifest)
         self.__source_file = FilePath(source_manifest.href)
         self.__exported = (self.kind == 'base' or self.kind in SOURCE_DETAIL_KINDS)
-        svg: etree.Element = etree.parse(self.__source_file.get_fp()).getroot()
-        if 'viewBox' in svg.attrib:
-            viewbox = [float(x) for x in svg.attrib.get('viewBox', '').split()]
+        svg_element: etree.Element = etree.parse(self.__source_file.get_fp()).getroot()
+        if 'viewBox' in svg_element.attrib:
+            viewbox = [float(x) for x in svg_element.attrib.get('viewBox', '').split()]
             (left, top) = tuple(viewbox[:2])
             (width, height) = tuple(viewbox[2:])
         else:
             (left, top) = (0, 0)
-            width = length_as_pixels(svg.attrib.get('width'))
-            height = length_as_pixels(svg.attrib.get('height'))
+            width = length_as_pixels(svg_element.attrib.get('width'))
+            height = length_as_pixels(svg_element.attrib.get('height'))
         assert width is not None and height is not None
         if self.base_feature is not None:
             bounds = self.base_feature.bounds
@@ -157,7 +157,7 @@ class SVGSource(MapSource):
         bottom_right = self.__transform.transform_point((left+width, top+height))
         # southwest and northeast corners
         self.bounds = (top_left[0], bottom_right[1], bottom_right[0], top_left[1])
-        self.__layer = SVGLayer(self.id, self, svg, exported=self.__exported, min_zoom=self.min_zoom)
+        self.__layer = SVGLayer(self.id, self, svg_element, exported=self.__exported, min_zoom=self.min_zoom)
         self.__boundary_geometry = None
 
     @property
@@ -215,10 +215,10 @@ class SVGSource(MapSource):
 #===============================================================================
 
 class SVGLayer(MapLayer):
-    def __init__(self, id: str, source: SVGSource, svg: etree.Element, exported=True, min_zoom=None):
+    def __init__(self, id: str, source: SVGSource, svg_element: etree.Element, exported=True, min_zoom=None):
         super().__init__(id, source, exported=exported, min_zoom=min_zoom)
-        self.__svg = svg
-        self.__style_matcher = StyleMatcher(svg.find(f'.//{SVG_TAG('style')}'))
+        self.__svg_element = svg_element
+        self.__style_matcher = StyleMatcher(svg_element.find(f'.//{SVG_TAG('style')}'))
         self.__transform = source.transform
         self.__definitions = DefinitionStore()
         self.__clip_geometries = ObjectStore[BaseGeometry]()
@@ -233,7 +233,7 @@ class SVGLayer(MapLayer):
     def process(self):
     #=================
         properties = {'tile-layer': FEATURES_TILE_LAYER}   # Passed through to map viewer
-        shapes = self.__process_element_list(wrap_element(self.__svg),
+        shapes = self.__process_element_list(wrap_element(self.__svg_element),
                                              self.__transform,
                                              properties,
                                              None, show_progress=True)
@@ -305,8 +305,8 @@ class SVGLayer(MapLayer):
 
     def __process_group(self, wrapped_group: ElementWrapper, properties, transform, parent_style) -> Optional[Shape|TreeList[Shape]]:
     #================================================================================================================================
-        group = wrapped_group.etree_element
-        if len(group) == 0:
+        group_element = wrapped_group.etree_element
+        if len(group_element) == 0:
             return None
         children: list[etree.Element] = wrapped_group.etree_children    # type: ignore
         pruned = False
@@ -314,14 +314,14 @@ class SVGLayer(MapLayer):
           and children[0].tag == SVG_TAG('g')
           and len(children[0].attrib) == 0):
             # Ignore nested groups with only a single group element with no attributes
-            for k, v in group.items():
+            for k, v in group_element.items():
                 children[0].set(k, v)
             group = children[0]
             wrapped_group = wrap_element(group)
             children = wrapped_group.etree_children                     # type: ignore
             pruned = True
         if pruned:
-            markup = svg_markup(group)
+            markup = svg_markup(group_element)
             properties_from_markup = self.source.properties_from_markup(markup)
             properties.update(properties_from_markup)
         group_id = properties.get('id')
@@ -332,7 +332,7 @@ class SVGLayer(MapLayer):
         clipped = self.__clip_geometries.get_by_url(group_clip_path)
         if clipped is not None:
             # Replace any shapes inside a clipped group with just the clipped outline
-            shapes = Shape(group_id, T.transform_geometry(clipped), properties, svg_element=group)
+            shapes = Shape(group_id, T.transform_geometry(clipped), properties, svg_element=group_element)
         else:
             shapes = self.__process_element_list(wrapped_group, T, properties, group_style)
             properties.pop('tile-layer', None)  # Don't set ``tile-layer``
