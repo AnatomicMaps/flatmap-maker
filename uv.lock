@@ -403,14 +403,14 @@ wheels = [
 
 [[package]]
 name = "gitpython"
-version = "3.1.50"
+version = "3.1.57"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "gitdb" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/33/f6/354ae6491228b5eb40e10d89c4d13c651fe1cf7556e35ebdded50cff57ce/gitpython-3.1.50.tar.gz", hash = "sha256:80da2d12504d52e1f998772dc5baf6e553f8d2fcfe1fcc226c9d9a2ee3372dcc", size = 219798, upload-time = "2026-05-06T04:01:26.571Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ba/0d/132ed135c871b6bf91adf16a0e43797cd535b81d4973b5d09291c54fc5ee/gitpython-3.1.57.tar.gz", hash = "sha256:c493ec57c0ef6b19743798b6a5af859c71814b524e7e6f97baa2f8e658961488", size = 225898, upload-time = "2026-07-26T07:33:26.351Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/20/7a/1c6e3562dfd8950adbb11ffbc65d21e7c89d01a6e4f137fa981056de25c5/gitpython-3.1.50-py3-none-any.whl", hash = "sha256:d352abe2908d07355014abdd21ddf798c2a961469239afec4962e9da884858f9", size = 212507, upload-time = "2026-05-06T04:01:23.799Z" },
+    { url = "https://files.pythonhosted.org/packages/41/6e/2139de986d9c7c3ac86f1f8be43858ce90bdfe2f7175e6c80c650ba15242/gitpython-3.1.57-py3-none-any.whl", hash = "sha256:4ccf7d73c10f5c9e76043fbb2675ac5a1b3ff5b41e648f56bcbed5f63792ecaf", size = 217151, upload-time = "2026-07-26T07:33:24.838Z" },
 ]
 
 [[package]]
@@ -1502,8 +1502,8 @@ resolution-markers = [
     "(platform_machine != 'aarch64' and platform_release == '5.4.0-1103-aws' and sys_platform == 'linux') or (platform_release == '5.4.0-1103-aws' and sys_platform != 'darwin' and sys_platform != 'linux')",
 ]
 dependencies = [
-    { name = "numpy", marker = "platform_release == '5.4.0-1103-aws'" },
-    { name = "pybind11", marker = "platform_release == '5.4.0-1103-aws'" },
+    { name = "numpy" },
+    { name = "pybind11" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/ed/bcca51e70b0f6c0879515d653ecd45756c68863e2e43479243915c953fdf/skia_python-124.0b7-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:ebaba2d50a32a020802f0ef73db089fa7e5c2bd37d4ba8e3bcfb3d466c150cc6", size = 11709505, upload-time = "2024-05-01T01:48:02.63Z" },
@@ -1523,8 +1523,8 @@ resolution-markers = [
     "(platform_machine != 'aarch64' and platform_release != '5.4.0-1103-aws' and sys_platform == 'linux') or (platform_release != '5.4.0-1103-aws' and sys_platform != 'darwin' and sys_platform != 'linux')",
 ]
 dependencies = [
-    { name = "numpy", marker = "platform_release != '5.4.0-1103-aws'" },
-    { name = "pybind11", marker = "platform_release != '5.4.0-1103-aws'" },
+    { name = "numpy" },
+    { name = "pybind11" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/64/e8/3e8316416a302d38a5e95560383c5a1769f59f943b3685fdceb4ab42445a/skia_python-144.0.post2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:d8bf9a203448a98324c108bbbfa3a9f94ff8514212ae832a81d2b60a5a7dbbfe", size = 12090279, upload-time = "2026-03-19T22:21:20.216Z" },
