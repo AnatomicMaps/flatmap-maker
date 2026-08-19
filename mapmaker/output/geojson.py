@@ -21,7 +21,7 @@
 from collections import defaultdict
 import json
 import math
-import os
+from pathlib import Path
 from typing import cast
 
 #===============================================================================
@@ -42,21 +42,21 @@ from . import ENCODED_FEATURE_PROPERTIES, EXPORTED_FEATURE_PROPERTIES
 #===============================================================================
 
 class GeoJSONOutput(object):
-    def __init__(self, flatmap: FlatMap, layer: MapLayer, output_dir: str):
+    def __init__(self, flatmap: FlatMap, layer: MapLayer, output_dir: Path):
     #======================================================================
         self.__flatmap = flatmap
         self.__layer = layer
         self.__map_area = flatmap.area
         self.__output_dir = output_dir
-        self.__geojson_layers = defaultdict(list)
+        self.__geojson_layers: dict[str, list[dict]] = defaultdict(list)
 
-    def save(self, features, pretty_print=False):
-    #============================================
+    def save(self, features, pretty_print=False) -> dict[str, str]:
+    #==============================================================
         self.__save_features(features)
-        saved_filenames = {}
+        saved_filenames: dict[str, str] = {}
         for (geojson_id, features) in self.__geojson_layers.items():
-            filename = os.path.join(self.__output_dir, f'{geojson_id}.json')
-            saved_filenames[geojson_id] = filename
+            filename = self.__output_dir / f'{geojson_id}.json'
+            saved_filenames[geojson_id] = str(filename)
             with open(filename, 'w') as output_file:
                 if pretty_print:
                     feature_collection = {

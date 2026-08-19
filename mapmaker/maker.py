@@ -20,7 +20,7 @@
 
 import json
 import os
-import pathlib
+from pathlib import Path
 import multiprocessing
 import multiprocessing.connection
 import shutil
@@ -93,7 +93,7 @@ class MapMaker:
         # Setup logging
         if (log_file := options.get('logFile')) is None:
             if (log_path := options.get('logPath')) is not None:
-                log_file = os.path.join(log_path, f'{os.getpid()}.log.json')
+                log_file = Path(log_path) / f'{os.getpid()}.log.json'
 
         if options.get('silent', False) and log_file is None:
             raise ValueError('`--silent` option requires `--log LOG_FILE` to be given')
@@ -165,8 +165,7 @@ class MapMaker:
         # Make sure our top-level directory exists
         map_base = options.get('output')
         assert map_base is not None
-        if not os.path.exists(map_base):
-            os.makedirs(map_base)
+        Path(map_base).mkdir(mode=0o755, parents=True, exist_ok=True)
 
         # This is set here in case we have to clean up early
         self.__geojson_files = []
@@ -215,16 +214,16 @@ class MapMaker:
             self.__uuid = None
 
         # Where the generated map is saved
-        self.__map_dir = os.path.join(map_base, self.__uuid if self.__uuid is not None else self.__id)
+        self.__map_dir = Path(map_base) / (self.__uuid if self.__uuid is not None else self.__id)
 
         if options.get('force', False):
             shutil.rmtree(self.__map_dir, True)
 
-        self.__maker_sentinel = os.path.join(self.__map_dir, MAKER_SENTINEL)
+        self.__maker_sentinel = self.__map_dir / MAKER_SENTINEL
 
         self.__flatmap: FlatMap
-        if os.path.exists(self.__map_dir):
-            if os.path.exists(self.__maker_sentinel):
+        if self.__map_dir.exists():
+            if self.__maker_sentinel.exists():
                 self.__clean_up(remove_sentinel=False)
                 log.error('Last making of map failed -- use `--force` to re-make', id=self.__id, uuid=self.uuid, path=self.__map_dir)
             else:
@@ -232,7 +231,7 @@ class MapMaker:
             self.__flatmap = None                   # pyright: ignore[reportAttributeAccessIssue]
             return
         else:
-            os.makedirs(self.__map_dir)
+            self.__map_dir.mkdir(mode=0o755, parents=True)
 
         # Create an empty sentinel
         with open(self.__maker_sentinel, 'a'):
@@ -326,7 +325,7 @@ class MapMaker:
         if ((svg_export_file := settings.get('exportSVG')) is not None
          and 'svg-maker' in self.__processing_store):
             svg_maker = self.__processing_store['svg-maker']
-            svg_file = pathlib.Path(svg_export_file).with_suffix('.svg')
+            svg_file = Path(svg_export_file).with_suffix('.svg')
             with open(svg_file, 'w') as fp:
                 svg_maker.save(fp)
                 log.info('Saved SVG', svg=svg_file)
@@ -369,17 +368,17 @@ class MapMaker:
 
         # Copy the log file into the generated map's directory
         if self.__file_log is not None:
-            maker_log = os.path.join(self.__map_dir, MAKER_LOG)
-            if not os.path.exists(maker_log):
+            maker_log = self.__map_dir / MAKER_LOG
+            if not maker_log.is_file():
                 log_file = self.__file_log.baseFilename
                 self.__file_log.close()
                 with open(log_file, 'r') as log:
-                    with open(os.path.join(self.__map_dir, MAKER_LOG), 'w') as fp:
+                    with open(maker_log, 'w') as fp:
                         fp.write(log.read())
 
         # All done, remove our sentinel
-        if remove_sentinel and os.path.exists(self.__maker_sentinel):
-            os.remove(self.__maker_sentinel)
+        if remove_sentinel:
+            self.__maker_sentinel.unlink(missing_ok=True)
 
     def __process_sources(self):
     #===========================
@@ -601,7 +600,7 @@ class MapMaker:
             map_index['connectivity'] = self.__sckan_provenance
 
         # Create `index.json` for building a map in the viewer
-        with open(os.path.join(self.__map_dir, 'index.json'), 'w') as output_file:
+        with open(self.__map_dir / 'index.json', 'w') as output_file:
             json.dump(map_index, output_file)
 
         # Create style file
@@ -623,7 +622,7 @@ class MapMaker:
         # Copy any local RDF knowledge to ``index.ttl`` in the generated map's directory
         if (rdf_knowledge := self.__manifest.rdf_knowledge) is not None:
             rdf = FilePath(rdf_knowledge).get_data().decode('utf-8')
-            with open(os.path.join(self.__map_dir, 'index.ttl'), 'w') as fp:
+            with open(self.__map_dir / 'index.ttl', 'w') as fp:
                 fp.write(rdf)
 
 #===============================================================================

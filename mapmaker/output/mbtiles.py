@@ -18,8 +18,7 @@
 #
 #===============================================================================
 
-import io
-import os
+from pathlib import Path
 import sqlite3
 
 #===============================================================================
@@ -37,10 +36,10 @@ class ExtractionError(Exception):
 #===============================================================================
 
 class MBTiles(object):
-    def __init__(self, filepath, create=False, force=False, silent=False):
+    def __init__(self, filepath: Path, create=False, force=False, silent=False):
         self._silent = silent
-        if force and os.path.exists(filepath):
-            os.remove(filepath)
+        if force:
+            filepath.unlink(missing_ok=True)
         self._connnection = mb.mbtiles_connect(filepath, self._silent)
         self._cursor = self._connnection.cursor()
         if create:
@@ -53,7 +52,7 @@ class MBTiles(object):
             mb.compression_finalize(self._cursor)
         mb.optimize_database(self._connnection, self._silent)
 
-    def execute(self, sql):
+    def execute(self, sql: str):
         return self._cursor.execute(sql)
 
     def add_metadata(self, **metadata):
@@ -67,7 +66,7 @@ class MBTiles(object):
         else:
             return dict(self._connnection.execute('select name, value from metadata;').fetchall())
 
-    def get_tile(self, zoom, x, y):
+    def get_tile(self, zoom: int, x: int, y: int):
         rows = self._cursor.execute("""select tile_data from tiles
                                           where zoom_level=? and tile_column=? and tile_row=?;""",
                                                           (zoom,             x,             mb.flip_y(zoom, y)))
@@ -75,7 +74,7 @@ class MBTiles(object):
         if not data: raise ExtractionError()
         return cv2.imdecode(np.frombuffer(data[0], 'B'), cv2.IMREAD_UNCHANGED)
 
-    def save_tile_as_png(self, zoom, x, y, image):
+    def save_tile_as_png(self, zoom: int, x: int, y: int, image):
         output = cv2.imencode('.png', image)[1]
         self._cursor.execute("""insert into tiles (zoom_level, tile_column, tile_row, tile_data)
                                            values (?, ?, ?, ?);""",
