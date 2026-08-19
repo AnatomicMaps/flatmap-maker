@@ -131,7 +131,7 @@ class MapRepository:
     def __get_upstream_base(self) -> Optional[str]:
         url = None
         for remote in self.__repo.remotes:
-            if remote.url.startswith('http'):
+            if remote.name == 'origin' and remote.url.startswith('http'):
                 https_url = giturlparse.parse(remote.url).url2https
                 url = giturlparse.parse(https_url)
                 if (url.host.endswith(GITHUB_GIT_HOST)
