@@ -535,7 +535,9 @@ class MapMaker:
     def __save_metadata(self):
     #=========================
         log.info('Creating index and style files...')
-        tile_db = MBTiles(self.__mbtiles_file)
+
+        # Annotation and metadata associated with the flatmap
+        annotations = {}
 
         # Save flatmap's metadata, including settings used to generate map
         metadata = self.__flatmap.metadata
@@ -547,20 +549,23 @@ class MapMaker:
         if (legend := self.__manifest.legend) is not None:
             metadata['legend'] = legend
         metadata['exported-properties'] = self.__manifest.exported_properties
-        tile_db.add_metadata(metadata=json.dumps(metadata))
+        annotations['metadata'] = metadata
 
-        # Save layer details in metadata
-        tile_db.add_metadata(layers=json.dumps(self.__flatmap.layer_metadata()))
-        # Save pathway details in metadata
-        tile_db.add_metadata(pathways=json.dumps(self.__flatmap.connectivity()))
-        # Save annotations in metadata
-        tile_db.add_metadata(annotations=json.dumps(self.__flatmap.annotations, default=set_as_list))
-        # Save node_hierarchy in metadata
-        tile_db.add_metadata(node_hierarchy=json.dumps(self.__flatmap.properties_store.node_hierarchy))
+        # Save layer details with annotations
+        annotations['layers'] = self.__flatmap.layer_metadata()
 
-        # Commit updates to the database
-        tile_db.execute("COMMIT")
+        # Save pathway details with annotations
+        annotations['pathways'] = self.__flatmap.connectivity()
 
+        # Save flatmap annotations
+        annotations['annotations'] = self.__flatmap.annotations
+
+        # Save node_hierarchy with annotations
+        annotations['node_hierarchy'] = self.__flatmap.properties_store.node_hierarchy
+
+        # Save annotations and metadata as ``annotations.json``
+        with open(self.__map_dir / 'annotations.json', 'w') as fp:
+            json.dump(annotations, fp, default=set_as_list)
         # Update our knowledge base
         if settings['KNOWLEDGE_STORE'] is not None:
             settings['KNOWLEDGE_STORE'].add_flatmap(self.__flatmap, self.__sckan_provenance.get('knowledge-source'))
@@ -597,13 +602,13 @@ class MapMaker:
             json.dump(map_index, output_file)
 
         # Create style file
+        tile_db = MBTiles(self.__map_dir / 'index.mbtiles')
         metadata = tile_db.metadata()
+        tile_db.close()
         style_dict = MapStyle.style(self.__raster_layers, metadata, self.__zoom)
         with open(os.path.join(self.__map_dir, 'style.json'), 'w') as output_file:
             json.dump(style_dict, output_file)
 
-        # We are finished with the MB Tiles database
-        tile_db.close();
 
         # Copy any local RDF knowledge to ``index.ttl`` in the generated map's directory
         if (rdf_knowledge := self.__manifest.rdf_knowledge) is not None:
