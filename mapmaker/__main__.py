@@ -41,7 +41,7 @@ def arg_parser():
                         help="Show progress bars")
 
     generation_options = parser.add_argument_group('Map generation')
-    generation_options.add_argument('--background-tiles',  dest='backgroundTiles', action='store_true',
+    generation_options.add_argument('--background-tiles', dest='backgroundTiles', action='store_true',
                         help="Generate image tiles of map's layers (may take a while...)")
     generation_options.add_argument('--clean-connectivity', dest='cleanConnectivity', action='store_true',
                         help='Refresh local connectivity knowledge from SciCrunch')
