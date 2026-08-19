@@ -18,7 +18,7 @@
 #
 #===============================================================================
 
-import json
+from mapmaker.geometry import MapBounds
 
 #===============================================================================
 
@@ -42,7 +42,7 @@ class ImageSource(object):
 
 #===============================================================================
 
-class RasterTileSource(object):
+class MBRasterTileSource(object):
     @staticmethod
     def style(layer_id, bounds, min_zoom, max_zoom):
         return {
@@ -56,9 +56,9 @@ class RasterTileSource(object):
 
 #===============================================================================
 
-class VectorTileSource(object):
+class MBVectorTileSource(object):
     @staticmethod
-    def style(vector_layer_dict, bounds, layer_zoom):
+    def style(vector_sources, bounds, layer_zoom):
         return {
             'type': 'vector',
             'tiles': ['/mvtiles/{z}/{x}/{y}'],
@@ -69,35 +69,51 @@ class VectorTileSource(object):
             'bounds': bounds,   # southwest(lng, lat), northeast(lng, lat)
             'attribution': ATTRIBUTION,
             'generator': 'tippecanoe',
-            'vector_layers': vector_layer_dict['vector_layers'],
-            'tilestats': vector_layer_dict['tilestats']
+            'vector_layers': vector_sources['vector_layers'],
+            'tilestats': vector_sources['tilestats']
         }
 
 #===============================================================================
 
-class TileSources(object):
+class MBTileSources(object):
     @staticmethod
-    def style(raster_sources, vector_layer_dict, bounds, map_zoom):
+    def style(raster_sources, vector_sources, bounds, map_zoom):
         sources = {}
-        if len(vector_layer_dict):
-            sources['vector-tiles'] = VectorTileSource.style(vector_layer_dict, bounds, map_zoom)
+        sources['vector-tiles'] = MBVectorTileSource.style(vector_sources, bounds, map_zoom)
         for source in raster_sources:
-            sources[source.id] = RasterTileSource.style(source.id, bounds, source.min_zoom, source.max_zoom)
+            sources[source.id] = MBRasterTileSource.style(source.id, bounds, source.min_zoom, source.max_zoom)
+        return sources
+
+#===============================================================================
+
+class PMTileSources(object):
+    @staticmethod
+    def style(raster_sources):
+        sources = {
+            'vector-tiles': {
+                'type': 'vector',
+                'url': 'pmtiles:/'
+            }
+        }
+        for source in raster_sources:
+            sources[source.id] = {
+                'type': 'raster',
+                'url': f'pmtiles:/{source.id}'
+            }
         return sources
 
 #===============================================================================
 
 class MapStyle(object):
     @staticmethod
-    def style(raster_sources, metadata, map_zoom):
-        vector_layer_dict = json.loads(metadata.get('json', '{}'))
-        bounds = [float(x) for x in metadata['bounds'].split(',')]
+    def style(raster_sources, mb_vector_sources, map_zoom, bounds: MapBounds, centre: tuple[float, float]):
         return {
             'version': 8,
-            'sources': TileSources.style(raster_sources, vector_layer_dict, bounds, map_zoom),
+            'sources': PMTileSources.style(raster_sources) if mb_vector_sources is None
+                  else MBTileSources.style(raster_sources, mb_vector_sources, bounds, map_zoom),
             'glyphs': 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
             'zoom': map_zoom[2],
-            'center': [float(x) for x in metadata['center'].split(',')],
+            'center': centre,
             'layers': []
         }
 

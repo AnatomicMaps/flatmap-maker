@@ -238,8 +238,7 @@ class MapMaker:
         with open(self.__maker_sentinel, 'a'):
             pass
 
-        # The vector tiles' database that is created by ``tippecanoe``
-        self.__mbtiles_file = os.path.join(self.__map_dir, 'index.mbtiles')
+        # Layer details for ``tippecanoe``
         self.__tippe_inputs = []
 
         # Raster tile layers
@@ -439,7 +438,8 @@ class MapMaker:
                 if layer.source.kind == 'base':
                     # maxRasterZoom is only for base maps
                     max_zoom = settings.get('maxRasterZoom', max_zoom)
-                tilemaker = RasterTileMaker(raster_layer, self.__map_dir, max_zoom)
+                tilemaker = RasterTileMaker(raster_layer, self.__map_dir, max_zoom,
+                                            self.__options.get('tileFormat') == 'pmtiles')
                 tilemakers.append(tilemaker)
                 if settings.get('backgroundTiles', False):
                     tilemaker_process = tilemaker.make_tiles()
@@ -464,6 +464,8 @@ class MapMaker:
         if len(self.__tippe_inputs) == 0:
             raise ValueError('No vector tile layers found...')
 
+        pmtiles = self.__options.get('tileFormat') == 'pmtiles'
+        maptiles_path = self.__map_dir / ('index.pmtiles' if pmtiles else 'index.mbtiles')
         log.info('Running tippecanoe...')
         tippe_command = ['tippecanoe',
                             '--force',
@@ -472,7 +474,7 @@ class MapMaker:
                             '--minimum-zoom={}'.format(self.__zoom[0]),
                             '--maximum-zoom={}'.format(self.__zoom[1]),
                             '--no-tile-size-limit',
-                            '--output={}'.format(self.__mbtiles_file),
+                            f'--output={maptiles_path}',
                         ]
         if not compressed:
             tippe_command.append('--no-tile-compression')
@@ -487,12 +489,13 @@ class MapMaker:
         # `tippecanoe` uses the bounding box containing all features as the
         # map bounds, which is not the same as the extracted bounds, so update
         # the map's metadata
-        tile_db = MBTiles(self.__mbtiles_file)
-        tile_db.add_metadata(compressed=compressed)
-        tile_db.add_metadata(center=','.join([str(x) for x in self.__flatmap.centre]),      # type: ignore
-                             bounds=','.join([str(x) for x in self.__flatmap.extent]))      # type: ignore
-        tile_db.execute("COMMIT")
-        tile_db.close();
+        if not pmtiles:
+            tile_db = MBTiles(maptiles_path)
+            tile_db.add_metadata(compressed=compressed)
+            tile_db.add_metadata(center=','.join([str(x) for x in self.__flatmap.centre]),      # type: ignore
+                                 bounds=','.join([str(x) for x in self.__flatmap.extent]))      # type: ignore
+            tile_db.execute("COMMIT")
+            tile_db.close();
 
     def __output_features(self):
     #===========================
@@ -602,11 +605,18 @@ class MapMaker:
             json.dump(map_index, output_file)
 
         # Create style file
-        tile_db = MBTiles(self.__map_dir / 'index.mbtiles')
-        metadata = tile_db.metadata()
-        tile_db.close()
-        style_dict = MapStyle.style(self.__raster_layers, metadata, self.__zoom)
-        with open(os.path.join(self.__map_dir, 'style.json'), 'w') as output_file:
+        pmtiles = self.__options.get('tileFormat') == 'pmtiles'
+        if pmtiles:
+            mb_vector_sources = None
+        else:
+            tile_db = MBTiles(self.__map_dir / 'index.mbtiles')
+            metadata = tile_db.metadata()
+            mb_vector_sources = json.loads(metadata.get('json', '{}'))
+            tile_db.close()
+        assert self.__flatmap.extent is not None
+        assert self.__flatmap.centre is not None
+        style_dict = MapStyle.style(self.__raster_layers, mb_vector_sources, self.__zoom, self.__flatmap.extent, self.__flatmap.centre)
+        with open(self.__map_dir / 'style.json', 'w') as output_file:
             json.dump(style_dict, output_file)
 
 

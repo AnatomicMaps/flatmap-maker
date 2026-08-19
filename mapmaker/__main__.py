@@ -69,6 +69,8 @@ def arg_parser():
                         help="Create a SPARC Dataset containing the map's sources and the generated map")
     generation_options.add_argument('--sckan-version', dest='sckanVersion', choices=['production', 'staging'],
                         help="Overide version of SCKAN specified by map's manifest")
+    generation_options.add_argument('--tile-format', dest='tileFormat', choices=['mbtiles', 'pmtiles'],
+                        default='mbtiles', help='Format of generated tilesets.')
 
     debug_options = parser.add_argument_group('Diagnostics')
     debug_options.add_argument('--authoring', action='store_true',
