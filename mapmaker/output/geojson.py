@@ -26,7 +26,6 @@ from typing import cast
 
 #===============================================================================
 
-import shapely.affinity
 import shapely.geometry
 import shapely.ops
 
