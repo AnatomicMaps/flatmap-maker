@@ -19,7 +19,9 @@
 #===============================================================================
 
 import os
+from pathlib import Path
 import queue
+import shutil
 from time import sleep
 from typing import TYPE_CHECKING
 
@@ -29,7 +31,7 @@ import cv2
 import mercantile
 import multiprocess as mp
 import multiprocess.connection as mp_connection
-import numpy as np
+from pmtiles.convert import mbtiles_to_pmtiles
 import shapely.geometry
 
 #===============================================================================
@@ -409,26 +411,30 @@ class RasterTileMaker(object):
     :param raster_layer: The raster layer to tile
     :type raster_layer: :class:`~mapmaker.layers.RasterLayer`
     :param output_dir: The directory in which to store image tiles
-    :type output_dir: str
+    :type output_dir: Path
     :param max_zoom: The range of zoom levels to generate tiles.
     :type max_zoom: int
     """
-    def __init__(self, raster_layer: 'RasterLayer', output_dir: str, max_zoom: int):
+    def __init__(self, raster_layer: 'RasterLayer', output_dir: Path, max_zoom: int, pmtiles=False):
         self.__raster_layer = raster_layer
         self.__max_zoom = max_zoom
         self.__id = raster_layer.id
-        self.__database_path = os.path.join(output_dir, f'{raster_layer.id}.mbtiles')
+        self.__tileset_path = output_dir / f'{raster_layer.id}{'.pmtiles' if pmtiles else '.mbtiles' }'
         self.__min_zoom = raster_layer.min_zoom
         self.__tile_set = TileSet(raster_layer.extent, self.__max_zoom)
+        self.__pmtiles = pmtiles
 
     @property
     def raster_layer(self):
         return self.__raster_layer
 
-    def __make_zoomed_tiles(self, tile_extractor):
-    #=============================================
-        mbtiles = MBTiles(self.__database_path, True, True)
+    def __make_zoomed_mbtiles(self, tileset_path: Path, tile_extractor):
+    #===================================================================
+        mbtiles = MBTiles(tileset_path, True, True)
         mbtiles.add_metadata(id=self.__id)
+        mbtiles.add_metadata(format='png')
+        mbtiles.add_metadata(minzoom=self.__min_zoom)
+        mbtiles.add_metadata(maxzoom=self.__max_zoom)
 
         zoom = self.__max_zoom
         tile_count = len(self.__tile_set)
@@ -475,6 +481,14 @@ class RasterTileMaker(object):
         self.__make_overview_tiles(mbtiles, zoom, self.__tile_set.start_coords,
                                                   self.__tile_set.end_coords)
         mbtiles.close(compress=True)
+
+    def __make_zoomed_tiles(self, tile_extractor):
+    #=============================================
+        mbtiles_path = self.__tileset_path.with_suffix('.mbtiles') if self.__pmtiles else self.__tileset_path
+        self.__make_zoomed_mbtiles(mbtiles_path, tile_extractor)
+        if self.__pmtiles:
+            mbtiles_to_pmtiles(mbtiles_path, self.__tileset_path, self.__max_zoom)
+            mbtiles_path.unlink()
 
     def __extract_tile__process(self, tiles: list[mercantile.Tile], tile_extractor, image_queue):
     #============================================================================================
@@ -523,7 +537,7 @@ class RasterTileMaker(object):
 
     def have_tiles(self):
     #====================
-        return os.path.exists(self.__database_path)
+        return self.__tileset_path.is_file()
 
     def make_tiles(self):
     #====================
@@ -590,7 +604,7 @@ if __name__ == '__main__':
         source = RasterSource('image', lambda: cv2.imread(args.source))
 
     tile_layer = RasterLayer(args.map_id, map_extent, source)
-    tile_maker = RasterTileMaker(tile_layer, args.map_base, args.max_zoom)
+    tile_maker = RasterTileMaker(tile_layer, args.map_base, args.max_zoom, True)
     tile_maker.make_tiles()
 
 #===============================================================================
