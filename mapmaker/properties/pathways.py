@@ -944,7 +944,9 @@ class Pathways:
                     # Add a polygon feature for a nerve cuff
                     properties = feature.properties.copy()
                     feature.properties.pop('models', None)  # Otherwise we can get two markers on the feature
-                    properties.pop('id', None)   # Otherwise we will have a duplicate id...
+                    if (feature_id := feature.properties.pop('id', None)) is not None:
+                        # The polygon, not the dashed outline, should own the feature id
+                        self.__flatmap.remove_feature_id(feature_id)
                     nerve_polygon_feature = self.__flatmap.new_feature(
                         'pathways',
                         shapely.geometry.Polygon(feature.geometry.coords).buffer(0), properties)

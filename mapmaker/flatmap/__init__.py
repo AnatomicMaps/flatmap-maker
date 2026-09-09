@@ -263,6 +263,11 @@ class FlatMap(object):
     #========================================================
         return self.__features_with_id.get(feature_ids, None) is not None
 
+    def remove_feature_id(self, feature_id: str):
+    #=============================================
+        # Free up an id so another feature can be registered with it
+        self.__features_with_id.pop(feature_id, None)
+
     def feature_to_geojson_ids(self, feature_ids: list[str]) -> list[int]:
     #=====================================================================
         return [f.geojson_id for id in feature_ids
