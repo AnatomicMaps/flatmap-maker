@@ -691,6 +691,7 @@ dependencies = [
     { name = "numpy" },
     { name = "opencv-python-headless" },
     { name = "openpyxl" },
+    { name = "pmtiles" },
     { name = "pyomo" },
     { name = "pyoxigraph" },
     { name = "pyparsing" },
@@ -744,6 +745,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26,<2.0" },
     { name = "opencv-python-headless", specifier = ">=4.11.0" },
     { name = "openpyxl", specifier = ">=3.1.0" },
+    { name = "pmtiles", specifier = ">=3.7.0" },
     { name = "pyomo", specifier = ">=6.10" },
     { name = "pyoxigraph", specifier = ">=0.5.9" },
     { name = "pyparsing", specifier = ">=3.3.2" },
@@ -1013,6 +1015,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/be/42/025cfe05d1be22dbfdb4f264fe9de1ccda83f66e4fc3aac94748e784af04/pillow-12.2.0-cp312-cp312-win32.whl", hash = "sha256:58f62cc0f00fd29e64b29f4fd923ffdb3859c9f9e6105bfc37ba1d08994e8940", size = 6378489, upload-time = "2026-04-01T14:43:34.601Z" },
     { url = "https://files.pythonhosted.org/packages/5d/7b/25a221d2c761c6a8ae21bfa3874988ff2583e19cf8a27bf2fee358df7942/pillow-12.2.0-cp312-cp312-win_amd64.whl", hash = "sha256:7f84204dee22a783350679a0333981df803dac21a0190d706a50475e361c93f5", size = 7084129, upload-time = "2026-04-01T14:43:37.213Z" },
     { url = "https://files.pythonhosted.org/packages/10/e1/542a474affab20fd4a0f1836cb234e8493519da6b76899e30bcc5d990b8b/pillow-12.2.0-cp312-cp312-win_arm64.whl", hash = "sha256:af73337013e0b3b46f175e79492d96845b16126ddf79c438d7ea7ff27783a414", size = 2463612, upload-time = "2026-04-01T14:43:39.421Z" },
+]
+
+[[package]]
+name = "pmtiles"
+version = "3.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/16/3e/47e371add5ba09615c95c5ef72d8c3be471819d6dce07bae26c8e15d0687/pmtiles-3.7.0.tar.gz", hash = "sha256:ed8b04d550d104c81a759c9cc07bfc5743750f62e751f840425f4b9f4bb903df", size = 14582, upload-time = "2026-02-10T16:00:22Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/de/c0f177fd73818e0d671903ed986d4541674b0fad4365c7ecfd5a0af23a6d/pmtiles-3.7.0-py3-none-any.whl", hash = "sha256:d1a7a7a166ce3c5c8756cc2c8e4b0aa55e3d854fbd4517c963de16c39b631b14", size = 16848, upload-time = "2026-02-10T16:00:20.925Z" },
 ]
 
 [[package]]
@@ -1502,8 +1513,8 @@ resolution-markers = [
     "(platform_machine != 'aarch64' and platform_release == '5.4.0-1103-aws' and sys_platform == 'linux') or (platform_release == '5.4.0-1103-aws' and sys_platform != 'darwin' and sys_platform != 'linux')",
 ]
 dependencies = [
-    { name = "numpy", marker = "platform_release == '5.4.0-1103-aws'" },
-    { name = "pybind11", marker = "platform_release == '5.4.0-1103-aws'" },
+    { name = "numpy" },
+    { name = "pybind11" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/ed/bcca51e70b0f6c0879515d653ecd45756c68863e2e43479243915c953fdf/skia_python-124.0b7-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:ebaba2d50a32a020802f0ef73db089fa7e5c2bd37d4ba8e3bcfb3d466c150cc6", size = 11709505, upload-time = "2024-05-01T01:48:02.63Z" },
@@ -1523,8 +1534,8 @@ resolution-markers = [
     "(platform_machine != 'aarch64' and platform_release != '5.4.0-1103-aws' and sys_platform == 'linux') or (platform_release != '5.4.0-1103-aws' and sys_platform != 'darwin' and sys_platform != 'linux')",
 ]
 dependencies = [
-    { name = "numpy", marker = "platform_release != '5.4.0-1103-aws'" },
-    { name = "pybind11", marker = "platform_release != '5.4.0-1103-aws'" },
+    { name = "numpy" },
+    { name = "pybind11" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/64/e8/3e8316416a302d38a5e95560383c5a1769f59f943b3685fdceb4ab42445a/skia_python-144.0.post2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:d8bf9a203448a98324c108bbbfa3a9f94ff8514212ae832a81d2b60a5a7dbbfe", size = 12090279, upload-time = "2026-03-19T22:21:20.216Z" },
