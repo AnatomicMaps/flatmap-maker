@@ -3,7 +3,8 @@ name = "mapmaker"
 version = "1.26.1"
 description = "Generate MapLibre compatible tilesets for flatmaps."
 authors = [
-    { name = "David Brooks", email = "d.brooks@auckland.ac.nz"}
+    { name = "David Brooks", email = "d.brooks@auckland.ac.nz"},
+    { name = "Yuda Munarko", email = "yuda.munarko@auckland.ac.nz"}
 ]
 readme = "README.rst"
 requires-python = ">=3.12,<3.13"
