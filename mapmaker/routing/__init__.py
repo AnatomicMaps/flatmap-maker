@@ -827,7 +827,12 @@ class Network(object):
 
         # Removing missing nodes (in FC and AC)
         if settings.get('NPO', False):
-            missing_nodes = [c for c in connectivity_graph.nodes if c in self.__missing_identifiers]
+            missing_nodes = [
+                c
+                for c in connectivity_graph
+                    if c in self.__missing_identifiers
+                        or connectivity_graph.nodes[c].get('node') in self.__missing_identifiers
+            ]
             for ms_node in missing_nodes:
                 bypass_missing_node(ms_node)
 
@@ -1203,7 +1208,7 @@ class Network(object):
             if len([node for node in subgraph.nodes if connectivity_graph.degree[node] == 1]) == 0:
                 pseudo_terminals += list(subgraph.nodes)[0:1]
 
-        # sorting nodes with priority -> terminal, number of features (2 than 1, than any size), distance to neighbours
+        # sorting nodes with degree-based heuristics
         one_feature_terminals = {
             n: min([
                 features[0].geometry.centroid.distance(nf.geometry.centroid)
@@ -1284,6 +1289,35 @@ class Network(object):
                                     if connectivity_graph.degree(node) == 1
                                     else [get_node_feature(node_dict, neighbour_features, used_features)]
                                 )
+
+                                # Precompute optimal feature-feature pairing when both sides have
+                                # multiple features — ensures globally minimal total distance
+                                # rather than greedy sequential assignment
+                                _optimal_feature_pair = {}
+                                if (neighbour_dict['type'] == 'feature'
+                                    and len(neighbour_dict.get('used', set())) == 0
+                                    and len(node_features) > 1
+                                    and len(neighbour_dict.get('features', [])) > 1):
+                                    a_feats = sorted(node_features, key=lambda f: f.id)
+                                    b_feats = sorted(neighbour_dict['features'], key=lambda f: f.id)
+                                    if len(a_feats) == len(b_feats):
+                                        min_cost = math.inf
+                                        best = None
+                                        for perm in itertools.permutations(range(len(b_feats))):
+                                            cost = sum(
+                                                b_feats[perm[i]].geometry.centroid.distance(
+                                                    a_feats[i].geometry.centroid
+                                                )
+                                                for i in range(len(a_feats))
+                                            )
+                                            if cost < min_cost:
+                                                min_cost = cost
+                                                best = dict(zip(
+                                                    [a.id for a in a_feats],
+                                                    [b_feats[p] for p in perm]
+                                                ))
+                                        _optimal_feature_pair = best or {}
+
                                 for node_feature in node_features:
                                     used_features.setdefault(node, set()).add(node_feature)
                                     node_feature_centre = node_feature.geometry.centroid
@@ -1291,16 +1325,20 @@ class Network(object):
                                     if neighbour_dict['type'] == 'feature':
                                         terminal_graph.add_node(node_feature.id, feature=node_feature)
                                         if len(used_ids := neighbour_dict.get('used', set())):
-                                            closest_feature_id = self.__closest_feature_id_to_point(node_feature_centre, used_ids)
-                                            terminal_graph.add_edge(node_feature.id, closest_feature_id,
-                                                upstream=True, **debug_properties)
+                                            # Connect to ALL used features so that a terminal isn't limited
+                                            # to just one — the route graph can choose the correct path
+                                            for fid in used_ids:
+                                                terminal_graph.add_edge(node_feature.id, fid,
+                                                    upstream=True, **debug_properties)
                                             segments = set()
-                                            for connected_edges in route_graph[closest_feature_id].values():
-                                                for edge_dict in connected_edges.values():
-                                                    if (segment_id := edge_dict.get('segment')) is not None:
-                                                        segments.add(segment_id)
-                                            terminal_graph.nodes[closest_feature_id]['upstream'] = True
-                                            terminal_graph.nodes[closest_feature_id]['segments'] = segments
+                                            for fid in used_ids:
+                                                for connected_edges in route_graph[fid].values():
+                                                    for edge_dict in connected_edges.values():
+                                                        if (segment_id := edge_dict.get('segment')) is not None:
+                                                            segments.add(segment_id)
+                                            for fid in used_ids:
+                                                terminal_graph.nodes[fid]['upstream'] = True
+                                                terminal_graph.nodes[fid]['segments'] = segments
                                         else:
                                             neighbour_terminal_laterals = [
                                                 k for k in connectivity_graph[neighbour]
@@ -1308,10 +1346,12 @@ class Network(object):
                                             ]
                                             neighbour_features = (
                                                 neighbour_dict.get('features', [])
-                                                if len(neighbour_dict.get('features', [])) <= 2 and degree == 1 and len(node_features) == 1
+                                                if len(neighbour_dict.get('features', [])) <= 2 and len(node_features) == 1
                                                 else [get_node_feature(neighbour_dict, [node_feature], used_features)]
                                                 if len(neighbour_terminal_laterals) > 0 and len(used_features.get(neighbour, set())) == 0
-                                                else [get_node_feature(neighbour_dict, [node_feature], used_features)]
+                                                else ([_optimal_feature_pair[node_feature.id]]
+                                                      if node_feature.id in _optimal_feature_pair
+                                                      else [get_node_feature(neighbour_dict, [node_feature], used_features)])
                                             )
                                             for neighbour_feature in neighbour_features:
                                                 used_features.setdefault(neighbour, set()).add(neighbour_feature)
