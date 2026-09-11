@@ -827,7 +827,12 @@ class Network(object):
 
         # Removing missing nodes (in FC and AC)
         if settings.get('NPO', False):
-            missing_nodes = [c for c in connectivity_graph.nodes if c in self.__missing_identifiers]
+            missing_nodes = [
+                c
+                for c in connectivity_graph
+                    if c in self.__missing_identifiers
+                        or connectivity_graph.nodes[c].get('node') in self.__missing_identifiers
+            ]
             for ms_node in missing_nodes:
                 bypass_missing_node(ms_node)
 
