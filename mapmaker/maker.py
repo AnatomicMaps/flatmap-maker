@@ -622,7 +622,8 @@ class MapMaker:
             tile_db.close()
         assert self.__flatmap.extent is not None
         assert self.__flatmap.centre is not None
-        style_dict = MapStyle.style(self.__raster_layers, mb_vector_sources, self.__zoom, self.__flatmap.extent, self.__flatmap.centre)
+        style_dict = MapStyle.style(self.__raster_layers, mb_vector_sources, self.__zoom, self.__flatmap.extent, self.__flatmap.centre,
+                                    self.__manifest.attribution)
         with open(self.__map_dir / 'style.json', 'w') as output_file:
             json.dump(style_dict, output_file)
 
