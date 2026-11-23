@@ -32,6 +32,9 @@ It MAY optionally have:
 *   ``"max-raster-zoom"`` for the maximum zoom level for raster tiles (defaults to ``"max-zoom"``).
 *   ``"path-min-coverage"`` for path zoom range calculation lower coverage bound (default ``0.7``).
 *   ``"path-max-coverage"`` for path zoom range calculation upper coverage bound (default ``5.0``).
+*   an ``"attribution"`` string, which may contain HTML, shown as the map's attribution
+    (set on the vector tile source in the generated ``style.json``). Defaults to
+    ``© <a href="https://www.auckland.ac.nz/en/abi.html">Auckland Bioengineering Institute</a>``.
 *   a ``"connectivityTerms"`` JSON file specifying equvalences between historical anatomical terms
     used in SCKAN to standard terms (e.g. between FMA and ILX identifiers). **DEPRECATED**
 *   a ``"connectivity"`` JSON file specifying manually defined neuron paths. **DEPRECATED**
@@ -96,6 +99,7 @@ An example
         "description": "description.json",
         "anatomicalMap": "anatomical_map.json",
         "properties": "properties.json",
+        "attribution": "© <a href=\"https://www.auckland.ac.nz/en/abi.html\">Auckland Bioengineering Institute</a>",
         "neuronConnectivity": [
             "https://apinatomy.org/uris/models/keast-bladder",
             "https://apinatomy.org/uris/models/ard-arm-cardiac"
