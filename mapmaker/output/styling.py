@@ -18,6 +18,8 @@
 #
 #===============================================================================
 
+from typing import Optional
+
 from mapmaker.geometry import MapBounds
 
 #===============================================================================
@@ -58,7 +60,7 @@ class MBRasterTileSource(object):
 
 class MBVectorTileSource(object):
     @staticmethod
-    def style(vector_sources, bounds, layer_zoom):
+    def style(vector_sources, bounds, layer_zoom, attribution=ATTRIBUTION):
         return {
             'type': 'vector',
             'tiles': ['/mvtiles/{z}/{x}/{y}'],
@@ -67,7 +69,7 @@ class MBVectorTileSource(object):
             'minzoom': layer_zoom[0],
             'maxzoom': layer_zoom[1],
             'bounds': bounds,   # southwest(lng, lat), northeast(lng, lat)
-            'attribution': ATTRIBUTION,
+            'attribution': attribution,
             'generator': 'tippecanoe',
             'vector_layers': vector_sources['vector_layers'],
             'tilestats': vector_sources['tilestats']
@@ -77,9 +79,9 @@ class MBVectorTileSource(object):
 
 class MBTileSources(object):
     @staticmethod
-    def style(raster_sources, vector_sources, bounds, map_zoom):
+    def style(raster_sources, vector_sources, bounds, map_zoom, attribution=ATTRIBUTION):
         sources = {}
-        sources['vector-tiles'] = MBVectorTileSource.style(vector_sources, bounds, map_zoom)
+        sources['vector-tiles'] = MBVectorTileSource.style(vector_sources, bounds, map_zoom, attribution)
         for source in raster_sources:
             sources[source.id] = MBRasterTileSource.style(source.id, bounds, source.min_zoom, source.max_zoom)
         return sources
@@ -88,11 +90,12 @@ class MBTileSources(object):
 
 class PMTileSources(object):
     @staticmethod
-    def style(raster_sources):
+    def style(raster_sources, attribution=ATTRIBUTION):
         sources = {
             'vector-tiles': {
                 'type': 'vector',
-                'url': 'pmtiles:/'
+                'url': 'pmtiles:/',
+                'attribution': attribution
             }
         }
         for source in raster_sources:
@@ -106,11 +109,14 @@ class PMTileSources(object):
 
 class MapStyle(object):
     @staticmethod
-    def style(raster_sources, mb_vector_sources, map_zoom, bounds: MapBounds, centre: tuple[float, float]):
+    def style(raster_sources, mb_vector_sources, map_zoom, bounds: MapBounds, centre: tuple[float, float],
+              attribution: Optional[str]=None):
+        if attribution is None:
+            attribution = ATTRIBUTION
         return {
             'version': 8,
-            'sources': PMTileSources.style(raster_sources) if mb_vector_sources is None
-                  else MBTileSources.style(raster_sources, mb_vector_sources, bounds, map_zoom),
+            'sources': PMTileSources.style(raster_sources, attribution) if mb_vector_sources is None
+                  else MBTileSources.style(raster_sources, mb_vector_sources, bounds, map_zoom, attribution),
             'glyphs': 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
             'zoom': map_zoom[2],
             'center': centre,

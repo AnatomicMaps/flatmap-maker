@@ -414,6 +414,10 @@ class Manifest:
         return self.__manifest.get('knowledge')
 
     @property
+    def attribution(self) -> Optional[str]:
+        return self.__manifest.get('attribution')
+
+    @property
     def legend(self):
         return self.__manifest.get('legend')
 
